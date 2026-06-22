@@ -1,0 +1,236 @@
+import 'package:flutter/material.dart';
+import '../models/leave_store.dart';
+import '../widgets/back_button.dart';
+
+class MyLeaveApprovalsPage extends StatefulWidget {
+  const MyLeaveApprovalsPage({super.key});
+
+  @override
+  State<MyLeaveApprovalsPage> createState() => _MyLeaveApprovalsPageState();
+}
+
+class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
+  static const _color = Color(0xFF1565C0);
+
+  List<LeaveApplication> get _apps => LeaveStore.applications;
+
+  int get _pending  => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.pending).length;
+  int get _approved => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
+  int get _denied   => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: _color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.approval_rounded,
+                    color: _color, size: 26),
+              ),
+              const SizedBox(width: 16),
+              Text('My Approvals',
+                  style: Theme.of(context).textTheme.headlineMedium),
+            ]),
+            const SizedBox(height: 24),
+
+            // Status summary row
+            Row(children: [
+              _StatusChip('Pending',  Icons.hourglass_empty_rounded,
+                  Colors.orange.shade700, _pending),
+              const SizedBox(width: 10),
+              _StatusChip('Approved', Icons.check_circle_rounded,
+                  Colors.green.shade700, _approved),
+              const SizedBox(width: 10),
+              _StatusChip('Denied',   Icons.cancel_rounded,
+                  Colors.red.shade700, _denied),
+            ]),
+            const SizedBox(height: 20),
+
+            if (_apps.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Center(
+                    child: Column(children: [
+                      Icon(Icons.inbox_rounded,
+                          size: 48, color: Colors.grey.shade300),
+                      const SizedBox(height: 10),
+                      Text('No leave applications yet',
+                          style: TextStyle(
+                              color: Colors.grey.shade400, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('Applications you submit will appear here.',
+                          style: TextStyle(
+                              color: Colors.grey.shade400, fontSize: 12)),
+                    ]),
+                  ),
+                ),
+              )
+            else
+              ..._apps.map((a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _AppCard(app: a),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AppCard extends StatelessWidget {
+  final LeaveApplication app;
+  const _AppCard({required this.app});
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Color _statusColor(LeaveApprovalStatus s) => switch (s) {
+        LeaveApprovalStatus.approved => Colors.green.shade700,
+        LeaveApprovalStatus.denied   => Colors.red.shade700,
+        LeaveApprovalStatus.pending  => Colors.orange.shade700,
+      };
+
+  IconData _statusIcon(LeaveApprovalStatus s) => switch (s) {
+        LeaveApprovalStatus.approved => Icons.check_circle_rounded,
+        LeaveApprovalStatus.denied   => Icons.cancel_rounded,
+        LeaveApprovalStatus.pending  => Icons.hourglass_empty_rounded,
+      };
+
+  String _statusLabel(LeaveApprovalStatus s) => switch (s) {
+        LeaveApprovalStatus.approved => 'Approved',
+        LeaveApprovalStatus.denied   => 'Denied',
+        LeaveApprovalStatus.pending  => 'Pending',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(app.id,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            ),
+            const SizedBox(height: 6),
+
+            Wrap(spacing: 16, runSpacing: 6, children: [
+              _InfoChip(Icons.calendar_today_rounded,
+                  '${_fmt(app.from)} → ${_fmt(app.to)}'),
+              _InfoChip(Icons.numbers_rounded,
+                  '${app.days} day${app.days == 1 ? '' : 's'}'),
+              _InfoChip(Icons.access_time_rounded,
+                  'Applied: ${_fmt(app.appliedOn)}'),
+              if (app.reason.isNotEmpty)
+                _InfoChip(Icons.notes_rounded, app.reason),
+            ]),
+            const SizedBox(height: 14),
+            const Divider(),
+            const SizedBox(height: 10),
+
+            // Approval status
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Manager Approval',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF78909C),
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              _StatusPill(
+                _statusLabel(app.managerStatus),
+                _statusColor(app.managerStatus),
+                _statusIcon(app.managerStatus),
+              ),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  const _StatusPill(this.label, this.color, this.icon);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 5),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      ]),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _InfoChip(this.icon, this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 12, color: const Color(0xFF78909C)),
+      const SizedBox(width: 4),
+      Text(label,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+    ]);
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final int count;
+  const _StatusChip(this.label, this.icon, this.color, this.count);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text('$count $label',
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+      ]),
+    );
+  }
+}

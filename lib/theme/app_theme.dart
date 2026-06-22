@@ -1,0 +1,63 @@
+import 'package:flutter/material.dart';
+
+class AppTheme {
+  static const Color primaryBlue = Color(0xFF0D47A1);
+  static const Color primaryBlueDark = Color(0xFF002171);
+  static const Color accentBlue = Color(0xFF1565C0);
+  static const Color lightBlue = Color(0xFFE3F2FD);
+  static const Color sidebarBg = Color(0xFF0A3471);
+  static const Color sidebarSelectedBg = Color(0xFF1565C0);
+  static const Color white = Colors.white;
+
+  static ThemeData get lightTheme {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primaryBlue,
+      brightness: Brightness.light,
+      primary: primaryBlue,
+      onPrimary: white,
+      secondary: accentBlue,
+      surface: white,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: primaryBlue,
+        foregroundColor: white,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          color: white,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: white,
+        elevation: 2,
+        shadowColor: Colors.black12,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+      textTheme: const TextTheme(
+        headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryBlueDark),
+        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: primaryBlueDark),
+        headlineSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: primaryBlueDark),
+        titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A237E)),
+        bodyLarge: TextStyle(fontSize: 14, color: Color(0xFF37474F)),
+        bodyMedium: TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+      ),
+      dividerTheme: const DividerThemeData(color: Color(0xFFE0E0E0), thickness: 1),
+    );
+  }
+}

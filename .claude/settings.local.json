@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($f = \"C:\\\\Users\\\\Sahana R\\\\Downloads\\\\flutter_sdk.zip\"; if \\(Test-Path $f\\) { \"$\\([math]::Round\\(\\(Get-Item $f\\).Length/1MB, 1\\)\\) MB downloaded\" } else { \"File not found yet\" })",
+      "Bash(\"/c/Users/Sahana R/flutter/bin/flutter\" pub get)",
+      "Bash(\"/c/Users/Sahana R/flutter/bin/flutter\" analyze)",
+      "Bash(\"/c/Users/Sahana R/flutter/bin/flutter\" build web --debug)",
+      "Bash(\"/c/Users/Sahana R/flutter/bin/flutter\" build web --release)"
+    ]
+  }
+}

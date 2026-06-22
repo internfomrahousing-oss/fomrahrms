@@ -1,0 +1,7 @@
+in employee onboarding, employee and manager shud enter details 
+once they enter data it should be visible in hr server. 
+the can enter data once but view it when they open employee management 
+following data to be entered: 
+Collect
+ Aadhaar, PAN Resume, Educational Certificates,Experience Letters
+ ,Bank Details, Passport Photo
