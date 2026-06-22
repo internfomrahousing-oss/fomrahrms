@@ -1,6 +1,8 @@
 {
+  "framework": null,
+  "buildCommand": "echo 'Pre-built Flutter web app — no build needed'",
+  "installCommand": "echo 'Skipping install'",
   "outputDirectory": "build/web",
-  "buildCommand": null,
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
