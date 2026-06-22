@@ -71,13 +71,19 @@ import '../models/user_session.dart';
 */
 
 class SupabaseService {
-  static SupabaseClient get _db => Supabase.instance.client;
+  static SupabaseClient? get _db {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // ── Leave Applications ────────────────────────────────────────────────
 
   static Future<void> saveLeaveApplication(LeaveApplication app) async {
     try {
-      await _db.from('leave_applications').upsert({
+      await _db?.from('leave_applications').upsert({
         'id':            app.id,
         'employee_name': app.employeeName,
         'department':    app.department,
@@ -96,7 +102,7 @@ class SupabaseService {
       String id, LeaveApprovalStatus status) async {
     try {
       await _db
-          .from('leave_applications')
+          ?.from('leave_applications')
           .update({'manager_status': status.name})
           .eq('id', id);
     } catch (_) {}
@@ -105,9 +111,10 @@ class SupabaseService {
   static Future<List<LeaveApplication>> fetchLeaveApplications() async {
     try {
       final data = await _db
-          .from('leave_applications')
+          ?.from('leave_applications')
           .select()
           .order('applied_on', ascending: false);
+      if (data == null) return [];
       final list = (data as List).map((row) {
         final app = LeaveApplication(
           id:           row['id'] as String,
@@ -137,7 +144,7 @@ class SupabaseService {
 
   static Future<void> saveMaintenanceTicket(MaintenanceTicket ticket) async {
     try {
-      await _db.from('maintenance_tickets').upsert({
+      await _db?.from('maintenance_tickets').upsert({
         'id':               ticket.id,
         'reported_by_role': ticket.reportedByRole.name,
         'reported_by':      ticket.reportedBy,
@@ -153,7 +160,7 @@ class SupabaseService {
       String id, MaintenanceStatus status) async {
     try {
       await _db
-          .from('maintenance_tickets')
+          ?.from('maintenance_tickets')
           .update({'status': status.name})
           .eq('id', id);
     } catch (_) {}
@@ -162,9 +169,10 @@ class SupabaseService {
   static Future<List<MaintenanceTicket>> fetchMaintenanceTickets() async {
     try {
       final data = await _db
-          .from('maintenance_tickets')
+          ?.from('maintenance_tickets')
           .select()
           .order('created_at', ascending: false);
+      if (data == null) return [];
       return (data as List).map((row) {
         final roleStr = (row['reported_by_role'] as String?) ?? 'employee';
         final role = UserRole.values.firstWhere(
@@ -195,7 +203,7 @@ class SupabaseService {
 
   static Future<void> saveProfile(ProfileData data) async {
     try {
-      await _db.from('employee_profiles').upsert({
+      await _db?.from('employee_profiles').upsert({
         'employee_id':       data.employeeId,
         'full_name':         data.fullName,
         'mobile':            data.mobile,
@@ -211,7 +219,8 @@ class SupabaseService {
 
   static Future<List<ProfileData>> fetchProfiles() async {
     try {
-      final data = await _db.from('employee_profiles').select();
+      final data = await _db?.from('employee_profiles').select();
+      if (data == null) return [];
       return (data as List).map((row) => ProfileData(
         employeeId:       (row['employee_id'] as String?) ?? '',
         fullName:         (row['full_name'] as String?) ?? '',
@@ -232,7 +241,7 @@ class SupabaseService {
 
   static Future<void> saveEmployee(Employee emp) async {
     try {
-      await _db.from('employees').upsert({
+      await _db?.from('employees').upsert({
         'id':              emp.id,
         'name':            emp.name,
         'department':      emp.department,
@@ -254,7 +263,8 @@ class SupabaseService {
 
   static Future<List<Employee>> fetchEmployees() async {
     try {
-      final data = await _db.from('employees').select().order('name');
+      final data = await _db?.from('employees').select().order('name');
+      if (data == null) return [];
       return (data as List).map((row) => Employee(
         id:            row['id'] as String,
         name:          row['name'] as String,
