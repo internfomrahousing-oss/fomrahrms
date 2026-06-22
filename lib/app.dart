@@ -58,6 +58,15 @@ String? _guard(GoRouterState state) {
 
   final role = UserSession.role;
 
+  // Root path: send to the role's home
+  if (path == '/' || path.isEmpty) {
+    return role == UserRole.hr
+        ? '/dashboard'
+        : role == UserRole.employee
+            ? '/employee/dashboard'
+            : '/manager/dashboard';
+  }
+
   if (path.startsWith('/employee/') && role != UserRole.employee) {
     return role == UserRole.hr ? '/dashboard' : '/manager/dashboard';
   }
@@ -75,6 +84,20 @@ String? _guard(GoRouterState state) {
 final _router = GoRouter(
   initialLocation: '/login',
   redirect: (_, state) => _guard(state),
+  errorBuilder: (context, state) => Scaffold(
+    body: Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.error_outline, size: 48, color: Color(0xFF0D47A1)),
+        const SizedBox(height: 16),
+        const Text('Page not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: () => context.go('/login'),
+          child: const Text('Go to Login'),
+        ),
+      ]),
+    ),
+  ),
   routes: [
     // ── Login ──────────────────────────────────────────────────────────────
     GoRoute(path: '/login', builder: (_, __) => const LoginPage()),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/user_session.dart';
 import '../theme/app_theme.dart';
 
 class _NavItem {
@@ -307,7 +308,7 @@ class _SidebarFooter extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.go('/login'),
+        onTap: () { UserSession.clear(); context.go('/login'); },
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
