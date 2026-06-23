@@ -164,7 +164,6 @@ final _router = GoRouter(
         GoRoute(path: '/approvals',                       builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/notifications',                   builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/reports-analytics',               builder: (_, __) => const ReportsAnalyticsPage()),
-        GoRoute(path: '/administration',                  builder: (_, __) => const AdministrationPage()),
       ],
     ),
 
@@ -222,7 +221,6 @@ final _router = GoRouter(
         GoRoute(path: '/manager/approvals',               builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/manager/notifications',           builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/manager/reports-analytics',       builder: (_, __) => const ReportsAnalyticsPage()),
-        GoRoute(path: '/manager/administration',          builder: (_, __) => const AdministrationPage()),
         // Personal pages
         GoRoute(path: '/manager/my-details',              builder: (_, __) => const MyDetailsPage()),
         GoRoute(path: '/manager/my-attendance',           builder: (_, __) => const EmployeeAttendancePage()),

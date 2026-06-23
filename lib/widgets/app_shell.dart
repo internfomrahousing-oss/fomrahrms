@@ -27,7 +27,6 @@ const _navItems = [
   _NavItem('Approvals', Icons.approval_rounded, '/approvals'),
   _NavItem('Notifications', Icons.notifications_rounded, '/notifications'),
   _NavItem('Reports & Analytics', Icons.bar_chart_rounded, '/reports-analytics'),
-  _NavItem('Administration', Icons.admin_panel_settings_rounded, '/administration'),
 ];
 
 const _personalNavItems = [

@@ -21,7 +21,6 @@ const _hrNavItems = [
   _NavItem('Approvals',              Icons.approval_rounded,               '/manager/approvals'),
   _NavItem('Notifications',          Icons.notifications_rounded,          '/manager/notifications'),
   _NavItem('Reports & Analytics',    Icons.bar_chart_rounded,              '/manager/reports-analytics'),
-  _NavItem('Administration',         Icons.admin_panel_settings_rounded,   '/manager/administration'),
 ];
 
 const _personalNavItems = [
