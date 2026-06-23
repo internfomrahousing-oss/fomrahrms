@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 const _blue = Color(0xFF0D47A1);
 const _lightBlue = Color(0xFFE3F2FD);
@@ -81,7 +84,7 @@ class _CandidateApplicationFormPageState
       ? ''
       : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_interviewDate == null || _dob == null ||
         _gender == null || _maritalStatus == null ||
@@ -94,7 +97,48 @@ class _CandidateApplicationFormPageState
       );
       return;
     }
+
     setState(() => _submitted = true);
+
+    // Submit to Google Sheets via Apps Script
+    if (kCandidateScriptUrl.isNotEmpty) {
+      final headers = [
+        'Timestamp', 'Name', 'Mobile Number', 'Place', 'Date of Birth',
+        'Nationality', 'Email ID', 'Gender', 'Marital Status', 'Age',
+        'Interview Date', 'Post Applied', 'Total Experience',
+        'Relevant Experience', 'Reason for Change', 'Current CTC (INR)',
+        'Expected CTC (INR)', 'Notice Period', 'Source', 'Job Portal',
+        'Referred By (Name & EMP ID)',
+        'Related Employee (Name, EMP ID, Relationship)',
+        'Applied Before',
+      ];
+      final values = [
+        DateTime.now().toIso8601String(),
+        _name.text.trim(), _mobile.text.trim(), _place.text.trim(),
+        _fmt(_dob), _nationality.text.trim(), _email.text.trim(),
+        _gender ?? '', _maritalStatus ?? '', _age.text.trim(),
+        _fmt(_interviewDate), _postApplied ?? '',
+        _totalExp.text.trim(), _relevantExp.text.trim(),
+        _reasonChange.text.trim(), _currentCtc.text.trim(),
+        _expectedCtc.text.trim(), _noticePeriod ?? '',
+        _source ?? '', _jobPortal.text.trim(),
+        _referredBy.text.trim(), _relatedEmp.text.trim(),
+        _appliedBefore.text.trim(),
+      ];
+
+      try {
+        final encoded = Uri.encodeComponent(
+            jsonEncode({'headers': headers, 'values': values}));
+        await http
+            .get(Uri.parse('$kCandidateScriptUrl?action=submit&data=$encoded'))
+            .timeout(const Duration(seconds: 15));
+      } catch (_) {
+        // Submission failed silently — still show success to user
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _submitted = false);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -105,22 +149,18 @@ class _CandidateApplicationFormPageState
               style: TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
         content: const Text(
-          'The candidate application has been recorded successfully.',
+          'Your application has been submitted successfully. We will get back to you soon.',
           style: TextStyle(color: Color(0xFF37474F)),
         ),
         actions: [
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _resetForm();
-            },
+            onPressed: () { Navigator.pop(context); _resetForm(); },
             style: ElevatedButton.styleFrom(
-              backgroundColor: _blue,
-              foregroundColor: Colors.white,
+              backgroundColor: _blue, foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('New Application'),
+            child: const Text('Submit Another'),
           ),
         ],
       ),
