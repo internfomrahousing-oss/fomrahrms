@@ -3,6 +3,7 @@ import 'user_session.dart';
 class AppUser {
   String name;
   String email;
+  String employeeId;
   String designation;
   String role; // 'Employee' | 'Manager' | 'HR' | 'Management'
   bool active;
@@ -10,6 +11,7 @@ class AppUser {
   AppUser({
     required this.name,
     required this.email,
+    required this.employeeId,
     required this.designation,
     required this.role,
     this.active = true,
@@ -37,6 +39,7 @@ class AppUser {
   Map<String, dynamic> toJson() => {
     'name':        name,
     'email':       email,
+    'employeeId':  employeeId,
     'designation': designation,
     'role':        role,
     'active':      active,
@@ -45,6 +48,7 @@ class AppUser {
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
     name:        j['name']        as String? ?? '',
     email:       j['email']       as String? ?? '',
+    employeeId:  j['employeeId']  as String? ?? '',
     designation: j['designation'] as String? ?? '',
     role:        j['role']        as String? ?? 'Employee',
     active:      j['active']      as bool?   ?? true,

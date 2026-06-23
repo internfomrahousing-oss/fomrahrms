@@ -286,9 +286,10 @@ class _UsersTab extends StatelessWidget {
   }
 
   void _showUserDialog(BuildContext context, AppUser? existing) {
-    final nameCtrl  = TextEditingController(text: existing?.name ?? '');
-    final emailCtrl = TextEditingController(text: existing?.email ?? '');
-    final desigCtrl = TextEditingController(text: existing?.designation ?? '');
+    final nameCtrl   = TextEditingController(text: existing?.name ?? '');
+    final emailCtrl  = TextEditingController(text: existing?.email ?? '');
+    final empIdCtrl  = TextEditingController(text: existing?.employeeId ?? '');
+    final desigCtrl  = TextEditingController(text: existing?.designation ?? '');
     String selectedRole = existing?.role ?? 'Employee';
     final roleNames = ['Employee', 'Manager', 'HR', 'Management'];
 
@@ -304,7 +305,9 @@ class _UsersTab extends StatelessWidget {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               _DialogField(controller: nameCtrl,  label: 'Full Name',    icon: Icons.person_rounded),
               const SizedBox(height: 12),
-              _DialogField(controller: emailCtrl, label: 'Email',        icon: Icons.email_rounded, keyboard: TextInputType.emailAddress),
+              _DialogField(controller: emailCtrl, label: 'Email ID (login email)', icon: Icons.email_rounded, keyboard: TextInputType.emailAddress),
+              const SizedBox(height: 12),
+              _DialogField(controller: empIdCtrl, label: 'Employee ID (e.g. EMP001)', icon: Icons.badge_rounded),
               const SizedBox(height: 12),
               _DialogField(controller: desigCtrl, label: 'Designation',  icon: Icons.work_rounded),
               const SizedBox(height: 12),
@@ -359,12 +362,14 @@ class _UsersTab extends StatelessWidget {
                   users.add(AppUser(
                     name:        nameCtrl.text.trim(),
                     email:       emailCtrl.text.trim(),
+                    employeeId:  empIdCtrl.text.trim(),
                     designation: desigCtrl.text.trim(),
                     role:        selectedRole,
                   ));
                 } else {
                   existing.name        = nameCtrl.text.trim();
                   existing.email       = emailCtrl.text.trim();
+                  existing.employeeId  = empIdCtrl.text.trim();
                   existing.designation = desigCtrl.text.trim();
                   existing.role        = selectedRole;
                 }

@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
       UserSession.loggedIn   = true;
       UserSession.role       = AppUser.userRoleFor(dynamicUser.role);
       UserSession.name       = dynamicUser.name;
-      UserSession.employeeId = dynamicUser.email;
+      UserSession.employeeId = dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email;
       if (!mounted) return;
       setState(() => _loading = false);
       _navigateForRole(UserSession.role);
