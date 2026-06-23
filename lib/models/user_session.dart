@@ -1,4 +1,4 @@
-enum UserRole { hr, employee, reportingManager }
+enum UserRole { hr, employee, reportingManager, management }
 
 class UserSession {
   static bool     loggedIn   = false;

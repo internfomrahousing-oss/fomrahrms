@@ -49,6 +49,8 @@ import 'widgets/manager_shell.dart';
 import 'pages/manager_dashboard_page.dart';
 import 'pages/manager_leave_page.dart';
 import 'pages/team_leave_approvals_page.dart';
+import 'widgets/management_shell.dart';
+import 'pages/management_dashboard_page.dart';
 
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
@@ -60,12 +62,16 @@ String? _guard(GoRouterState state) {
 
   // Root path: send to the role's home
   if (path == '/' || path.isEmpty) {
-    return role == UserRole.hr
-        ? '/dashboard'
-        : role == UserRole.employee
-            ? '/employee/dashboard'
-            : '/manager/dashboard';
+    if (role == UserRole.hr) return '/dashboard';
+    if (role == UserRole.employee) return '/employee/dashboard';
+    if (role == UserRole.management) return '/management/dashboard';
+    return '/manager/dashboard';
   }
+
+  // Management can access all routes — no redirect needed
+  if (role == UserRole.management) return null;
+
+  if (path.startsWith('/management/')) return '/dashboard';
 
   if (path.startsWith('/employee/') && role != UserRole.employee) {
     return role == UserRole.hr ? '/dashboard' : '/manager/dashboard';
@@ -224,6 +230,48 @@ final _router = GoRouter(
         GoRoute(path: '/manager/my-tasks',                builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/manager/my-payslips',             builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/manager/my-profile',              builder: (_, __) => const MyProfilePage()),
+      ],
+    ),
+    // ── Management Shell ──────────────────────────────────────────────────────
+    ShellRoute(
+      builder: (context, state, child) =>
+          ManagementShell(child: child, location: state.uri.path),
+      routes: [
+        GoRoute(path: '/management/dashboard',              builder: (_, __) => const ManagementDashboardPage()),
+        GoRoute(path: '/management/employee-management',    builder: (_, __) => const HrEmployeeRecordsPage()),
+        GoRoute(path: '/management/employee-management/add',builder: (_, __) => const AddEmployeePage()),
+        GoRoute(path: '/management/employee-management/profile', builder: (_, __) => const EmployeeProfilePage()),
+        GoRoute(path: '/management/attendance-management',  builder: (_, __) => const HrAttendanceRecordsPage()),
+        GoRoute(path: '/management/attendance/check-in',    builder: (_, __) => const CheckInPage()),
+        GoRoute(path: '/management/attendance/check-out',   builder: (_, __) => const CheckOutPage()),
+        GoRoute(path: '/management/attendance/gps-tracking',builder: (_, __) => const GpsTrackingPage()),
+        GoRoute(path: '/management/attendance/late-coming', builder: (_, __) => const LateComingPage()),
+        GoRoute(path: '/management/leave-management',       builder: (_, __) => const LeaveManagementPage()),
+        GoRoute(path: '/management/leave/apply',            builder: (_, __) => const ApplyLeavePage()),
+        GoRoute(path: '/management/leave/approvals',        builder: (_, __) => const LeaveApprovalsPage()),
+        GoRoute(path: '/management/leave/balance',          builder: (_, __) => const LeaveBalancePage()),
+        GoRoute(path: '/management/leave/team-approvals',   builder: (_, __) => const TeamLeaveApprovalsPage()),
+        GoRoute(path: '/management/leave/employee-records', builder: (_, __) => const HrLeaveRecordsPage()),
+        GoRoute(path: '/management/task-management',        builder: (_, __) => const TaskManagementPage()),
+        GoRoute(path: '/management/task-management/add',    builder: (_, __) => const AddTaskPage()),
+        GoRoute(path: '/management/performance-management', builder: (_, __) => const PerformanceManagementPage()),
+        GoRoute(path: '/management/salary-hike-engine',     builder: (_, __) => const SalaryHikeEnginePage()),
+        GoRoute(path: '/management/payroll-management',     builder: (_, __) => const PayrollManagementPage()),
+        GoRoute(path: '/management/interview-process',      builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
+        GoRoute(path: '/management/ads-management',         builder: (_, __) => const AdsManagementPage()),
+        GoRoute(path: '/management/lead-management',        builder: (_, __) => const LeadManagementPage()),
+        GoRoute(path: '/management/maintenance-management', builder: (_, __) => const MaintenanceManagementPage()),
+        GoRoute(path: '/management/approvals',              builder: (_, __) => const ApprovalsPage()),
+        GoRoute(path: '/management/notifications',          builder: (_, __) => const NotificationsPage()),
+        GoRoute(path: '/management/reports-analytics',      builder: (_, __) => const ReportsAnalyticsPage()),
+        GoRoute(path: '/management/administration',         builder: (_, __) => const AdministrationPage()),
+        GoRoute(path: '/management/my-details',             builder: (_, __) => const MyDetailsPage()),
+        GoRoute(path: '/management/my-attendance',          builder: (_, __) => const EmployeeAttendancePage()),
+        GoRoute(path: '/management/my-leave',               builder: (_, __) => const EmployeeLeavePage()),
+        GoRoute(path: '/management/my-tasks',               builder: (_, __) => const MyTasksPage()),
+        GoRoute(path: '/management/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
+        GoRoute(path: '/management/my-profile',             builder: (_, __) => const MyProfilePage()),
       ],
     ),
   ],

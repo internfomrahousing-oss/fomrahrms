@@ -26,9 +26,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   static const _credentials = {
-    'hr@fomrahousing.in':       ('Admin@123',   UserRole.hr,               'HR Admin',     'HR001'),
-    'manager@fomrahousing.in':  ('Manager@123', UserRole.reportingManager, 'Ravi Kumar',   'MGR001'),
-    'employee@fomrahousing.in': ('Emp@123',     UserRole.employee,         'Priya Sharma', 'EMP001'),
+    'hr@fomrahousing.in':         ('Admin@123',  UserRole.hr,               'HR Admin',     'HR001'),
+    'manager@fomrahousing.in':    ('Manager@123',UserRole.reportingManager, 'Ravi Kumar',   'MGR001'),
+    'employee@fomrahousing.in':   ('Emp@123',    UserRole.employee,         'Priya Sharma', 'EMP001'),
+    'management@fomrahousing.in': ('Mgmt@123',   UserRole.management,       'Director',     'MGMT001'),
   };
 
   Future<void> _login() async {
@@ -62,6 +63,8 @@ class _LoginPageState extends State<LoginPage> {
         context.go('/manager/dashboard');
       case UserRole.employee:
         context.go('/employee/dashboard');
+      case UserRole.management:
+        context.go('/management/dashboard');
     }
   }
 
@@ -247,6 +250,9 @@ class _CredentialsHint extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF0D47A1))),
         const SizedBox(height: 6),
+        _cred(Icons.manage_accounts_rounded, 'Management',
+            'management@fomrahousing.in', 'Mgmt@123'),
+        const SizedBox(height: 4),
         _cred(Icons.admin_panel_settings_rounded, 'HR',
             'hr@fomrahousing.in', 'Admin@123'),
         const SizedBox(height: 4),
