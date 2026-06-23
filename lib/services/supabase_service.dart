@@ -1,4 +1,5 @@
 // ignore_for_file: avoid_catches_without_on_clauses
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
@@ -312,6 +313,22 @@ class SupabaseService {
       )).toList();
     } catch (_) {
       return [];
+    }
+  }
+
+  // ── Resume Upload ─────────────────────────────────────────────────────
+
+  static Future<String?> uploadResume(
+      Uint8List bytes, String fileName, String mimeType) async {
+    try {
+      final path = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
+      await _db?.storage.from('resumes').uploadBinary(
+        path, bytes,
+        fileOptions: FileOptions(contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
+      );
+      return _db?.storage.from('resumes').getPublicUrl(path);
+    } catch (_) {
+      return null;
     }
   }
 
