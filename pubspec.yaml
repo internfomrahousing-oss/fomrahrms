@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   go_router: ^13.0.0
   flutter_svg: ^2.0.9
   geolocator: ^13.0.0
