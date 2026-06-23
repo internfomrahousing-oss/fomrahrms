@@ -1,7 +1,8 @@
-in employee onboarding, employee and manager shud enter details 
-once they enter data it should be visible in hr server. 
-the can enter data once but view it when they open employee management 
-following data to be entered: 
-Collect
- Aadhaar, PAN Resume, Educational Certificates,Experience Letters
- ,Bank Details, Passport Photo
+in administration, changes to be done only in the managemnt dashboard.
+no one else has acces to administration details.
+management has access to add in new employees and many other acesses. 
+first under,  Users:  Create User, Edit User, Activate User, Deactivate User
+users are the assigened an designation and depending on that they get respective dashboards
+Roles: employee, manager , hr
+they can edit whenever they want 
+Control Access To: Employees, Attendance, Payroll, GPS Tracking, Reports, Approvals. 
