@@ -1,36 +1,11 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
+import '../models/candidate_store.dart';
 
 const _blue = Color(0xFF0D47A1);
-
-// Column display config: [supabase_key, Display Label]
-const _columns = [
-  ['submitted_at',       'Submitted On'],
-  ['name',               'Name'],
-  ['mobile',             'Mobile'],
-  ['email',              'Email'],
-  ['interview_date',     'Interview Date'],
-  ['post_applied',       'Post Applied'],
-  ['place',              'Place'],
-  ['dob',                'DOB'],
-  ['nationality',        'Nationality'],
-  ['gender',             'Gender'],
-  ['marital_status',     'Marital Status'],
-  ['age',                'Age'],
-  ['total_experience',   'Total Exp.'],
-  ['relevant_experience','Relevant Exp.'],
-  ['reason_for_change',  'Reason for Change'],
-  ['current_ctc',        'Current CTC'],
-  ['expected_ctc',       'Expected CTC'],
-  ['notice_period',      'Notice Period'],
-  ['source',             'Source'],
-  ['job_portal',         'Job Portal'],
-  ['referred_by',        'Referred By'],
-  ['related_employee',   'Related Employee'],
-  ['applied_before',     'Applied Before'],
-];
 
 class InterviewProcessPage extends StatefulWidget {
   const InterviewProcessPage({super.key});
@@ -205,59 +180,68 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                     ? _ErrorView(error: _error!, onRetry: _fetch)
                     : _filtered.isEmpty
                         ? const _EmptyState()
-                        : SingleChildScrollView(
+                        : ListView.builder(
                             padding: const EdgeInsets.all(16),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Card(
-                                clipBehavior: Clip.antiAlias,
-                                child: DataTable(
-                                  headingRowColor: WidgetStateProperty.all(
-                                      const Color(0xFFE3F2FD)),
-                                  dataRowMinHeight: 44,
-                                  dataRowMaxHeight: 60,
-                                  columnSpacing: 20,
-                                  headingTextStyle: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: _blue),
-                                  columns: [
-                                    const DataColumn(label: Text('#')),
-                                    ..._columns.map((c) =>
-                                        DataColumn(label: Text(c[1]))),
-                                  ],
-                                  rows: _filtered.asMap().entries.map((e) {
-                                    final idx = e.key;
-                                    final row = e.value;
-                                    return DataRow(
-                                      color: WidgetStateProperty.resolveWith(
-                                        (s) => idx.isEven
-                                            ? Colors.white
-                                            : const Color(0xFFF8F9FA),
+                            itemCount: _filtered.length,
+                            itemBuilder: (context, idx) {
+                              final row = _filtered[idx];
+                              final name = (row['name'] ?? '').toString().trim();
+                              final date = _cell(row, 'submitted_at');
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: const BorderSide(color: Color(0xFFE0E0E0)),
+                                ),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () {
+                                    CandidateStore.selected = row;
+                                    context.push('/candidate-detail');
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 18, vertical: 14),
+                                    child: Row(children: [
+                                      CircleAvatar(
+                                        radius: 20,
+                                        backgroundColor: _blue.withValues(alpha: 0.1),
+                                        child: Text(
+                                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                              color: _blue,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
+                                        ),
                                       ),
-                                      cells: [
-                                        DataCell(Text('${idx + 1}',
+                                      const SizedBox(width: 14),
+                                      Expanded(child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            name.isEmpty ? 'Unknown' : name,
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                color: _blue),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            'Submitted: $date',
                                             style: const TextStyle(
                                                 fontSize: 12,
-                                                color: Color(0xFF78909C)))),
-                                        ..._columns.map((c) => DataCell(
-                                          ConstrainedBox(
-                                            constraints:
-                                                const BoxConstraints(maxWidth: 180),
-                                            child: Text(
-                                              _cell(row, c[0]),
-                                              style: const TextStyle(fontSize: 12),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 2,
-                                            ),
+                                                color: Color(0xFF78909C)),
                                           ),
-                                        )),
-                                      ],
-                                    );
-                                  }).toList(),
+                                        ],
+                                      )),
+                                      const Icon(Icons.chevron_right_rounded,
+                                          color: Color(0xFFBBDEFB), size: 22),
+                                    ]),
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
           ),
         ],
