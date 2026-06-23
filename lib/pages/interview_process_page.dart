@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 // ── PASTE YOUR APPS SCRIPT URL HERE after deploying ──────────────────────────
 // Extensions → Apps Script → Deploy → New deployment → Web app → Anyone
-const _kScriptUrl = '';
+const _kScriptUrl = 'https://script.google.com/macros/s/AKfycbx_7ND_IorBm_YhP9hCa7VJewEJ0EpxQ5hb32DIHqs9MFBm2spzMUNuW7nCbz-68UeuMA/exec';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _blue = Color(0xFF0D47A1);
@@ -43,11 +43,18 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
       final uri = Uri.parse(_kScriptUrl);
       final res = await http.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw Exception('Server returned ${res.statusCode}');
-      final body = json.decode(res.body) as Map<String, dynamic>;
-      final headers = (body['headers'] as List).cast<String>();
-      final rows = (body['rows'] as List)
-          .map((r) => (r as Map<String, dynamic>).map((k, v) => MapEntry(k, v.toString())))
-          .toList();
+      // Response is a 2D array: first row = headers, rest = data rows
+      final raw = json.decode(res.body) as List;
+      if (raw.isEmpty) { setState(() { _loading = false; }); return; }
+      final headers = (raw[0] as List).map((e) => e.toString().trim()).toList();
+      final rows = raw.skip(1).map((r) {
+        final cells = (r as List);
+        final map = <String, String>{};
+        for (int i = 0; i < headers.length; i++) {
+          map[headers[i]] = i < cells.length ? cells[i].toString() : '';
+        }
+        return map;
+      }).toList();
       setState(() {
         _headers  = headers;
         _rows     = rows;
