@@ -244,6 +244,26 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                               fontSize: 12, color: Color(0xFF78909C))),
                     ]),
                     const Spacer(),
+                    // Candidate Application Form button
+                    ElevatedButton.icon(
+                      onPressed: () => html.window.open(
+                        '${html.window.location.href.split('#')[0]}#/candidate-application',
+                        '_blank',
+                      ),
+                      icon: const Icon(Icons.assignment_ind_rounded, size: 16),
+                      label: const Text('Application Form',
+                          style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _blue,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                     // Settings icon
                     IconButton(
                       tooltip: 'Settings',
