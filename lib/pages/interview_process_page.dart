@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-// ── PASTE YOUR APPS SCRIPT URL HERE after deploying ──────────────────────────
-// Extensions → Apps Script → Deploy → New deployment → Web app → Anyone
-const _kScriptUrl = 'https://script.google.com/macros/s/AKfycbx_7ND_IorBm_YhP9hCa7VJewEJ0EpxQ5hb32DIHqs9MFBm2spzMUNuW7nCbz-68UeuMA/exec';
-// ─────────────────────────────────────────────────────────────────────────────
+const _kDefaultScriptUrl = 'https://script.google.com/macros/s/AKfycbx_7ND_IorBm_YhP9hCa7VJewEJ0EpxQ5hb32DIHqs9MFBm2spzMUNuW7nCbz-68UeuMA/exec';
+const _kUrlPrefKey = 'interview_script_url';
 
 const _blue = Color(0xFF0D47A1);
 
@@ -22,13 +21,14 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   List<Map<String, String>> _filtered = [];
   bool _loading = false;
   String? _error;
+  String _scriptUrl = _kDefaultScriptUrl;
   final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
-    if (_kScriptUrl.isNotEmpty) _fetch();
+    _loadUrlThenFetch();
   }
 
   @override
@@ -37,13 +37,21 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     super.dispose();
   }
 
+  Future<void> _loadUrlThenFetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kUrlPrefKey);
+    if (saved != null && saved.isNotEmpty) {
+      setState(() => _scriptUrl = saved);
+    }
+    if (_scriptUrl.isNotEmpty) _fetch();
+  }
+
   Future<void> _fetch() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final uri = Uri.parse(_kScriptUrl);
+      final uri = Uri.parse(_scriptUrl);
       final res = await http.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw Exception('Server returned ${res.statusCode}');
-      // Response is a 2D array: first row = headers, rest = data rows
       final raw = json.decode(res.body) as List;
       if (raw.isEmpty) { setState(() { _loading = false; }); return; }
       final headers = (raw[0] as List).map((e) => e.toString().trim()).toList();
@@ -73,6 +81,125 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
           ? _rows
           : _rows.where((r) => r.values.any((v) => v.toLowerCase().contains(q))).toList();
     });
+  }
+
+  void _showSettings() {
+    final ctrl = TextEditingController(text: _scriptUrl);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(children: [
+          Icon(Icons.settings_rounded, color: _blue, size: 20),
+          SizedBox(width: 8),
+          Text('Interview Form Settings',
+              style: TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 16)),
+        ]),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Google Apps Script URL',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF37474F))),
+              const SizedBox(height: 6),
+              TextField(
+                controller: ctrl,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: 'https://script.google.com/macros/s/...',
+                  hintStyle: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 12),
+                  prefixIcon: const Icon(Icons.link_rounded, color: _blue, size: 18),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: _blue, width: 2),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF5F7FA),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F4FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBBCCF0)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('How to get the URL:',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
+                    SizedBox(height: 4),
+                    Text('1. Open Google Sheet → Extensions → Apps Script',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF37474F))),
+                    Text('2. Deploy → New deployment → Web app',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF37474F))),
+                    Text('3. Set "Who has access" to Anyone → Deploy',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF37474F))),
+                    Text('4. Copy and paste the Web App URL here',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF37474F))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          TextButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString(_kUrlPrefKey, _kDefaultScriptUrl);
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              setState(() {
+                _scriptUrl = _kDefaultScriptUrl;
+                _headers = [];
+                _rows = [];
+                _filtered = [];
+              });
+              _fetch();
+            },
+            child: const Text('Reset to Default', style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final url = ctrl.text.trim();
+              if (url.isEmpty) return;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString(_kUrlPrefKey, url);
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              setState(() {
+                _scriptUrl = url;
+                _headers = [];
+                _rows = [];
+                _filtered = [];
+              });
+              _fetch();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Save & Reload'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -115,23 +242,29 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                               fontSize: 12, color: Color(0xFF78909C))),
                     ]),
                     const Spacer(),
-                    if (_kScriptUrl.isNotEmpty)
-                      IconButton(
-                        tooltip: 'Refresh',
-                        onPressed: _loading ? null : _fetch,
-                        icon: _loading
-                            ? const SizedBox(
-                                width: 18, height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: _blue))
-                            : const Icon(Icons.refresh_rounded, color: _blue),
-                      ),
+                    // Settings icon
+                    IconButton(
+                      tooltip: 'Settings',
+                      onPressed: _showSettings,
+                      icon: const Icon(Icons.settings_rounded, color: _blue),
+                    ),
+                    // Refresh icon
+                    IconButton(
+                      tooltip: 'Refresh',
+                      onPressed: _loading ? null : _fetch,
+                      icon: _loading
+                          ? const SizedBox(
+                              width: 18, height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: _blue))
+                          : const Icon(Icons.refresh_rounded, color: _blue),
+                    ),
                   ]),
                   const SizedBox(height: 16),
                 ],
 
                 // Search bar (only when data is loaded)
-                if (_kScriptUrl.isNotEmpty && _headers.isNotEmpty)
+                if (_headers.isNotEmpty)
                   TextField(
                     controller: _searchCtrl,
                     decoration: InputDecoration(
@@ -158,17 +291,15 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
           // ── Body ───────────────────────────────────────────────────────
           Expanded(
-            child: _kScriptUrl.isEmpty
-                ? _SetupInstructions()
-                : _loading && _rows.isEmpty
-                    ? const Center(child: CircularProgressIndicator(color: _blue))
-                    : _error != null
-                        ? _ErrorView(error: _error!, onRetry: _fetch)
-                        : _headers.isEmpty
-                            ? const Center(
-                                child: Text('No data yet.',
-                                    style: TextStyle(color: Color(0xFF78909C))))
-                            : _DataTable(headers: _headers, rows: _filtered),
+            child: _loading && _rows.isEmpty
+                ? const Center(child: CircularProgressIndicator(color: _blue))
+                : _error != null
+                    ? _ErrorView(error: _error!, onRetry: _fetch)
+                    : _headers.isEmpty
+                        ? const Center(
+                            child: Text('No data yet.',
+                                style: TextStyle(color: Color(0xFF78909C))))
+                        : _DataTable(headers: _headers, rows: _filtered),
           ),
         ],
       ),
@@ -245,115 +376,6 @@ class _DataTable extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ── Setup instructions ────────────────────────────────────────────────────────
-
-class _SetupInstructions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.integration_instructions_rounded,
-                          color: _blue, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text('Connect Google Form Responses',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: _blue)),
-                    ),
-                  ]),
-                  const SizedBox(height: 20),
-                  _Step(n: 1, text: 'Open your Google Sheet'),
-                  _Step(n: 2, text: 'Click Extensions → Apps Script'),
-                  _Step(n: 3, text: 'Paste the script from your developer and click Save'),
-                  _Step(n: 4, text: 'Click Deploy → New deployment → Web app'),
-                  _Step(n: 5, text: 'Set "Who has access" to Anyone → Deploy'),
-                  _Step(n: 6, text: 'Copy the Web App URL'),
-                  _Step(n: 7, text: 'Give the URL to your developer — they will paste it into the app'),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFFFE082)),
-                    ),
-                    child: const Row(children: [
-                      Icon(Icons.info_outline_rounded,
-                          size: 16, color: Color(0xFFF57F17)),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Once set up, new Google Form submissions will appear here automatically.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF5D4037)),
-                        ),
-                      ),
-                    ]),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Step extends StatelessWidget {
-  final int n;
-  final String text;
-  const _Step({required this.n, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          width: 24, height: 24,
-          decoration: BoxDecoration(
-              color: _blue, shape: BoxShape.circle),
-          child: Center(
-            child: Text('$n',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 3),
-            child: Text(text,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF37474F))),
-          ),
-        ),
-      ]),
     );
   }
 }
