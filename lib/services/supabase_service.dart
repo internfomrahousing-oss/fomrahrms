@@ -63,11 +63,39 @@ import '../models/user_session.dart';
     ifsc text default ''
   );
 
+  create table if not exists candidate_applications (
+    id uuid default gen_random_uuid() primary key,
+    submitted_at timestamptz default now(),
+    name text default '',
+    mobile text default '',
+    place text default '',
+    dob text default '',
+    nationality text default '',
+    email text default '',
+    gender text default '',
+    marital_status text default '',
+    age text default '',
+    interview_date text default '',
+    post_applied text default '',
+    total_experience text default '',
+    relevant_experience text default '',
+    reason_for_change text default '',
+    current_ctc text default '',
+    expected_ctc text default '',
+    notice_period text default '',
+    source text default '',
+    job_portal text default '',
+    referred_by text default '',
+    related_employee text default '',
+    applied_before text default ''
+  );
+
   -- Disable Row Level Security for development (enable and add policies for production)
   alter table leave_applications disable row level security;
   alter table maintenance_tickets disable row level security;
   alter table employee_profiles   disable row level security;
   alter table employees           disable row level security;
+  alter table candidate_applications disable row level security;
 */
 
 class SupabaseService {
@@ -282,6 +310,30 @@ class SupabaseService {
         bankAccount:   (row['bank_account'] as String?) ?? '',
         ifsc:          (row['ifsc'] as String?) ?? '',
       )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Candidate Applications ────────────────────────────────────────────
+
+  static Future<bool> saveCandidateApplication(Map<String, dynamic> data) async {
+    try {
+      await _db?.from('candidate_applications').insert(data);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchCandidateApplications() async {
+    try {
+      final data = await _db
+          ?.from('candidate_applications')
+          .select()
+          .order('submitted_at', ascending: false);
+      if (data == null) return [];
+      return List<Map<String, dynamic>>.from(data as List);
     } catch (_) {
       return [];
     }

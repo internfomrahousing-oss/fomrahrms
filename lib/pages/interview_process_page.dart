@@ -1,11 +1,36 @@
-import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import '../config/app_config.dart';
+import '../services/supabase_service.dart';
 
 const _blue = Color(0xFF0D47A1);
+
+// Column display config: [supabase_key, Display Label]
+const _columns = [
+  ['submitted_at',       'Submitted On'],
+  ['name',               'Name'],
+  ['mobile',             'Mobile'],
+  ['email',              'Email'],
+  ['interview_date',     'Interview Date'],
+  ['post_applied',       'Post Applied'],
+  ['place',              'Place'],
+  ['dob',                'DOB'],
+  ['nationality',        'Nationality'],
+  ['gender',             'Gender'],
+  ['marital_status',     'Marital Status'],
+  ['age',                'Age'],
+  ['total_experience',   'Total Exp.'],
+  ['relevant_experience','Relevant Exp.'],
+  ['reason_for_change',  'Reason for Change'],
+  ['current_ctc',        'Current CTC'],
+  ['expected_ctc',       'Expected CTC'],
+  ['notice_period',      'Notice Period'],
+  ['source',             'Source'],
+  ['job_portal',         'Job Portal'],
+  ['referred_by',        'Referred By'],
+  ['related_employee',   'Related Employee'],
+  ['applied_before',     'Applied Before'],
+];
 
 class InterviewProcessPage extends StatefulWidget {
   const InterviewProcessPage({super.key});
@@ -15,9 +40,8 @@ class InterviewProcessPage extends StatefulWidget {
 }
 
 class _InterviewProcessPageState extends State<InterviewProcessPage> {
-  List<String> _headers = [];
-  List<Map<String, String>> _rows = [];
-  List<Map<String, String>> _filtered = [];
+  List<Map<String, dynamic>> _all      = [];
+  List<Map<String, dynamic>> _filtered = [];
   bool _loading = false;
   String? _error;
   final _searchCtrl = TextEditingController();
@@ -26,7 +50,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
-    if (kCandidateScriptUrl.isNotEmpty) _fetch();
+    _fetch();
   }
 
   @override
@@ -38,24 +62,9 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   Future<void> _fetch() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final res = await http
-          .get(Uri.parse(kCandidateScriptUrl))
-          .timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) throw Exception('Server returned ${res.statusCode}');
-      final raw = json.decode(res.body) as List;
-      if (raw.isEmpty) { setState(() { _loading = false; }); return; }
-      final headers = (raw[0] as List).map((e) => e.toString().trim()).toList();
-      final rows = raw.skip(1).map((r) {
-        final cells = r as List;
-        final map = <String, String>{};
-        for (int i = 0; i < headers.length; i++) {
-          map[headers[i]] = i < cells.length ? cells[i].toString() : '';
-        }
-        return map;
-      }).toList();
+      final rows = await SupabaseService.fetchCandidateApplications();
       setState(() {
-        _headers  = headers;
-        _rows     = rows;
+        _all      = rows;
         _filtered = rows;
         _loading  = false;
       });
@@ -68,9 +77,22 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     final q = _searchCtrl.text.trim().toLowerCase();
     setState(() {
       _filtered = q.isEmpty
-          ? _rows
-          : _rows.where((r) => r.values.any((v) => v.toLowerCase().contains(q))).toList();
+          ? _all
+          : _all.where((r) => r.values.any(
+              (v) => v.toString().toLowerCase().contains(q))).toList();
     });
+  }
+
+  String _cell(Map<String, dynamic> row, String key) {
+    final v = row[key];
+    if (v == null) return '';
+    if (key == 'submitted_at') {
+      try {
+        final dt = DateTime.parse(v.toString()).toLocal();
+        return '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}  ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+      } catch (_) { return v.toString(); }
+    }
+    return v.toString();
   }
 
   @override
@@ -101,51 +123,59 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Interview Process',
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold, color: _blue)),
-                      Text('${_rows.length} application${_rows.length == 1 ? '' : 's'} received',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
-                    ]),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Interview Process',
+                            style: TextStyle(fontSize: 22,
+                                fontWeight: FontWeight.bold, color: _blue)),
+                        Text(
+                          '${_all.length} application${_all.length == 1 ? '' : 's'} received',
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF78909C)),
+                        ),
+                      ],
+                    ),
                   ),
-                  // Application Form button
                   ElevatedButton.icon(
                     onPressed: () => html.window.open(
                       '${html.window.location.href.split('#')[0]}#/candidate-application',
                       '_blank',
                     ),
                     icon: const Icon(Icons.assignment_ind_rounded, size: 16),
-                    label: const Text('Application Form', style: TextStyle(fontSize: 13)),
+                    label: const Text('Application Form',
+                        style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Refresh
                   IconButton(
                     tooltip: 'Refresh',
-                    onPressed: kCandidateScriptUrl.isEmpty || _loading ? null : _fetch,
+                    onPressed: _loading ? null : _fetch,
                     icon: _loading
                         ? const SizedBox(
                             width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: _blue))
                         : const Icon(Icons.refresh_rounded, color: _blue),
                   ),
                 ]),
 
-                // Search bar
-                if (_headers.isNotEmpty) ...[
+                if (_all.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   TextField(
                     controller: _searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'Search applications…',
-                      prefixIcon: const Icon(Icons.search_rounded, color: _blue, size: 20),
+                      prefixIcon: const Icon(Icons.search_rounded,
+                          color: _blue, size: 20),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 18),
@@ -168,15 +198,67 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
           // ── Body ────────────────────────────────────────────────────
           Expanded(
-            child: kCandidateScriptUrl.isEmpty
-                ? _SetupPrompt()
-                : _loading && _rows.isEmpty
-                    ? const Center(child: CircularProgressIndicator(color: _blue))
-                    : _error != null
-                        ? _ErrorView(error: _error!, onRetry: _fetch)
-                        : _headers.isEmpty
-                            ? _EmptyState()
-                            : _DataTable(headers: _headers, rows: _filtered),
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: _blue))
+                : _error != null
+                    ? _ErrorView(error: _error!, onRetry: _fetch)
+                    : _filtered.isEmpty
+                        ? const _EmptyState()
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(
+                                      const Color(0xFFE3F2FD)),
+                                  dataRowMinHeight: 44,
+                                  dataRowMaxHeight: 60,
+                                  columnSpacing: 20,
+                                  headingTextStyle: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: _blue),
+                                  columns: [
+                                    const DataColumn(label: Text('#')),
+                                    ..._columns.map((c) =>
+                                        DataColumn(label: Text(c[1]))),
+                                  ],
+                                  rows: _filtered.asMap().entries.map((e) {
+                                    final idx = e.key;
+                                    final row = e.value;
+                                    return DataRow(
+                                      color: WidgetStateProperty.resolveWith(
+                                        (s) => idx.isEven
+                                            ? Colors.white
+                                            : const Color(0xFFF8F9FA),
+                                      ),
+                                      cells: [
+                                        DataCell(Text('${idx + 1}',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF78909C)))),
+                                        ..._columns.map((c) => DataCell(
+                                          ConstrainedBox(
+                                            constraints:
+                                                const BoxConstraints(maxWidth: 180),
+                                            child: Text(
+                                              _cell(row, c[0]),
+                                              style: const TextStyle(fontSize: 12),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 2,
+                                            ),
+                                          ),
+                                        )),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
           ),
         ],
       ),
@@ -184,38 +266,8 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   }
 }
 
-// ── Empty / setup states ──────────────────────────────────────────────────────
-
-class _SetupPrompt extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Card(
-          margin: const EdgeInsets.all(24),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.link_off_rounded, size: 48, color: Color(0xFFBBDEFB)),
-              const SizedBox(height: 16),
-              const Text('Google Sheet not connected',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
-              const SizedBox(height: 8),
-              const Text(
-                'Deploy a Google Apps Script and paste the URL in app_config.dart to see submissions here.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Color(0xFF78909C)),
-              ),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
+  const _EmptyState();
   @override
   Widget build(BuildContext context) {
     return const Center(
@@ -223,91 +275,20 @@ class _EmptyState extends StatelessWidget {
         Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFBBDEFB)),
         SizedBox(height: 12),
         Text('No applications yet',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _blue)),
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600, color: _blue)),
         SizedBox(height: 6),
-        Text('Submitted forms will appear here.',
+        Text('Submitted forms will appear here instantly.',
             style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
       ]),
     );
   }
 }
 
-// ── Data table ────────────────────────────────────────────────────────────────
-
-class _DataTable extends StatelessWidget {
-  final List<String> headers;
-  final List<Map<String, String>> rows;
-  const _DataTable({required this.headers, required this.rows});
-
-  @override
-  Widget build(BuildContext context) {
-    if (rows.isEmpty) {
-      return const Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.search_off_rounded, size: 48, color: Color(0xFFBBDEFB)),
-          SizedBox(height: 12),
-          Text('No matching applications.',
-              style: TextStyle(color: Color(0xFF78909C))),
-        ]),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFE3F2FD)),
-            dataRowMinHeight: 44,
-            dataRowMaxHeight: 60,
-            columnSpacing: 24,
-            headingTextStyle: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: _blue),
-            columns: [
-              const DataColumn(label: Text('#')),
-              ...headers.map((h) => DataColumn(label: Text(h))),
-            ],
-            rows: rows.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final row = entry.value;
-              return DataRow(
-                color: WidgetStateProperty.resolveWith(
-                  (s) => idx.isEven ? Colors.white : const Color(0xFFF8F9FA),
-                ),
-                cells: [
-                  DataCell(Text('${idx + 1}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)))),
-                  ...headers.map((h) {
-                    final val = row[h] ?? '';
-                    return DataCell(
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 200),
-                        child: Text(val,
-                            style: const TextStyle(fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2),
-                      ),
-                    );
-                  }),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Error view ────────────────────────────────────────────────────────────────
-
 class _ErrorView extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
   const _ErrorView({required this.error, required this.onRetry});
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -315,7 +296,8 @@ class _ErrorView extends StatelessWidget {
         const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFBBDEFB)),
         const SizedBox(height: 12),
         const Text('Could not load applications',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _blue)),
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600, color: _blue)),
         const SizedBox(height: 6),
         Text(error,
             textAlign: TextAlign.center,
@@ -328,7 +310,8 @@ class _ErrorView extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: _blue, foregroundColor: Colors.white,
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ]),
