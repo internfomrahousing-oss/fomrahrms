@@ -1,4 +1,6 @@
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -358,15 +360,34 @@ class _DataTable extends StatelessWidget {
                           fontSize: 12, color: Color(0xFF78909C)))),
                   ...headers.map((h) {
                     final val = row[h] ?? '';
+                    final isUrl = val.startsWith('http://') || val.startsWith('https://');
                     return DataCell(
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 220),
-                        child: Text(
-                          val,
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
+                        child: isUrl
+                            ? MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () => html.window.open(val, '_blank'),
+                                  child: Text(
+                                    val,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF1565C0),
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: Color(0xFF1565C0),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                val,
+                                style: const TextStyle(fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
                       ),
                     );
                   }),
