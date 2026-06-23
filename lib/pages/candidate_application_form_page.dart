@@ -40,6 +40,16 @@ class _CandidateApplicationFormPageState
   final _relatedEmp   = TextEditingController();
   final _appliedBefore= TextEditingController();
 
+  // ── Education (fixed 5 rows)
+  final _education = [
+    _EduRow('X Standard'),
+    _EduRow('XII Standard / Diploma'),
+    _EduRow('UG Degree'),
+    _EduRow('PG Degree'),
+    _EduRow('Others'),
+  ];
+  String? _standingArrears; // 'Yes' | 'No'
+
   // ── Employment History (4 rows)
   final _empHistory = List.generate(4, (_) => _EmpRow());
 
@@ -75,6 +85,7 @@ class _CandidateApplicationFormPageState
       _jobPortal, _referredBy, _relatedEmp, _appliedBefore,
       _address, _declarationName, _signatureDate,
     ]) { c.dispose(); }
+    for (final r in _education)  r.dispose();
     for (final r in _empHistory) r.dispose();
     for (final r in _referrals)  r.dispose();
     super.dispose();
@@ -190,6 +201,8 @@ class _CandidateApplicationFormPageState
       'referred_by':         _referredBy.text.trim(),
       'related_employee':    _relatedEmp.text.trim(),
       'applied_before':      _appliedBefore.text.trim(),
+      'standing_arrears':    _standingArrears ?? '',
+      'education_history':   _education.map((r) => r.toMap()).toList(),
       'employment_history':  _empHistory.map((r) => r.toMap()).toList(),
       'referrals':           _referrals.map((r) => r.toMap()).toList(),
       'address':             _address.text.trim(),
@@ -237,12 +250,14 @@ class _CandidateApplicationFormPageState
       _jobPortal, _referredBy, _relatedEmp, _appliedBefore,
       _address, _declarationName, _signatureDate,
     ]) { c.clear(); }
+    for (final r in _education)  r.clear();
     for (final r in _empHistory) r.clear();
     for (final r in _referrals)  r.clear();
     setState(() {
       _interviewDate = null; _dob = null;
       _gender = null; _maritalStatus = null;
       _postApplied = null; _noticePeriod = null; _source = null;
+      _standingArrears = null;
       _resumeFileName = null; _resumeUrl = null;
       _submitting = false;
     });
@@ -368,6 +383,17 @@ class _CandidateApplicationFormPageState
                       _RadioGroup(label: 'Notice Period (to join if selected)', required: true,
                           options: const ['Immediate','15 Days','30 Days','60 Days or more'],
                           value: _noticePeriod, onChanged: (v) => setState(() => _noticePeriod = v)),
+
+                      const SizedBox(height: 24),
+                      // ── Educational Qualifications ───────────────────
+                      _SectionHeader(icon: Icons.school_rounded,
+                          title: 'Educational Qualifications'),
+                      const SizedBox(height: 16),
+                      _EducationTable(
+                        rows: _education,
+                        standingArrears: _standingArrears,
+                        onArrearsChanged: (v) => setState(() => _standingArrears = v),
+                      ),
 
                       const SizedBox(height: 24),
                       // ── Employment History ───────────────────────────
@@ -511,6 +537,220 @@ class _CandidateApplicationFormPageState
           .expand((w) => [Expanded(child: w), const SizedBox(width: 14)])
           .toList()
         ..removeLast(),
+    );
+  }
+}
+
+// ── Education data holder ───────────────────────────────────────────────────────
+class _EduRow {
+  final String academics;
+  final degree    = TextEditingController();
+  final college   = TextEditingController();
+  final passing   = TextEditingController();
+  final marks     = TextEditingController();
+  String? certificate; // 'Yes' | 'No'
+
+  _EduRow(this.academics);
+
+  Map<String, String> toMap() => {
+    'academics':   academics,
+    'degree':      degree.text.trim(),
+    'college':     college.text.trim(),
+    'passing':     passing.text.trim(),
+    'marks':       marks.text.trim(),
+    'certificate': certificate ?? '',
+  };
+
+  void clear() {
+    degree.clear(); college.clear();
+    passing.clear(); marks.clear();
+    certificate = null;
+  }
+
+  void dispose() {
+    degree.dispose(); college.dispose();
+    passing.dispose(); marks.dispose();
+  }
+}
+
+// ── Education Table ─────────────────────────────────────────────────────────────
+class _EducationTable extends StatefulWidget {
+  final List<_EduRow> rows;
+  final String? standingArrears;
+  final ValueChanged<String?> onArrearsChanged;
+  const _EducationTable({
+    required this.rows,
+    required this.standingArrears,
+    required this.onArrearsChanged,
+  });
+
+  @override
+  State<_EducationTable> createState() => _EducationTableState();
+}
+
+class _EducationTableState extends State<_EducationTable> {
+  @override
+  Widget build(BuildContext context) {
+    const colWidths = [160.0, 150.0, 190.0, 120.0, 90.0, 130.0];
+    const headers   = [
+      'Academics', 'Degree /\nSpecialization',
+      'School / College / University',
+      'Month/Year\nof Passing', '% Marks', 'Certificate\nAvailable',
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Sub-header: Standing Arrears
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF8F9FA),
+            border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0))),
+          ),
+          child: Row(children: [
+            const Text('Standing Arrears in Degree, if any',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic,
+                    color: Color(0xFF37474F))),
+            const SizedBox(width: 16),
+            _arrearOption('Yes'),
+            const SizedBox(width: 12),
+            _arrearOption('No'),
+          ]),
+        ),
+
+        // Column headers
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Column(children: [
+            Container(
+              color: const Color(0xFFE3F2FD),
+              child: Row(
+                children: List.generate(headers.length, (i) => Container(
+                  width: colWidths[i],
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      right: i < headers.length - 1
+                          ? const BorderSide(color: Color(0xFFCCCCCC))
+                          : BorderSide.none,
+                    ),
+                  ),
+                  child: Text(headers[i],
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
+                )),
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            // Data rows
+            ...widget.rows.asMap().entries.map((e) {
+              final idx = e.key;
+              final row = e.value;
+              return Column(children: [
+                Row(children: [
+                  // Academics label (read-only)
+                  Container(
+                    width: colWidths[0],
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                    decoration: const BoxDecoration(
+                      border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+                    ),
+                    child: Text(row.academics,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
+                  ),
+                  _eCell(row.degree,  colWidths[1]),
+                  _eCell(row.college, colWidths[2]),
+                  _eCell(row.passing, colWidths[3], hint: 'MM/YYYY'),
+                  _eCell(row.marks,   colWidths[4],
+                      keyboard: TextInputType.number),
+                  // Certificate Yes/No
+                  Container(
+                    width: colWidths[5],
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Row(children: [
+                      _certOption(row, 'Yes'),
+                      const SizedBox(width: 6),
+                      _certOption(row, 'No'),
+                    ]),
+                  ),
+                ]),
+                if (idx < widget.rows.length - 1)
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              ]);
+            }),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _arrearOption(String label) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Radio<String>(
+        value: label,
+        groupValue: widget.standingArrears,
+        onChanged: widget.onArrearsChanged,
+        activeColor: _blue,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
+      Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
+    ]);
+  }
+
+  Widget _certOption(_EduRow row, String label) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Radio<String>(
+        value: label,
+        groupValue: row.certificate,
+        onChanged: (v) => setState(() => row.certificate = v),
+        activeColor: _blue,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
+      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF37474F))),
+    ]);
+  }
+
+  Widget _eCell(TextEditingController ctrl, double width,
+      {String? hint, TextInputType keyboard = TextInputType.text}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: TextField(
+        controller: ctrl,
+        keyboardType: keyboard,
+        style: const TextStyle(fontSize: 12),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: _blue, width: 1.5),
+          ),
+          filled: true,
+          fillColor: const Color(0xFFFAFAFA),
+        ),
+      ),
     );
   }
 }
