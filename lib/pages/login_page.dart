@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
+import '../models/app_user.dart';
+import '../services/user_store.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -25,11 +27,12 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  static const _credentials = {
-    'hr@fomrahousing.in':         ('Admin@123',  UserRole.hr,               'HR Admin',     'HR001'),
-    'manager@fomrahousing.in':    ('Manager@123',UserRole.reportingManager, 'Ravi Kumar',   'MGR001'),
-    'employee@fomrahousing.in':   ('Emp@123',    UserRole.employee,         'Priya Sharma', 'EMP001'),
-    'management@fomrahousing.in': ('Mgmt@123',   UserRole.management,       'Director',     'MGMT001'),
+  // Fallback system credentials (always work)
+  static const _systemCredentials = {
+    'hr@fomrahousing.in':         ('Admin@123',  UserRole.hr,               'HR Admin',  'HR001'),
+    'manager@fomrahousing.in':    ('Manager@123',UserRole.reportingManager, 'Ravi Kumar','MGR001'),
+    'employee@fomrahousing.in':   ('Emp@123',    UserRole.employee,         'Priya Sharma','EMP001'),
+    'management@fomrahousing.in': ('Mgmt@123',   UserRole.management,       'Director',  'MGMT001'),
   };
 
   Future<void> _login() async {
@@ -41,30 +44,48 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() { _loading = true; _error = null; });
-    await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
 
-    final match = _credentials[email];
+    // 1. Check dynamic users created by Management
+    final dynamicUser = await UserStore.findByEmail(email);
+    if (dynamicUser != null) {
+      final expected = AppUser.passwordForRole(dynamicUser.role);
+      if (password != expected) {
+        setState(() { _error = 'Invalid email or password.'; _loading = false; });
+        return;
+      }
+      UserSession.loggedIn   = true;
+      UserSession.role       = AppUser.userRoleFor(dynamicUser.role);
+      UserSession.name       = dynamicUser.name;
+      UserSession.employeeId = dynamicUser.email;
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _navigateForRole(UserSession.role);
+      return;
+    }
+
+    // 2. Fall back to system credentials
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    final match = _systemCredentials[email.toLowerCase()];
     if (match == null || match.$1 != password) {
       setState(() { _error = 'Invalid email or password.'; _loading = false; });
       return;
     }
-
     UserSession.loggedIn   = true;
     UserSession.role       = match.$2;
     UserSession.name       = match.$3;
     UserSession.employeeId = match.$4;
-
     setState(() => _loading = false);
-    switch (UserSession.role) {
-      case UserRole.hr:
-        context.go('/dashboard');
-      case UserRole.reportingManager:
-        context.go('/manager/dashboard');
-      case UserRole.employee:
-        context.go('/employee/dashboard');
-      case UserRole.management:
-        context.go('/management/dashboard');
+    _navigateForRole(UserSession.role);
+  }
+
+  void _navigateForRole(UserRole role) {
+    switch (role) {
+      case UserRole.hr:         context.go('/dashboard');
+      case UserRole.reportingManager: context.go('/manager/dashboard');
+      case UserRole.employee:   context.go('/employee/dashboard');
+      case UserRole.management: context.go('/management/dashboard');
     }
   }
 
@@ -249,6 +270,9 @@ class _CredentialsHint extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF0D47A1))),
+        const SizedBox(height: 2),
+        const Text('Users added by Management use role password below.',
+            style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
         const SizedBox(height: 6),
         _cred(Icons.manage_accounts_rounded, 'Management',
             'management@fomrahousing.in', 'Mgmt@123'),

@@ -1,24 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/app_user.dart';
+import '../services/user_store.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
 const _mgmtLight = Color(0xFFF3E5F5);
-
-// ── Data models ───────────────────────────────────────────────────────────────
-
-class _AppUser {
-  String name;
-  String email;
-  String designation;
-  String role;
-  bool active;
-  _AppUser({
-    required this.name,
-    required this.email,
-    required this.designation,
-    required this.role,
-    this.active = true,
-  });
-}
 
 class _Role {
   String name;
@@ -39,7 +24,7 @@ class _AdministrationPageState extends State<AdministrationPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
 
-  final List<_AppUser> _users = [];
+  List<AppUser> _users = [];
 
   final List<_Role> _roles = [
     _Role(name: 'Employee',   description: 'Personal attendance, leave, tasks and payslips'),
@@ -70,6 +55,16 @@ class _AdministrationPageState extends State<AdministrationPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    final users = await UserStore.load();
+    if (mounted) setState(() => _users = users);
+  }
+
+  Future<void> _saveUsers() async {
+    await UserStore.save(_users);
   }
 
   @override
@@ -140,7 +135,7 @@ class _AdministrationPageState extends State<AdministrationPage>
             child: TabBarView(
               controller: _tabs,
               children: [
-                _UsersTab(users: _users, roles: _roles, onChange: () => setState(() {})),
+                _UsersTab(users: _users, roles: _roles, onChange: () { setState(() {}); _saveUsers(); }),
                 _RolesTab(roles: _roles, onChange: () => setState(() {})),
                 _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
               ],
@@ -155,7 +150,7 @@ class _AdministrationPageState extends State<AdministrationPage>
 // ── Users tab ─────────────────────────────────────────────────────────────────
 
 class _UsersTab extends StatelessWidget {
-  final List<_AppUser> users;
+  final List<AppUser> users;
   final List<_Role> roles;
   final VoidCallback onChange;
   const _UsersTab({required this.users, required this.roles, required this.onChange});
@@ -290,7 +285,7 @@ class _UsersTab extends StatelessWidget {
     );
   }
 
-  void _showUserDialog(BuildContext context, _AppUser? existing) {
+  void _showUserDialog(BuildContext context, AppUser? existing) {
     final nameCtrl  = TextEditingController(text: existing?.name ?? '');
     final emailCtrl = TextEditingController(text: existing?.email ?? '');
     final desigCtrl = TextEditingController(text: existing?.designation ?? '');
@@ -361,7 +356,7 @@ class _UsersTab extends StatelessWidget {
               onPressed: () {
                 if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) return;
                 if (existing == null) {
-                  users.add(_AppUser(
+                  users.add(AppUser(
                     name:        nameCtrl.text.trim(),
                     email:       emailCtrl.text.trim(),
                     designation: desigCtrl.text.trim(),
