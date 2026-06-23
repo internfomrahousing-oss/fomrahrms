@@ -334,26 +334,20 @@ class SupabaseService {
 
   // ── Candidate Applications ────────────────────────────────────────────
 
-  static Future<bool> saveCandidateApplication(Map<String, dynamic> data) async {
-    try {
-      await _db?.from('candidate_applications').insert(data);
-      return true;
-    } catch (_) {
-      return false;
-    }
+  static Future<void> saveCandidateApplication(Map<String, dynamic> data) async {
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized. Please refresh and try again.');
+    await db.from('candidate_applications').insert(data);
   }
 
   static Future<List<Map<String, dynamic>>> fetchCandidateApplications() async {
-    try {
-      final data = await _db
-          ?.from('candidate_applications')
-          .select()
-          .order('submitted_at', ascending: false);
-      if (data == null) return [];
-      return List<Map<String, dynamic>>.from(data as List);
-    } catch (_) {
-      return [];
-    }
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized.');
+    final data = await db
+        .from('candidate_applications')
+        .select()
+        .order('submitted_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data as List);
   }
 
   // ── Initial load on app start ─────────────────────────────────────────

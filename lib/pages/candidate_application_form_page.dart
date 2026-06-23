@@ -178,6 +178,7 @@ class _CandidateApplicationFormPageState
 
     setState(() => _submitting = true);
 
+    try {
     await SupabaseService.saveCandidateApplication({
       'name':                _name.text.trim(),
       'mobile':              _mobile.text.trim(),
@@ -210,6 +211,38 @@ class _CandidateApplicationFormPageState
       'signature_date':      _signatureDate.text.trim(),
       'resume_url':          _resumeUrl ?? '',
     });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Row(children: [
+            Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 24),
+            SizedBox(width: 8),
+            Text('Submission Failed',
+                style: TextStyle(color: Colors.redAccent,
+                    fontWeight: FontWeight.bold, fontSize: 16)),
+          ]),
+          content: Text(
+            'Error: ${e.toString()}\n\nPlease make sure the database table is set up correctly.',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF37474F)),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent, foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _submitting = false);
