@@ -1,0 +1,7 @@
+{
+  "name": "fomra-hrms",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Pre-built Flutter web app - no build needed'"
+  }
+}
