@@ -31,11 +31,11 @@ class _Item {
 }
 
 const _personalItems = [
-  _Item('My Details',    Icons.badge_rounded,                  Color(0xFF0D47A1), '/employee/my-details'),
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/employee/attendance-management'),
-  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF1976D2), '/employee/leave-management'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/employee/tasks'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/employee/payslips'),
+  _Item('My Details',    Icons.badge_rounded,                  Color(0xFF0D47A1), '/hr/my-details'),
+  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/hr/my-attendance'),
+  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF1976D2), '/hr/my-leave'),
+  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/hr/my-tasks'),
+  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/hr/my-payslips'),
 ];
 
 class _Stat {

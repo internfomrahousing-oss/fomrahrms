@@ -30,12 +30,12 @@ const _navItems = [
 ];
 
 const _personalNavItems = [
-  _NavItem('My Details',    Icons.badge_rounded,                  '/employee/my-details'),
-  _NavItem('My Attendance', Icons.access_time_rounded,            '/employee/attendance-management'),
-  _NavItem('My Leave',      Icons.beach_access_rounded,           '/employee/leave-management'),
-  _NavItem('My Tasks',      Icons.task_alt_rounded,               '/employee/tasks'),
-  _NavItem('My Payslips',   Icons.account_balance_wallet_rounded, '/employee/payslips'),
-  _NavItem('My Profile',    Icons.person_rounded,                 '/employee/profile'),
+  _NavItem('My Details',    Icons.badge_rounded,                  '/hr/my-details'),
+  _NavItem('My Attendance', Icons.access_time_rounded,            '/hr/my-attendance'),
+  _NavItem('My Leave',      Icons.beach_access_rounded,           '/hr/my-leave'),
+  _NavItem('My Tasks',      Icons.task_alt_rounded,               '/hr/my-tasks'),
+  _NavItem('My Payslips',   Icons.account_balance_wallet_rounded, '/hr/my-payslips'),
+  _NavItem('My Profile',    Icons.person_rounded,                 '/hr/my-profile'),
 ];
 
 class AppShell extends StatelessWidget {

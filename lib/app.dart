@@ -80,6 +80,7 @@ String? _guard(GoRouterState state) {
     return role == UserRole.hr ? '/dashboard' : '/employee/dashboard';
   }
   if (!path.startsWith('/employee/') && !path.startsWith('/manager/') &&
+      !path.startsWith('/hr/') &&
       path != '/login' && role != UserRole.hr) {
     return role == UserRole.employee ? '/employee/dashboard' : '/manager/dashboard';
   }
@@ -164,6 +165,13 @@ final _router = GoRouter(
         GoRoute(path: '/approvals',                       builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/notifications',                   builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/reports-analytics',               builder: (_, __) => const ReportsAnalyticsPage()),
+        // HR personal pages (My Space)
+        GoRoute(path: '/hr/my-details',    builder: (_, __) => const MyDetailsPage()),
+        GoRoute(path: '/hr/my-attendance', builder: (_, __) => const EmployeeAttendancePage()),
+        GoRoute(path: '/hr/my-leave',      builder: (_, __) => const EmployeeLeavePage()),
+        GoRoute(path: '/hr/my-tasks',      builder: (_, __) => const MyTasksPage()),
+        GoRoute(path: '/hr/my-payslips',   builder: (_, __) => const MyPayslipsPage()),
+        GoRoute(path: '/hr/my-profile',    builder: (_, __) => const MyProfilePage()),
       ],
     ),
 
