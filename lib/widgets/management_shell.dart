@@ -23,7 +23,6 @@ const _navItems = [
   _NavItem('Salary Hike Engine',     Icons.monetization_on_rounded,        '/management/salary-hike-engine'),
   _NavItem('Payroll Management',     Icons.account_balance_wallet_rounded, '/management/payroll-management'),
   _NavItem('Interview Process',      Icons.record_voice_over_rounded,      '/management/interview-process'),
-  _NavItem('Candidate Application',  Icons.assignment_ind_rounded,         '/management/candidate-application'),
   _NavItem('Employee Onboarding',    Icons.how_to_reg_rounded,             '/management/employee-onboarding'),
   _NavItem('Ads Management',         Icons.campaign_rounded,               '/management/ads-management'),
   _NavItem('Lead Management',        Icons.leaderboard_rounded,            '/management/lead-management'),

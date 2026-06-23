@@ -56,6 +56,7 @@ import 'pages/management_dashboard_page.dart';
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
   if (path == '/login') return null;
+  if (path == '/candidate-application') return null; // public form
 
   if (!UserSession.loggedIn) return '/login';
 
@@ -107,8 +108,9 @@ final _router = GoRouter(
     ),
   ),
   routes: [
-    // ── Login ──────────────────────────────────────────────────────────────
+    // ── Public routes (no login required) ─────────────────────────────────
     GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+    GoRoute(path: '/candidate-application', builder: (_, __) => const CandidateApplicationFormPage()),
 
     // ── HR Shell ───────────────────────────────────────────────────────────
     ShellRoute(
@@ -159,7 +161,6 @@ final _router = GoRouter(
         GoRoute(path: '/salary-hike-engine',              builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/payroll-management',              builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
-        GoRoute(path: '/candidate-application',           builder: (_, __) => const CandidateApplicationFormPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/ads-management',                  builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/lead-management',                 builder: (_, __) => const LeadManagementPage()),
@@ -224,7 +225,6 @@ final _router = GoRouter(
         GoRoute(path: '/manager/salary-hike-engine',      builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/manager/payroll-management',      builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/manager/interview-process',       builder: (_, __) => const InterviewProcessPage()),
-        GoRoute(path: '/manager/candidate-application',   builder: (_, __) => const CandidateApplicationFormPage()),
         GoRoute(path: '/manager/employee-onboarding',     builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/manager/ads-management',          builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/manager/lead-management',         builder: (_, __) => const LeadManagementPage()),
@@ -267,7 +267,6 @@ final _router = GoRouter(
         GoRoute(path: '/management/salary-hike-engine',     builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/management/payroll-management',     builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/management/interview-process',      builder: (_, __) => const InterviewProcessPage()),
-        GoRoute(path: '/management/candidate-application',  builder: (_, __) => const CandidateApplicationFormPage()),
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/management/ads-management',         builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/management/lead-management',        builder: (_, __) => const LeadManagementPage()),
