@@ -39,12 +39,7 @@ class _AdministrationPageState extends State<AdministrationPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
 
-  final List<_AppUser> _users = [
-    _AppUser(name: 'HR Admin',     email: 'hr@fomrahousing.in',         designation: 'HR Manager',          role: 'HR'),
-    _AppUser(name: 'Ravi Kumar',   email: 'manager@fomrahousing.in',    designation: 'Reporting Manager',   role: 'Manager'),
-    _AppUser(name: 'Priya Sharma', email: 'employee@fomrahousing.in',   designation: 'Site Engineer',       role: 'Employee'),
-    _AppUser(name: 'Director',     email: 'management@fomrahousing.in', designation: 'Director',            role: 'Management'),
-  ];
+  final List<_AppUser> _users = [];
 
   final List<_Role> _roles = [
     _Role(name: 'Employee',   description: 'Personal attendance, leave, tasks and payslips'),
@@ -201,6 +196,23 @@ class _UsersTab extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 16),
+
+        // ── Empty state ──────────────────────────────────────────────────
+        if (users.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.group_off_rounded, size: 56, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+                Text('No users added yet',
+                    style: TextStyle(fontSize: 15, color: Colors.grey.shade500)),
+                const SizedBox(height: 4),
+                Text('Click "Create User" to add the first user.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+              ]),
+            ),
+          ),
 
         // ── User cards ───────────────────────────────────────────────────
         ...users.map((u) => Card(
