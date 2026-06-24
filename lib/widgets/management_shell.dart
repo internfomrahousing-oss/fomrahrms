@@ -40,6 +40,7 @@ const _personalNavItems = [
   _NavItem('My Leave',      Icons.beach_access_rounded,           '/management/my-leave'),
   _NavItem('My Tasks',      Icons.task_alt_rounded,               '/management/my-tasks'),
   _NavItem('My Payslips',   Icons.account_balance_wallet_rounded, '/management/my-payslips'),
+  _NavItem('Maintenance',   Icons.build_rounded,                  '/management/my-maintenance'),
 ];
 
 class ManagementShell extends StatelessWidget {
@@ -258,8 +259,9 @@ class _SidebarTile extends StatelessWidget {
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         onTap: () {
+          final router = GoRouter.of(context);
           if (closeDrawer) Navigator.of(context).pop();
-          context.go(item.route);
+          router.go(item.route);
         },
       ),
     );
