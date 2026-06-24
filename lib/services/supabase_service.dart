@@ -1,4 +1,5 @@
 // ignore_for_file: avoid_catches_without_on_clauses
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
@@ -147,9 +148,13 @@ import '../models/user_session.dart';
     status text default 'assigned',
     assigned_employee text default '',
     team_members text default '',
+    team_member_statuses text default '{}',
     department text default '',
     attachment text default ''
   );
+
+  -- If the table already exists, add the new column:
+  alter table tasks add column if not exists team_member_statuses text default '{}';
 
   -- Disable Row Level Security for development (enable and add policies for production)
   alter table leave_applications disable row level security;
@@ -495,6 +500,18 @@ class SupabaseService {
   static Future<void> updateTaskStatus(String id, TaskStatus status) async {
     try {
       await _db?.from('tasks').update({'status': status.name}).eq('id', id);
+    } catch (_) {}
+  }
+
+  // Updates one team member's status; if allCompleted, also flips overall status.
+  static Future<void> updateTeamMemberStatus(
+      String taskId, Map<String, String> statuses, bool allCompleted) async {
+    try {
+      final update = <String, dynamic>{
+        'team_member_statuses': jsonEncode(statuses),
+      };
+      if (allCompleted) update['status'] = TaskStatus.completed.name;
+      await _db?.from('tasks').update(update).eq('id', taskId);
     } catch (_) {}
   }
 

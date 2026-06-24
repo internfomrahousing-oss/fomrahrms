@@ -15,6 +15,8 @@ class Task {
   TaskStatus status;
   String assignedEmployee;
   List<String> teamMembers;
+  // Per-member status for group tasks: memberName → status.name
+  Map<String, String> teamMemberStatuses;
   String department;
   String attachment;
 
@@ -29,54 +31,65 @@ class Task {
     this.status = TaskStatus.assigned,
     this.assignedEmployee = '',
     this.teamMembers = const [],
+    Map<String, String>? teamMemberStatuses,
     this.department = '',
     this.attachment = '',
-  });
+  }) : teamMemberStatuses = teamMemberStatuses ?? {};
 
   Map<String, dynamic> toJson() => {
-    'id':                id,
-    'name':              name,
-    'description':       description,
-    'priority':          priority.name,
-    'start_date':        startDate.toIso8601String().split('T')[0],
-    'due_date':          dueDate.toIso8601String().split('T')[0],
-    'weightage':         weightage,
-    'status':            status.name,
-    'assigned_employee': assignedEmployee,
-    'team_members':      jsonEncode(teamMembers),
-    'department':        department,
-    'attachment':        attachment,
+    'id':                    id,
+    'name':                  name,
+    'description':           description,
+    'priority':              priority.name,
+    'start_date':            startDate.toIso8601String().split('T')[0],
+    'due_date':              dueDate.toIso8601String().split('T')[0],
+    'weightage':             weightage,
+    'status':                status.name,
+    'assigned_employee':     assignedEmployee,
+    'team_members':          jsonEncode(teamMembers),
+    'team_member_statuses':  jsonEncode(teamMemberStatuses),
+    'department':            department,
+    'attachment':            attachment,
   };
 
   factory Task.fromJson(Map<String, dynamic> j) {
-    List<String> parseTeam(dynamic v) {
+    List<String> parseList(dynamic v) {
       if (v == null || (v is String && v.isEmpty)) return [];
       if (v is List) return List<String>.from(v);
       try {
-        final decoded = jsonDecode(v as String);
-        if (decoded is List) return List<String>.from(decoded);
+        final d = jsonDecode(v as String);
+        if (d is List) return List<String>.from(d);
       } catch (_) {}
       return [];
     }
+    Map<String, String> parseStatuses(dynamic v) {
+      if (v == null || (v is String && v.isEmpty)) return {};
+      try {
+        final d = jsonDecode(v is String ? v : jsonEncode(v));
+        if (d is Map) return Map<String, String>.from(d);
+      } catch (_) {}
+      return {};
+    }
     return Task(
-      id:               (j['id'] as String?) ?? '',
-      name:             (j['name'] as String?) ?? '',
-      description:      (j['description'] as String?) ?? '',
-      priority:         TaskPriority.values.firstWhere(
+      id:                   (j['id'] as String?) ?? '',
+      name:                 (j['name'] as String?) ?? '',
+      description:          (j['description'] as String?) ?? '',
+      priority:             TaskPriority.values.firstWhere(
         (p) => p.name == (j['priority'] as String?),
         orElse: () => TaskPriority.medium,
       ),
-      startDate:        DateTime.tryParse((j['start_date'] as String?) ?? '') ?? DateTime.now(),
-      dueDate:          DateTime.tryParse((j['due_date'] as String?) ?? '') ?? DateTime.now(),
-      weightage:        (j['weightage'] as int?) ?? 0,
-      status:           TaskStatus.values.firstWhere(
+      startDate:            DateTime.tryParse((j['start_date'] as String?) ?? '') ?? DateTime.now(),
+      dueDate:              DateTime.tryParse((j['due_date'] as String?) ?? '') ?? DateTime.now(),
+      weightage:            (j['weightage'] as int?) ?? 0,
+      status:               TaskStatus.values.firstWhere(
         (s) => s.name == ((j['status'] as String?) ?? 'assigned'),
         orElse: () => TaskStatus.assigned,
       ),
-      assignedEmployee: (j['assigned_employee'] as String?) ?? '',
-      teamMembers:      parseTeam(j['team_members']),
-      department:       (j['department'] as String?) ?? '',
-      attachment:       (j['attachment'] as String?) ?? '',
+      assignedEmployee:     (j['assigned_employee'] as String?) ?? '',
+      teamMembers:          parseList(j['team_members']),
+      teamMemberStatuses:   parseStatuses(j['team_member_statuses']),
+      department:           (j['department'] as String?) ?? '',
+      attachment:           (j['attachment'] as String?) ?? '',
     );
   }
 }

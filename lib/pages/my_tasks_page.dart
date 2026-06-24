@@ -38,22 +38,53 @@ class _MyTasksPageState extends State<MyTasksPage> {
     if (mounted) setState(() => _loading = false);
   }
 
-  // Only tasks directly assigned to the logged-in user
+  // All tasks relevant to the logged-in user (single assigned + group member)
   List<Task> get _myTasks {
     final name = UserSession.name;
     if (name.isEmpty) return [];
     return TaskStore.tasks
-        .where((t) => t.assignedEmployee == name)
+        .where((t) =>
+            t.assignedEmployee == name || t.teamMembers.contains(name))
         .toList();
   }
 
-  List<Task> get _filtered => _filter == null
-      ? _myTasks
-      : _myTasks.where((t) => t.status == _filter).toList();
+  // Returns the effective status for the current user on a task:
+  // - group task  → member's individual status from teamMemberStatuses
+  // - single task → overall task status
+  TaskStatus _effectiveStatus(Task t) {
+    final name = UserSession.name;
+    if (t.teamMembers.contains(name)) {
+      return TaskStatus.values.firstWhere(
+        (s) => s.name == (t.teamMemberStatuses[name] ?? 'assigned'),
+        orElse: () => TaskStatus.assigned,
+      );
+    }
+    return t.status;
+  }
 
+  List<Task> get _filtered {
+    if (_filter == null) return _myTasks;
+    return _myTasks.where((t) => _effectiveStatus(t) == _filter).toList();
+  }
+
+  // Single-assigned task: update overall status
   void _onStatusChanged(Task t, TaskStatus s) {
     setState(() => t.status = s);
     SupabaseService.updateTaskStatus(t.id, s);
+  }
+
+  // Group task: update this member's status; flip overall to completed if all done
+  void _onGroupStatusChanged(Task t, TaskStatus s) {
+    final name = UserSession.name;
+    final updated = Map<String, String>.from(t.teamMemberStatuses);
+    updated[name] = s.name;
+    final allCompleted =
+        t.teamMembers.every((m) => (updated[m] ?? 'assigned') == 'completed');
+    setState(() {
+      t.teamMemberStatuses = updated;
+      if (allCompleted) t.status = TaskStatus.completed;
+    });
+    SupabaseService.updateTeamMemberStatus(t.id, updated, allCompleted);
   }
 
   @override
@@ -188,13 +219,20 @@ class _MyTasksPageState extends State<MyTasksPage> {
                 ),
               )
             else
-              ...tasks.map((t) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _MyTaskCard(
-                      task: t,
-                      onStatusChanged: (s) => _onStatusChanged(t, s),
-                    ),
-                  )),
+              ...tasks.map((t) {
+                final isGroup = t.teamMembers.contains(UserSession.name);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _MyTaskCard(
+                    task: t,
+                    displayStatus: _effectiveStatus(t),
+                    isGroupTask: isGroup,
+                    onStatusChanged: isGroup
+                        ? (s) => _onGroupStatusChanged(t, s)
+                        : (s) => _onStatusChanged(t, s),
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -206,9 +244,15 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
 class _MyTaskCard extends StatefulWidget {
   final Task task;
+  final TaskStatus displayStatus; // individual status for this user
+  final bool isGroupTask;
   final ValueChanged<TaskStatus> onStatusChanged;
-  const _MyTaskCard(
-      {required this.task, required this.onStatusChanged});
+  const _MyTaskCard({
+    required this.task,
+    required this.displayStatus,
+    this.isGroupTask = false,
+    required this.onStatusChanged,
+  });
 
   @override
   State<_MyTaskCard> createState() => _MyTaskCardState();
@@ -261,13 +305,14 @@ class _MyTaskCardState extends State<_MyTaskCard> {
   @override
   Widget build(BuildContext context) {
     final t = widget.task;
+    final ds = widget.displayStatus; // effective status for this user
     final pc = _priorityColor(t.priority);
-    final sc = _statusColor(t.status);
-    final sl = _statusLabel(t.status);
+    final sc = _statusColor(ds);
+    final sl = _statusLabel(ds);
     final pl = _priorityLabel(t.priority);
 
-    final isOverdue = t.status != TaskStatus.completed &&
-        t.status != TaskStatus.rejected &&
+    final isOverdue = ds != TaskStatus.completed &&
+        ds != TaskStatus.rejected &&
         t.dueDate.isBefore(DateTime.now());
 
     return Card(
@@ -298,6 +343,11 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                   ]),
                 ),
                 const SizedBox(width: 8),
+                if (widget.isGroupTask)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _Pill('Group', Colors.teal.shade600),
+                  ),
                 _Pill(pl, pc),
                 const SizedBox(width: 6),
                 _Pill(sl, sc),
@@ -326,7 +376,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                       t.department, const Color(0xFF78909C)),
               ]),
 
-              if (isOverdue && t.status != TaskStatus.completed) ...[
+              if (isOverdue && ds != TaskStatus.completed) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -388,7 +438,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   ..._allowedTransitions
-                      .where((s) => s != t.status)
+                      .where((s) => s != ds)
                       .map((s) {
                     final c = _statusColor(s);
                     return ElevatedButton(

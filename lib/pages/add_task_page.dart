@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/app_user.dart';
 import '../models/employee_store.dart';
+import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../services/supabase_service.dart';
 
@@ -60,7 +61,12 @@ class _AddTaskPageState extends State<AddTaskPage> {
     final id = await TaskStore.generateId();
     if (mounted) {
       setState(() {
-        _users = users.where((u) => u.active).toList();
+        // Filter based on role:
+        // Manager → only direct reports; HR/Management → everyone
+        final active = users.where((u) => u.active).toList();
+        _users = UserSession.role == UserRole.reportingManager
+            ? active.where((u) => u.reportingManager == UserSession.name).toList()
+            : active;
         _taskId = id;
       });
     }
@@ -191,6 +197,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
     final teamNames = _teamMembers.map((e) => e.name).toList();
     final dept      = _selectedDepartments.join(', ');
 
+    // Seed each team member's individual status to 'assigned'
+    final memberStatuses = <String, String>{
+      for (final n in teamNames) n: TaskStatus.assigned.name,
+    };
+
     final task = Task(
       id: _taskId,
       name: _nameCtrl.text.trim(),
@@ -201,6 +212,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       weightage: int.tryParse(_weightageCtrl.text.trim()) ?? 0,
       assignedEmployee: _assignedEmployee?.name ?? '',
       teamMembers: teamNames,
+      teamMemberStatuses: memberStatuses,
       department: dept,
       attachment: _attachment,
     );
