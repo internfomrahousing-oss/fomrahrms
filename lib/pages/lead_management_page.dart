@@ -270,6 +270,54 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     );
   }
 
+  Future<void> _showDeleteDialog(Lead lead) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Lead',
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFC62828))),
+        content: Text(
+          'Remove "${lead.name}" permanently from Google Sheets?',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF546E7A)),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await _doDelete(lead);
+  }
+
+  Future<void> _doDelete(Lead lead) async {
+    try {
+      await LeadService.deleteLead(lead.leadId);
+      await _fetch();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('"${lead.name}" deleted from Google Sheets'),
+          backgroundColor: const Color(0xFFC62828),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
   Future<void> _doUpdate(Lead lead) async {
     try {
       await LeadService.updateLead(lead);
@@ -472,6 +520,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                 lead: lead,
                                 statusBadge: _statusBadge(lead.status),
                                 onEdit: () => _showEditDialog(lead),
+                                onDelete: () => _showDeleteDialog(lead),
                               );
                             },
                           ),
@@ -488,11 +537,13 @@ class _LeadCard extends StatelessWidget {
   final Lead lead;
   final Widget statusBadge;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const _LeadCard({
     required this.lead,
     required this.statusBadge,
     required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -599,6 +650,13 @@ class _LeadCard extends StatelessWidget {
                   icon: Icons.edit_rounded,
                   color: _blue,
                   onTap: onEdit,
+                ),
+                const SizedBox(width: 8),
+                _ActionButton(
+                  label: 'Delete',
+                  icon: Icons.delete_outline_rounded,
+                  color: const Color(0xFFC62828),
+                  onTap: onDelete,
                 ),
               ],
             ),

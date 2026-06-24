@@ -72,6 +72,18 @@ class LeadService {
     _checkWriteResponse(response.body);
   }
 
+  static Future<void> deleteLead(int leadId) async {
+    final uri = Uri.parse(_scriptUrl).replace(queryParameters: {
+      'action': 'delete',
+      'LEAD ID': leadId.toString(),
+    });
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+    _checkWriteResponse(response.body);
+  }
+
   static void _checkWriteResponse(String body) {
     try {
       final decoded = jsonDecode(body);
