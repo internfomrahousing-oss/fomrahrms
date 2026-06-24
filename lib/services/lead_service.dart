@@ -1,15 +1,30 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/lead_model.dart';
 
 class LeadService {
-  // Paste your deployed Apps Script URL here after following the setup steps.
-  // Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone
-  static const String _scriptUrl =
+  static const String _defaultUrl =
       'https://script.google.com/macros/s/AKfycbzhSy5zTSuKfqb0ZB-7cHXrrAlMXTCSJ8Rlrx5hmG9iCUxGvEjSdMmMRVbHOc2GUC9asw/exec';
+  static const String _prefKey = 'lead_script_url';
+  static String? _cachedUrl;
+
+  static Future<String> getUrl() async {
+    _cachedUrl ??=
+        (await SharedPreferences.getInstance()).getString(_prefKey) ??
+            _defaultUrl;
+    return _cachedUrl!;
+  }
+
+  static Future<void> saveUrl(String url) async {
+    _cachedUrl = url;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKey, url.trim());
+  }
 
   static Future<List<Lead>> fetchLeads() async {
-    final uri = Uri.parse('$_scriptUrl?action=list');
+    final base = await getUrl();
+    final uri = Uri.parse('$base?action=list');
     final response = await http.get(uri);
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}');
@@ -39,7 +54,8 @@ class LeadService {
   }
 
   static Future<void> updateLead(Lead lead) async {
-    final uri = Uri.parse(_scriptUrl).replace(queryParameters: {
+    final base = await getUrl();
+    final uri = Uri.parse(base).replace(queryParameters: {
       'action': 'update',
       'LEAD ID': lead.leadId.toString(),
       'NAME': lead.name,
@@ -49,14 +65,13 @@ class LeadService {
       'STATUS': lead.status,
     });
     final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode}');
-    }
+    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body);
   }
 
   static Future<void> addLead(Lead lead) async {
-    final uri = Uri.parse(_scriptUrl).replace(queryParameters: {
+    final base = await getUrl();
+    final uri = Uri.parse(base).replace(queryParameters: {
       'action': 'add',
       'LEAD ID': lead.leadId.toString(),
       'NAME': lead.name,
@@ -66,21 +81,18 @@ class LeadService {
       'STATUS': lead.status,
     });
     final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode}');
-    }
+    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body);
   }
 
   static Future<void> deleteLead(int leadId) async {
-    final uri = Uri.parse(_scriptUrl).replace(queryParameters: {
+    final base = await getUrl();
+    final uri = Uri.parse(base).replace(queryParameters: {
       'action': 'delete',
       'LEAD ID': leadId.toString(),
     });
     final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode}');
-    }
+    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body);
   }
 
@@ -90,10 +102,8 @@ class LeadService {
       if (decoded is Map && decoded['error'] != null) {
         throw Exception(decoded['error'].toString());
       }
-      // success: { success: true } or any non-error response
     } catch (e) {
       if (e is Exception) rethrow;
-      // ignore parse errors on write responses
     }
   }
 }

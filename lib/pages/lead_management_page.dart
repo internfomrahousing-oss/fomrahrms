@@ -270,6 +270,98 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     );
   }
 
+  Future<void> _showSettingsDialog() async {
+    final urlCtrl = TextEditingController(text: await LeadService.getUrl());
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(children: [
+          Icon(Icons.settings_rounded, color: _blue, size: 20),
+          SizedBox(width: 8),
+          Text('Google Sheets Setup',
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+        ]),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── URL field ──────────────────────────────────────────
+              const Text('Apps Script URL',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _blue)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: urlCtrl,
+                decoration: InputDecoration(
+                  hintText: 'https://script.google.com/macros/s/…/exec',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                ),
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              // ── How to set up ──────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Icon(Icons.info_outline_rounded,
+                          size: 15, color: _blue),
+                      SizedBox(width: 6),
+                      Text('How to connect a Google Sheet',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _blue)),
+                    ]),
+                    SizedBox(height: 8),
+                    _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
+                    _SetupStep(n: '2', text: 'Paste the script code provided by your admin, then press Ctrl+S'),
+                    _SetupStep(n: '3', text: 'Click Deploy → New deployment → choose Web app'),
+                    _SetupStep(n: '4', text: 'Set "Execute as: Me" and "Who has access: Anyone" → click Deploy'),
+                    _SetupStep(n: '5', text: 'Copy the URL shown, paste it in the field above, and tap Save'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              await LeadService.saveUrl(urlCtrl.text.trim());
+              if (ctx.mounted) Navigator.pop(ctx);
+              await _fetch();
+            },
+            child: const Text('Save & Reload'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showDeleteDialog(Lead lead) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -425,6 +517,11 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: _blue))
                         : const Icon(Icons.refresh_rounded, color: _blue),
+                  ),
+                  IconButton(
+                    tooltip: 'Google Sheets Settings',
+                    onPressed: _showSettingsDialog,
+                    icon: const Icon(Icons.settings_rounded, color: _blue),
                   ),
                 ]),
                 const SizedBox(height: 12),
@@ -760,6 +857,7 @@ class _ErrorView extends StatelessWidget {
         const SizedBox(height: 12),
         const Text('Could not load leads',
             style: TextStyle(
+
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: _blue)),
@@ -783,6 +881,38 @@ class _ErrorView extends StatelessWidget {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8)),
           ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _SetupStep extends StatelessWidget {
+  final String n;
+  final String text;
+  const _SetupStep({required this.n, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 18,
+          height: 18,
+          margin: const EdgeInsets.only(top: 1, right: 8),
+          decoration: const BoxDecoration(color: _blue, shape: BoxShape.circle),
+          child: Center(
+            child: Text(n,
+                style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ),
+        Expanded(
+          child: Text(text,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
         ),
       ]),
     );
