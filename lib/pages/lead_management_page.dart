@@ -148,78 +148,58 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     final phoneCtrl = TextEditingController(text: lead.phone);
     final projectCtrl = TextEditingController(text: lead.project);
     final sourceCtrl = TextEditingController(text: lead.source);
-    String selectedStatus = lead.status.isNotEmpty
-        ? lead.status
-        : (_statusOptions.length > 1 ? _statusOptions[1] : '');
+    final statusCtrl = TextEditingController(text: lead.status);
 
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: const Text('Edit Lead',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _blue)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _inputField('Name', nameCtrl),
-                const SizedBox(height: 12),
-                _inputField('Phone', phoneCtrl,
-                    keyboard: TextInputType.phone),
-                const SizedBox(height: 12),
-                _inputField('Project', projectCtrl),
-                const SizedBox(height: 12),
-                _inputField('Source', sourceCtrl),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                  ),
-                  items: _statusOptions
-                      .skip(1)
-                      .map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) =>
-                      setS(() => selectedStatus = v ?? selectedStatus),
-                ),
-              ],
-            ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Lead',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: _blue)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _inputField('Name', nameCtrl),
+              const SizedBox(height: 12),
+              _inputField('Phone', phoneCtrl,
+                  keyboard: TextInputType.phone),
+              const SizedBox(height: 12),
+              _inputField('Project', projectCtrl),
+              const SizedBox(height: 12),
+              _inputField('Source', sourceCtrl),
+              const SizedBox(height: 12),
+              _inputField('Status', statusCtrl),
+            ],
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final updated = lead.copyWith(
-                  name: nameCtrl.text.trim(),
-                  phone: phoneCtrl.text.trim(),
-                  project: projectCtrl.text.trim(),
-                  source: sourceCtrl.text.trim(),
-                  status: selectedStatus,
-                );
-                await _doUpdate(updated);
-              },
-              child: const Text('Save'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final updated = lead.copyWith(
+                name: nameCtrl.text.trim(),
+                phone: phoneCtrl.text.trim(),
+                project: projectCtrl.text.trim(),
+                source: sourceCtrl.text.trim(),
+                status: statusCtrl.text.trim(),
+              );
+              await _doUpdate(updated);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -232,79 +212,60 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     final phoneCtrl = TextEditingController();
     final projectCtrl = TextEditingController();
     final sourceCtrl = TextEditingController();
-    String selectedStatus =
-        _statusOptions.length > 1 ? _statusOptions[1] : '';
+    final statusCtrl = TextEditingController();
 
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: const Text('Add New Lead',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _blue)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _inputField('Name', nameCtrl),
-                const SizedBox(height: 12),
-                _inputField('Phone', phoneCtrl,
-                    keyboard: TextInputType.phone),
-                const SizedBox(height: 12),
-                _inputField('Project', projectCtrl),
-                const SizedBox(height: 12),
-                _inputField('Source', sourceCtrl),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                  ),
-                  items: _statusOptions
-                      .skip(1)
-                      .map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) =>
-                      setS(() => selectedStatus = v ?? selectedStatus),
-                ),
-              ],
-            ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Lead',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: _blue)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _inputField('Name', nameCtrl),
+              const SizedBox(height: 12),
+              _inputField('Phone', phoneCtrl,
+                  keyboard: TextInputType.phone),
+              const SizedBox(height: 12),
+              _inputField('Project', projectCtrl),
+              const SizedBox(height: 12),
+              _inputField('Source', sourceCtrl),
+              const SizedBox(height: 12),
+              _inputField('Status', statusCtrl),
+            ],
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () async {
-                if (nameCtrl.text.trim().isEmpty) return;
-                Navigator.pop(ctx);
-                final newLead = Lead(
-                  leadId: nextId,
-                  name: nameCtrl.text.trim(),
-                  phone: phoneCtrl.text.trim(),
-                  project: projectCtrl.text.trim(),
-                  source: sourceCtrl.text.trim(),
-                  status: selectedStatus,
-                );
-                await _doAdd(newLead);
-              },
-              child: const Text('Add'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              final newLead = Lead(
+                leadId: nextId,
+                name: nameCtrl.text.trim(),
+                phone: phoneCtrl.text.trim(),
+                project: projectCtrl.text.trim(),
+                source: sourceCtrl.text.trim(),
+                status: statusCtrl.text.trim(),
+              );
+              await _doAdd(newLead);
+            },
+            child: const Text('Add'),
+          ),
+        ],
       ),
     );
   }
