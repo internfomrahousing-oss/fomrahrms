@@ -23,6 +23,7 @@ const _sections = [
   _Section('Payroll Summary',       Icons.account_balance_wallet_rounded, Color(0xFF4A148C), '/management/payroll-management'),
   _Section('Lead & Marketing',      Icons.leaderboard_rounded,            Color(0xFFE65100), '/management/lead-management'),
   _Section('Maintenance Summary',   Icons.build_rounded,                  Color(0xFF4E342E), '/management/maintenance-management'),
+  _Section('Interview Review',       Icons.rate_review_rounded,            Color(0xFF6A1B9A), '/management/interview-review'),
   _Section('Approvals Summary',     Icons.approval_rounded,               Color(0xFFC62828), '/management/approvals'),
   _Section('Reports & Analytics',   Icons.bar_chart_rounded,              Color(0xFF37474F), '/management/reports-analytics'),
   _Section('Administration',        Icons.admin_panel_settings_rounded,   Color(0xFF880E4F), '/management/administration'),

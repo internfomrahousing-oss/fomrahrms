@@ -1,21 +1,42 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_user.dart';
+import 'supabase_service.dart';
 
 class UserStore {
   static const _key = 'hrms_users';
 
   static Future<List<AppUser>> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    if (raw == null || raw.isEmpty) return [];
-    final list = jsonDecode(raw) as List;
-    return list.map((e) => AppUser.fromJson(e as Map<String, dynamic>)).toList();
+    final remote = await SupabaseService.fetchAppUsers();
+    if (remote.isNotEmpty) return remote;
+
+    // Supabase empty — load local cache and migrate it to Supabase
+    final local = await _loadLocal();
+    if (local.isNotEmpty) {
+      for (final u in local) {
+        await SupabaseService.upsertAppUser(u);
+      }
+    }
+    return local;
   }
 
-  static Future<void> save(List<AppUser> users) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(users.map((u) => u.toJson()).toList()));
+  static Future<void> upsertOne(AppUser u) async {
+    await SupabaseService.upsertAppUser(u);
+    final users = await _loadLocal();
+    final idx = users.indexWhere((x) => x.email == u.email);
+    if (idx >= 0) {
+      users[idx] = u;
+    } else {
+      users.add(u);
+    }
+    await _saveLocal(users);
+  }
+
+  static Future<void> deleteOne(String email) async {
+    await SupabaseService.deleteAppUser(email);
+    final users = await _loadLocal();
+    users.removeWhere((u) => u.email == email);
+    await _saveLocal(users);
   }
 
   static Future<AppUser?> findByEmail(String email) async {
@@ -27,5 +48,18 @@ class UserStore {
     } catch (_) {
       return null;
     }
+  }
+
+  static Future<List<AppUser>> _loadLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_key);
+    if (raw == null || raw.isEmpty) return [];
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => AppUser.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<void> _saveLocal(List<AppUser> users) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode(users.map((u) => u.toJson()).toList()));
   }
 }

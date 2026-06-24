@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../models/candidate_store.dart';
 
 const _blue = Color(0xFF0D47A1);
@@ -68,6 +69,229 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
       } catch (_) { return v.toString(); }
     }
     return v.toString();
+  }
+
+  String _compositeStatus(Map<String, dynamic> row) {
+    final mgmt    = (row['management_status'] as String?) ?? 'pending';
+    final manager = (row['manager_status']    as String?) ?? 'pending';
+    final hr      = (row['hr_status']         as String?) ?? 'pending';
+    if (mgmt    == 'accepted') return 'approved';
+    if (mgmt    == 'rejected') return 'rejected_mgmt';
+    if (manager == 'rejected') return 'rejected_manager';
+    if (hr      == 'rejected') return 'rejected_hr';
+    if (manager == 'accepted') return 'with_management';
+    if (hr      == 'accepted') return 'with_manager';
+    return 'pending';
+  }
+
+  Widget _statusBadge(String status) {
+    late Color bg;
+    late Color fg;
+    late String label;
+    late IconData icon;
+    switch (status) {
+      case 'approved':
+        bg = const Color(0xFFE8F5E9); fg = const Color(0xFF2E7D32);
+        label = 'Approved'; icon = Icons.check_circle_rounded; break;
+      case 'rejected_mgmt':
+        bg = const Color(0xFFFFEBEE); fg = const Color(0xFFC62828);
+        label = 'Rejected by Management'; icon = Icons.cancel_rounded; break;
+      case 'rejected_manager':
+        bg = const Color(0xFFFFEBEE); fg = const Color(0xFFC62828);
+        label = 'Rejected by Manager'; icon = Icons.cancel_rounded; break;
+      case 'rejected_hr':
+        bg = const Color(0xFFFFEBEE); fg = const Color(0xFFC62828);
+        label = 'Rejected'; icon = Icons.cancel_rounded; break;
+      case 'with_management':
+        bg = const Color(0xFFF3E5F5); fg = const Color(0xFF6A1B9A);
+        label = 'With Management'; icon = Icons.business_rounded; break;
+      case 'with_manager':
+        bg = const Color(0xFFE3F2FD); fg = _blue;
+        label = 'With Manager'; icon = Icons.person_rounded; break;
+      default:
+        bg = const Color(0xFFFFF3E0); fg = const Color(0xFFE65100);
+        label = 'Pending Review'; icon = Icons.hourglass_empty_rounded;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 12, color: fg),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
+  Future<void> _showAcceptDialog(Map<String, dynamic> row) async {
+    final managers = await _loadManagers();
+    if (!mounted) return;
+    String? selected = managers.isNotEmpty ? managers.first : null;
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Assign to Manager',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Choose which manager should review this candidate:',
+                style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selected,
+              decoration: InputDecoration(
+                labelText: 'Manager',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              items: managers.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+              onChanged: (v) => setS(() => selected = v),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: selected == null ? null : () async {
+                Navigator.pop(ctx);
+                await _doAccept(row, selected!);
+              },
+              child: const Text('Assign'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<List<String>> _loadManagers() async {
+    final users = await UserStore.load();
+    final names = users
+        .where((u) => u.role == 'Manager' && u.active)
+        .map((u) => u.name)
+        .toList();
+    if (!names.contains('Manager')) names.insert(0, 'Manager');
+    return names;
+  }
+
+  Future<void> _doAccept(Map<String, dynamic> row, String managerName) async {
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    try {
+      await SupabaseService.updateCandidateStatus(id, {
+        'hr_status':        'accepted',
+        'assigned_manager': managerName,
+      });
+      await _fetch();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _showRejectDialog(Map<String, dynamic> row) async {
+    final commentCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject Application',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFC62828))),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Add a comment (optional):',
+              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+          const SizedBox(height: 12),
+          TextField(
+            controller: commentCtrl,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Reason for rejection…',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828), foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _doReject(row, commentCtrl.text.trim());
+            },
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _doReject(Map<String, dynamic> row, String comment) async {
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    try {
+      await SupabaseService.updateCandidateStatus(id, {
+        'hr_status':  'rejected',
+        'hr_comment': comment,
+      });
+      await _fetch();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _showCommentDialog(Map<String, dynamic> row) async {
+    final commentCtrl = TextEditingController(
+        text: (row['hr_comment'] as String?) ?? '');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('HR Comment',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+        content: TextField(
+          controller: commentCtrl,
+          maxLines: 4,
+          decoration: InputDecoration(
+            hintText: 'Add or update your comment…',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue, foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final id = row['id']?.toString() ?? '';
+              if (id.isEmpty) return;
+              try {
+                await SupabaseService.updateCandidateStatus(id,
+                    {'hr_comment': commentCtrl.text.trim()});
+                await _fetch();
+              } catch (_) {}
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -185,61 +409,18 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                             itemCount: _filtered.length,
                             itemBuilder: (context, idx) {
                               final row = _filtered[idx];
-                              final name = (row['name'] ?? '').toString().trim();
-                              final date = _cell(row, 'submitted_at');
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: const BorderSide(color: Color(0xFFE0E0E0)),
-                                ),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () {
-                                    CandidateStore.selected = row;
-                                    context.push('/candidate-detail');
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 18, vertical: 14),
-                                    child: Row(children: [
-                                      CircleAvatar(
-                                        radius: 20,
-                                        backgroundColor: _blue.withValues(alpha: 0.1),
-                                        child: Text(
-                                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                          style: const TextStyle(
-                                              color: _blue,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            name.isEmpty ? 'Unknown' : name,
-                                            style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w700,
-                                                color: _blue),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            'Submitted: $date',
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF78909C)),
-                                          ),
-                                        ],
-                                      )),
-                                      const Icon(Icons.chevron_right_rounded,
-                                          color: Color(0xFFBBDEFB), size: 22),
-                                    ]),
-                                  ),
-                                ),
+                              return _ApplicationCard(
+                                row: row,
+                                dateStr: _cell(row, 'submitted_at'),
+                                status: _compositeStatus(row),
+                                statusBadge: _statusBadge(_compositeStatus(row)),
+                                onAccept: () => _showAcceptDialog(row),
+                                onReject: () => _showRejectDialog(row),
+                                onComment: () => _showCommentDialog(row),
+                                onView: () {
+                                  CandidateStore.selected = row;
+                                  context.push('/candidate-detail');
+                                },
                               );
                             },
                           ),
@@ -249,6 +430,300 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     );
   }
 }
+
+// ── Application Card ──────────────────────────────────────────────────────────
+
+class _ApplicationCard extends StatelessWidget {
+  final Map<String, dynamic> row;
+  final String dateStr;
+  final String status;
+  final Widget statusBadge;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+  final VoidCallback onComment;
+  final VoidCallback onView;
+
+  const _ApplicationCard({
+    required this.row,
+    required this.dateStr,
+    required this.status,
+    required this.statusBadge,
+    required this.onAccept,
+    required this.onReject,
+    required this.onComment,
+    required this.onView,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name          = (row['name']          ?? '').toString().trim();
+    final post          = (row['post_applied']   ?? '').toString().trim();
+    final exp           = (row['total_experience']?? '').toString().trim();
+    final manager       = (row['assigned_manager']?? '').toString().trim();
+    final hrComment     = (row['hr_comment']      ?? '').toString().trim();
+    final managerComment= (row['manager_comment'] ?? '').toString().trim();
+    final mgmtComment   = (row['management_comment']?? '').toString().trim();
+    final managerStatus = (row['manager_status']  ?? 'pending').toString();
+    final mgmtStatus    = (row['management_status']?? 'pending').toString();
+
+    final isPending   = status == 'pending';
+    final isApproved  = status == 'approved';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isApproved
+              ? const Color(0xFFA5D6A7)
+              : status.startsWith('rejected')
+                  ? const Color(0xFFEF9A9A)
+                  : const Color(0xFFE0E0E0),
+          width: isApproved || status.startsWith('rejected') ? 1.5 : 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Top row: avatar, name, status ─────────────────────────
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                      color: _blue, fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name.isEmpty ? 'Unknown' : name,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700, color: _blue)),
+                  const SizedBox(height: 3),
+                  Text('Submitted: $dateStr',
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF78909C))),
+                  if (post.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      post + (exp.isNotEmpty ? '  •  $exp yrs exp.' : ''),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
+                    ),
+                  ],
+                ],
+              )),
+              const SizedBox(width: 8),
+              statusBadge,
+            ]),
+
+            // ── Extra info: manager assignment / approval message ──────
+            if (manager.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const SizedBox(height: 8),
+              Row(children: [
+                const Icon(Icons.person_outline_rounded,
+                    size: 14, color: Color(0xFF78909C)),
+                const SizedBox(width: 6),
+                Text('Assigned to: $manager',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                const SizedBox(width: 16),
+                if (managerStatus != 'pending') ...[
+                  Icon(
+                    managerStatus == 'accepted'
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.cancel_outlined,
+                    size: 14,
+                    color: managerStatus == 'accepted'
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFC62828),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Manager: ${managerStatus == 'accepted' ? 'Accepted' : 'Rejected'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: managerStatus == 'accepted'
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFC62828),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ]),
+            ],
+
+            if (isApproved) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(children: [
+                  Icon(Icons.verified_rounded,
+                      size: 15, color: Color(0xFF2E7D32)),
+                  SizedBox(width: 6),
+                  Text('Approved by Management and Manager',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2E7D32),
+                          fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ],
+
+            if (mgmtStatus == 'rejected') ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(children: [
+                  Icon(Icons.cancel_rounded, size: 15, color: Color(0xFFC62828)),
+                  SizedBox(width: 6),
+                  Text('Rejected by Management',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFC62828),
+                          fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ],
+
+            // ── Comments ───────────────────────────────────────────────
+            if (hrComment.isNotEmpty || managerComment.isNotEmpty || mgmtComment.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const SizedBox(height: 6),
+              if (hrComment.isNotEmpty)
+                _CommentChip(label: 'HR', comment: hrComment),
+              if (managerComment.isNotEmpty)
+                _CommentChip(label: 'Manager', comment: managerComment),
+              if (mgmtComment.isNotEmpty)
+                _CommentChip(label: 'Management', comment: mgmtComment),
+            ],
+
+            // ── Action buttons ─────────────────────────────────────────
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              if (isPending) ...[
+                _ActionButton(
+                  label: 'Accept',
+                  icon: Icons.check_circle_outline_rounded,
+                  color: const Color(0xFF2E7D32),
+                  onTap: onAccept,
+                ),
+                _ActionButton(
+                  label: 'Reject',
+                  icon: Icons.cancel_outlined,
+                  color: const Color(0xFFC62828),
+                  onTap: onReject,
+                ),
+              ],
+              _ActionButton(
+                label: 'Comment',
+                icon: Icons.comment_outlined,
+                color: const Color(0xFF546E7A),
+                onTap: onComment,
+              ),
+              _ActionButton(
+                label: 'View',
+                icon: Icons.open_in_new_rounded,
+                color: _blue,
+                onTap: onView,
+              ),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentChip extends StatelessWidget {
+  final String label;
+  final String comment;
+  const _CommentChip({required this.label, required this.comment});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFECEFF1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(label,
+              style: const TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w600,
+                  color: Color(0xFF546E7A))),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(comment,
+              style: const TextStyle(
+                  fontSize: 12, color: Color(0xFF546E7A)),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Empty / Error states ──────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();

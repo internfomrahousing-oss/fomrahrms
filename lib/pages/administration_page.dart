@@ -25,6 +25,7 @@ class _AdministrationPageState extends State<AdministrationPage>
   late final TabController _tabs;
 
   List<AppUser> _users = [];
+  bool _saving = false;
 
   final List<_Role> _roles = [
     _Role(name: 'Employee',   description: 'Personal attendance, leave, tasks and payslips'),
@@ -63,8 +64,18 @@ class _AdministrationPageState extends State<AdministrationPage>
     if (mounted) setState(() => _users = users);
   }
 
-  Future<void> _saveUsers() async {
-    await UserStore.save(_users);
+  Future<void> _upsertUser(AppUser u) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    await UserStore.upsertOne(u);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _deleteUser(AppUser u) async {
+    if (_saving) return;
+    setState(() { _users.remove(u); _saving = true; });
+    await UserStore.deleteOne(u.email);
+    if (mounted) setState(() => _saving = false);
   }
 
   @override
@@ -135,7 +146,7 @@ class _AdministrationPageState extends State<AdministrationPage>
             child: TabBarView(
               controller: _tabs,
               children: [
-                _UsersTab(users: _users, roles: _roles, onChange: () { setState(() {}); _saveUsers(); }),
+                _UsersTab(users: _users, roles: _roles, onUpsert: _upsertUser, onDelete: _deleteUser),
                 _RolesTab(roles: _roles, onChange: () => setState(() {})),
                 _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
               ],
@@ -152,8 +163,9 @@ class _AdministrationPageState extends State<AdministrationPage>
 class _UsersTab extends StatelessWidget {
   final List<AppUser> users;
   final List<_Role> roles;
-  final VoidCallback onChange;
-  const _UsersTab({required this.users, required this.roles, required this.onChange});
+  final Future<void> Function(AppUser) onUpsert;
+  final Future<void> Function(AppUser) onDelete;
+  const _UsersTab({required this.users, required this.roles, required this.onUpsert, required this.onDelete});
 
   Color _roleColor(String role) {
     switch (role) {
@@ -269,12 +281,18 @@ class _UsersTab extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: u.active ? 'Deactivate User' : 'Activate User',
-                  onPressed: () { u.active = !u.active; onChange(); },
+                  onPressed: () { u.active = !u.active; onUpsert(u); },
                   icon: Icon(
                     u.active ? Icons.person_off_rounded : Icons.person_rounded,
                     size: 18,
                     color: u.active ? Colors.red.shade400 : Colors.green.shade600,
                   ),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  tooltip: 'Delete User',
+                  onPressed: () => _confirmDelete(context, u, onDelete),
+                  icon: const Icon(Icons.delete_rounded, size: 18, color: Color(0xFFB71C1C)),
                   visualDensity: VisualDensity.compact,
                 ),
               ]),
@@ -358,22 +376,25 @@ class _UsersTab extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) return;
+                final AppUser target;
                 if (existing == null) {
-                  users.add(AppUser(
+                  target = AppUser(
                     name:        nameCtrl.text.trim(),
                     email:       emailCtrl.text.trim(),
                     employeeId:  empIdCtrl.text.trim(),
                     designation: desigCtrl.text.trim(),
                     role:        selectedRole,
-                  ));
+                  );
+                  users.add(target);
                 } else {
                   existing.name        = nameCtrl.text.trim();
                   existing.email       = emailCtrl.text.trim();
                   existing.employeeId  = empIdCtrl.text.trim();
                   existing.designation = desigCtrl.text.trim();
                   existing.role        = selectedRole;
+                  target = existing;
                 }
-                onChange();
+                onUpsert(target);
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
@@ -386,6 +407,48 @@ class _UsersTab extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, AppUser u, Future<void> Function(AppUser) onDelete) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete User',
+            style: TextStyle(color: Color(0xFFB71C1C), fontWeight: FontWeight.bold)),
+        content: RichText(
+          text: TextSpan(
+            style: const TextStyle(fontSize: 14, color: Color(0xFF37474F)),
+            children: [
+              const TextSpan(text: 'Are you sure you want to permanently delete '),
+              TextSpan(
+                text: u.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const TextSpan(text: '? This action cannot be undone.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onDelete(u);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB71C1C),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

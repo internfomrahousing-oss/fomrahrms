@@ -53,6 +53,8 @@ import 'pages/team_leave_approvals_page.dart';
 import 'widgets/management_shell.dart';
 import 'pages/management_dashboard_page.dart';
 import 'pages/candidate_detail_page.dart';
+import 'pages/manager_interview_review_page.dart';
+import 'pages/management_interview_review_page.dart';
 
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
@@ -228,6 +230,7 @@ final _router = GoRouter(
         GoRoute(path: '/manager/salary-hike-engine',      builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/manager/payroll-management',      builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/manager/interview-process',       builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/manager/interview-review',        builder: (_, __) => const ManagerInterviewReviewPage()),
         GoRoute(path: '/manager/candidate-detail',        builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/manager/employee-onboarding',     builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/manager/ads-management',          builder: (_, __) => const AdsManagementPage()),
@@ -271,6 +274,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/salary-hike-engine',     builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/management/payroll-management',     builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/management/interview-process',      builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/management/interview-review',       builder: (_, __) => const ManagementInterviewReviewPage()),
         GoRoute(path: '/management/candidate-detail',       builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/management/ads-management',         builder: (_, __) => const AdsManagementPage()),

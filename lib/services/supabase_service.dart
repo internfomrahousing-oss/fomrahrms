@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_catches_without_on_clauses
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
 import '../models/profile_store.dart';
@@ -88,7 +89,32 @@ import '../models/user_session.dart';
     job_portal text default '',
     referred_by text default '',
     related_employee text default '',
-    applied_before text default ''
+    applied_before text default '',
+    hr_status text default 'pending',
+    hr_comment text default '',
+    assigned_manager text default '',
+    manager_status text default 'pending',
+    manager_comment text default '',
+    management_status text default 'pending',
+    management_comment text default ''
+  );
+
+  -- If the table already exists, add the review columns:
+  alter table candidate_applications add column if not exists hr_status text default 'pending';
+  alter table candidate_applications add column if not exists hr_comment text default '';
+  alter table candidate_applications add column if not exists assigned_manager text default '';
+  alter table candidate_applications add column if not exists manager_status text default 'pending';
+  alter table candidate_applications add column if not exists manager_comment text default '';
+  alter table candidate_applications add column if not exists management_status text default 'pending';
+  alter table candidate_applications add column if not exists management_comment text default '';
+
+  create table if not exists app_users (
+    email text primary key,
+    name text default '',
+    employee_id text default '',
+    designation text default '',
+    role text default 'Employee',
+    active boolean default true
   );
 
   -- Disable Row Level Security for development (enable and add policies for production)
@@ -97,6 +123,7 @@ import '../models/user_session.dart';
   alter table employee_profiles   disable row level security;
   alter table employees           disable row level security;
   alter table candidate_applications disable row level security;
+  alter table app_users           disable row level security;
 */
 
 class SupabaseService {
@@ -348,6 +375,51 @@ class SupabaseService {
         .select()
         .order('submitted_at', ascending: false);
     return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  static Future<void> updateCandidateStatus(
+      String id, Map<String, dynamic> fields) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('candidate_applications').update(fields).eq('id', id);
+  }
+
+  // ── App Users (Administration) ────────────────────────────────────────
+
+  static Future<List<AppUser>> fetchAppUsers() async {
+    try {
+      final data = await _db?.from('app_users').select().order('name');
+      if (data == null) return [];
+      return (data as List).map((row) => AppUser(
+        name:        (row['name']        as String?) ?? '',
+        email:       (row['email']       as String?) ?? '',
+        employeeId:  (row['employee_id'] as String?) ?? '',
+        designation: (row['designation'] as String?) ?? '',
+        role:        (row['role']        as String?) ?? 'Employee',
+        active:      (row['active']      as bool?)   ?? true,
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> upsertAppUser(AppUser u) async {
+    try {
+      await _db?.from('app_users').upsert({
+        'email':       u.email,
+        'name':        u.name,
+        'employee_id': u.employeeId,
+        'designation': u.designation,
+        'role':        u.role,
+        'active':      u.active,
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> deleteAppUser(String email) async {
+    try {
+      await _db?.from('app_users').delete().eq('email', email);
+    } catch (_) {}
   }
 
   // ── Initial load on app start ─────────────────────────────────────────

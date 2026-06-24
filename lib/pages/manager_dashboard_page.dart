@@ -12,6 +12,7 @@ class _Section {
 const _hrSections = [
   _Section('Employee Summary',     Icons.people_rounded,                 Color(0xFF0D47A1), '/manager/employee-management'),
   _Section('Attendance Summary',   Icons.access_time_rounded,            Color(0xFF2E7D32), '/manager/attendance-management'),
+  _Section('Interview Review',     Icons.rate_review_rounded,            Color(0xFF1565C0), '/manager/interview-review'),
   _Section('Team Leave Approvals', Icons.group_rounded,                  Color(0xFF283593), '/manager/leave/team-approvals'),
   _Section('Task Summary',         Icons.task_alt_rounded,               Color(0xFF6A1B9A), '/manager/task-management'),
   _Section('Performance Summary',  Icons.trending_up_rounded,            Color(0xFF00695C), '/manager/performance-management'),
