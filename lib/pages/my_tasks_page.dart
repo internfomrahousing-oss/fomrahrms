@@ -38,13 +38,12 @@ class _MyTasksPageState extends State<MyTasksPage> {
     if (mounted) setState(() => _loading = false);
   }
 
-  // Tasks that belong to the logged-in user
+  // Only tasks directly assigned to the logged-in user
   List<Task> get _myTasks {
     final name = UserSession.name;
     if (name.isEmpty) return [];
     return TaskStore.tasks
-        .where((t) =>
-            t.assignedEmployee == name || t.teamMembers.contains(name))
+        .where((t) => t.assignedEmployee == name)
         .toList();
   }
 

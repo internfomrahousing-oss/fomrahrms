@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum TaskStatus { assigned, pending, inProgress, completed, delayed, rejected }
 enum TaskPriority { low, medium, high, critical }
@@ -82,18 +83,24 @@ class Task {
 
 class TaskStore {
   static final List<Task> tasks = [];
-  static int _counter = 0;
+  static const _counterKey = 'task_id_counter';
 
-  static String generateId() {
-    // Pick max existing numeric ID to avoid collision after app restart
-    int max = _counter;
+  // Async — persists counter to SharedPreferences so IDs are always sequential
+  // across app restarts, even before Supabase syncs.
+  static Future<String> generateId() async {
+    final prefs = await SharedPreferences.getInstance();
+    int counter = prefs.getInt(_counterKey) ?? 0;
+
+    // Also check loaded tasks in case prefs were cleared
     for (final t in tasks) {
       if (t.id.startsWith('TSK-')) {
         final n = int.tryParse(t.id.substring(4));
-        if (n != null && n > max) max = n;
+        if (n != null && n > counter) counter = n;
       }
     }
-    _counter = max + 1;
-    return 'TSK-${_counter.toString().padLeft(3, '0')}';
+
+    counter++;
+    await prefs.setInt(_counterKey, counter);
+    return 'TSK-${counter.toString().padLeft(3, '0')}';
   }
 }

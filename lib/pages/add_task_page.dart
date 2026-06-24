@@ -20,7 +20,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   final _formKey = GlobalKey<FormState>();
 
   // Create Task fields
-  final _taskId = TaskStore.generateId();
+  String _taskId = '';
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   TaskPriority _priority = TaskPriority.medium;
@@ -52,12 +52,18 @@ class _AddTaskPageState extends State<AddTaskPage> {
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    _init();
   }
 
-  Future<void> _loadUsers() async {
+  Future<void> _init() async {
     final users = await UserStore.load();
-    if (mounted) setState(() => _users = users.where((u) => u.active).toList());
+    final id = await TaskStore.generateId();
+    if (mounted) {
+      setState(() {
+        _users = users.where((u) => u.active).toList();
+        _taskId = id;
+      });
+    }
   }
 
   // Convert AppUser to Employee for picker compatibility
