@@ -13,6 +13,8 @@ class MyTasksPage extends StatefulWidget {
 class _MyTasksPageState extends State<MyTasksPage> {
   TaskStatus? _filter;
   bool _loading = true;
+  // Private list — filtered to only THIS user's tasks, isolated from TaskStore
+  List<Task> _tasks = [];
 
   static const _filters = [
     (null,                'All'),
@@ -30,30 +32,38 @@ class _MyTasksPageState extends State<MyTasksPage> {
     _load();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload every time this page becomes the active route
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent && !_loading) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
-    final tasks = await SupabaseService.fetchTasks();
-    TaskStore.tasks
-      ..clear()
-      ..addAll(tasks);
-    if (mounted) setState(() => _loading = false);
+    if (mounted) setState(() => _loading = true);
+    final allTasks = await SupabaseService.fetchTasks();
+    final name = UserSession.name.trim();
+    if (!mounted) return;
+    setState(() {
+      _tasks = name.isEmpty
+          ? []
+          : allTasks.where((t) =>
+              t.assignedEmployee.trim() == name ||
+              t.teamMembers.any((m) => m.trim() == name)).toList();
+      _loading = false;
+    });
   }
 
-  // All tasks relevant to the logged-in user (single assigned + group member)
-  List<Task> get _myTasks {
-    final name = UserSession.name;
-    if (name.isEmpty) return [];
-    return TaskStore.tasks
-        .where((t) =>
-            t.assignedEmployee == name || t.teamMembers.contains(name))
-        .toList();
-  }
+  bool _isGroup(Task t) =>
+      t.teamMembers.any((m) => m.trim() == UserSession.name.trim());
 
-  // Returns the effective status for the current user on a task:
-  // - group task  → member's individual status from teamMemberStatuses
-  // - single task → overall task status
+  // Effective status: group task → member's individual status; single → overall
   TaskStatus _effectiveStatus(Task t) {
-    final name = UserSession.name;
-    if (t.teamMembers.contains(name)) {
+    final name = UserSession.name.trim();
+    if (t.teamMembers.any((m) => m.trim() == name)) {
       return TaskStatus.values.firstWhere(
         (s) => s.name == (t.teamMemberStatuses[name] ?? 'assigned'),
         orElse: () => TaskStatus.assigned,
@@ -63,8 +73,8 @@ class _MyTasksPageState extends State<MyTasksPage> {
   }
 
   List<Task> get _filtered {
-    if (_filter == null) return _myTasks;
-    return _myTasks.where((t) => _effectiveStatus(t) == _filter).toList();
+    if (_filter == null) return _tasks;
+    return _tasks.where((t) => _effectiveStatus(t) == _filter).toList();
   }
 
   // Single-assigned task: update overall status
@@ -75,11 +85,11 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
   // Group task: update this member's status; flip overall to completed if all done
   void _onGroupStatusChanged(Task t, TaskStatus s) {
-    final name = UserSession.name;
+    final name = UserSession.name.trim();
     final updated = Map<String, String>.from(t.teamMemberStatuses);
     updated[name] = s.name;
     final allCompleted =
-        t.teamMembers.every((m) => (updated[m] ?? 'assigned') == 'completed');
+        t.teamMembers.every((m) => (updated[m.trim()] ?? 'assigned') == 'completed');
     setState(() {
       t.teamMemberStatuses = updated;
       if (allCompleted) t.status = TaskStatus.completed;
@@ -177,7 +187,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
             const SizedBox(height: 16),
 
             // Task list
-            if (_myTasks.isEmpty)
+            if (_tasks.isEmpty)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -220,7 +230,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
               )
             else
               ...tasks.map((t) {
-                final isGroup = t.teamMembers.contains(UserSession.name);
+                final isGroup = _isGroup(t);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _MyTaskCard(
