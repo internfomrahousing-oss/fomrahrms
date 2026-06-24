@@ -4,15 +4,6 @@ import '../services/lead_service.dart';
 
 const _blue = Color(0xFF0D47A1);
 
-const _statusList = [
-  'All',
-  'New',
-  'Follow-up',
-  'Interested',
-  'Not Interested',
-  'Converted',
-  'Lost',
-];
 
 class LeadManagementPage extends StatefulWidget {
   const LeadManagementPage({super.key});
@@ -24,6 +15,7 @@ class LeadManagementPage extends StatefulWidget {
 class _LeadManagementPageState extends State<LeadManagementPage> {
   List<Lead> _all = [];
   List<Lead> _filtered = [];
+  List<String> _statusOptions = ['All'];
   bool _loading = false;
   String? _error;
   String _selectedStatus = 'All';
@@ -49,9 +41,16 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     });
     try {
       final leads = await LeadService.fetchLeads();
+      final statuses = leads
+          .map((l) => l.status)
+          .where((s) => s.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
       setState(() {
         _all = leads;
         _filtered = _computeFilter(leads);
+        _statusOptions = ['All', ...statuses];
         _loading = false;
       });
     } catch (e) {
@@ -149,8 +148,9 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     final phoneCtrl = TextEditingController(text: lead.phone);
     final projectCtrl = TextEditingController(text: lead.project);
     final sourceCtrl = TextEditingController(text: lead.source);
-    String selectedStatus =
-        lead.status.isEmpty ? _statusList[1] : lead.status;
+    String selectedStatus = lead.status.isNotEmpty
+        ? lead.status
+        : (_statusOptions.length > 1 ? _statusOptions[1] : '');
 
     await showDialog(
       context: context,
@@ -183,7 +183,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                   ),
-                  items: _statusList
+                  items: _statusOptions
                       .skip(1)
                       .map((s) =>
                           DropdownMenuItem(value: s, child: Text(s)))
@@ -232,7 +232,8 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     final phoneCtrl = TextEditingController();
     final projectCtrl = TextEditingController();
     final sourceCtrl = TextEditingController();
-    String selectedStatus = 'New';
+    String selectedStatus =
+        _statusOptions.length > 1 ? _statusOptions[1] : '';
 
     await showDialog(
       context: context,
@@ -265,7 +266,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                   ),
-                  items: _statusList
+                  items: _statusOptions
                       .skip(1)
                       .map((s) =>
                           DropdownMenuItem(value: s, child: Text(s)))
@@ -445,7 +446,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: _statusList.map((s) {
+                    children: _statusOptions.map((s) {
                       final isSelected = _selectedStatus == s;
                       final count = s == 'All'
                           ? _all.length

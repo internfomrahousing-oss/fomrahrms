@@ -52,8 +52,7 @@ class LeadService {
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}');
     }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (data['error'] != null) throw Exception(data['error']);
+    _checkWriteResponse(response.body);
   }
 
   static Future<void> addLead(Lead lead) async {
@@ -70,7 +69,19 @@ class LeadService {
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}');
     }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (data['error'] != null) throw Exception(data['error']);
+    _checkWriteResponse(response.body);
+  }
+
+  static void _checkWriteResponse(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+      // success: { success: true } or any non-error response
+    } catch (e) {
+      if (e is Exception) rethrow;
+      // ignore parse errors on write responses
+    }
   }
 }
