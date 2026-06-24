@@ -6,7 +6,7 @@ class LeadService {
   // Paste your deployed Apps Script URL here after following the setup steps.
   // Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone
   static const String _scriptUrl =
-      'https://script.google.com/macros/s/AKfycbz8SLT61HEbG30WaI9SOPp55kgzpQhVxn-smZTU7KSIIp_h2bNO6diGt1VijIkyPLBUWw/exec';
+      'https://script.google.com/macros/s/AKfycbwmo9RFIBm7U4RdzCwkzeGtGwbqzyP-OD07nJCQd1nJ9V-ejCcQfiz7nLfct2kNLcyS7g/exec';
 
   static Future<List<Lead>> fetchLeads() async {
     final uri = Uri.parse('$_scriptUrl?action=list');
