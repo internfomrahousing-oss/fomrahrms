@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
+import '../services/supabase_service.dart';
 
 class TaskManagementPage extends StatefulWidget {
   const TaskManagementPage({super.key});
@@ -11,6 +12,7 @@ class TaskManagementPage extends StatefulWidget {
 
 class _TaskManagementPageState extends State<TaskManagementPage> {
   TaskStatus? _filter; // null = All
+  bool _loading = true;
 
   static const _filters = [
     (null, 'All'),
@@ -22,6 +24,20 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
     (TaskStatus.rejected, 'Rejected'),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final tasks = await SupabaseService.fetchTasks();
+    TaskStore.tasks
+      ..clear()
+      ..addAll(tasks);
+    if (mounted) setState(() => _loading = false);
+  }
+
   List<Task> get _filtered => _filter == null
       ? TaskStore.tasks
       : TaskStore.tasks.where((t) => t.status == _filter).toList();
@@ -32,13 +48,25 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
     return loc.startsWith('/manager') ? '/manager/task-management/add' : '/task-management/add';
   }
 
+  void _onStatusChanged(Task t, TaskStatus s) {
+    setState(() => t.status = s);
+    SupabaseService.updateTaskStatus(t.id, s);
+  }
+
+  void _onDelete(Task t) {
+    setState(() => TaskStore.tasks.remove(t));
+    SupabaseService.deleteTask(t.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tasks = _filtered;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SingleChildScrollView(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +87,10 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
                   style: Theme.of(context).textTheme.headlineMedium),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed: () => context.push(_addRoute),
+                onPressed: () async {
+                  await context.push(_addRoute);
+                  if (mounted) _load();
+                },
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add Task'),
                 style: ElevatedButton.styleFrom(
@@ -169,8 +200,8 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _TaskCard(
                       task: t,
-                      onStatusChanged: (s) =>
-                          setState(() => t.status = s),
+                      onStatusChanged: (s) => _onStatusChanged(t, s),
+                      onDelete: () => _onDelete(t),
                     ),
                   )),
           ],
@@ -194,7 +225,8 @@ String _filterLabel(TaskStatus s) => switch (s) {
 class _TaskCard extends StatefulWidget {
   final Task task;
   final ValueChanged<TaskStatus> onStatusChanged;
-  const _TaskCard({required this.task, required this.onStatusChanged});
+  final VoidCallback? onDelete;
+  const _TaskCard({required this.task, required this.onStatusChanged, this.onDelete});
 
   @override
   State<_TaskCard> createState() => _TaskCardState();
@@ -352,6 +384,45 @@ class _TaskCardState extends State<_TaskCard> {
                             )),
                   ]),
                 ),
+                if (widget.onDelete != null) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text('Delete Task'),
+                            content: Text('Delete "${t.name}"?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  widget.onDelete!();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade700,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.delete_rounded,
+                          size: 16, color: Colors.red.shade700),
+                      label: Text('Delete Task',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.red.shade700)),
+                    ),
+                  ),
+                ],
               ],
             ],
           ),

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
+import '../models/app_user.dart';
 import '../models/employee_store.dart';
-import '../services/api_service.dart';
+import '../services/user_store.dart';
+import '../services/supabase_service.dart';
 
 class AddTaskPage extends StatefulWidget {
   const AddTaskPage({super.key});
@@ -27,6 +29,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
   final _weightageCtrl = TextEditingController();
   String _attachment = '';
 
+  // Users loaded from UserStore for assignment
+  List<AppUser> _users = [];
+
   // Assign Task fields
   Employee? _assignedEmployee;
   final List<Employee> _teamMembers = [];
@@ -43,6 +48,27 @@ class _AddTaskPageState extends State<AddTaskPage> {
     (TaskPriority.high,     'High',     Color(0xFFBF360C)),
     (TaskPriority.critical, 'Critical', Color(0xFFB71C1C)),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    final users = await UserStore.load();
+    if (mounted) setState(() => _users = users.where((u) => u.active).toList());
+  }
+
+  // Convert AppUser to Employee for picker compatibility
+  Employee _toEmployee(AppUser u) => Employee(
+    id:          u.email,
+    name:        u.name,
+    department:  u.role,
+    designation: u.designation,
+    mobile:      u.mobile,
+    email:       u.email,
+  );
 
   @override
   void dispose() {
@@ -80,13 +106,13 @@ class _AddTaskPageState extends State<AddTaskPage> {
   }
 
   void _pickEmployee() {
-    final employees = EmployeeStore.employees;
-    if (employees.isEmpty) {
+    if (_users.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No employees added yet')),
+        const SnackBar(content: Text('No employees found. Add users via Administration first.')),
       );
       return;
     }
+    final employees = _users.map(_toEmployee).toList();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -118,13 +144,13 @@ class _AddTaskPageState extends State<AddTaskPage> {
   }
 
   void _pickTeam() {
-    final employees = EmployeeStore.employees;
-    if (employees.isEmpty) {
+    if (_users.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No employees added yet')),
+        const SnackBar(content: Text('No employees found. Add users via Administration first.')),
       );
       return;
     }
+    final employees = _users.map(_toEmployee).toList();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -173,27 +199,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
       attachment: _attachment,
     );
 
-    // Save locally
+    // Add to in-memory store and persist to Supabase
     TaskStore.tasks.add(task);
-
-    // Sync to backend
-    try {
-      await ApiService.createTask({
-        'task_id':           _taskId,
-        'name':              task.name,
-        'description':       task.description,
-        'priority':          task.priority.name,
-        'start_date':        task.startDate.toIso8601String().split('T')[0],
-        'due_date':          task.dueDate.toIso8601String().split('T')[0],
-        'weightage':         task.weightage,
-        'assigned_employee': task.assignedEmployee,
-        'team_members':      teamNames,
-        'department':        dept,
-        'attachment':        task.attachment,
-      });
-    } catch (_) {
-      // Keep in local store — will sync later
-    }
+    await SupabaseService.saveTask(task);
 
     if (mounted) context.pop();
   }

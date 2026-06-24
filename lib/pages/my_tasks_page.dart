@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task_store.dart';
+import '../models/user_session.dart';
+import '../services/supabase_service.dart';
 
 class MyTasksPage extends StatefulWidget {
   const MyTasksPage({super.key});
@@ -10,6 +12,7 @@ class MyTasksPage extends StatefulWidget {
 
 class _MyTasksPageState extends State<MyTasksPage> {
   TaskStatus? _filter;
+  bool _loading = true;
 
   static const _filters = [
     (null,                'All'),
@@ -21,9 +24,38 @@ class _MyTasksPageState extends State<MyTasksPage> {
     (TaskStatus.rejected,   'Rejected'),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final tasks = await SupabaseService.fetchTasks();
+    TaskStore.tasks
+      ..clear()
+      ..addAll(tasks);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  // Tasks that belong to the logged-in user
+  List<Task> get _myTasks {
+    final name = UserSession.name;
+    if (name.isEmpty) return [];
+    return TaskStore.tasks
+        .where((t) =>
+            t.assignedEmployee == name || t.teamMembers.contains(name))
+        .toList();
+  }
+
   List<Task> get _filtered => _filter == null
-      ? TaskStore.tasks
-      : TaskStore.tasks.where((t) => t.status == _filter).toList();
+      ? _myTasks
+      : _myTasks.where((t) => t.status == _filter).toList();
+
+  void _onStatusChanged(Task t, TaskStatus s) {
+    setState(() => t.status = s);
+    SupabaseService.updateTaskStatus(t.id, s);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +63,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SingleChildScrollView(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +147,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
             const SizedBox(height: 16),
 
             // Task list
-            if (TaskStore.tasks.isEmpty)
+            if (_myTasks.isEmpty)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -159,8 +193,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _MyTaskCard(
                       task: t,
-                      onStatusChanged: (s) =>
-                          setState(() => t.status = s),
+                      onStatusChanged: (s) => _onStatusChanged(t, s),
                     ),
                   )),
           ],

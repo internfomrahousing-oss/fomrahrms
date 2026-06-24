@@ -6,6 +6,7 @@ import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
 import '../models/profile_store.dart';
 import '../models/employee_store.dart';
+import '../models/task_store.dart';
 import '../models/user_session.dart';
 
 /*
@@ -135,6 +136,21 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists address text default '';
   alter table app_users add column if not exists date_of_joining text default '';
 
+  create table if not exists tasks (
+    id text primary key,
+    name text default '',
+    description text default '',
+    priority text default 'medium',
+    start_date date not null,
+    due_date date not null,
+    weightage integer default 0,
+    status text default 'assigned',
+    assigned_employee text default '',
+    team_members text default '',
+    department text default '',
+    attachment text default ''
+  );
+
   -- Disable Row Level Security for development (enable and add policies for production)
   alter table leave_applications disable row level security;
   alter table maintenance_tickets disable row level security;
@@ -142,6 +158,7 @@ import '../models/user_session.dart';
   alter table employees           disable row level security;
   alter table candidate_applications disable row level security;
   alter table app_users           disable row level security;
+  alter table tasks               disable row level security;
 */
 
 class SupabaseService {
@@ -461,6 +478,38 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  // ── Tasks ─────────────────────────────────────────────────────────────
+
+  static Future<void> saveTask(Task task) async {
+    try {
+      await _db?.from('tasks').upsert(task.toJson());
+    } catch (_) {}
+  }
+
+  static Future<void> deleteTask(String id) async {
+    try {
+      await _db?.from('tasks').delete().eq('id', id);
+    } catch (_) {}
+  }
+
+  static Future<void> updateTaskStatus(String id, TaskStatus status) async {
+    try {
+      await _db?.from('tasks').update({'status': status.name}).eq('id', id);
+    } catch (_) {}
+  }
+
+  static Future<List<Task>> fetchTasks() async {
+    try {
+      final data = await _db?.from('tasks').select().order('id');
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => Task.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   // ── Initial load on app start ─────────────────────────────────────────
 
   static Future<void> loadAll() async {
@@ -469,6 +518,7 @@ class SupabaseService {
       _loadMaintenance(),
       _loadProfiles(),
       _loadEmployees(),
+      _loadTasks(),
     ]);
   }
 
@@ -498,6 +548,13 @@ class SupabaseService {
   static Future<void> _loadEmployees() async {
     final list = await fetchEmployees();
     EmployeeStore.employees
+      ..clear()
+      ..addAll(list);
+  }
+
+  static Future<void> _loadTasks() async {
+    final list = await fetchTasks();
+    TaskStore.tasks
       ..clear()
       ..addAll(list);
   }
