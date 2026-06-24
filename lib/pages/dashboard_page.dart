@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../services/user_store.dart';
 
 class _Section {
   final String title;
@@ -52,8 +53,28 @@ const _stats = [
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  String _totalEmployees = '—';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final users = await UserStore.load();
+    if (mounted) {
+      setState(() => _totalEmployees = users.length.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +156,7 @@ class DashboardPage extends StatelessWidget {
             ),
             SizedBox(height: narrow ? 16 : 24),
 
-            _StatStrip(),
+            _StatStrip(totalEmployees: _totalEmployees),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(
@@ -191,23 +212,26 @@ class _SectionLabel extends StatelessWidget {
 
 // ── Stat strip ────────────────────────────────────────────────────────────────
 class _StatStrip extends StatelessWidget {
+  final String totalEmployees;
+  const _StatStrip({required this.totalEmployees});
+
   @override
   Widget build(BuildContext context) {
+    final values = [totalEmployees, '—', '—', '—'];
     return LayoutBuilder(builder: (context, constraints) {
       final isNarrow = constraints.maxWidth < 500;
       if (isNarrow) {
-        // Column of rows — cards size to their natural height, no overflow
         return Column(children: [
           Row(children: [
-            Expanded(child: _StatCircle(stat: _stats[0])),
+            Expanded(child: _StatCircle(stat: _stats[0], value: values[0])),
             const SizedBox(width: 12),
-            Expanded(child: _StatCircle(stat: _stats[1])),
+            Expanded(child: _StatCircle(stat: _stats[1], value: values[1])),
           ]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _StatCircle(stat: _stats[2])),
+            Expanded(child: _StatCircle(stat: _stats[2], value: values[2])),
             const SizedBox(width: 12),
-            Expanded(child: _StatCircle(stat: _stats[3])),
+            Expanded(child: _StatCircle(stat: _stats[3], value: values[3])),
           ]),
         ]);
       }
@@ -217,7 +241,7 @@ class _StatStrip extends StatelessWidget {
             child: Padding(
               padding:
                   EdgeInsets.only(right: e.key < _stats.length - 1 ? 12 : 0),
-              child: _StatCircle(stat: e.value),
+              child: _StatCircle(stat: e.value, value: values[e.key]),
             ),
           );
         }).toList(),
@@ -228,7 +252,8 @@ class _StatStrip extends StatelessWidget {
 
 class _StatCircle extends StatelessWidget {
   final _Stat stat;
-  const _StatCircle({required this.stat});
+  final String value;
+  const _StatCircle({required this.stat, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -254,7 +279,7 @@ class _StatCircle extends StatelessWidget {
               child: Icon(stat.icon, color: Colors.white, size: 24),
             ),
             const SizedBox(height: 10),
-            Text('—',
+            Text(value,
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
+import '../services/user_store.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
 const _mgmtAccent = Color(0xFF7B1FA2);
@@ -59,8 +60,29 @@ const _stats = [
   _Stat('Open Tasks',      Icons.task_alt_rounded,     Color(0xFF1565C0)),
 ];
 
-class ManagementDashboardPage extends StatelessWidget {
+class ManagementDashboardPage extends StatefulWidget {
   const ManagementDashboardPage({super.key});
+
+  @override
+  State<ManagementDashboardPage> createState() =>
+      _ManagementDashboardPageState();
+}
+
+class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
+  String _totalEmployees = '—';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final users = await UserStore.load();
+    if (mounted) {
+      setState(() => _totalEmployees = users.length.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +168,7 @@ class ManagementDashboardPage extends StatelessWidget {
             ),
             SizedBox(height: narrow ? 16 : 24),
 
-            _StatStrip(),
+            _StatStrip(totalEmployees: _totalEmployees),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),
@@ -194,22 +216,26 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _StatStrip extends StatelessWidget {
+  final String totalEmployees;
+  const _StatStrip({required this.totalEmployees});
+
   @override
   Widget build(BuildContext context) {
+    final values = [totalEmployees, '—', '—', '—'];
     return LayoutBuilder(builder: (context, constraints) {
       final isNarrow = constraints.maxWidth < 500;
       if (isNarrow) {
         return Column(children: [
           Row(children: [
-            Expanded(child: _StatCard(stat: _stats[0])),
+            Expanded(child: _StatCard(stat: _stats[0], value: values[0])),
             const SizedBox(width: 12),
-            Expanded(child: _StatCard(stat: _stats[1])),
+            Expanded(child: _StatCard(stat: _stats[1], value: values[1])),
           ]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _StatCard(stat: _stats[2])),
+            Expanded(child: _StatCard(stat: _stats[2], value: values[2])),
             const SizedBox(width: 12),
-            Expanded(child: _StatCard(stat: _stats[3])),
+            Expanded(child: _StatCard(stat: _stats[3], value: values[3])),
           ]),
         ]);
       }
@@ -218,7 +244,7 @@ class _StatStrip extends StatelessWidget {
           return Expanded(
             child: Padding(
               padding: EdgeInsets.only(right: e.key < _stats.length - 1 ? 12 : 0),
-              child: _StatCard(stat: e.value),
+              child: _StatCard(stat: e.value, value: values[e.key]),
             ),
           );
         }).toList(),
@@ -229,7 +255,8 @@ class _StatStrip extends StatelessWidget {
 
 class _StatCard extends StatelessWidget {
   final _Stat stat;
-  const _StatCard({required this.stat});
+  final String value;
+  const _StatCard({required this.stat, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +280,7 @@ class _StatCard extends StatelessWidget {
             child: Icon(stat.icon, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 10),
-          Text('—',
+          Text(value,
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
