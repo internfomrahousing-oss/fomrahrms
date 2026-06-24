@@ -58,7 +58,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
   Future<void> _init() async {
     final users = await UserStore.load();
-    final id = await TaskStore.generateId();
     if (mounted) {
       setState(() {
         // Filter based on role:
@@ -67,7 +66,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
         _users = UserSession.role == UserRole.reportingManager
             ? active.where((u) => u.reportingManager == UserSession.name).toList()
             : active;
-        _taskId = id;
       });
     }
   }
@@ -197,13 +195,17 @@ class _AddTaskPageState extends State<AddTaskPage> {
     final teamNames = _teamMembers.map((e) => e.name).toList();
     final dept      = _selectedDepartments.join(', ');
 
+    // Generate ID only at submission — prevents counter drift from opening/closing the form
+    final taskId = await TaskStore.generateId();
+    setState(() => _taskId = taskId);
+
     // Seed each team member's individual status to 'assigned'
     final memberStatuses = <String, String>{
       for (final n in teamNames) n: TaskStatus.assigned.name,
     };
 
     final task = Task(
-      id: _taskId,
+      id: taskId,
       name: _nameCtrl.text.trim(),
       description: _descCtrl.text.trim(),
       priority: _priority,
