@@ -1,5 +1,2 @@
-and an interview revie page in manager hamburger menu also 
-under each application that comes in hr's interview dashbaord. have three options: accept ,  reject , comments. 
-accept means direct it to choose manager. once manager is choosen the interview details should appear in his dashboard.
-let  him have the same 3 options : if he accpets it should go to management dashboard witht the details.
-again managemnt should approve or reject . same three options. if accepted it can go back to hr dashboard  stating apporved by managemnt and manager
+in "leave management" for hr : he can see the details of al the employees and the no of allocated leaves for each of them. 
+allocation is done by the hr which is relefected in employee dashboard under " totall leaves" 

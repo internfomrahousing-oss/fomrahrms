@@ -7,7 +7,9 @@
       "Skill(run)",
       "Skill(run:*)",
       "Bash(\"/c/Users/Sahana R/flutter/bin/flutter\" run -d web-server --web-port 8181 --release)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8181/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8181/)",
+      "Bash(git remote *)",
+      "Bash(flutter analyze *)"
     ]
   }
 }
