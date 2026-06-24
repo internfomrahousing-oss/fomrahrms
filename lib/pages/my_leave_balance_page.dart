@@ -1,86 +1,174 @@
 import 'package:flutter/material.dart';
+import '../models/leave_store.dart';
+import '../models/user_session.dart';
+import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
-class MyLeaveBalancePage extends StatelessWidget {
+const _defaultAllocation = 21; // fallback when no HR-set allocation exists
+
+class MyLeaveBalancePage extends StatefulWidget {
   const MyLeaveBalancePage({super.key});
 
-  static const _color = Color(0xFF1976D2);
+  @override
+  State<MyLeaveBalancePage> createState() => _MyLeaveBalancePage();
+}
 
-  static const _balances = [
-    _Balance('Casual Leave',   Icons.event_available_rounded, Color(0xFF0D47A1)),
-    _Balance('Sick Leave',     Icons.local_hospital_rounded,  Color(0xFF1565C0)),
-    _Balance('Earned Leave',   Icons.card_giftcard_rounded,   Color(0xFF1976D2)),
-    _Balance('House Visit',    Icons.home_rounded,            Color(0xFF0288D1)),
-    _Balance('Outdoor Duty',   Icons.directions_walk_rounded, Color(0xFF283593)),
-  ];
+class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
+  static const _color = Color(0xFF1976D2);
+  bool _loading = false;
+  int _totalAllocated = _defaultAllocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final results = await Future.wait([
+        SupabaseService.fetchLeaveApplications().timeout(const Duration(seconds: 8)),
+        UserStore.load(),
+      ]);
+
+      final leaves = results[0] as List;
+      final users  = results[1] as List;
+
+      if (leaves.isNotEmpty) {
+        LeaveStore.applications
+          ..clear()
+          ..addAll(leaves.cast());
+        LeaveStore.syncCounter();
+      }
+
+      // Find this employee's allocation set by HR
+      final match = users.cast<dynamic>().where((u) => u.name == UserSession.name).toList();
+      final allocated = match.isNotEmpty ? (match.first.leaveAllocation as int) : _defaultAllocation;
+
+      if (mounted) setState(() { _totalAllocated = allocated; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<LeaveApplication> get _mine => LeaveStore.applications
+      .where((a) => a.employeeName == UserSession.name)
+      .toList();
+
+  int _usedDays(String? type) => _mine
+      .where((a) =>
+          a.managerStatus == LeaveApprovalStatus.approved &&
+          (type == null || a.leaveType == type))
+      .fold(0, (s, a) => s + a.days);
+
+  int _pendingDays(String? type) => _mine
+      .where((a) =>
+          a.managerStatus == LeaveApprovalStatus.pending &&
+          (type == null || a.leaveType == type))
+      .fold(0, (s, a) => s + a.days);
 
   @override
   Widget build(BuildContext context) {
+    final used    = _usedDays(null);
+    final pending = _pendingDays(null);
+    final available = (_totalAllocated - used).clamp(0, _totalAllocated);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(
-                  color: _color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.balance_rounded, color: _color, size: 26),
-              ),
-              const SizedBox(width: 16),
-              Text('Leave Balance',
-                  style: Theme.of(context).textTheme.headlineMedium),
-            ]),
-            const SizedBox(height: 24),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const NavBackButton(),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: _color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.balance_rounded, color: _color, size: 26),
+                    ),
+                    const SizedBox(width: 16),
+                    Text('Leave Balance',
+                        style: Theme.of(context).textTheme.headlineMedium),
+                  ]),
+                  const SizedBox(height: 24),
 
-            // Overall summary card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _SummaryCircle('Total Allocated', Icons.calendar_month_rounded, const Color(0xFF0D47A1)),
-                    _SummaryCircle('Used',            Icons.event_busy_rounded,     const Color(0xFF1565C0)),
-                    _SummaryCircle('Available',       Icons.event_available_rounded,const Color(0xFF2E7D32)),
-                    _SummaryCircle('Pending',         Icons.pending_actions_rounded, Colors.orange.shade700),
-                  ],
-                ),
+                  // Overall summary card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _SummaryCircle('Total Allocated', Icons.calendar_month_rounded,
+                              const Color(0xFF0D47A1), _totalAllocated),
+                          _SummaryCircle('Used', Icons.event_busy_rounded,
+                              const Color(0xFF1565C0), used),
+                          _SummaryCircle('Available', Icons.event_available_rounded,
+                              const Color(0xFF2E7D32), available),
+                          _SummaryCircle('Pending', Icons.pending_actions_rounded,
+                              Colors.orange.shade700, pending),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Per-type usage breakdown
+                  ...const [
+                    ('Casual Leave',  Icons.event_available_rounded, Color(0xFF0D47A1)),
+                    ('Sick Leave',    Icons.local_hospital_rounded,  Color(0xFF1565C0)),
+                    ('Earned Leave',  Icons.card_giftcard_rounded,   Color(0xFF1976D2)),
+                    ('House Visit',   Icons.home_rounded,            Color(0xFF0288D1)),
+                    ('Outdoor Duty',  Icons.directions_walk_rounded, Color(0xFF283593)),
+                  ].map((e) {
+                    final typeUsed    = _usedDays(e.$1);
+                    final typePending = _pendingDays(e.$1);
+                    if (typeUsed == 0 && typePending == 0) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _BalanceCard(
+                        type: e.$1,
+                        icon: e.$2,
+                        color: e.$3,
+                        used: typeUsed,
+                        pending: typePending,
+                      ),
+                    );
+                  }),
+
+                  // Empty state for per-type section
+                  if (_mine.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(
+                          child: Text('No leave applications yet.',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Per-type breakdown
-            ..._balances.map((b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _BalanceCard(balance: b),
-                )),
-          ],
-        ),
-      ),
     );
   }
-}
-
-class _Balance {
-  final String type;
-  final IconData icon;
-  final Color color;
-  const _Balance(this.type, this.icon, this.color);
 }
 
 class _SummaryCircle extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
-  const _SummaryCircle(this.label, this.icon, this.color);
+  final int value;
+  const _SummaryCircle(this.label, this.icon, this.color, this.value);
 
   @override
   Widget build(BuildContext context) {
@@ -94,10 +182,9 @@ class _SummaryCircle extends StatelessWidget {
         child: Icon(icon, color: color, size: 26),
       ),
       const SizedBox(height: 8),
-      const Text('—',
+      Text('$value',
           style: TextStyle(
-              fontSize: 20, fontWeight: FontWeight.bold,
-              color: Color(0xFF1A237E))),
+              fontSize: 20, fontWeight: FontWeight.bold, color: color)),
       const SizedBox(height: 2),
       Text(label,
           textAlign: TextAlign.center,
@@ -107,8 +194,18 @@ class _SummaryCircle extends StatelessWidget {
 }
 
 class _BalanceCard extends StatelessWidget {
-  final _Balance balance;
-  const _BalanceCard({required this.balance});
+  final String type;
+  final IconData icon;
+  final Color color;
+  final int used;
+  final int pending;
+  const _BalanceCard({
+    required this.type,
+    required this.icon,
+    required this.color,
+    required this.used,
+    required this.pending,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -119,23 +216,20 @@ class _BalanceCard extends StatelessWidget {
           Container(
             width: 42, height: 42,
             decoration: BoxDecoration(
-              color: balance.color.withValues(alpha: 0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(balance.icon, color: balance.color, size: 22),
+            child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(balance.type,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600,
+            child: Text(type,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                     color: Color(0xFF1A237E))),
           ),
-          _LeaveCount('Avail.', Colors.green.shade700),
-          const SizedBox(width: 16),
-          _LeaveCount('Used',   Colors.orange.shade700),
-          const SizedBox(width: 16),
-          _LeaveCount('Pending',Colors.red.shade700),
+          _LeaveCount('Used',    used,    Colors.orange.shade700),
+          const SizedBox(width: 20),
+          _LeaveCount('Pending', pending, Colors.red.shade700),
         ]),
       ),
     );
@@ -144,13 +238,14 @@ class _BalanceCard extends StatelessWidget {
 
 class _LeaveCount extends StatelessWidget {
   final String label;
+  final int value;
   final Color color;
-  const _LeaveCount(this.label, this.color);
+  const _LeaveCount(this.label, this.value, this.color);
 
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      Text('—',
+      Text('$value',
           style: TextStyle(
               fontSize: 18, fontWeight: FontWeight.bold, color: color)),
       Text(label,

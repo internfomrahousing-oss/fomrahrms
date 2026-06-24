@@ -11,6 +11,7 @@ class LeaveApplication {
   final String reason;
   final DateTime appliedOn;
   LeaveApprovalStatus managerStatus = LeaveApprovalStatus.pending;
+  String decidedBy = ''; // 'Manager' | 'Management' | ''
 
   LeaveApplication({
     required this.id,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/leave_store.dart';
+import '../models/user_session.dart';
+import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 
 class MyLeaveApprovalsPage extends StatefulWidget {
@@ -12,7 +14,33 @@ class MyLeaveApprovalsPage extends StatefulWidget {
 class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
   static const _color = Color(0xFF1565C0);
 
-  List<LeaveApplication> get _apps => LeaveStore.applications;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    if (mounted) setState(() => _loading = true);
+    try {
+      final fresh = await SupabaseService.fetchLeaveApplications()
+          .timeout(const Duration(seconds: 8));
+      if (fresh.isNotEmpty) {
+        LeaveStore.applications
+          ..clear()
+          ..addAll(fresh);
+        LeaveStore.syncCounter();
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  // Only show applications for the currently logged-in employee
+  List<LeaveApplication> get _apps => LeaveStore.applications
+      .where((a) => a.employeeName == UserSession.name)
+      .toList();
 
   int get _pending  => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.pending).length;
   int get _approved => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
@@ -40,7 +68,7 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
                     color: _color, size: 26),
               ),
               const SizedBox(width: 16),
-              Text('My Approvals',
+              Text('Leave History',
                   style: Theme.of(context).textTheme.headlineMedium),
             ]),
             const SizedBox(height: 24),
@@ -58,7 +86,12 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
             ]),
             const SizedBox(height: 20),
 
-            if (_apps.isEmpty)
+            if (_loading)
+              const Center(child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: CircularProgressIndicator(),
+              ))
+            else if (_apps.isEmpty)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(40),
@@ -67,11 +100,11 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
                       Icon(Icons.inbox_rounded,
                           size: 48, color: Colors.grey.shade300),
                       const SizedBox(height: 10),
-                      Text('No leave applications yet',
+                      Text('No leave history yet',
                           style: TextStyle(
                               color: Colors.grey.shade400, fontSize: 14)),
                       const SizedBox(height: 4),
-                      Text('Applications you submit will appear here.',
+                      Text('Leaves you apply will appear here with their approval status.',
                           style: TextStyle(
                               color: Colors.grey.shade400, fontSize: 12)),
                     ]),

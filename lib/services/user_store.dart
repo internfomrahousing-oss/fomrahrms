@@ -21,7 +21,7 @@ class UserStore {
   }
 
   static Future<void> upsertOne(AppUser u) async {
-    await SupabaseService.upsertAppUser(u);
+    // Save locally first so data is never lost if Supabase is unavailable
     final users = await _loadLocal();
     final idx = users.indexWhere((x) => x.email == u.email);
     if (idx >= 0) {
@@ -30,6 +30,7 @@ class UserStore {
       users.add(u);
     }
     await _saveLocal(users);
+    await SupabaseService.upsertAppUser(u);
   }
 
   static Future<void> deleteOne(String email) async {

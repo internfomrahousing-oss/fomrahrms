@@ -38,7 +38,6 @@ class _Item {
 }
 
 const _personalItems = [
-  _Item('My Details',    Icons.badge_rounded,                  Color(0xFF4A148C), '/management/my-details'),
   _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF6A1B9A), '/management/my-attendance'),
   _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF7B1FA2), '/management/my-leave'),
   _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF8E24AA), '/management/my-tasks'),

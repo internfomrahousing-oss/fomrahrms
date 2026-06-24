@@ -14,8 +14,17 @@ class ApplyLeavePage extends StatefulWidget {
 class _ApplyLeavePageState extends State<ApplyLeavePage> {
   static const _color = Color(0xFF0D47A1);
 
+  static const _leaveTypes = [
+    'Casual Leave',
+    'Sick Leave',
+    'Earned Leave',
+    'House Visit',
+    'Outdoor Duty',
+  ];
+
   DateTime? _fromDate;
   DateTime? _toDate;
+  String _leaveType = 'Casual Leave';
   final _reasonController = TextEditingController();
 
   @override
@@ -76,7 +85,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       id:           LeaveStore.generateId(),
       employeeName: UserSession.name.isEmpty ? 'Employee' : UserSession.name,
       department:   '',
-      leaveType:    '',
+      leaveType:    _leaveType,
       from:         _fromDate!,
       to:           _toDate!,
       days:         _numDays,
@@ -91,7 +100,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   }
 
   void _clear() {
-    setState(() { _fromDate = null; _toDate = null; });
+    setState(() { _fromDate = null; _toDate = null; _leaveType = 'Casual Leave'; });
     _reasonController.clear();
   }
 

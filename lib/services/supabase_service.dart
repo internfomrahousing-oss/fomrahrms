@@ -22,8 +22,12 @@ import '../models/user_session.dart';
     days integer not null,
     reason text default '',
     applied_on timestamptz default now(),
-    manager_status text default 'pending'
+    manager_status text default 'pending',
+    decided_by text default ''
   );
+
+  -- If the table already exists:
+  alter table leave_applications add column if not exists decided_by text default '';
 
   create table if not exists maintenance_tickets (
     id text primary key,
@@ -114,8 +118,22 @@ import '../models/user_session.dart';
     employee_id text default '',
     designation text default '',
     role text default 'Employee',
-    active boolean default true
+    active boolean default true,
+    password text default '',
+    leave_allocation integer default 21,
+    reporting_manager text default '',
+    mobile text default '',
+    address text default '',
+    date_of_joining text default ''
   );
+
+  -- If the table already exists, add missing columns:
+  alter table app_users add column if not exists password text default '';
+  alter table app_users add column if not exists leave_allocation integer default 21;
+  alter table app_users add column if not exists reporting_manager text default '';
+  alter table app_users add column if not exists mobile text default '';
+  alter table app_users add column if not exists address text default '';
+  alter table app_users add column if not exists date_of_joining text default '';
 
   -- Disable Row Level Security for development (enable and add policies for production)
   alter table leave_applications disable row level security;
@@ -155,11 +173,19 @@ class SupabaseService {
   }
 
   static Future<void> updateLeaveManagerStatus(
-      String id, LeaveApprovalStatus status) async {
+      String id, LeaveApprovalStatus status, {String decidedBy = ''}) async {
+    // Update status first — always works even if decided_by column doesn't exist yet
     try {
       await _db
           ?.from('leave_applications')
           .update({'manager_status': status.name})
+          .eq('id', id);
+    } catch (_) {}
+    // Update decided_by separately — silently skipped if column not yet added
+    try {
+      await _db
+          ?.from('leave_applications')
+          .update({'decided_by': decidedBy})
           .eq('id', id);
     } catch (_) {}
   }
@@ -188,6 +214,7 @@ class SupabaseService {
           (s) => s.name == ms,
           orElse: () => LeaveApprovalStatus.pending,
         );
+        app.decidedBy = (row['decided_by'] as String?) ?? '';
         return app;
       }).toList();
       return list;
@@ -391,12 +418,18 @@ class SupabaseService {
       final data = await _db?.from('app_users').select().order('name');
       if (data == null) return [];
       return (data as List).map((row) => AppUser(
-        name:        (row['name']        as String?) ?? '',
-        email:       (row['email']       as String?) ?? '',
-        employeeId:  (row['employee_id'] as String?) ?? '',
-        designation: (row['designation'] as String?) ?? '',
-        role:        (row['role']        as String?) ?? 'Employee',
-        active:      (row['active']      as bool?)   ?? true,
+        name:              (row['name']               as String?) ?? '',
+        email:             (row['email']              as String?) ?? '',
+        employeeId:        (row['employee_id']        as String?) ?? '',
+        designation:       (row['designation']        as String?) ?? '',
+        role:              (row['role']               as String?) ?? 'Employee',
+        active:            (row['active']             as bool?)   ?? true,
+        password:          (row['password']           as String?) ?? '',
+        leaveAllocation:   (row['leave_allocation']   as int?)    ?? 21,
+        reportingManager:  (row['reporting_manager']  as String?) ?? '',
+        mobile:            (row['mobile']             as String?) ?? '',
+        address:           (row['address']            as String?) ?? '',
+        dateOfJoining:     (row['date_of_joining']    as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -406,12 +439,18 @@ class SupabaseService {
   static Future<void> upsertAppUser(AppUser u) async {
     try {
       await _db?.from('app_users').upsert({
-        'email':       u.email,
-        'name':        u.name,
-        'employee_id': u.employeeId,
-        'designation': u.designation,
-        'role':        u.role,
-        'active':      u.active,
+        'email':              u.email,
+        'name':               u.name,
+        'employee_id':        u.employeeId,
+        'designation':        u.designation,
+        'role':               u.role,
+        'active':             u.active,
+        'password':           u.password,
+        'leave_allocation':   u.leaveAllocation,
+        'reporting_manager':  u.reportingManager,
+        'mobile':             u.mobile,
+        'address':            u.address,
+        'date_of_joining':    u.dateOfJoining,
       });
     } catch (_) {}
   }

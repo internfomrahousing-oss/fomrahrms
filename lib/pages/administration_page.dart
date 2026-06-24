@@ -264,10 +264,21 @@ class _UsersTab extends StatelessWidget {
                       style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
                   const SizedBox(height: 4),
                   Row(children: [
-                    _Chip(label: u.designation, color: const Color(0xFF546E7A)),
-                    const SizedBox(width: 6),
+                    if (u.designation.isNotEmpty) ...[
+                      _Chip(label: u.designation, color: const Color(0xFF546E7A)),
+                      const SizedBox(width: 6),
+                    ],
                     _Chip(label: u.role, color: _roleColor(u.role)),
                   ]),
+                  if ((u.role == 'Employee' || u.role == 'Manager') && u.reportingManager.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Row(children: [
+                      const Icon(Icons.manage_accounts_rounded, size: 11, color: Color(0xFF90A4AE)),
+                      const SizedBox(width: 4),
+                      Text('Reports to: ${u.reportingManager}',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
+                    ]),
+                  ],
                 ]),
               ),
               const SizedBox(width: 8),
@@ -303,13 +314,25 @@ class _UsersTab extends StatelessWidget {
     );
   }
 
+  static const _domain = '@fomrahousing.in';
+
+  // Strip domain to get just the username prefix for editing
+  static String _emailPrefix(String? email) {
+    if (email == null) return '';
+    return email.endsWith(_domain)
+        ? email.substring(0, email.length - _domain.length)
+        : email;
+  }
+
   void _showUserDialog(BuildContext context, AppUser? existing) {
-    final nameCtrl   = TextEditingController(text: existing?.name ?? '');
-    final emailCtrl  = TextEditingController(text: existing?.email ?? '');
-    final empIdCtrl  = TextEditingController(text: existing?.employeeId ?? '');
-    final desigCtrl  = TextEditingController(text: existing?.designation ?? '');
+    final nameCtrl  = TextEditingController(text: existing?.name ?? '');
+    final emailCtrl = TextEditingController(text: _emailPrefix(existing?.email));
+    final empIdCtrl = TextEditingController(text: existing?.employeeId ?? '');
+    final desigCtrl = TextEditingController(text: existing?.designation ?? '');
     String selectedRole = existing?.role ?? 'Employee';
+    String selectedManager = existing?.reportingManager ?? '';
     final roleNames = ['Employee', 'Manager', 'HR', 'Management'];
+    final managerNames = users.where((u) => u.role == 'Manager').map((u) => u.name).toList();
 
     showDialog(
       context: context,
@@ -321,13 +344,34 @@ class _UsersTab extends StatelessWidget {
           ),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              _DialogField(controller: nameCtrl,  label: 'Full Name',    icon: Icons.person_rounded),
+              _DialogField(controller: nameCtrl, label: 'Full Name', icon: Icons.person_rounded),
               const SizedBox(height: 12),
-              _DialogField(controller: emailCtrl, label: 'Email ID (login email)', icon: Icons.email_rounded, keyboard: TextInputType.emailAddress),
+              // Email with fixed @fomrahousing.in domain
+              TextField(
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: const Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
+                  suffix: const Text('@fomrahousing.in',
+                      style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: _mgmtColor, width: 2),
+                  ),
+                  filled: true, fillColor: Colors.white,
+                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
               const SizedBox(height: 12),
               _DialogField(controller: empIdCtrl, label: 'Employee ID (e.g. EMP001)', icon: Icons.badge_rounded),
               const SizedBox(height: 12),
-              _DialogField(controller: desigCtrl, label: 'Designation',  icon: Icons.work_rounded),
+              _DialogField(controller: desigCtrl, label: 'Designation', icon: Icons.work_rounded),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: selectedRole,
@@ -366,6 +410,32 @@ class _UsersTab extends StatelessWidget {
                   ),
                 ]),
               ),
+              if ((selectedRole == 'Employee' || selectedRole == 'Manager') && managerNames.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: managerNames.contains(selectedManager) ? selectedManager : null,
+                  decoration: InputDecoration(
+                    labelText: 'Reporting Manager',
+                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: _mgmtColor, width: 2),
+                    ),
+                    filled: true, fillColor: Colors.white,
+                  ),
+                  hint: const Text('None assigned'),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('None')),
+                    ...managerNames.map((m) => DropdownMenuItem(value: m, child: Text(m))),
+                  ],
+                  onChanged: (v) => setS(() => selectedManager = v ?? ''),
+                ),
+              ],
             ]),
           ),
           actions: [
@@ -375,23 +445,33 @@ class _UsersTab extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) return;
+                final prefix = emailCtrl.text.trim();
+                if (nameCtrl.text.trim().isEmpty || prefix.isEmpty) return;
+                final fullEmail = '$prefix$_domain';
                 final AppUser target;
+                final now = DateTime.now();
+                final todayStr =
+                    '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+
                 if (existing == null) {
                   target = AppUser(
-                    name:        nameCtrl.text.trim(),
-                    email:       emailCtrl.text.trim(),
-                    employeeId:  empIdCtrl.text.trim(),
-                    designation: desigCtrl.text.trim(),
-                    role:        selectedRole,
+                    name:             nameCtrl.text.trim(),
+                    email:            fullEmail,
+                    employeeId:       empIdCtrl.text.trim(),
+                    designation:      desigCtrl.text.trim(),
+                    role:             selectedRole,
+                    reportingManager: (selectedRole == 'Employee' || selectedRole == 'Manager') ? selectedManager : '',
+                    dateOfJoining:    todayStr,
                   );
                   users.add(target);
                 } else {
-                  existing.name        = nameCtrl.text.trim();
-                  existing.email       = emailCtrl.text.trim();
-                  existing.employeeId  = empIdCtrl.text.trim();
-                  existing.designation = desigCtrl.text.trim();
-                  existing.role        = selectedRole;
+                  existing.name             = nameCtrl.text.trim();
+                  existing.email            = fullEmail;
+                  existing.employeeId       = empIdCtrl.text.trim();
+                  existing.designation      = desigCtrl.text.trim();
+                  existing.role             = selectedRole;
+                  existing.reportingManager = (selectedRole == 'Employee' || selectedRole == 'Manager') ? selectedManager : '';
+                  if (existing.dateOfJoining.isEmpty) existing.dateOfJoining = todayStr;
                   target = existing;
                 }
                 onUpsert(target);

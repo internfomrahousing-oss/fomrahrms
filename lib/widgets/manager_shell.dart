@@ -25,13 +25,12 @@ const _hrNavItems = [
 ];
 
 const _personalNavItems = [
-  _NavItem('My Details',    Icons.badge_rounded,                   '/manager/my-details'),
+  _NavItem('My Profile',    Icons.person_rounded,                  '/manager/my-profile'),
   _NavItem('My Attendance', Icons.access_time_rounded,             '/manager/my-attendance'),
   _NavItem('My Leave',      Icons.beach_access_rounded,            '/manager/my-leave'),
   _NavItem('My Tasks',      Icons.task_alt_rounded,                '/manager/my-tasks'),
   _NavItem('My Payslips',   Icons.account_balance_wallet_rounded,  '/manager/my-payslips'),
   _NavItem('Maintenance',   Icons.build_rounded,                   '/manager/maintenance-management'),
-  _NavItem('My Profile',    Icons.person_rounded,                  '/manager/my-profile'),
 ];
 
 class ManagerShell extends StatelessWidget {

@@ -26,19 +26,26 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
       final list = await SupabaseService.fetchLeaveApplications()
           .timeout(const Duration(seconds: 8));
       if (!mounted) return;
-      setState(() {
+      if (list.isNotEmpty) {
         LeaveStore.applications
           ..clear()
           ..addAll(list);
         LeaveStore.syncCounter();
-      });
-    } catch (_) {}
+      }
+      setState(() {});
+    } catch (_) {
+      if (mounted) setState(() {});
+    }
   }
 
   void _setManagerStatus(int i, LeaveApprovalStatus s) {
     final app = _applications[i];
-    setState(() => app.managerStatus = s);
-    SupabaseService.updateLeaveManagerStatus(app.id, s);
+    final newDecidedBy = s == LeaveApprovalStatus.pending ? '' : 'Management';
+    setState(() {
+      app.managerStatus = s;
+      app.decidedBy = newDecidedBy;
+    });
+    SupabaseService.updateLeaveManagerStatus(app.id, s, decidedBy: newDecidedBy);
   }
 
   @override
@@ -271,12 +278,22 @@ class _ApplicationCard extends StatelessWidget {
             const Icon(Icons.manage_accounts_rounded,
                 size: 16, color: Color(0xFF78909C)),
             const SizedBox(width: 6),
-            const Text('Reporting Manager:',
-                style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            if (app.managerStatus == LeaveApprovalStatus.pending)
+              const Text('Status:',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF78909C)))
+            else
+              Text(
+                '${_statusLabel(app.managerStatus)} by ${app.decidedBy.isEmpty ? 'Unknown' : app.decidedBy}:',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: _statusColor(app.managerStatus),
+                    fontWeight: FontWeight.w600),
+              ),
             const SizedBox(width: 8),
-            _StatusPill(_statusLabel(app.managerStatus),
-                _statusColor(app.managerStatus),
-                _statusIcon(app.managerStatus)),
+            if (app.managerStatus == LeaveApprovalStatus.pending)
+              _StatusPill(_statusLabel(app.managerStatus),
+                  _statusColor(app.managerStatus),
+                  _statusIcon(app.managerStatus)),
             if (app.managerStatus == LeaveApprovalStatus.pending) ...[
               const Spacer(),
               _ActionBtn('Approve', Colors.green.shade700,

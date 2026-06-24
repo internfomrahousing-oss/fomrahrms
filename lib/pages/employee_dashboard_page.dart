@@ -10,7 +10,6 @@ class _Item {
 }
 
 const _items = [
-  _Item('My Details',    Icons.badge_rounded,                  Color(0xFF0D47A1), '/employee/my-details'),
   _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/employee/attendance-management'),
   _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF1976D2), '/employee/leave-management'),
   _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/employee/tasks'),

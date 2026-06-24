@@ -5,8 +5,9 @@ class EmployeeLeavePage extends StatelessWidget {
   const EmployeeLeavePage({super.key});
 
   static const _topics = [
-    _Topic('Apply Leave',   Icons.event_available_rounded, Color(0xFF0D47A1), '/employee/leave/apply'),
-    _Topic('Leave Balance', Icons.balance_rounded,         Color(0xFF1976D2), '/employee/leave/balance'),
+    _Topic('Apply Leave',    Icons.event_available_rounded, Color(0xFF0D47A1), '/employee/leave/apply'),
+    _Topic('Leave Balance',  Icons.balance_rounded,         Color(0xFF1976D2), '/employee/leave/balance'),
+    _Topic('Leave History',  Icons.history_rounded,         Color(0xFF283593), '/employee/leave/approvals'),
   ];
 
   @override

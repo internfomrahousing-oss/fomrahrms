@@ -7,6 +7,12 @@ class AppUser {
   String designation;
   String role; // 'Employee' | 'Manager' | 'HR' | 'Management'
   bool active;
+  String password;            // individual password; empty = use role default
+  int leaveAllocation;        // total leave days per year, set by HR
+  String reportingManager;    // name of the manager this employee reports to
+  String mobile;
+  String address;
+  String dateOfJoining;       // ISO date string, set when management creates the user
 
   AppUser({
     required this.name,
@@ -15,6 +21,12 @@ class AppUser {
     required this.designation,
     required this.role,
     this.active = true,
+    this.password = '',
+    this.leaveAllocation = 21,
+    this.reportingManager = '',
+    this.mobile = '',
+    this.address = '',
+    this.dateOfJoining = '',
   });
 
   // Role-based shared password — all employees use the same password, etc.
@@ -37,20 +49,32 @@ class AppUser {
   }
 
   Map<String, dynamic> toJson() => {
-    'name':        name,
-    'email':       email,
-    'employeeId':  employeeId,
-    'designation': designation,
-    'role':        role,
-    'active':      active,
+    'name':             name,
+    'email':            email,
+    'employeeId':       employeeId,
+    'designation':      designation,
+    'role':             role,
+    'active':           active,
+    'password':         password,
+    'leaveAllocation':  leaveAllocation,
+    'reportingManager': reportingManager,
+    'mobile':           mobile,
+    'address':          address,
+    'dateOfJoining':    dateOfJoining,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
-    name:        j['name']        as String? ?? '',
-    email:       j['email']       as String? ?? '',
-    employeeId:  j['employeeId']  as String? ?? '',
-    designation: j['designation'] as String? ?? '',
-    role:        j['role']        as String? ?? 'Employee',
-    active:      j['active']      as bool?   ?? true,
+    name:              j['name']             as String? ?? '',
+    email:             j['email']            as String? ?? '',
+    employeeId:        j['employeeId']       as String? ?? '',
+    designation:       j['designation']      as String? ?? '',
+    role:              j['role']             as String? ?? 'Employee',
+    active:            j['active']           as bool?   ?? true,
+    password:          j['password']         as String? ?? '',
+    leaveAllocation:   j['leaveAllocation']  as int?    ?? 21,
+    reportingManager:  j['reportingManager'] as String? ?? '',
+    mobile:            j['mobile']           as String? ?? '',
+    address:           j['address']          as String? ?? '',
+    dateOfJoining:     j['dateOfJoining']    as String? ?? '',
   );
 }

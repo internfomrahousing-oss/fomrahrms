@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/leave_store.dart';
+import '../models/user_session.dart';
+import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
 class TeamLeaveApprovalsPage extends StatefulWidget {
@@ -12,10 +15,53 @@ class TeamLeaveApprovalsPage extends StatefulWidget {
 class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   static const _color = Color(0xFF283593);
 
-  List<LeaveApplication> get _requests => LeaveStore.applications;
+  List<LeaveApplication> get _requests {
+    if (!_teamLoaded) return LeaveStore.applications; // still loading
+    return LeaveStore.applications
+        .where((a) => _teamNames.contains(a.employeeName))
+        .toList();
+  }
 
+  Set<String> _teamNames = {};
+  bool _teamLoaded = false;
   String _search = '';
   LeaveApprovalStatus? _filterStatus;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    if (mounted) setState(() => _loading = true);
+    try {
+      final results = await Future.wait([
+        SupabaseService.fetchLeaveApplications().timeout(const Duration(seconds: 8)),
+        UserStore.load(),
+      ]);
+
+      final leaves = results[0] as List<LeaveApplication>;
+      final users  = results[1] as List;
+
+      if (leaves.isNotEmpty) {
+        LeaveStore.applications..clear()..addAll(leaves);
+        LeaveStore.syncCounter();
+      }
+
+      // Build the set of employee names that report to this manager
+      final myTeam = users
+          .cast<dynamic>()
+          .where((u) => u.reportingManager == UserSession.name)
+          .map<String>((u) => u.name as String)
+          .toSet();
+
+      if (mounted) setState(() { _teamNames = myTeam; _teamLoaded = true; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   List<LeaveApplication> get _filtered {
     return _requests.where((r) {
@@ -28,8 +74,15 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     }).toList();
   }
 
-  void _setStatus(int i, LeaveApprovalStatus s) =>
-      setState(() => LeaveStore.applications[i].managerStatus = s);
+  Future<void> _setStatus(LeaveApplication app, LeaveApprovalStatus s) async {
+    if (app.decidedBy == 'Management') return;
+    final newDecidedBy = s == LeaveApprovalStatus.pending ? '' : UserSession.name;
+    setState(() {
+      app.managerStatus = s;
+      app.decidedBy = newDecidedBy;
+    });
+    await SupabaseService.updateLeaveManagerStatus(app.id, s, decidedBy: newDecidedBy);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -174,33 +227,52 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                 ]),
               ),
 
+            // Loading indicator
+            if (_loading)
+              const Center(child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: CircularProgressIndicator(),
+              )),
+
             // Request cards
-            if (_requests.isEmpty)
+            if (!_loading && _teamLoaded && _teamNames.isEmpty)
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 48, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
                   child: Center(
                     child: Column(children: [
-                      Icon(Icons.inbox_rounded,
-                          size: 52, color: Colors.grey.shade300),
+                      Icon(Icons.group_off_rounded, size: 52, color: Colors.grey.shade300),
                       const SizedBox(height: 12),
-                      Text('No leave requests from your team',
-                          style: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 14)),
+                      Text('No employees assigned to you',
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
                       const SizedBox(height: 4),
                       Text(
-                          'Leave requests submitted by your team\nwill appear here for approval.',
+                          'Ask Management to assign employees to you\nvia Administration → Edit User → Reporting Manager.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 12)),
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
                     ]),
                   ),
                 ),
               )
-            else if (filtered.isEmpty)
+            else if (!_loading && _requests.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                  child: Center(
+                    child: Column(children: [
+                      Icon(Icons.inbox_rounded, size: 52, color: Colors.grey.shade300),
+                      const SizedBox(height: 12),
+                      Text('No leave requests from your team',
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('Leave requests submitted by your team\nwill appear here for approval.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                    ]),
+                  ),
+                ),
+              )
+            else if (!_loading && filtered.isEmpty)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
@@ -217,17 +289,17 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   ),
                 ),
               )
-            else
-              ...filtered.asMap().entries.map((entry) {
-                final idx =
-                    _requests.indexOf(entry.value);
+            else if (!_loading)
+              ...filtered.map((app) {
+                final canUndo = app.decidedBy != 'Management';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _RequestCard(
-                    request: entry.value,
-                    onApprove: () => _setStatus(idx, LeaveApprovalStatus.approved),
-                    onDeny: () => _setStatus(idx, LeaveApprovalStatus.denied),
-                    onReset: () => _setStatus(idx, LeaveApprovalStatus.pending),
+                    request: app,
+                    onApprove: () => _setStatus(app, LeaveApprovalStatus.approved),
+                    onDeny:    () => _setStatus(app, LeaveApprovalStatus.denied),
+                    onReset:   canUndo ? () => _setStatus(app, LeaveApprovalStatus.pending) : null,
+
                   ),
                 );
               }),
@@ -247,7 +319,7 @@ class _RequestCard extends StatelessWidget {
   final LeaveApplication request;
   final VoidCallback onApprove;
   final VoidCallback onDeny;
-  final VoidCallback onReset;
+  final VoidCallback? onReset; // null = management locked, cannot undo
 
   const _RequestCard({
     required this.request,
@@ -378,8 +450,7 @@ class _RequestCard extends StatelessWidget {
           else
             Row(children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: sc.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
@@ -387,21 +458,24 @@ class _RequestCard extends StatelessWidget {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(si, size: 16, color: sc),
                   const SizedBox(width: 6),
-                  Text('$sl by you',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: sc)),
+                  Text(
+                    '$sl by ${request.decidedBy.isEmpty ? 'Manager' : request.decidedBy}',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: sc)),
                 ]),
               ),
               const Spacer(),
-              TextButton.icon(
-                onPressed: onReset,
-                icon: const Icon(Icons.undo_rounded, size: 15),
-                label: const Text('Undo'),
-                style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF78909C)),
-              ),
+              if (onReset != null)
+                TextButton.icon(
+                  onPressed: onReset,
+                  icon: const Icon(Icons.undo_rounded, size: 15),
+                  label: const Text('Undo'),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF78909C)),
+                )
+              else
+                Tooltip(
+                  message: 'Only Management can undo this decision',
+                  child: Icon(Icons.lock_rounded, size: 16, color: Colors.grey.shade400),
+                ),
             ]),
         ]),
       ),
