@@ -14,9 +14,26 @@ class LeadService {
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}');
     }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (data['error'] != null) throw Exception(data['error']);
-    return (data['leads'] as List)
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } catch (_) {
+      throw Exception('Invalid response from Google Sheets');
+    }
+
+    List<dynamic> rows;
+    if (decoded is List) {
+      rows = decoded;
+    } else if (decoded is Map) {
+      if (decoded['error'] != null) throw Exception(decoded['error'].toString());
+      rows = (decoded['leads'] as List?) ?? [];
+    } else {
+      throw Exception('Unexpected response format');
+    }
+
+    return rows
+        .where((e) => e is Map)
         .map((e) => Lead.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
