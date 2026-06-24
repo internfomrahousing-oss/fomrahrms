@@ -363,6 +363,13 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 
   Future<void> _showDeleteDialog(Lead lead) async {
+    if (lead.leadId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Cannot delete: this lead has no valid ID in the sheet'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
