@@ -336,7 +336,121 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                       _guideStep('2', 'Open Apps Script',
                           'In the sheet, click Extensions → Apps Script. Or go to script.google.com and click New project.'),
                       _guideStep('3', 'Paste the script code',
-                          'Delete everything in the editor. Paste the GAS script code (get it from your developer). Click Save.'),
+                          'Delete everything in the editor. Paste the code below, then click Save (Ctrl+S).'),
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF333333)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF2D2D2D),
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(8)),
+                              ),
+                              child: const Row(children: [
+                                Icon(Icons.code_rounded,
+                                    size: 13, color: Color(0xFF9E9E9E)),
+                                SizedBox(width: 6),
+                                Text('Apps Script code — select all and copy',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF9E9E9E))),
+                              ]),
+                            ),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.all(12),
+                              child: SelectableText(
+                                r'''function doGet(e) {
+  try {
+    var sheetId = e.parameter.spreadsheetId;
+    var sheet = sheetId
+      ? SpreadsheetApp.openById(sheetId).getActiveSheet()
+      : SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var action = e.parameter.action;
+    if (action === 'list')   return list(sheet);
+    if (action === 'add')    return add(sheet, e.parameter);
+    if (action === 'update') return update(sheet, e.parameter);
+    if (action === 'delete') return deleteRow(sheet, e.parameter);
+    return respond({ error: 'Unknown action: ' + action });
+  } catch (err) {
+    return respond({ error: err.toString() });
+  }
+}
+
+function list(sheet) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return respond([]);
+  var headers = data[0];
+  var leads = data.slice(1).map(function(row) {
+    var obj = {};
+    headers.forEach(function(h, i) {
+      obj[h] = row[i] != null ? String(row[i]) : '';
+    });
+    return obj;
+  });
+  return respond(leads);
+}
+
+function add(sheet, params) {
+  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  var newRow = headers.map(function(h) { return params[h] || ''; });
+  sheet.appendRow(newRow);
+  return respond({ success: true, message: 'Row added' });
+}
+
+function update(sheet, params) {
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var keyValue = params[headers[0]];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(keyValue)) {
+      var updated = headers.map(function(h, j) {
+        return params[h] !== undefined ? params[h] : String(data[i][j]);
+      });
+      sheet.getRange(i+1,1,1,headers.length).setValues([updated]);
+      return respond({ success: true, message: 'Row updated' });
+    }
+  }
+  return respond({ error: 'Row not found' });
+}
+
+function deleteRow(sheet, params) {
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var keyValue = params[headers[0]];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(keyValue)) {
+      sheet.deleteRow(i + 1);
+      return respond({ success: true, message: 'Row deleted' });
+    }
+  }
+  return respond({ error: 'Row not found' });
+}
+
+function respond(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}''',
+                                style: const TextStyle(
+                                    fontSize: 10.5,
+                                    fontFamily: 'monospace',
+                                    color: Color(0xFFCE9178),
+                                    height: 1.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       _guideStep('4', 'Deploy as Web App',
                           'Click Deploy → New deployment.\nType: Web app\nExecute as: Me\nWho has access: Anyone\nClick Deploy and authorise when prompted.'),
                       _guideStep('5', 'Copy the /exec URL',
