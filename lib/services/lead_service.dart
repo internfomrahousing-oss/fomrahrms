@@ -5,7 +5,7 @@ import '../models/lead_model.dart';
 
 class LeadService {
   static const String _defaultUrl =
-      'https://script.google.com/macros/s/AKfycbzhSy5zTSuKfqb0ZB-7cHXrrAlMXTCSJ8Rlrx5hmG9iCUxGvEjSdMmMRVbHOc2GUC9asw/exec';
+      'https://script.google.com/macros/s/AKfycbyOG5h_Pdh00gLTdaqB3JC7ivAAwBBk7J3Wk_2C9p2Ge_HO9sfktvJjqoCxnYvO_SOV/exec';
   static const String _urlPrefKey = 'lead_script_url';
   static String? _cachedUrl;
 
