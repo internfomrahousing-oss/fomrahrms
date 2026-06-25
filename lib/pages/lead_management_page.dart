@@ -373,18 +373,31 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _doAdd(Lead lead) async {
     try {
+      final prevCount = _all.length;
       await LeadService.addLead(_scriptUrl, lead);
+      // Give GAS up to 2 s to write before re-fetching
+      await Future.delayed(const Duration(seconds: 2));
       await _fetch();
-      if (mounted) {
+      if (!mounted) return;
+      if (_all.length > prevCount) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Lead added to Google Sheets'),
           backgroundColor: Color(0xFF2E7D32),
+        ));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Lead may not have been saved — try refreshing in a few seconds'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 5),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'), backgroundColor: Colors.red));
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6)));
       }
     }
   }

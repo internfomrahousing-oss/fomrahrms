@@ -158,40 +158,54 @@ class LeadService {
   // ── CRUD — all operations scoped to the provided URL ─────────────────────
 
   static Future<void> addLead(String url, Lead lead) async {
+    // 'action' is placed last so it always wins even if sheet has an "action" column
     final uri = Uri.parse(url.trim()).replace(queryParameters: {
-      'action': 'add',
       ...lead.fields,
+      'action': 'add',
     });
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
-    _checkWriteResponse(response.body);
+    _checkWriteResponse(response.body, expectSuccess: true);
   }
 
   static Future<void> updateLead(String url, Lead lead) async {
     final uri = Uri.parse(url.trim()).replace(queryParameters: {
-      'action': 'update',
       ...lead.fields,
+      'action': 'update',
     });
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
-    _checkWriteResponse(response.body);
+    _checkWriteResponse(response.body, expectSuccess: true);
   }
 
   static Future<void> deleteLead(String url, Lead lead) async {
     final uri = Uri.parse(url.trim()).replace(queryParameters: {
-      'action':          'delete',
       lead.rowKeyColumn: lead.rowKeyValue,
+      'action': 'delete',
     });
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
-    _checkWriteResponse(response.body);
+    _checkWriteResponse(response.body, expectSuccess: true);
   }
 
-  static void _checkWriteResponse(String body) {
+  static void _checkWriteResponse(String body, {bool expectSuccess = false}) {
     try {
       final decoded = jsonDecode(body);
-      if (decoded is Map && decoded['error'] != null) {
-        throw Exception(decoded['error'].toString());
+      if (decoded is Map) {
+        if (decoded['error'] != null) {
+          throw Exception(decoded['error'].toString());
+        }
+        // If the response looks like a list response (has 'leads' key but no success
+        // indicator), the GAS script probably doesn't support this action
+        if (expectSuccess &&
+            decoded.containsKey('leads') &&
+            !decoded.containsKey('success') &&
+            !decoded.containsKey('result') &&
+            !decoded.containsKey('message')) {
+          throw Exception(
+              'Google Sheet script returned data instead of confirming the write. '
+              'Make sure the script supports add/update/delete actions.');
+        }
       }
     } catch (e) {
       if (e is Exception) rethrow;
