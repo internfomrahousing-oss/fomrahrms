@@ -217,6 +217,18 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  static Future<void> updateLeaveManagementStatus(
+      String id, LeaveApprovalStatus status,
+      {String decidedBy = '', String rejectionComment = ''}) async {
+    try {
+      await _db?.from('leave_applications').update({
+        'management_status':            status.name,
+        'management_decided_by':        decidedBy,
+        'management_rejection_comment': rejectionComment,
+      }).eq('id', id);
+    } catch (_) {}
+  }
+
   static Future<List<LeaveApplication>> fetchLeaveApplications() async {
     try {
       final data = await _db
@@ -236,14 +248,14 @@ class SupabaseService {
           reason:       (row['reason'] as String?) ?? '',
           appliedOn:    DateTime.parse(row['applied_on'] as String),
         );
-        final ms = (row['manager_status'] as String?) ?? 'pending';
-        app.managerStatus = LeaveApprovalStatus.values.firstWhere(
-          (s) => s.name == ms,
-          orElse: () => LeaveApprovalStatus.pending,
-        );
-        app.decidedBy        = (row['decided_by']        as String?) ?? '';
-        app.rejectionComment = (row['rejection_comment'] as String?) ?? '';
-        app.isHalfDay        = (row['is_half_day']       as bool?)   ?? false;
+        app.managerStatus = _parseStatus(row['manager_status']);
+        app.decidedBy               = (row['decided_by']               as String?) ?? '';
+        app.rejectionComment        = (row['rejection_comment']        as String?) ?? '';
+        app.isHalfDay               = (row['is_half_day']              as bool?)   ?? false;
+        // Management-level fields (silently absent until DB migration runs)
+        app.managementStatus        = _parseStatus(row['management_status']);
+        app.managementDecidedBy     = (row['management_decided_by']        as String?) ?? '';
+        app.managementRejectionComment = (row['management_rejection_comment'] as String?) ?? '';
         return app;
       }).toList();
       return list;
@@ -251,6 +263,12 @@ class SupabaseService {
       return [];
     }
   }
+
+  static LeaveApprovalStatus _parseStatus(dynamic val) =>
+      LeaveApprovalStatus.values.firstWhere(
+        (s) => s.name == ((val as String?) ?? 'pending'),
+        orElse: () => LeaveApprovalStatus.pending,
+      );
 
   // ── Maintenance Tickets ───────────────────────────────────────────────
 

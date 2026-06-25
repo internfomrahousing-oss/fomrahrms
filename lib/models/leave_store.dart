@@ -10,13 +10,40 @@ class LeaveApplication {
   final int days;
   final String reason;
   final DateTime appliedOn;
-  LeaveApprovalStatus managerStatus = LeaveApprovalStatus.pending;
-  String decidedBy        = '';
-  String rejectionComment = '';
-  bool   isHalfDay        = false;
+
+  // ── Manager-level decision ─────────────────────────────────────────────────
+  LeaveApprovalStatus managerStatus    = LeaveApprovalStatus.pending;
+  String decidedBy                     = '';
+  String rejectionComment              = '';
+
+  // ── Management-level decision (FINAL — overrides manager) ─────────────────
+  LeaveApprovalStatus managementStatus = LeaveApprovalStatus.pending;
+  String managementDecidedBy           = '';
+  String managementRejectionComment    = '';
+
+  bool isHalfDay = false;
 
   /// Actual deduction: 0.5 for half day, full days otherwise.
   double get effectiveDays => isHalfDay ? 0.5 : days.toDouble();
+
+  /// Final visible status: management decision overrides manager if set.
+  LeaveApprovalStatus get effectiveStatus {
+    if (managementStatus != LeaveApprovalStatus.pending) return managementStatus;
+    return managerStatus;
+  }
+
+  /// Rejection comment to show employee (management's takes priority).
+  String get effectiveComment {
+    if (managementStatus == LeaveApprovalStatus.denied &&
+        managementRejectionComment.isNotEmpty) {
+      return managementRejectionComment;
+    }
+    return rejectionComment;
+  }
+
+  /// True once management has given a final decision (locks manager edits).
+  bool get managementLocked =>
+      managementStatus != LeaveApprovalStatus.pending;
 
   LeaveApplication({
     required this.id,

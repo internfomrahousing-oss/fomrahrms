@@ -42,9 +42,9 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
       .where((a) => a.employeeName == UserSession.name)
       .toList();
 
-  int get _pending  => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.pending).length;
-  int get _approved => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
-  int get _denied   => _apps.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length;
+  int get _pending  => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.pending).length;
+  int get _approved => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.approved).length;
+  int get _denied   => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.denied).length;
 
   @override
   Widget build(BuildContext context) {
@@ -178,40 +178,22 @@ class _AppCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 10),
 
-            // Approval status
+            // Approval status — employees see final status only, no names
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                const Text('Status',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF78909C),
-                        fontWeight: FontWeight.w500)),
-                if (app.decidedBy.isNotEmpty) ...[
-                  const Text(' · ',
-                      style: TextStyle(
-                          fontSize: 10, color: Color(0xFF78909C))),
-                  Text(
-                    app.managerStatus == LeaveApprovalStatus.approved
-                        ? 'Approved by ${app.decidedBy}'
-                        : 'Rejected by ${app.decidedBy}',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: app.managerStatus == LeaveApprovalStatus.approved
-                            ? Colors.green.shade700
-                            : Colors.red.shade700,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ]),
+              const Text('Status',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF78909C),
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
               _StatusPill(
-                _statusLabel(app.managerStatus),
-                _statusColor(app.managerStatus),
-                _statusIcon(app.managerStatus),
+                _statusLabel(app.effectiveStatus),
+                _statusColor(app.effectiveStatus),
+                _statusIcon(app.effectiveStatus),
               ),
-              // Rejection reason
-              if (app.managerStatus == LeaveApprovalStatus.denied &&
-                  app.rejectionComment.isNotEmpty) ...[
+              // Show rejection reason (without name) so employee understands why
+              if (app.effectiveStatus == LeaveApprovalStatus.denied &&
+                  app.effectiveComment.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding:
@@ -229,7 +211,7 @@ class _AppCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          app.rejectionComment,
+                          app.effectiveComment,
                           style: TextStyle(
                               fontSize: 12, color: Colors.red.shade800),
                         ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/leave_store.dart';
-import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 
 class LeaveManagementPage extends StatefulWidget {
@@ -37,63 +36,6 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
     } catch (_) {
       if (mounted) setState(() {});
     }
-  }
-
-  void _setManagerStatus(int i, LeaveApprovalStatus s, {String rejectionComment = ''}) {
-    final app       = _applications[i];
-    final decidedBy = s == LeaveApprovalStatus.pending
-        ? ''
-        : (UserSession.name.isNotEmpty ? UserSession.name : 'Management');
-    setState(() {
-      app.managerStatus    = s;
-      app.decidedBy        = decidedBy;
-      app.rejectionComment = rejectionComment;
-    });
-    SupabaseService.updateLeaveManagerStatus(app.id, s,
-        decidedBy: decidedBy, rejectionComment: rejectionComment);
-  }
-
-  Future<void> _confirmDeny(int i) async {
-    final reasonCtrl = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reject Leave'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Provide a reason for rejection (optional):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
-          const SizedBox(height: 12),
-          TextField(
-            controller: reasonCtrl,
-            maxLines: 3,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'e.g. Insufficient leave balance / Busy project period',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
-          ),
-        ]),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                foregroundColor: Colors.white),
-            child: const Text('Reject'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      _setManagerStatus(i, LeaveApprovalStatus.denied,
-          rejectionComment: reasonCtrl.text.trim());
-    }
-    reasonCtrl.dispose();
   }
 
   @override
@@ -239,14 +181,7 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                 final app = _applications[i];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _ApplicationCard(
-                    app: app,
-                    onManagerApprove: () =>
-                        _setManagerStatus(i, LeaveApprovalStatus.approved),
-                    onManagerDeny: () => _confirmDeny(i),
-                    onReset: () =>
-                        _setManagerStatus(i, LeaveApprovalStatus.pending),
-                  ),
+                  child: _ApplicationCard(app: app),
                 );
               }),
           ],
@@ -263,16 +198,7 @@ String _fmt(DateTime d) =>
 
 class _ApplicationCard extends StatelessWidget {
   final LeaveApplication app;
-  final VoidCallback onManagerApprove;
-  final VoidCallback onManagerDeny;
-  final VoidCallback onReset;
-
-  const _ApplicationCard({
-    required this.app,
-    required this.onManagerApprove,
-    required this.onManagerDeny,
-    required this.onReset,
-  });
+  const _ApplicationCard({required this.app});
 
   Color _statusColor(LeaveApprovalStatus s) => switch (s) {
         LeaveApprovalStatus.approved => Colors.green.shade700,
@@ -321,68 +247,22 @@ class _ApplicationCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(),
           const SizedBox(height: 10),
-          Row(children: [
-            const Icon(Icons.manage_accounts_rounded,
-                size: 16, color: Color(0xFF78909C)),
-            const SizedBox(width: 6),
-            if (app.managerStatus == LeaveApprovalStatus.pending)
-              const Text('Status:',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF78909C)))
-            else
-              Text(
-                '${_statusLabel(app.managerStatus)} by ${app.decidedBy.isEmpty ? 'Management' : app.decidedBy}',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: _statusColor(app.managerStatus),
-                    fontWeight: FontWeight.w600),
-              ),
-            const SizedBox(width: 8),
-            if (app.managerStatus == LeaveApprovalStatus.pending)
-              _StatusPill(_statusLabel(app.managerStatus),
-                  _statusColor(app.managerStatus),
-                  _statusIcon(app.managerStatus)),
-            if (app.managerStatus == LeaveApprovalStatus.pending) ...[
-              const Spacer(),
-              _ActionBtn('Approve', Colors.green.shade700,
-                  Icons.check_rounded, onManagerApprove),
-              const SizedBox(width: 8),
-              _ActionBtn('Deny', Colors.red.shade700,
-                  Icons.close_rounded, onManagerDeny),
-            ],
-            if (app.managerStatus != LeaveApprovalStatus.pending) ...[
-              const Spacer(),
-              TextButton.icon(
-                onPressed: onReset,
-                icon: const Icon(Icons.undo_rounded, size: 14),
-                label: const Text('Reset', style: TextStyle(fontSize: 12)),
-              ),
-            ],
-          ]),
-          // Rejection reason strip
-          if (app.managerStatus == LeaveApprovalStatus.denied &&
-              app.rejectionComment.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(Icons.info_outline_rounded,
-                    size: 14, color: Colors.red.shade700),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    app.rejectionComment,
-                    style: TextStyle(fontSize: 12, color: Colors.red.shade800),
-                  ),
-                ),
-              ]),
-            ),
-          ],
+          // ── Manager-level decision ──────────────────────────────────
+          _DecisionRow(
+            role: 'Manager',
+            status: app.managerStatus,
+            decidedBy: app.decidedBy,
+            comment: app.rejectionComment,
+          ),
+          const SizedBox(height: 8),
+          // ── Management-level decision (final) ───────────────────────
+          _DecisionRow(
+            role: 'Management (Final)',
+            status: app.managementStatus,
+            decidedBy: app.managementDecidedBy,
+            comment: app.managementRejectionComment,
+            isFinal: true,
+          ),
         ]),
       ),
     );
@@ -482,6 +362,75 @@ class _StatusBadge extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: color)),
+      ]),
+    );
+  }
+}
+
+// ── HR audit row showing one level's decision with name ────────────────────
+
+class _DecisionRow extends StatelessWidget {
+  final String role;
+  final LeaveApprovalStatus status;
+  final String decidedBy;
+  final String comment;
+  final bool isFinal;
+  const _DecisionRow({
+    required this.role,
+    required this.status,
+    required this.decidedBy,
+    required this.comment,
+    this.isFinal = false,
+  });
+
+  Color _color() => switch (status) {
+        LeaveApprovalStatus.approved => Colors.green.shade700,
+        LeaveApprovalStatus.denied   => Colors.red.shade700,
+        LeaveApprovalStatus.pending  => Colors.orange.shade700,
+      };
+
+  String _label() => switch (status) {
+        LeaveApprovalStatus.approved => 'Approved',
+        LeaveApprovalStatus.denied   => 'Denied',
+        LeaveApprovalStatus.pending  => 'Pending',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _color();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.withValues(alpha: 0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          if (isFinal)
+            const Icon(Icons.lock_rounded, size: 13, color: Color(0xFF78909C))
+          else
+            const Icon(Icons.manage_accounts_rounded,
+                size: 13, color: Color(0xFF78909C)),
+          const SizedBox(width: 5),
+          Text('$role: ',
+              style: const TextStyle(
+                  fontSize: 11, color: Color(0xFF78909C), fontWeight: FontWeight.w500)),
+          Text(
+            status == LeaveApprovalStatus.pending
+                ? 'Pending'
+                : '${_label()} by ${decidedBy.isEmpty ? role : decidedBy}',
+            style: TextStyle(
+                fontSize: 11, color: c, fontWeight: FontWeight.w700),
+          ),
+        ]),
+        if (status == LeaveApprovalStatus.denied && comment.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text('"$comment"',
+              style: TextStyle(
+                  fontSize: 11, color: Colors.red.shade700, fontStyle: FontStyle.italic)),
+        ],
       ]),
     );
   }
