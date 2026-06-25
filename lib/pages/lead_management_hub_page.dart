@@ -227,6 +227,155 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
     }
   }
 
+  void _showSetupGuide() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title bar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0D47A1),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.integration_instructions_rounded,
+                      color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text('Apps Script Setup Guide',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded,
+                        color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ]),
+              ),
+              // Steps
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Do this once per new Google Sheet to connect it to the app.',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+                      ),
+                      const SizedBox(height: 16),
+                      _guideStep('1', 'Open Apps Script',
+                          'Go to script.google.com and click New project.'),
+                      _guideStep('2', 'Paste the code',
+                          'Delete everything in the editor. Paste the GAS script code provided by your developer.'),
+                      _guideStep('3', 'Deploy as Web App',
+                          'Click Deploy → New deployment.\nSet type to Web app.\nExecute as: Me.\nWho has access: Anyone.\nClick Deploy.'),
+                      _guideStep('4', 'Copy the URL',
+                          'After deploying, copy the URL ending in /exec. This is your Apps Script URL.'),
+                      _guideStep('5', 'Paste in Add New',
+                          'Come back here, tap Add New, and paste the copied URL in the URL field. Test the connection, then save.'),
+                      const Divider(height: 28),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline_rounded,
+                                size: 16, color: Colors.amber.shade800),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Each Google Sheet needs its own Apps Script deployment. '
+                                'Once deployed, the same URL works forever — you only need '
+                                'to redo this if you create a brand new sheet.',
+                                style: TextStyle(
+                                    fontSize: 11.5, color: Color(0xFF5D4037)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Got it'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _guideStep(String num, String title, String body) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26, height: 26,
+            decoration: const BoxDecoration(
+              color: Color(0xFF0D47A1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(num,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A237E))),
+                const SizedBox(height: 3),
+                Text(body,
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF546E7A), height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   InputDecoration _inputDec(String label, String hint) => InputDecoration(
         labelText: label,
         hintText: hint,
@@ -268,17 +417,26 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                           color: _blue, size: 26),
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Lead Management',
-                              style: Theme.of(context).textTheme.headlineMedium),
-                          Text(
-                            '${_sources.length} source${_sources.length == 1 ? '' : 's'}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF78909C)),
-                          ),
-                        ]),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Lead Management',
+                                style: Theme.of(context).textTheme.headlineMedium),
+                            Text(
+                              '${_sources.length} source${_sources.length == 1 ? '' : 's'}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF78909C)),
+                            ),
+                          ]),
+                    ),
+                    TextButton.icon(
+                      onPressed: _showSetupGuide,
+                      icon: const Icon(Icons.help_outline_rounded, size: 16),
+                      label: const Text('Setup Guide',
+                          style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(foregroundColor: _blue),
+                    ),
                   ]),
                   const SizedBox(height: 28),
 
