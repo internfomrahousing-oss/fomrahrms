@@ -6,10 +6,15 @@ import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
 class TeamLeaveApprovalsPage extends StatefulWidget {
-  /// false = Manager  →  sees only their team
-  /// true  = Management → sees all employees, can view/edit any decision
+  /// isManagement: controls header label and icon (management vs manager)
+  /// showAll: when true, shows every employee's leaves; when false, team only
   final bool isManagement;
-  const TeamLeaveApprovalsPage({super.key, this.isManagement = false});
+  final bool showAll;
+  const TeamLeaveApprovalsPage({
+    super.key,
+    this.isManagement = false,
+    this.showAll = false,
+  });
 
   @override
   State<TeamLeaveApprovalsPage> createState() => _TeamLeaveApprovalsPageState();
@@ -17,7 +22,8 @@ class TeamLeaveApprovalsPage extends StatefulWidget {
 
 class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   static const _color = Color(0xFF283593);
-  bool get _isMgmt => widget.isManagement;
+  bool get _isMgmt   => widget.isManagement;
+  bool get _showAll  => widget.showAll;
 
   Set<String> _teamNames = {};
   bool _teamLoaded = false;
@@ -25,9 +31,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   LeaveApprovalStatus? _filterStatus;
   bool _loading = false;
 
-  // Management sees all; manager sees only their team
   List<LeaveApplication> get _requests {
-    if (_isMgmt) return LeaveStore.applications;
+    if (_showAll) return LeaveStore.applications;
     if (!_teamLoaded) return LeaveStore.applications;
     return LeaveStore.applications
         .where((a) => _teamNames.contains(a.employeeName))
@@ -193,13 +198,13 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             const SizedBox(width: 16),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
-                _isMgmt ? 'Leave Approvals' : 'Team Leave Approvals',
+                _showAll ? 'All Leave Approvals' : 'Team Leave Approvals',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               Text(
-                _isMgmt
-                    ? 'View and edit all leave decisions'
-                    : 'Employees under your wing',
+                _showAll
+                    ? 'View and edit all employee leave decisions'
+                    : 'Employees reporting directly to you',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
               ),
             ]),

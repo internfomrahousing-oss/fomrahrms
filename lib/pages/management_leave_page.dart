@@ -12,14 +12,14 @@ class ManagementLeavePage extends StatelessWidget {
       Icons.folder_shared_rounded,
       Color(0xFF0D47A1),
       '/management/leave/overview',
-      'Full overview of all employee leaves — approve or deny any application.',
+      'All employee leaves — approve, deny, or edit any decision company-wide.',
     ),
     _Topic(
       'Team Leave Approvals',
       Icons.group_rounded,
       Color(0xFF283593),
       '/management/leave/team-approvals',
-      'View and action leave requests from employees reporting directly to you.',
+      'Leave requests from employees reporting directly to you.',
     ),
     _Topic(
       'Apply Leave',
