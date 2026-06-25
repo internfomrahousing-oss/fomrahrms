@@ -4,12 +4,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/lead_model.dart';
 
 class LeadService {
-  // ── Script URL ─────────────────────────────────────────────────────────────
   static const String _defaultUrl =
       'https://script.google.com/macros/s/AKfycbzhSy5zTSuKfqb0ZB-7cHXrrAlMXTCSJ8Rlrx5hmG9iCUxGvEjSdMmMRVbHOc2GUC9asw/exec';
   static const String _urlPrefKey = 'lead_script_url';
   static String? _cachedUrl;
 
+  /// Column names in sheet order — populated from the last successful fetchLeads().
+  static List<String> _schema = [];
+  static List<String> get columnSchema => List.from(_schema);
+
+  // ── URL persistence ───────────────────────────────────────────────────────
   static Future<String> getUrl() async {
     _cachedUrl ??=
         (await SharedPreferences.getInstance()).getString(_urlPrefKey) ??
@@ -23,69 +27,7 @@ class LeadService {
         .setString(_urlPrefKey, url.trim());
   }
 
-  // ── Core column mapping ────────────────────────────────────────────────────
-  static const String _mappingPrefKey = 'lead_col_mapping';
-
-  static const Map<String, String> defaultMapping = {
-    'leadId':  'LEAD ID',
-    'name':    'NAME',
-    'phone':   'PHONE',
-    'project': 'PROJECT',
-    'source':  'SOURCE',
-    'status':  'STATUS',
-  };
-
-  static Map<String, String>? _cachedMapping;
-
-  static Future<Map<String, String>> getColumnMapping() async {
-    if (_cachedMapping != null) return Map.from(_cachedMapping!);
-    final prefs = await SharedPreferences.getInstance();
-    final s = prefs.getString(_mappingPrefKey);
-    if (s == null) return Map.from(defaultMapping);
-    try {
-      _cachedMapping = Map<String, String>.from(jsonDecode(s));
-      return Map.from(_cachedMapping!);
-    } catch (_) {
-      return Map.from(defaultMapping);
-    }
-  }
-
-  static Future<void> saveColumnMapping(Map<String, String> mapping) async {
-    _cachedMapping = {
-      for (final e in mapping.entries) e.key: e.value.trim().toUpperCase()
-    };
-    await (await SharedPreferences.getInstance())
-        .setString(_mappingPrefKey, jsonEncode(_cachedMapping));
-  }
-
-  // ── Extra dynamic columns ──────────────────────────────────────────────────
-  // Each entry: {'label': 'Email', 'column': 'EMAIL'}
-  static const String _extraColsPrefKey = 'lead_extra_cols';
-  static List<Map<String, String>>? _cachedExtraCols;
-
-  static Future<List<Map<String, String>>> getExtraColumns() async {
-    if (_cachedExtraCols != null) return List.from(_cachedExtraCols!);
-    final prefs = await SharedPreferences.getInstance();
-    final s = prefs.getString(_extraColsPrefKey);
-    if (s == null) return [];
-    try {
-      final decoded = jsonDecode(s) as List;
-      _cachedExtraCols =
-          decoded.map((e) => Map<String, String>.from(e as Map)).toList();
-      return List.from(_cachedExtraCols!);
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static Future<void> saveExtraColumns(
-      List<Map<String, String>> cols) async {
-    _cachedExtraCols = List.from(cols);
-    await (await SharedPreferences.getInstance())
-        .setString(_extraColsPrefKey, jsonEncode(cols));
-  }
-
-  // ── Connection test ────────────────────────────────────────────────────────
+  // ── Connection test ───────────────────────────────────────────────────────
   static Future<({int count, List<String> columns})> testUrl(String url) async {
     final uri = Uri.parse('${url.trim()}?action=list');
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -106,13 +48,11 @@ class LeadService {
     return (count: rows.length, columns: columns);
   }
 
-  // ── CRUD ───────────────────────────────────────────────────────────────────
+  // ── Fetch all leads (fully automatic — no mapping config needed) ──────────
   static Future<List<Lead>> fetchLeads() async {
-    final base      = await getUrl();
-    final mapping   = await getColumnMapping();
-    final extraCols = await getExtraColumns();
-    final uri       = Uri.parse('$base?action=list');
-    final response  = await http.get(uri);
+    final base     = await getUrl();
+    final uri      = Uri.parse('$base?action=list');
+    final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
 
     dynamic decoded;
@@ -132,71 +72,48 @@ class LeadService {
       throw Exception('Unexpected response format');
     }
 
-    return rows
-        .where((e) => e is Map)
-        .map((e) => Lead.fromMappedJson(
-              Map<String, dynamic>.from(e as Map), mapping, extraCols))
-        .toList();
+    // Cache the schema (column names in order) from the first row
+    if (rows.isNotEmpty && rows[0] is Map) {
+      _schema = (rows[0] as Map).keys.map((k) => k.toString()).toList();
+    }
+
+    return rows.where((e) => e is Map).map((e) {
+      final fields = <String, String>{
+        for (final entry in (e as Map).entries)
+          entry.key.toString(): entry.value?.toString() ?? '',
+      };
+      return Lead(fields: fields);
+    }).toList();
+  }
+
+  // ── CRUD — all operations use the first column as the row identifier ───────
+  static Future<void> addLead(Lead lead) async {
+    final base = await getUrl();
+    final uri  = Uri.parse(base).replace(queryParameters: {
+      'action': 'add',
+      ...lead.fields,
+    });
+    final response = await http.get(uri);
+    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
+    _checkWriteResponse(response.body);
   }
 
   static Future<void> updateLead(Lead lead) async {
-    final base      = await getUrl();
-    final m         = await getColumnMapping();
-    final extraCols = await getExtraColumns();
-
-    final params = <String, String>{
-      'action':      'update',
-      m['leadId']!:  lead.leadId.toString(),
-      m['name']!:    lead.name,
-      m['phone']!:   lead.phone,
-      m['project']!: lead.project,
-      m['source']!:  lead.source,
-      m['status']!:  lead.status,
-    };
-    for (final col in extraCols) {
-      final colName = (col['column'] ?? '').toUpperCase().trim();
-      final label   = (col['label']  ?? colName).trim();
-      if (colName.isNotEmpty) params[colName] = lead.extra[label] ?? '';
-    }
-
-    final uri = Uri.parse(base).replace(queryParameters: params);
-    final response = await http.get(uri);
-    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
-    _checkWriteResponse(response.body);
-  }
-
-  static Future<void> addLead(Lead lead) async {
-    final base      = await getUrl();
-    final m         = await getColumnMapping();
-    final extraCols = await getExtraColumns();
-
-    final params = <String, String>{
-      'action':      'add',
-      m['leadId']!:  lead.leadId.toString(),
-      m['name']!:    lead.name,
-      m['phone']!:   lead.phone,
-      m['project']!: lead.project,
-      m['source']!:  lead.source,
-      m['status']!:  lead.status,
-    };
-    for (final col in extraCols) {
-      final colName = (col['column'] ?? '').toUpperCase().trim();
-      final label   = (col['label']  ?? colName).trim();
-      if (colName.isNotEmpty) params[colName] = lead.extra[label] ?? '';
-    }
-
-    final uri = Uri.parse(base).replace(queryParameters: params);
-    final response = await http.get(uri);
-    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
-    _checkWriteResponse(response.body);
-  }
-
-  static Future<void> deleteLead(int leadId) async {
     final base = await getUrl();
-    final m    = await getColumnMapping();
     final uri  = Uri.parse(base).replace(queryParameters: {
-      'action':     'delete',
-      m['leadId']!: leadId.toString(),
+      'action': 'update',
+      ...lead.fields,
+    });
+    final response = await http.get(uri);
+    if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
+    _checkWriteResponse(response.body);
+  }
+
+  static Future<void> deleteLead(Lead lead) async {
+    final base = await getUrl();
+    final uri  = Uri.parse(base).replace(queryParameters: {
+      'action':           'delete',
+      lead.rowKeyColumn:  lead.rowKeyValue,
     });
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');

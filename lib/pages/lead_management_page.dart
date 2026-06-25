@@ -83,12 +83,9 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     return source.where((lead) {
       final matchesStatus =
           _selectedStatus == 'All' || lead.status == _selectedStatus;
+      // Search across ALL column values automatically
       final matchesSearch = q.isEmpty ||
-          lead.name.toLowerCase().contains(q) ||
-          lead.phone.toLowerCase().contains(q) ||
-          lead.project.toLowerCase().contains(q) ||
-          lead.source.toLowerCase().contains(q) ||
-          lead.status.toLowerCase().contains(q);
+          lead.fields.values.any((v) => v.toLowerCase().contains(q));
       return matchesStatus && matchesSearch;
     }).toList();
   }
@@ -161,42 +158,43 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 
   Future<void> _showEditDialog(Lead lead) async {
-    final nameCtrl    = TextEditingController(text: lead.name);
-    final phoneCtrl   = TextEditingController(text: lead.phone);
-    final projectCtrl = TextEditingController(text: lead.project);
-    final sourceCtrl  = TextEditingController(text: lead.source);
-    final statusCtrl  = TextEditingController(text: lead.status);
-    final extraCols   = await LeadService.getExtraColumns();
-    final extraCtrls  = {
-      for (final c in extraCols)
-        (c['label'] ?? c['column'] ?? ''):
-            TextEditingController(text: lead.extra[c['label'] ?? ''] ?? ''),
+    final columns = lead.fields.keys.toList();
+    final ctrls   = {
+      for (final col in columns)
+        col: TextEditingController(text: lead.fields[col] ?? ''),
     };
+    final firstCol = columns.isNotEmpty ? columns.first : '';
 
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Edit Lead',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _inputField('Name', nameCtrl),
-            const SizedBox(height: 12),
-            _inputField('Phone', phoneCtrl, keyboard: TextInputType.phone),
-            const SizedBox(height: 12),
-            _inputField('Project', projectCtrl),
-            const SizedBox(height: 12),
-            _inputField('Source', sourceCtrl),
-            const SizedBox(height: 12),
-            _inputField('Status', statusCtrl),
-            ...extraCols.map((col) {
-              final label = col['label'] ?? col['column'] ?? '';
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _inputField(label, extraCtrls[label]!),
-              );
-            }),
-          ]),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: columns.asMap().entries.map((e) {
+                final isKey = e.value == firstCol;
+                return Padding(
+                  padding: EdgeInsets.only(top: e.key == 0 ? 0 : 12),
+                  child: TextField(
+                    controller: ctrls[e.value],
+                    enabled: !isKey, // first column is the row key — read-only
+                    decoration: InputDecoration(
+                      labelText: e.value,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      filled: isKey,
+                      fillColor: isKey ? const Color(0xFFF0F0F0) : null,
+                      helperText: isKey ? 'Row identifier — cannot be edited' : null,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -208,39 +206,44 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              final extra = {
-                for (final e in extraCtrls.entries) e.key: e.value.text.trim()
+              final updatedFields = {
+                for (final col in columns) col: ctrls[col]!.text.trim(),
               };
-              await _doUpdate(lead.copyWith(
-                name:    nameCtrl.text.trim(),
-                phone:   phoneCtrl.text.trim(),
-                project: projectCtrl.text.trim(),
-                source:  sourceCtrl.text.trim(),
-                status:  statusCtrl.text.trim(),
-                extra:   extra,
-              ));
+              await _doUpdate(Lead(fields: updatedFields));
             },
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    for (final c in extraCtrls.values) c.dispose();
+    for (final c in ctrls.values) c.dispose();
   }
 
   Future<void> _showAddDialog() async {
-    final nextId = _all.isEmpty
-        ? 1
-        : _all.map((l) => l.leadId).reduce((a, b) => a > b ? a : b) + 1;
-    final nameCtrl    = TextEditingController();
-    final phoneCtrl   = TextEditingController();
-    final projectCtrl = TextEditingController();
-    final sourceCtrl  = TextEditingController();
-    final statusCtrl  = TextEditingController();
-    final extraCols   = await LeadService.getExtraColumns();
-    final extraCtrls  = {
-      for (final c in extraCols)
-        (c['label'] ?? c['column'] ?? ''): TextEditingController(),
+    final schema = LeadService.columnSchema;
+    if (schema.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No columns detected yet. Refresh first.'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
+
+    // Auto-compute next value for the first column if it's numeric
+    String firstColDefault = '';
+    if (_all.isNotEmpty) {
+      final nums = _all.map((l) => int.tryParse(l.rowKeyValue) ?? 0).toList();
+      final max  = nums.reduce((a, b) => a > b ? a : b);
+      firstColDefault = (max + 1).toString();
+    } else {
+      firstColDefault = '1';
+    }
+
+    final ctrls = {
+      for (final col in schema)
+        col: TextEditingController(
+          text: col == schema.first ? firstColDefault : '',
+        ),
     };
 
     await showDialog(
@@ -248,25 +251,21 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Add New Lead',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _inputField('Name', nameCtrl),
-            const SizedBox(height: 12),
-            _inputField('Phone', phoneCtrl, keyboard: TextInputType.phone),
-            const SizedBox(height: 12),
-            _inputField('Project', projectCtrl),
-            const SizedBox(height: 12),
-            _inputField('Source', sourceCtrl),
-            const SizedBox(height: 12),
-            _inputField('Status', statusCtrl),
-            ...extraCols.map((col) {
-              final label = col['label'] ?? col['column'] ?? '';
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _inputField(label, extraCtrls[label]!),
-              );
-            }),
-          ]),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: schema.asMap().entries.map((e) => Padding(
+                padding: EdgeInsets.only(top: e.key == 0 ? 0 : 12),
+                child: _inputField(
+                  e.value,
+                  ctrls[e.value]!,
+                  keyboard: e.key == 0 ? TextInputType.number : TextInputType.text,
+                ),
+              )).toList(),
+            ),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -277,52 +276,22 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
               Navigator.pop(ctx);
-              final extra = {
-                for (final e in extraCtrls.entries) e.key: e.value.text.trim()
+              final fields = {
+                for (final col in schema) col: ctrls[col]!.text.trim(),
               };
-              await _doAdd(Lead(
-                leadId:  nextId,
-                name:    nameCtrl.text.trim(),
-                phone:   phoneCtrl.text.trim(),
-                project: projectCtrl.text.trim(),
-                source:  sourceCtrl.text.trim(),
-                status:  statusCtrl.text.trim(),
-                extra:   extra,
-              ));
+              await _doAdd(Lead(fields: fields));
             },
             child: const Text('Add'),
           ),
         ],
       ),
     );
-    for (final c in extraCtrls.values) c.dispose();
+    for (final c in ctrls.values) c.dispose();
   }
 
   Future<void> _showSettingsDialog() async {
     final urlCtrl = TextEditingController(text: await LeadService.getUrl());
-    final savedMapping = await LeadService.getColumnMapping();
-    final savedExtra = await LeadService.getExtraColumns();
-
-    // One controller per app field — pre-filled from saved mapping
-    final colCtrls = {
-      'leadId':  TextEditingController(text: savedMapping['leadId']  ?? 'LEAD ID'),
-      'name':    TextEditingController(text: savedMapping['name']    ?? 'NAME'),
-      'phone':   TextEditingController(text: savedMapping['phone']   ?? 'PHONE'),
-      'project': TextEditingController(text: savedMapping['project'] ?? 'PROJECT'),
-      'source':  TextEditingController(text: savedMapping['source']  ?? 'SOURCE'),
-      'status':  TextEditingController(text: savedMapping['status']  ?? 'STATUS'),
-    };
-
-    // Extra column rows — mutable list, modified inside StatefulBuilder
-    final extraRows = <({TextEditingController label, TextEditingController column})>[
-      for (final c in savedExtra)
-        (
-          label:  TextEditingController(text: c['label']  ?? ''),
-          column: TextEditingController(text: c['column'] ?? ''),
-        ),
-    ];
 
     await showDialog(
       context: context,
@@ -338,8 +307,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               Icon(Icons.settings_rounded, color: _blue, size: 20),
               SizedBox(width: 8),
               Text('Google Sheets Setup',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
             ]),
             content: SizedBox(
               width: 480,
@@ -348,29 +316,22 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── URL field ──────────────────────────────────────────
                     const Text('Apps Script URL',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: _blue)),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: urlCtrl,
-                      onChanged: (_) =>
-                          setS(() { testError = null; testCount = null; }),
+                      onChanged: (_) => setS(() { testError = null; testCount = null; }),
                       decoration: InputDecoration(
                         hintText: 'https://script.google.com/macros/s/…/exec',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),
                     const SizedBox(height: 10),
 
-                    // ── Test result ────────────────────────────────────────
+                    // ── Test result ──────────────────────────────────────
                     if (testing)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
@@ -391,16 +352,11 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFEF9A9A)),
                         ),
-                        child: Row(crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                          const Icon(Icons.error_outline_rounded,
-                              size: 15, color: Color(0xFFC62828)),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Icon(Icons.error_outline_rounded, size: 15, color: Color(0xFFC62828)),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(testError!,
-                                style: const TextStyle(
-                                    fontSize: 11, color: Color(0xFFC62828))),
-                          ),
+                          Expanded(child: Text(testError!,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFFC62828)))),
                         ]),
                       )
                     else if (testCount != null)
@@ -412,175 +368,24 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFA5D6A7)),
                         ),
-                        child: Row(children: [
-                          const Icon(Icons.check_circle_rounded,
-                              size: 15, color: Color(0xFF2E7D32)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Connected — $testCount lead${testCount == 1 ? '' : 's'} found'
-                              '${detectedCols.isNotEmpty ? '\nColumns: ${detectedCols.join(', ')}' : ''}',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            const Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF2E7D32)),
+                            const SizedBox(width: 8),
+                            Text('Connected — $testCount lead${testCount == 1 ? '' : 's'} found',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                          if (detectedCols.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text('Columns detected (${detectedCols.length}): ${detectedCols.join(' · ')}',
+                                style: const TextStyle(fontSize: 10, color: Color(0xFF2E7D32))),
+                          ],
                         ]),
                       ),
 
                     const SizedBox(height: 16),
-                    // ── Column name mapping ────────────────────────────────
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(children: [
-                            Icon(Icons.table_chart_rounded,
-                                size: 15, color: _blue),
-                            SizedBox(width: 6),
-                            Text('Column Names in Your Sheet',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: _blue)),
-                          ]),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Type the exact column header from your Google Sheet for each field. '
-                            'Update any time — no app redeployment needed.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
-                          ),
-                          const SizedBox(height: 10),
-                          ...[
-                            ('Lead ID',  'leadId'),
-                            ('Name',     'name'),
-                            ('Phone',    'phone'),
-                            ('Project',  'project'),
-                            ('Source',   'source'),
-                            ('Status',   'status'),
-                          ].map((pair) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(children: [
-                              SizedBox(
-                                width: 70,
-                                child: Text(pair.$1,
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF374151))),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextField(
-                                  controller: colCtrls[pair.$2],
-                                  style: const TextStyle(fontSize: 12),
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 8),
-                                    border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(6)),
-                                  ),
-                                ),
-                              ),
-                            ]),
-                          )),
-
-                          // ── Extra / custom columns ─────────────────────
-                          if (extraRows.isNotEmpty) ...[
-                            const Divider(height: 16),
-                            const Text('Custom Columns',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF78909C))),
-                            const SizedBox(height: 6),
-                            // Header row
-                            Row(children: const [
-                              SizedBox(width: 4),
-                              Expanded(child: Text('Label (shown in form)',
-                                  style: TextStyle(fontSize: 10, color: Color(0xFF90A4AE)))),
-                              SizedBox(width: 8),
-                              Expanded(child: Text('Sheet Column Name',
-                                  style: TextStyle(fontSize: 10, color: Color(0xFF90A4AE)))),
-                              SizedBox(width: 36),
-                            ]),
-                            const SizedBox(height: 4),
-                          ],
-                          ...List.generate(extraRows.length, (i) {
-                            final row = extraRows[i];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: row.label,
-                                    style: const TextStyle(fontSize: 12),
-                                    decoration: InputDecoration(
-                                      hintText: 'e.g. Email',
-                                      isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: row.column,
-                                    style: const TextStyle(fontSize: 12),
-                                    decoration: InputDecoration(
-                                      hintText: 'e.g. EMAIL',
-                                      isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFC62828)),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                  onPressed: () => setS(() {
-                                    row.label.dispose();
-                                    row.column.dispose();
-                                    extraRows.removeAt(i);
-                                  }),
-                                ),
-                              ]),
-                            );
-                          }),
-
-                          // ── Add Column button ──────────────────────────
-                          TextButton.icon(
-                            onPressed: () => setS(() {
-                              extraRows.add((
-                                label:  TextEditingController(),
-                                column: TextEditingController(),
-                              ));
-                            }),
-                            icon: const Icon(Icons.add_rounded, size: 16),
-                            label: const Text('Add Column',
-                                style: TextStyle(fontSize: 12)),
-                            style: TextButton.styleFrom(
-                              foregroundColor: _blue,
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ── How to set up ──────────────────────────────────────
+                    // ── Info ────────────────────────────────────────────
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -591,22 +396,23 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(children: [
-                            Icon(Icons.info_outline_rounded,
-                                size: 15, color: _blue),
+                            Icon(Icons.auto_awesome_rounded, size: 15, color: _blue),
                             SizedBox(width: 6),
-                            Text('How to connect a Google Sheet',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: _blue)),
+                            Text('Fully automatic — no column config needed',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _blue)),
                           ]),
                           SizedBox(height: 8),
+                          Text(
+                            'The app reads every column from your Google Sheet in order and '
+                            'shows all of them automatically. Just connect the script and it works.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF37474F)),
+                          ),
+                          SizedBox(height: 10),
                           _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
-                          _SetupStep(n: '2', text: 'Paste the script code provided by your admin, then press Ctrl+S'),
-                          _SetupStep(n: '3', text: 'Click Deploy → Manage deployments → Edit → New version → Deploy'),
-                          _SetupStep(n: '4', text: 'Set "Execute as: Me" and "Who has access: Anyone"'),
-                          _SetupStep(n: '5', text: 'Press Test above — detected column names will appear'),
-                          _SetupStep(n: '6', text: 'Adjust column names if needed, then tap Save & Reload'),
+                          _SetupStep(n: '2', text: 'Paste the UPDATED script (see your admin), press Ctrl+S'),
+                          _SetupStep(n: '3', text: 'Deploy → Manage deployments → Edit → New version → Deploy'),
+                          _SetupStep(n: '4', text: '"Execute as: Me" and "Who has access: Anyone"'),
+                          _SetupStep(n: '5', text: 'Paste the URL above → Test → Save & Reload'),
                         ],
                       ),
                     ),
@@ -615,60 +421,28 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               ),
             ),
             actions: [
-              TextButton(
-                  onPressed: testing ? null : () => Navigator.pop(ctx),
-                  child: const Text('Cancel')),
+              TextButton(onPressed: testing ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueGrey,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
                 onPressed: testing ? null : () async {
                   final url = urlCtrl.text.trim();
                   if (url.isEmpty) return;
-                  setS(() {
-                    testing = true;
-                    testError = null;
-                    testCount = null;
-                  });
+                  setS(() { testing = true; testError = null; testCount = null; });
                   try {
                     final result = await LeadService.testUrl(url);
-                    // Auto-fill column fields with detected columns
-                    final cols = result.columns;
                     setS(() {
-                      testing = false;
-                      testCount = result.count;
-                      detectedCols = cols;
+                      testing    = false;
+                      testCount  = result.count;
+                      detectedCols = result.columns;
                     });
-                    // Try to auto-match detected columns to fields
-                    if (cols.isNotEmpty) {
-                      final fields = {
-                        'leadId': ['LEAD ID', 'LEADID', 'ID', 'LEAD_ID'],
-                        'name':   ['NAME', 'CUSTOMER NAME', 'CUSTOMER', 'CLIENT'],
-                        'phone':  ['PHONE', 'MOBILE', 'CONTACT', 'PHONE NO', 'MOBILE NO'],
-                        'project':['PROJECT', 'PROPERTY', 'PROJECT NAME'],
-                        'source': ['SOURCE', 'LEAD SOURCE'],
-                        'status': ['STATUS', 'LEAD STATUS', 'STAGE'],
-                      };
-                      for (final e in fields.entries) {
-                        for (final alias in e.value) {
-                          final match = cols.firstWhere(
-                            (c) => c.toUpperCase().trim() == alias,
-                            orElse: () => '',
-                          );
-                          if (match.isNotEmpty) {
-                            colCtrls[e.key]?.text = match.toUpperCase().trim();
-                            break;
-                          }
-                        }
-                      }
-                    }
                   } catch (e) {
                     setS(() {
-                      testing = false;
+                      testing   = false;
                       testError = e.toString().replaceFirst('Exception: ', '');
                     });
                   }
@@ -679,25 +453,12 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _blue,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: testing ? null : () async {
                   final url = urlCtrl.text.trim();
                   if (url.isEmpty) return;
                   await LeadService.saveUrl(url);
-                  await LeadService.saveColumnMapping({
-                    for (final e in colCtrls.entries)
-                      e.key: e.value.text.trim(),
-                  });
-                  await LeadService.saveExtraColumns([
-                    for (final r in extraRows)
-                      if (r.label.text.trim().isNotEmpty || r.column.text.trim().isNotEmpty)
-                        {
-                          'label':  r.label.text.trim(),
-                          'column': r.column.text.trim().toUpperCase(),
-                        },
-                  ]);
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (mounted) setState(() => _scriptUrl = url);
                   await _fetch();
@@ -710,14 +471,13 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       },
     );
 
-    for (final c in colCtrls.values) c.dispose();
-    for (final r in extraRows) { r.label.dispose(); r.column.dispose(); }
+    urlCtrl.dispose();
   }
 
   Future<void> _showDeleteDialog(Lead lead) async {
-    if (lead.leadId == 0) {
+    if (!lead.canDelete) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Cannot delete: this lead has no valid ID in the sheet'),
+        content: Text('Cannot delete: this row has no identifier in the first column'),
         backgroundColor: Colors.orange,
       ));
       return;
@@ -753,7 +513,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _doDelete(Lead lead) async {
     try {
-      await LeadService.deleteLead(lead.leadId);
+      await LeadService.deleteLead(lead);
       await _fetch();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1043,47 +803,18 @@ class _LeadCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      lead.name.isEmpty ? 'Unknown' : lead.name,
+                      lead.name.isEmpty ? (lead.fields.values.elementAtOrNull(1) ?? 'Unknown') : lead.name,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: _blue),
+                          fontSize: 15, fontWeight: FontWeight.w700, color: _blue),
                     ),
                     const SizedBox(height: 3),
-                    Row(children: [
-                      const Icon(Icons.phone_rounded,
-                          size: 12, color: Color(0xFF78909C)),
-                      const SizedBox(width: 4),
-                      Text(lead.phone.isEmpty ? '—' : lead.phone,
-                          style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF546E7A))),
-                      if (lead.source.isNotEmpty) ...[
-                        const SizedBox(width: 12),
-                        const Icon(Icons.campaign_rounded,
-                            size: 12, color: Color(0xFF78909C)),
-                        const SizedBox(width: 4),
-                        Text(lead.source,
-                            style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF546E7A))),
-                      ],
-                    ]),
-                    if (lead.project.isNotEmpty) ...[
-                      const SizedBox(height: 3),
+                    if (lead.phone.isNotEmpty)
                       Row(children: [
-                        const Icon(Icons.apartment_rounded,
-                            size: 12, color: Color(0xFF78909C)),
+                        const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF78909C)),
                         const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            lead.project,
-                            style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF546E7A)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        Text(lead.phone,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
                       ]),
-                    ],
                   ],
                 ),
               ),
@@ -1094,13 +825,61 @@ class _LeadCard extends StatelessWidget {
                   statusBadge,
                   const SizedBox(height: 4),
                   Text(
-                    'ID: ${lead.leadId}',
+                    '${lead.rowKeyColumn}: ${lead.rowKeyValue}',
                     style: const TextStyle(
                         fontSize: 10, color: Color(0xFF78909C)),
                   ),
                 ],
               ),
             ]),
+            // ── All other columns ──────────────────────────────────────
+            Builder(builder: (_) {
+              // Skip first col (row key), name-like col, phone-like col, status-like col
+              final skipKeys = {lead.rowKeyColumn};
+              for (final key in lead.fields.keys) {
+                final k = key.toUpperCase();
+                if (k.contains('NAME') || k.contains('CANDIDATE') ||
+                    k.contains('CUSTOMER') || k.contains('CLIENT')) skipKeys.add(key);
+                if (k.contains('PHONE') || k.contains('MOBILE')) skipKeys.add(key);
+                if (k.contains('STATUS') || k.contains('STAGE')) skipKeys.add(key);
+              }
+              final extras = lead.fields.entries
+                  .where((e) => !skipKeys.contains(e.key) && e.value.isNotEmpty)
+                  .toList();
+              if (extras.isEmpty) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: extras.map((e) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F4FF),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFD0D8F0)),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${e.key}: ',
+                            style: const TextStyle(
+                                fontSize: 10, color: Color(0xFF78909C),
+                                fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text: e.value,
+                            style: const TextStyle(
+                                fontSize: 10, color: Color(0xFF374151)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )).toList(),
+                ),
+              );
+            }),
             const SizedBox(height: 10),
             const Divider(height: 1, color: Color(0xFFEEEEEE)),
             const SizedBox(height: 8),
