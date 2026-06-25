@@ -272,6 +272,17 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _showSettingsDialog() async {
     final urlCtrl = TextEditingController(text: await LeadService.getUrl());
+    final savedMapping = await LeadService.getColumnMapping();
+
+    // One controller per app field — pre-filled from saved mapping
+    final colCtrls = {
+      'leadId':  TextEditingController(text: savedMapping['leadId']  ?? 'LEAD ID'),
+      'name':    TextEditingController(text: savedMapping['name']    ?? 'NAME'),
+      'phone':   TextEditingController(text: savedMapping['phone']   ?? 'PHONE'),
+      'project': TextEditingController(text: savedMapping['project'] ?? 'PROJECT'),
+      'source':  TextEditingController(text: savedMapping['source']  ?? 'SOURCE'),
+      'status':  TextEditingController(text: savedMapping['status']  ?? 'STATUS'),
+    };
 
     await showDialog(
       context: context,
@@ -279,6 +290,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
         bool testing = false;
         String? testError;
         int? testCount;
+        List<String> detectedCols = [];
 
         return StatefulBuilder(builder: (ctx, setS) {
           return AlertDialog(
@@ -289,121 +301,195 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                   style: TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
             ]),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── URL field ──────────────────────────────────────────
-                  const Text('Apps Script URL',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _blue)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: urlCtrl,
-                    onChanged: (_) => setS(() { testError = null; testCount = null; }),
-                    decoration: InputDecoration(
-                      hintText: 'https://script.google.com/macros/s/…/exec',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                    ),
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // ── Test result ────────────────────────────────────────
-                  if (testing)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Row(children: [
-                        SizedBox(width: 16, height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2)),
-                        SizedBox(width: 10),
-                        Text('Testing connection…',
-                            style: TextStyle(fontSize: 12, color: _blue)),
-                      ]),
-                    )
-                  else if (testError != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFEBEE),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFEF9A9A)),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── URL field ──────────────────────────────────────────
+                    const Text('Apps Script URL',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _blue)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: urlCtrl,
+                      onChanged: (_) =>
+                          setS(() { testError = null; testCount = null; }),
+                      decoration: InputDecoration(
+                        hintText: 'https://script.google.com/macros/s/…/exec',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // ── Test result ────────────────────────────────────────
+                    if (testing)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Row(children: [
+                          SizedBox(width: 16, height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 10),
+                          Text('Testing connection…',
+                              style: TextStyle(fontSize: 12, color: _blue)),
+                        ]),
+                      )
+                    else if (testError != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBEE),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFEF9A9A)),
+                        ),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                           const Icon(Icons.error_outline_rounded,
                               size: 15, color: Color(0xFFC62828)),
                           const SizedBox(width: 8),
                           Expanded(
+                            child: Text(testError!,
+                                style: const TextStyle(
+                                    fontSize: 11, color: Color(0xFFC62828))),
+                          ),
+                        ]),
+                      )
+                    else if (testCount != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFA5D6A7)),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.check_circle_rounded,
+                              size: 15, color: Color(0xFF2E7D32)),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Text(
-                              testError!,
+                              'Connected — $testCount lead${testCount == 1 ? '' : 's'} found'
+                              '${detectedCols.isNotEmpty ? '\nColumns: ${detectedCols.join(', ')}' : ''}',
                               style: const TextStyle(
-                                  fontSize: 11, color: Color(0xFFC62828)),
+                                  fontSize: 11, color: Color(0xFF2E7D32),
+                                  fontWeight: FontWeight.w600),
                             ),
                           ),
+                        ]),
+                      ),
+
+                    const SizedBox(height: 16),
+                    // ── Column name mapping ────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(children: [
+                            Icon(Icons.table_chart_rounded,
+                                size: 15, color: _blue),
+                            SizedBox(width: 6),
+                            Text('Column Names in Your Sheet',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: _blue)),
+                          ]),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Type the exact column header from your Google Sheet for each field. '
+                            'Update any time — no app redeployment needed.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
+                          ),
+                          const SizedBox(height: 10),
+                          ...[
+                            ('Lead ID',  'leadId'),
+                            ('Name',     'name'),
+                            ('Phone',    'phone'),
+                            ('Project',  'project'),
+                            ('Source',   'source'),
+                            ('Status',   'status'),
+                          ].map((pair) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(children: [
+                              SizedBox(
+                                width: 70,
+                                child: Text(pair.$1,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF374151))),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: colCtrls[pair.$2],
+                                  style: const TextStyle(fontSize: 12),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 8),
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(6)),
+                                  ),
+                                ),
+                              ),
+                            ]),
+                          )),
                         ],
                       ),
-                    )
-                  else if (testCount != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFA5D6A7)),
-                      ),
-                      child: Row(children: [
-                        const Icon(Icons.check_circle_rounded,
-                            size: 15, color: Color(0xFF2E7D32)),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Connected — $testCount lead${testCount == 1 ? '' : 's'} found',
-                          style: const TextStyle(
-                              fontSize: 11, color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ]),
                     ),
+                    const SizedBox(height: 16),
 
-                  // ── How to set up ──────────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F2FD),
-                      borderRadius: BorderRadius.circular(8),
+                    // ── How to set up ──────────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Icon(Icons.info_outline_rounded,
+                                size: 15, color: _blue),
+                            SizedBox(width: 6),
+                            Text('How to connect a Google Sheet',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: _blue)),
+                          ]),
+                          SizedBox(height: 8),
+                          _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
+                          _SetupStep(n: '2', text: 'Paste the script code provided by your admin, then press Ctrl+S'),
+                          _SetupStep(n: '3', text: 'Click Deploy → Manage deployments → Edit → New version → Deploy'),
+                          _SetupStep(n: '4', text: 'Set "Execute as: Me" and "Who has access: Anyone"'),
+                          _SetupStep(n: '5', text: 'Press Test above — detected column names will appear'),
+                          _SetupStep(n: '6', text: 'Adjust column names if needed, then tap Save & Reload'),
+                        ],
+                      ),
                     ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Icon(Icons.info_outline_rounded,
-                              size: 15, color: _blue),
-                          SizedBox(width: 6),
-                          Text('How to connect a Google Sheet',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: _blue)),
-                        ]),
-                        SizedBox(height: 8),
-                        _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
-                        _SetupStep(n: '2', text: 'Paste the script code provided by your admin, then press Ctrl+S'),
-                        _SetupStep(n: '3', text: 'Click Deploy → New deployment → choose Web app'),
-                        _SetupStep(n: '4', text: 'Set "Execute as: Me" and "Who has access: Anyone" → click Deploy'),
-                        _SetupStep(n: '5', text: 'Copy the URL shown, paste it in the field above, and tap Save'),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -421,12 +507,48 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                 onPressed: testing ? null : () async {
                   final url = urlCtrl.text.trim();
                   if (url.isEmpty) return;
-                  setS(() { testing = true; testError = null; testCount = null; });
+                  setS(() {
+                    testing = true;
+                    testError = null;
+                    testCount = null;
+                  });
                   try {
-                    final count = await LeadService.testUrl(url);
-                    setS(() { testing = false; testCount = count; });
+                    final result = await LeadService.testUrl(url);
+                    // Auto-fill column fields with detected columns
+                    final cols = result.columns;
+                    setS(() {
+                      testing = false;
+                      testCount = result.count;
+                      detectedCols = cols;
+                    });
+                    // Try to auto-match detected columns to fields
+                    if (cols.isNotEmpty) {
+                      final fields = {
+                        'leadId': ['LEAD ID', 'LEADID', 'ID', 'LEAD_ID'],
+                        'name':   ['NAME', 'CUSTOMER NAME', 'CUSTOMER', 'CLIENT'],
+                        'phone':  ['PHONE', 'MOBILE', 'CONTACT', 'PHONE NO', 'MOBILE NO'],
+                        'project':['PROJECT', 'PROPERTY', 'PROJECT NAME'],
+                        'source': ['SOURCE', 'LEAD SOURCE'],
+                        'status': ['STATUS', 'LEAD STATUS', 'STAGE'],
+                      };
+                      for (final e in fields.entries) {
+                        for (final alias in e.value) {
+                          final match = cols.firstWhere(
+                            (c) => c.toUpperCase().trim() == alias,
+                            orElse: () => '',
+                          );
+                          if (match.isNotEmpty) {
+                            colCtrls[e.key]?.text = match.toUpperCase().trim();
+                            break;
+                          }
+                        }
+                      }
+                    }
                   } catch (e) {
-                    setS(() { testing = false; testError = e.toString().replaceFirst('Exception: ', ''); });
+                    setS(() {
+                      testing = false;
+                      testError = e.toString().replaceFirst('Exception: ', '');
+                    });
                   }
                 },
                 child: const Text('Test'),
@@ -441,7 +563,12 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                 onPressed: testing ? null : () async {
                   final url = urlCtrl.text.trim();
                   if (url.isEmpty) return;
+                  // Save URL and column mapping together
                   await LeadService.saveUrl(url);
+                  await LeadService.saveColumnMapping({
+                    for (final e in colCtrls.entries)
+                      e.key: e.value.text.trim(),
+                  });
                   if (ctx.mounted) Navigator.pop(ctx);
                   await _fetch();
                 },
@@ -452,6 +579,8 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
         });
       },
     );
+
+    for (final c in colCtrls.values) c.dispose();
   }
 
   Future<void> _showDeleteDialog(Lead lead) async {

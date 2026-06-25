@@ -15,18 +15,45 @@ class Lead {
     required this.status,
   });
 
-  factory Lead.fromJson(Map<String, dynamic> json) {
-    // Normalize all keys to uppercase so column names in the sheet are flexible
-    final m = { for (final e in json.entries) e.key.toUpperCase().trim(): e.value };
+  // Reads JSON using a saved column mapping (field → sheet column name).
+  // Falls back to uppercase normalization if a mapped column isn't found.
+  factory Lead.fromMappedJson(
+      Map<String, dynamic> json, Map<String, String> mapping) {
+    // The script returns UPPERCASE column names. Normalise all keys so lookups
+    // work regardless of what the script actually returned.
+    final upper = {
+      for (final e in json.entries) e.key.toUpperCase().trim(): e.value
+    };
+
+    String? get(String field) {
+      final col = mapping[field]?.toUpperCase().trim();
+      if (col != null && upper.containsKey(col)) return upper[col]?.toString();
+      // Fallback: try the default uppercase name
+      return upper[field.toUpperCase()]?.toString();
+    }
+
     return Lead(
-      leadId: m['LEAD ID'] is int
-          ? m['LEAD ID'] as int
-          : int.tryParse(m['LEAD ID']?.toString() ?? '') ?? 0,
-      name:    m['NAME']?.toString()    ?? '',
-      phone:   m['PHONE']?.toString()   ?? '',
-      project: m['PROJECT']?.toString() ?? '',
-      source:  m['SOURCE']?.toString()  ?? '',
-      status:  m['STATUS']?.toString()  ?? '',
+      leadId:  int.tryParse(get('leadId')  ?? get('LEAD ID') ?? '0') ?? 0,
+      name:    get('name')    ?? '',
+      phone:   get('phone')   ?? '',
+      project: get('project') ?? '',
+      source:  get('source')  ?? '',
+      status:  get('status')  ?? '',
+    );
+  }
+
+  // Legacy convenience — used when no mapping is available.
+  factory Lead.fromJson(Map<String, dynamic> json) {
+    final upper = {
+      for (final e in json.entries) e.key.toUpperCase().trim(): e.value
+    };
+    return Lead(
+      leadId:  int.tryParse(upper['LEAD ID']?.toString() ?? '0') ?? 0,
+      name:    upper['NAME']?.toString()    ?? '',
+      phone:   upper['PHONE']?.toString()   ?? '',
+      project: upper['PROJECT']?.toString() ?? '',
+      source:  upper['SOURCE']?.toString()  ?? '',
+      status:  upper['STATUS']?.toString()  ?? '',
     );
   }
 
@@ -39,12 +66,12 @@ class Lead {
     String? status,
   }) {
     return Lead(
-      leadId: leadId ?? this.leadId,
-      name: name ?? this.name,
-      phone: phone ?? this.phone,
+      leadId:  leadId  ?? this.leadId,
+      name:    name    ?? this.name,
+      phone:   phone   ?? this.phone,
       project: project ?? this.project,
-      source: source ?? this.source,
-      status: status ?? this.status,
+      source:  source  ?? this.source,
+      status:  status  ?? this.status,
     );
   }
 }
