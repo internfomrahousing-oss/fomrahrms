@@ -21,7 +21,6 @@ const _navItems = [
   _NavItem('Payroll Management', Icons.account_balance_wallet_rounded, '/payroll-management'),
   _NavItem('Interview Process', Icons.record_voice_over_rounded, '/interview-process'),
   _NavItem('Employee Onboarding', Icons.how_to_reg_rounded, '/employee-onboarding'),
-  _NavItem('Ads Management', Icons.campaign_rounded, '/ads-management'),
   _NavItem('Lead Management', Icons.leaderboard_rounded, '/lead-management'),
   _NavItem('Maintenance Management', Icons.build_rounded, '/maintenance-management'),
   _NavItem('Approvals', Icons.approval_rounded, '/approvals'),

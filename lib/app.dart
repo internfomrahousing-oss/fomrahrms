@@ -26,7 +26,6 @@ import 'pages/payroll_management_page.dart';
 import 'pages/interview_process_page.dart';
 import 'pages/candidate_application_form_page.dart';
 import 'pages/employee_onboarding_page.dart';
-import 'pages/ads_management_page.dart';
 import 'pages/lead_management_hub_page.dart';
 import 'pages/lead_management_page.dart';
 import 'pages/maintenance_management_page.dart';
@@ -173,7 +172,6 @@ final _router = GoRouter(
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/candidate-detail',                builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
-        GoRoute(path: '/ads-management',                  builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/lead-management',
             builder: (_, __) => const LeadManagementHubPage(basePath: '/lead-management')),
         GoRoute(path: '/lead-management/leads', builder: (_, s) {
@@ -249,7 +247,6 @@ final _router = GoRouter(
         GoRoute(path: '/manager/interview-review',        builder: (_, __) => const ManagerInterviewReviewPage()),
         GoRoute(path: '/manager/candidate-detail',        builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/manager/employee-onboarding',     builder: (_, __) => const EmployeeOnboardingPage()),
-        GoRoute(path: '/manager/ads-management',          builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/manager/maintenance-management',  builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/manager/approvals',               builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/manager/notifications',           builder: (_, __) => const NotificationsPage()),
@@ -293,7 +290,6 @@ final _router = GoRouter(
         GoRoute(path: '/management/interview-review',       builder: (_, __) => const ManagementInterviewReviewPage()),
         GoRoute(path: '/management/candidate-detail',       builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
-        GoRoute(path: '/management/ads-management',         builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/management/lead-management',
             builder: (_, __) => const LeadManagementHubPage(basePath: '/management/lead-management')),
         GoRoute(path: '/management/lead-management/leads', builder: (_, s) {
