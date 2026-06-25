@@ -53,8 +53,12 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _fetch() async {
     setState(() {
-      _loading = true;
-      _error = null;
+      _loading       = true;
+      _error         = null;
+      _all           = [];
+      _filtered      = [];
+      _statusOptions = ['All'];
+      _selectedStatus = 'All';
     });
     try {
       final leads = await LeadService.fetchLeads();

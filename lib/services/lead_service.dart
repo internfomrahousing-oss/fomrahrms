@@ -23,6 +23,7 @@ class LeadService {
 
   static Future<void> saveUrl(String url) async {
     _cachedUrl = url.trim();
+    _schema    = []; // reset so columns re-detect from the new sheet
     await (await SharedPreferences.getInstance())
         .setString(_urlPrefKey, url.trim());
   }
