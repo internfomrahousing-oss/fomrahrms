@@ -22,8 +22,11 @@ class LeadSource {
 
 // ── Service ───────────────────────────────────────────────────────────────────
 class LeadService {
-  static const String _defaultUrl =
+  // The single permanent GAS deployment — handles ALL sheets via spreadsheetId param
+  static const String _gasBaseUrl =
       'https://script.google.com/macros/s/AKfycbxo0DuztEe4hIAPiEjbttV-LPJDEvvaTSFyUs6M-LNRWhNucJTUJw6bJ-4AuK4OS6t6Yw/exec';
+
+  static const String _defaultUrl = _gasBaseUrl;
 
   // Legacy single-source pref keys — kept only for migration
   static const String _legacyUrlKey  = 'lead_script_url';
@@ -66,7 +69,9 @@ class LeadService {
   static Future<LeadSource> addSource(String name, String url) async {
     final sources = await getSources();
     final source  = LeadSource(
-        id: _id(), name: name.trim().isEmpty ? 'New Source' : name.trim(), url: url.trim());
+        id: _id(),
+        name: name.trim().isEmpty ? 'New Source' : name.trim(),
+        url: resolveUrl(url)); // auto-convert Sheets URL → GAS URL
     sources.add(source);
     await _persist();
     return source;
@@ -95,10 +100,29 @@ class LeadService {
 
   static String _id() => DateTime.now().microsecondsSinceEpoch.toString();
 
+  /// Converts a Google Sheets URL or bare sheet ID into the full GAS URL.
+  /// Already-correct GAS exec URLs are passed through unchanged.
+  static String resolveUrl(String input) {
+    input = input.trim();
+    if (input.contains('script.google.com')) return input; // already a GAS URL
+    final m = RegExp(r'spreadsheets/d/([a-zA-Z0-9_-]+)').firstMatch(input);
+    if (m != null) return '$_gasBaseUrl?spreadsheetId=${m.group(1)}';
+    if (RegExp(r'^[a-zA-Z0-9_-]{20,}$').hasMatch(input)) {
+      return '$_gasBaseUrl?spreadsheetId=$input'; // bare sheet ID
+    }
+    return input; // unknown format — pass as-is
+  }
+
+  /// Merges extra params into a URL that may already have query parameters.
+  static Uri _buildUri(String url, Map<String, String> extra) {
+    final base = Uri.parse(url);
+    return base.replace(queryParameters: {...base.queryParameters, ...extra});
+  }
+
   // ── Connection test ───────────────────────────────────────────────────────
 
   static Future<({int count, List<String> columns})> testUrl(String url) async {
-    final uri      = Uri.parse('${url.trim()}?action=list');
+    final uri      = _buildUri(resolveUrl(url), {'action': 'list'});
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw Exception('Server returned HTTP ${response.statusCode}');
@@ -120,7 +144,7 @@ class LeadService {
   // ── Fetch leads from a specific URL ──────────────────────────────────────
 
   static Future<List<Lead>> fetchLeads(String url) async {
-    final uri      = Uri.parse('${url.trim()}?action=list');
+    final uri      = _buildUri(url, {'action': 'list'});
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
 
@@ -158,31 +182,21 @@ class LeadService {
   // ── CRUD — all operations scoped to the provided URL ─────────────────────
 
   static Future<void> addLead(String url, Lead lead) async {
-    // 'action' is placed last so it always wins even if sheet has an "action" column
-    final uri = Uri.parse(url.trim()).replace(queryParameters: {
-      ...lead.fields,
-      'action': 'add',
-    });
+    final uri = _buildUri(url, {...lead.fields, 'action': 'add'});
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body, expectSuccess: true);
   }
 
   static Future<void> updateLead(String url, Lead lead) async {
-    final uri = Uri.parse(url.trim()).replace(queryParameters: {
-      ...lead.fields,
-      'action': 'update',
-    });
+    final uri = _buildUri(url, {...lead.fields, 'action': 'update'});
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body, expectSuccess: true);
   }
 
   static Future<void> deleteLead(String url, Lead lead) async {
-    final uri = Uri.parse(url.trim()).replace(queryParameters: {
-      lead.rowKeyColumn: lead.rowKeyValue,
-      'action': 'delete',
-    });
+    final uri = _buildUri(url, {lead.rowKeyColumn: lead.rowKeyValue, 'action': 'delete'});
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body, expectSuccess: true);

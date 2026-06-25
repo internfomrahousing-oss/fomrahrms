@@ -56,8 +56,8 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
               TextField(
                 controller: urlCtrl,
                 onChanged: (_) => setSt(() {}),
-                decoration: _inputDec('Google Script URL',
-                    'https://script.google.com/macros/s/…/exec'),
+                decoration: _inputDec('Google Sheet URL',
+                    'https://docs.google.com/spreadsheets/d/…/edit'),
               ),
               const SizedBox(height: 12),
               if (testMsg != null)
