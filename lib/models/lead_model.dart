@@ -16,15 +16,17 @@ class Lead {
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
+    // Normalize all keys to uppercase so column names in the sheet are flexible
+    final m = { for (final e in json.entries) e.key.toUpperCase().trim(): e.value };
     return Lead(
-      leadId: json['LEAD ID'] is int
-          ? json['LEAD ID'] as int
-          : int.tryParse(json['LEAD ID'].toString()) ?? 0,
-      name: json['NAME']?.toString() ?? '',
-      phone: json['PHONE']?.toString() ?? '',
-      project: json['PROJECT']?.toString() ?? '',
-      source: json['SOURCE']?.toString() ?? '',
-      status: json['STATUS']?.toString() ?? '',
+      leadId: m['LEAD ID'] is int
+          ? m['LEAD ID'] as int
+          : int.tryParse(m['LEAD ID']?.toString() ?? '') ?? 0,
+      name:    m['NAME']?.toString()    ?? '',
+      phone:   m['PHONE']?.toString()   ?? '',
+      project: m['PROJECT']?.toString() ?? '',
+      source:  m['SOURCE']?.toString()  ?? '',
+      status:  m['STATUS']?.toString()  ?? '',
     );
   }
 
