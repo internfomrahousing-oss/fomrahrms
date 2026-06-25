@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class EmployeeLeavePage extends StatelessWidget {
-  const EmployeeLeavePage({super.key});
+  /// Route prefix for sub-pages: '/employee', '/manager', or '' (HR uses root-level routes).
+  final String prefix;
+  const EmployeeLeavePage({super.key, this.prefix = '/employee'});
 
-  static const _topics = [
-    _Topic('Apply Leave',    Icons.event_available_rounded, Color(0xFF0D47A1), '/employee/leave/apply'),
-    _Topic('Leave Balance',  Icons.balance_rounded,         Color(0xFF1976D2), '/employee/leave/balance'),
-    _Topic('Leave History',  Icons.history_rounded,         Color(0xFF283593), '/employee/leave/approvals'),
+  List<_Topic> get _topics => [
+    _Topic('Apply Leave',   Icons.event_available_rounded, const Color(0xFF0D47A1), '$prefix/leave/apply'),
+    _Topic('Leave Balance', Icons.balance_rounded,         const Color(0xFF1976D2), '$prefix/leave/balance'),
+    _Topic('Leave History', Icons.history_rounded,         const Color(0xFF283593), '$prefix/leave/approvals'),
   ];
 
   @override

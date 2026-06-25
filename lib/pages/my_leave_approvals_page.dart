@@ -168,7 +168,7 @@ class _AppCard extends StatelessWidget {
               _InfoChip(Icons.calendar_today_rounded,
                   '${_fmt(app.from)} → ${_fmt(app.to)}'),
               _InfoChip(Icons.numbers_rounded,
-                  '${app.days} day${app.days == 1 ? '' : 's'}'),
+                  app.isHalfDay ? '½ day' : '${app.days} day${app.days == 1 ? '' : 's'}'),
               _InfoChip(Icons.access_time_rounded,
                   'Applied: ${_fmt(app.appliedOn)}'),
               if (app.reason.isNotEmpty)
@@ -180,17 +180,64 @@ class _AppCard extends StatelessWidget {
 
             // Approval status
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Manager Approval',
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF78909C),
-                      fontWeight: FontWeight.w500)),
+              Row(children: [
+                const Text('Status',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF78909C),
+                        fontWeight: FontWeight.w500)),
+                if (app.decidedBy.isNotEmpty) ...[
+                  const Text(' · ',
+                      style: TextStyle(
+                          fontSize: 10, color: Color(0xFF78909C))),
+                  Text(
+                    app.managerStatus == LeaveApprovalStatus.approved
+                        ? 'Approved by ${app.decidedBy}'
+                        : 'Rejected by ${app.decidedBy}',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: app.managerStatus == LeaveApprovalStatus.approved
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ]),
               const SizedBox(height: 4),
               _StatusPill(
                 _statusLabel(app.managerStatus),
                 _statusColor(app.managerStatus),
                 _statusIcon(app.managerStatus),
               ),
+              // Rejection reason
+              if (app.managerStatus == LeaveApprovalStatus.denied &&
+                  app.rejectionComment.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline_rounded,
+                          size: 13, color: Colors.red.shade700),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          app.rejectionComment,
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.red.shade800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ]),
           ],
         ),

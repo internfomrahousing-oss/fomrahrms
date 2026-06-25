@@ -69,13 +69,28 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     if (mounted) setState(() {});
   }
 
-  int _usedDays(String name) => _applications
-      .where((a) => a.employeeName == name && a.managerStatus == LeaveApprovalStatus.approved)
-      .fold(0, (s, a) => s + a.days);
+  // Filter to current month only — leaves reset each month, no carry-over
+  bool _isThisMonth(LeaveApplication a) {
+    final now = DateTime.now();
+    return a.from.year == now.year && a.from.month == now.month;
+  }
 
-  int _pendingDays(String name) => _applications
-      .where((a) => a.employeeName == name && a.managerStatus == LeaveApprovalStatus.pending)
-      .fold(0, (s, a) => s + a.days);
+  double _usedDays(String name) => _applications
+      .where((a) =>
+          a.employeeName == name &&
+          a.managerStatus == LeaveApprovalStatus.approved &&
+          _isThisMonth(a))
+      .fold(0.0, (s, a) => s + a.effectiveDays);
+
+  double _pendingDays(String name) => _applications
+      .where((a) =>
+          a.employeeName == name &&
+          a.managerStatus == LeaveApprovalStatus.pending &&
+          _isThisMonth(a))
+      .fold(0.0, (s, a) => s + a.effectiveDays);
+
+  static String _fmtD(double d) =>
+      d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
 
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -171,7 +186,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
         final user = _employees[i];
         final used    = _usedDays(user.name);
         final pending = _pendingDays(user.name);
-        final avail   = (user.leaveAllocation - used).clamp(0, user.leaveAllocation);
+        final avail   = (user.leaveAllocation - used).clamp(0.0, user.leaveAllocation.toDouble());
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -210,15 +225,15 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
               const Divider(height: 1),
               const SizedBox(height: 10),
 
-              // Leave stats row
+              // Leave stats row (current month only)
               Row(children: [
-                _StatChip('Allocated', '${user.leaveAllocation}d', const Color(0xFF0D47A1)),
+                _StatChip('Monthly', '${user.leaveAllocation}d', const Color(0xFF0D47A1)),
                 const SizedBox(width: 8),
-                _StatChip('Used',      '${used}d',    Colors.orange.shade700),
+                _StatChip('Used',    _fmtD(used),    Colors.orange.shade700),
                 const SizedBox(width: 8),
-                _StatChip('Pending',   '${pending}d', Colors.deepOrange.shade600),
+                _StatChip('Pending', _fmtD(pending), Colors.deepOrange.shade600),
                 const SizedBox(width: 8),
-                _StatChip('Available', '${avail}d',   Colors.green.shade700),
+                _StatChip('Left',    _fmtD(avail),   Colors.green.shade700),
               ]),
             ]),
           ),

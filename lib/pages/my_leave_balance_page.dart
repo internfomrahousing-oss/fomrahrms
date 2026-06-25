@@ -57,23 +57,39 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
       .where((a) => a.employeeName == UserSession.name)
       .toList();
 
-  int _usedDays(String? type) => _mine
+  // Only count leaves that START in the current month — balance resets each month
+  bool _isThisMonth(LeaveApplication a) {
+    final now = DateTime.now();
+    return a.from.year == now.year && a.from.month == now.month;
+  }
+
+  double _usedDays(String? type) => _mine
       .where((a) =>
           a.managerStatus == LeaveApprovalStatus.approved &&
+          _isThisMonth(a) &&
           (type == null || a.leaveType == type))
-      .fold(0, (s, a) => s + a.days);
+      .fold(0.0, (s, a) => s + a.effectiveDays);
 
-  int _pendingDays(String? type) => _mine
+  double _pendingDays(String? type) => _mine
       .where((a) =>
           a.managerStatus == LeaveApprovalStatus.pending &&
+          _isThisMonth(a) &&
           (type == null || a.leaveType == type))
-      .fold(0, (s, a) => s + a.days);
+      .fold(0.0, (s, a) => s + a.effectiveDays);
+
+  static String _fmtDays(double d) =>
+      d % 1 == 0 ? '${d.toInt()}' : d.toStringAsFixed(1);
+
+  static String _monthName(int m) => const [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ][m];
 
   @override
   Widget build(BuildContext context) {
-    final used    = _usedDays(null);
-    final pending = _pendingDays(null);
-    final available = (_totalAllocated - used).clamp(0, _totalAllocated);
+    final used      = _usedDays(null);
+    final pending   = _pendingDays(null);
+    final available = (_totalAllocated - used).clamp(0.0, _totalAllocated.toDouble());
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -96,8 +112,14 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                       child: const Icon(Icons.balance_rounded, color: _color, size: 26),
                     ),
                     const SizedBox(width: 16),
-                    Text('Leave Balance',
-                        style: Theme.of(context).textTheme.headlineMedium),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Leave Balance',
+                          style: Theme.of(context).textTheme.headlineMedium),
+                      Text(
+                        _monthName(DateTime.now().month),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                      ),
+                    ]),
                   ]),
                   const SizedBox(height: 24),
 
@@ -108,8 +130,8 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _SummaryCircle('Total Allocated', Icons.calendar_month_rounded,
-                              const Color(0xFF0D47A1), _totalAllocated),
+                          _SummaryCircle('Monthly Limit', Icons.calendar_month_rounded,
+                              const Color(0xFF0D47A1), _totalAllocated.toDouble()),
                           _SummaryCircle('Used', Icons.event_busy_rounded,
                               const Color(0xFF1565C0), used),
                           _SummaryCircle('Available', Icons.event_available_rounded,
@@ -124,11 +146,15 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
 
                   // Per-type usage breakdown
                   ...const [
-                    ('Casual Leave',  Icons.event_available_rounded, Color(0xFF0D47A1)),
-                    ('Sick Leave',    Icons.local_hospital_rounded,  Color(0xFF1565C0)),
-                    ('Earned Leave',  Icons.card_giftcard_rounded,   Color(0xFF1976D2)),
-                    ('House Visit',   Icons.home_rounded,            Color(0xFF0288D1)),
-                    ('Outdoor Duty',  Icons.directions_walk_rounded, Color(0xFF283593)),
+                    ('Casual Leave',          Icons.event_available_rounded,        Color(0xFF0D47A1)),
+                    ('Medical / Sick Leave',  Icons.local_hospital_rounded,         Color(0xFF1565C0)),
+                    ('Earned Leave',          Icons.card_giftcard_rounded,          Color(0xFF1976D2)),
+                    ('Maternity Leave',       Icons.pregnant_woman_rounded,         Color(0xFF0288D1)),
+                    ('Paternity Leave',       Icons.family_restroom_rounded,        Color(0xFF283593)),
+                    ('To Vote',               Icons.how_to_vote_rounded,            Color(0xFF00838F)),
+                    ('Personal Leave',        Icons.person_rounded,                 Color(0xFF558B2F)),
+                    ('Funeral / Bereavement', Icons.sentiment_very_dissatisfied_rounded, Color(0xFF546E7A)),
+                    ('LOP or Others',         Icons.more_horiz_rounded,            Color(0xFF6A1B9A)),
                   ].map((e) {
                     final typeUsed    = _usedDays(e.$1);
                     final typePending = _pendingDays(e.$1);
@@ -167,11 +193,12 @@ class _SummaryCircle extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
-  final int value;
+  final double value;
   const _SummaryCircle(this.label, this.icon, this.color, this.value);
 
   @override
   Widget build(BuildContext context) {
+    final display = value % 1 == 0 ? '${value.toInt()}' : value.toStringAsFixed(1);
     return Column(children: [
       Container(
         width: 52, height: 52,
@@ -182,7 +209,7 @@ class _SummaryCircle extends StatelessWidget {
         child: Icon(icon, color: color, size: 26),
       ),
       const SizedBox(height: 8),
-      Text('$value',
+      Text(display,
           style: TextStyle(
               fontSize: 20, fontWeight: FontWeight.bold, color: color)),
       const SizedBox(height: 2),
@@ -197,8 +224,8 @@ class _BalanceCard extends StatelessWidget {
   final String type;
   final IconData icon;
   final Color color;
-  final int used;
-  final int pending;
+  final double used;
+  final double pending;
   const _BalanceCard({
     required this.type,
     required this.icon,
@@ -238,14 +265,15 @@ class _BalanceCard extends StatelessWidget {
 
 class _LeaveCount extends StatelessWidget {
   final String label;
-  final int value;
+  final double value;
   final Color color;
   const _LeaveCount(this.label, this.value, this.color);
 
   @override
   Widget build(BuildContext context) {
+    final display = value % 1 == 0 ? '${value.toInt()}' : value.toStringAsFixed(1);
     return Column(children: [
-      Text('$value',
+      Text(display,
           style: TextStyle(
               fontSize: 18, fontWeight: FontWeight.bold, color: color)),
       Text(label,

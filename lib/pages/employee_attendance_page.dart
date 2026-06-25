@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class EmployeeAttendancePage extends StatelessWidget {
-  const EmployeeAttendancePage({super.key});
+  /// Route prefix: '/employee', '/manager', or '' (HR uses root-level routes).
+  final String prefix;
+  const EmployeeAttendancePage({super.key, this.prefix = '/employee'});
 
-  static const _topics = [
-    _Topic('Check In',    Icons.login_rounded,       Color(0xFF0D47A1), '/employee/attendance/check-in'),
-    _Topic('Check Out',   Icons.logout_rounded,      Color(0xFF1565C0), '/employee/attendance/check-out'),
-    _Topic('GPS Tracking',Icons.location_on_rounded, Color(0xFF0288D1), '/employee/attendance/gps-tracking'),
-    _Topic('Late Coming', Icons.watch_later_rounded, Color(0xFF283593), '/employee/attendance/late-coming'),
+  List<_Topic> get _topics => [
+    _Topic('Check In',     Icons.login_rounded,       const Color(0xFF0D47A1), '$prefix/attendance/check-in'),
+    _Topic('Check Out',    Icons.logout_rounded,      const Color(0xFF1565C0), '$prefix/attendance/check-out'),
+    _Topic('GPS Tracking', Icons.location_on_rounded, const Color(0xFF0288D1), '$prefix/attendance/gps-tracking'),
+    _Topic('Late Coming',  Icons.watch_later_rounded, const Color(0xFF283593), '$prefix/attendance/late-coming'),
   ];
 
   @override

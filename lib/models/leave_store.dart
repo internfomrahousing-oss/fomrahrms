@@ -11,7 +11,12 @@ class LeaveApplication {
   final String reason;
   final DateTime appliedOn;
   LeaveApprovalStatus managerStatus = LeaveApprovalStatus.pending;
-  String decidedBy = ''; // 'Manager' | 'Management' | ''
+  String decidedBy        = '';
+  String rejectionComment = '';
+  bool   isHalfDay        = false;
+
+  /// Actual deduction: 0.5 for half day, full days otherwise.
+  double get effectiveDays => isHalfDay ? 0.5 : days.toDouble();
 
   LeaveApplication({
     required this.id,

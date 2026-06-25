@@ -25,11 +25,15 @@ import '../models/user_session.dart';
     reason text default '',
     applied_on timestamptz default now(),
     manager_status text default 'pending',
-    decided_by text default ''
+    decided_by text default '',
+    rejection_comment text default '',
+    is_half_day boolean default false
   );
 
   -- If the table already exists:
   alter table leave_applications add column if not exists decided_by text default '';
+  alter table leave_applications add column if not exists rejection_comment text default '';
+  alter table leave_applications add column if not exists is_half_day boolean default false;
 
   create table if not exists maintenance_tickets (
     id text primary key,
@@ -186,29 +190,24 @@ class SupabaseService {
         'leave_type':    app.leaveType,
         'from_date':     app.from.toIso8601String().substring(0, 10),
         'to_date':       app.to.toIso8601String().substring(0, 10),
-        'days':          app.days,
-        'reason':        app.reason,
-        'applied_on':    app.appliedOn.toIso8601String(),
+        'days':           app.days,
+        'is_half_day':    app.isHalfDay,
+        'reason':         app.reason,
+        'applied_on':     app.appliedOn.toIso8601String(),
         'manager_status': app.managerStatus.name,
       });
     } catch (_) {}
   }
 
   static Future<void> updateLeaveManagerStatus(
-      String id, LeaveApprovalStatus status, {String decidedBy = ''}) async {
-    // Update status first — always works even if decided_by column doesn't exist yet
+      String id, LeaveApprovalStatus status,
+      {String decidedBy = '', String rejectionComment = ''}) async {
     try {
-      await _db
-          ?.from('leave_applications')
-          .update({'manager_status': status.name})
-          .eq('id', id);
-    } catch (_) {}
-    // Update decided_by separately — silently skipped if column not yet added
-    try {
-      await _db
-          ?.from('leave_applications')
-          .update({'decided_by': decidedBy})
-          .eq('id', id);
+      await _db?.from('leave_applications').update({
+        'manager_status':    status.name,
+        'decided_by':        decidedBy,
+        'rejection_comment': rejectionComment,
+      }).eq('id', id);
     } catch (_) {}
   }
 
@@ -236,7 +235,9 @@ class SupabaseService {
           (s) => s.name == ms,
           orElse: () => LeaveApprovalStatus.pending,
         );
-        app.decidedBy = (row['decided_by'] as String?) ?? '';
+        app.decidedBy        = (row['decided_by']        as String?) ?? '';
+        app.rejectionComment = (row['rejection_comment'] as String?) ?? '';
+        app.isHalfDay        = (row['is_half_day']       as bool?)   ?? false;
         return app;
       }).toList();
       return list;

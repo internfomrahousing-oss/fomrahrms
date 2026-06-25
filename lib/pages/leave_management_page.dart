@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/leave_store.dart';
+import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 
 class LeaveManagementPage extends StatefulWidget {
@@ -38,14 +39,61 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
     }
   }
 
-  void _setManagerStatus(int i, LeaveApprovalStatus s) {
-    final app = _applications[i];
-    final newDecidedBy = s == LeaveApprovalStatus.pending ? '' : 'Management';
+  void _setManagerStatus(int i, LeaveApprovalStatus s, {String rejectionComment = ''}) {
+    final app       = _applications[i];
+    final decidedBy = s == LeaveApprovalStatus.pending
+        ? ''
+        : (UserSession.name.isNotEmpty ? UserSession.name : 'Management');
     setState(() {
-      app.managerStatus = s;
-      app.decidedBy = newDecidedBy;
+      app.managerStatus    = s;
+      app.decidedBy        = decidedBy;
+      app.rejectionComment = rejectionComment;
     });
-    SupabaseService.updateLeaveManagerStatus(app.id, s, decidedBy: newDecidedBy);
+    SupabaseService.updateLeaveManagerStatus(app.id, s,
+        decidedBy: decidedBy, rejectionComment: rejectionComment);
+  }
+
+  Future<void> _confirmDeny(int i) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject Leave'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Provide a reason for rejection (optional):',
+              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+          const SizedBox(height: 12),
+          TextField(
+            controller: reasonCtrl,
+            maxLines: 3,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'e.g. Insufficient leave balance / Busy project period',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      _setManagerStatus(i, LeaveApprovalStatus.denied,
+          rejectionComment: reasonCtrl.text.trim());
+    }
+    reasonCtrl.dispose();
   }
 
   @override
@@ -195,8 +243,7 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                     app: app,
                     onManagerApprove: () =>
                         _setManagerStatus(i, LeaveApprovalStatus.approved),
-                    onManagerDeny: () =>
-                        _setManagerStatus(i, LeaveApprovalStatus.denied),
+                    onManagerDeny: () => _confirmDeny(i),
                     onReset: () =>
                         _setManagerStatus(i, LeaveApprovalStatus.pending),
                   ),
@@ -267,7 +314,7 @@ class _ApplicationCard extends StatelessWidget {
             _InfoChip(Icons.calendar_today_rounded,
                 '${_fmt(app.from)} → ${_fmt(app.to)}'),
             _InfoChip(Icons.numbers_rounded,
-                '${app.days} day${app.days == 1 ? '' : 's'}'),
+                app.isHalfDay ? '½ day' : '${app.days} day${app.days == 1 ? '' : 's'}'),
             if (app.reason.isNotEmpty)
               _InfoChip(Icons.notes_rounded, app.reason),
           ]),
@@ -283,7 +330,7 @@ class _ApplicationCard extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Color(0xFF78909C)))
             else
               Text(
-                '${_statusLabel(app.managerStatus)} by ${app.decidedBy.isEmpty ? 'Unknown' : app.decidedBy}:',
+                '${_statusLabel(app.managerStatus)} by ${app.decidedBy.isEmpty ? 'Management' : app.decidedBy}',
                 style: TextStyle(
                     fontSize: 12,
                     color: _statusColor(app.managerStatus),
@@ -311,6 +358,31 @@ class _ApplicationCard extends StatelessWidget {
               ),
             ],
           ]),
+          // Rejection reason strip
+          if (app.managerStatus == LeaveApprovalStatus.denied &&
+              app.rejectionComment.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 14, color: Colors.red.shade700),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    app.rejectionComment,
+                    style: TextStyle(fontSize: 12, color: Colors.red.shade800),
+                  ),
+                ),
+              ]),
+            ),
+          ],
         ]),
       ),
     );
