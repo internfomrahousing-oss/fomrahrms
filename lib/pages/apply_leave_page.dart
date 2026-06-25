@@ -134,20 +134,94 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     if (picked != null) setState(() => _toDate = picked);
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_fromDate == null || (!_isHalfDay && _toDate == null)) {
       _showSnack('Please select from and to dates.', Colors.red);
       return;
     }
+
+    // If allocation exceeded, show unpaid-leave T&C dialog before proceeding
     if (_monthlyAllocation > 0 && _effectiveDays > _remainingThisMonth) {
-      final rem = _remainingThisMonth == 0.5 ? '½' : '$_remainingThisMonth';
-      _showSnack(
-        'Only $rem day(s) remaining this month. Cannot apply for ${_fmtEffective(_effectiveDays)}.',
-        Colors.red,
-      );
-      return;
+      final agreed = await _showUnpaidDialog();
+      if (!agreed) return;
     }
 
+    _doSubmit();
+  }
+
+  Future<bool> _showUnpaidDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700, size: 22),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Unpaid Leave Notice',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    'Your monthly leave balance is exhausted.',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange.shade900),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'By proceeding, you acknowledge that:',
+                    style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                  ),
+                  const SizedBox(height: 6),
+                  _TcPoint('This leave will be treated as Loss of Pay (LOP).'),
+                  _TcPoint('Salary will be deducted for the days applied.'),
+                  _TcPoint('This is subject to manager / management approval.'),
+                  _TcPoint('LOP entries are recorded in your attendance.'),
+                ]),
+              ),
+            ]),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('I Agree — Apply as LOP'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _doSubmit() {
     final toDate = _isHalfDay ? _fromDate! : _toDate!;
     final app = LeaveApplication(
       id:           LeaveStore.generateId(),
@@ -438,6 +512,26 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TcPoint extends StatelessWidget {
+  final String text;
+  const _TcPoint(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.circle, size: 5, color: Colors.orange.shade700),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(fontSize: 12, color: Colors.orange.shade900)),
+        ),
+      ]),
     );
   }
 }
