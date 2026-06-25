@@ -17,9 +17,31 @@ class LeadService {
   }
 
   static Future<void> saveUrl(String url) async {
-    _cachedUrl = url;
+    _cachedUrl = url.trim();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefKey, url.trim());
+  }
+
+  // Temporarily tests a URL without saving it. Throws on failure.
+  static Future<int> testUrl(String url) async {
+    final uri = Uri.parse('${url.trim()}?action=list');
+    final response = await http.get(uri).timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw Exception('Server returned HTTP ${response.statusCode}');
+    }
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+      final List rows = decoded is List
+          ? decoded
+          : (decoded is Map ? (decoded['leads'] as List? ?? []) : []);
+      return rows.length;
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Invalid JSON response from script');
+    }
   }
 
   static Future<List<Lead>> fetchLeads() async {

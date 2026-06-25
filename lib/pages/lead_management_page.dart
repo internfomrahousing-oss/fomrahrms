@@ -275,90 +275,182 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.settings_rounded, color: _blue, size: 20),
-          SizedBox(width: 8),
-          Text('Google Sheets Setup',
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
-        ]),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── URL field ──────────────────────────────────────────
-              const Text('Apps Script URL',
+      builder: (ctx) {
+        bool testing = false;
+        String? testError;
+        int? testCount;
+
+        return StatefulBuilder(builder: (ctx, setS) {
+          return AlertDialog(
+            title: const Row(children: [
+              Icon(Icons.settings_rounded, color: _blue, size: 20),
+              SizedBox(width: 8),
+              Text('Google Sheets Setup',
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _blue)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: urlCtrl,
-                decoration: InputDecoration(
-                  hintText: 'https://script.google.com/macros/s/…/exec',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                ),
-                style: const TextStyle(fontSize: 12),
+                      fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+            ]),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── URL field ──────────────────────────────────────────
+                  const Text('Apps Script URL',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _blue)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: urlCtrl,
+                    onChanged: (_) => setS(() { testError = null; testCount = null; }),
+                    decoration: InputDecoration(
+                      hintText: 'https://script.google.com/macros/s/…/exec',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // ── Test result ────────────────────────────────────────
+                  if (testing)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: [
+                        SizedBox(width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 10),
+                        Text('Testing connection…',
+                            style: TextStyle(fontSize: 12, color: _blue)),
+                      ]),
+                    )
+                  else if (testError != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFEF9A9A)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.error_outline_rounded,
+                              size: 15, color: Color(0xFFC62828)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              testError!,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFFC62828)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (testCount != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFA5D6A7)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.check_circle_rounded,
+                            size: 15, color: Color(0xFF2E7D32)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Connected — $testCount lead${testCount == 1 ? '' : 's'} found',
+                          style: const TextStyle(
+                              fontSize: 11, color: Color(0xFF2E7D32),
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ]),
+                    ),
+
+                  // ── How to set up ──────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Icon(Icons.info_outline_rounded,
+                              size: 15, color: _blue),
+                          SizedBox(width: 6),
+                          Text('How to connect a Google Sheet',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: _blue)),
+                        ]),
+                        SizedBox(height: 8),
+                        _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
+                        _SetupStep(n: '2', text: 'Paste the script code provided by your admin, then press Ctrl+S'),
+                        _SetupStep(n: '3', text: 'Click Deploy → New deployment → choose Web app'),
+                        _SetupStep(n: '4', text: 'Set "Execute as: Me" and "Who has access: Anyone" → click Deploy'),
+                        _SetupStep(n: '5', text: 'Copy the URL shown, paste it in the field above, and tap Save'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              // ── How to set up ──────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(8),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: testing ? null : () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueGrey,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Icon(Icons.info_outline_rounded,
-                          size: 15, color: _blue),
-                      SizedBox(width: 6),
-                      Text('How to connect a Google Sheet',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: _blue)),
-                    ]),
-                    SizedBox(height: 8),
-                    _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
-                    _SetupStep(n: '2', text: 'Paste the script code provided by your admin, then press Ctrl+S'),
-                    _SetupStep(n: '3', text: 'Click Deploy → New deployment → choose Web app'),
-                    _SetupStep(n: '4', text: 'Set "Execute as: Me" and "Who has access: Anyone" → click Deploy'),
-                    _SetupStep(n: '5', text: 'Copy the URL shown, paste it in the field above, and tap Save'),
-                  ],
+                onPressed: testing ? null : () async {
+                  final url = urlCtrl.text.trim();
+                  if (url.isEmpty) return;
+                  setS(() { testing = true; testError = null; testCount = null; });
+                  try {
+                    final count = await LeadService.testUrl(url);
+                    setS(() { testing = false; testCount = count; });
+                  } catch (e) {
+                    setS(() { testing = false; testError = e.toString().replaceFirst('Exception: ', ''); });
+                  }
+                },
+                child: const Text('Test'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
+                onPressed: testing ? null : () async {
+                  final url = urlCtrl.text.trim();
+                  if (url.isEmpty) return;
+                  await LeadService.saveUrl(url);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _fetch();
+                },
+                child: const Text('Save & Reload'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _blue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              await LeadService.saveUrl(urlCtrl.text.trim());
-              if (ctx.mounted) Navigator.pop(ctx);
-              await _fetch();
-            },
-            child: const Text('Save & Reload'),
-          ),
-        ],
-      ),
+          );
+        });
+      },
     );
   }
 
