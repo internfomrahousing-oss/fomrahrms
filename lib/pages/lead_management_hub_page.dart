@@ -122,10 +122,12 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                       if (nameCtrl.text.trim().isEmpty) {
                         nameCtrl.text = 'New Source';
                       }
-                      final src = await LeadService.addSource(
+                      await LeadService.addSource(
                           nameCtrl.text, urlCtrl.text);
                       if (ctx.mounted) Navigator.pop(ctx);
-                      if (mounted) setState(() => _sources.add(src));
+                      // _sources IS _cachedSources (same reference) — addSource
+                      // already mutated it, so just trigger a rebuild
+                      if (mounted) setState(() {});
                     },
               child: const Text('Add'),
             ),
