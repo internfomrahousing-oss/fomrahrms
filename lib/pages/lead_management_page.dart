@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/lead_model.dart';
 import '../services/lead_service.dart';
 
@@ -586,6 +587,14 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, color: _blue),
+                    onPressed: () => context.pop(),
+                    tooltip: 'Back',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
                   Container(
                     width: 36,
                     height: 36,
@@ -593,15 +602,15 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                       color: _blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.leaderboard_rounded,
-                        color: _blue, size: 20),
+                    child: const Icon(Icons.campaign_rounded,
+                        color: Color(0xFF1877F2), size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Lead Management',
+                        const Text('Meta Leads',
                             style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

@@ -27,6 +27,7 @@ import 'pages/interview_process_page.dart';
 import 'pages/candidate_application_form_page.dart';
 import 'pages/employee_onboarding_page.dart';
 import 'pages/ads_management_page.dart';
+import 'pages/lead_management_hub_page.dart';
 import 'pages/lead_management_page.dart';
 import 'pages/maintenance_management_page.dart';
 import 'pages/approvals_page.dart';
@@ -173,7 +174,9 @@ final _router = GoRouter(
         GoRoute(path: '/candidate-detail',                builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/ads-management',                  builder: (_, __) => const AdsManagementPage()),
-        GoRoute(path: '/lead-management',                 builder: (_, __) => const LeadManagementPage()),
+        GoRoute(path: '/lead-management',
+            builder: (_, __) => const LeadManagementHubPage(leadsRoute: '/lead-management/meta-leads')),
+        GoRoute(path: '/lead-management/meta-leads',       builder: (_, __) => const LeadManagementPage()),
         GoRoute(path: '/maintenance-management',          builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/approvals',                       builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/notifications',                   builder: (_, __) => const NotificationsPage()),
@@ -244,7 +247,9 @@ final _router = GoRouter(
         GoRoute(path: '/manager/candidate-detail',        builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/manager/employee-onboarding',     builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/manager/ads-management',          builder: (_, __) => const AdsManagementPage()),
-        GoRoute(path: '/manager/lead-management',         builder: (_, __) => const LeadManagementPage()),
+        GoRoute(path: '/manager/lead-management',
+            builder: (_, __) => const LeadManagementHubPage(leadsRoute: '/manager/lead-management/meta-leads')),
+        GoRoute(path: '/manager/lead-management/meta-leads', builder: (_, __) => const LeadManagementPage()),
         GoRoute(path: '/manager/maintenance-management',  builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/manager/approvals',               builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/manager/notifications',           builder: (_, __) => const NotificationsPage()),
@@ -289,7 +294,9 @@ final _router = GoRouter(
         GoRoute(path: '/management/candidate-detail',       builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/management/ads-management',         builder: (_, __) => const AdsManagementPage()),
-        GoRoute(path: '/management/lead-management',        builder: (_, __) => const LeadManagementPage()),
+        GoRoute(path: '/management/lead-management',
+            builder: (_, __) => const LeadManagementHubPage(leadsRoute: '/management/lead-management/meta-leads')),
+        GoRoute(path: '/management/lead-management/meta-leads', builder: (_, __) => const LeadManagementPage()),
         GoRoute(path: '/management/maintenance-management', builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/management/approvals',              builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/management/notifications',          builder: (_, __) => const NotificationsPage()),
