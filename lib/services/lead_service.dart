@@ -4,10 +4,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/lead_model.dart';
 
 class LeadService {
-  static const String _defaultUrl =
+  // When _defaultUrl is updated, add the old value here so existing users
+  // are automatically migrated to the new default on next launch.
+  static const String _oldDefaultUrl =
       'https://script.google.com/macros/s/AKfycbyOG5h_Pdh00gLTdaqB3JC7ivAAwBBk7J3Wk_2C9p2Ge_HO9sfktvJjqoCxnYvO_SOV/exec';
-  static const String _urlPrefKey = 'lead_script_url';
+  static const String _defaultUrl =
+      'https://script.google.com/macros/s/AKfycbxo0DuztEe4hIAPiEjbttV-LPJDEvvaTSFyUs6M-LNRWhNucJTUJw6bJ-4AuK4OS6t6Yw/exec';
+  static const String _urlPrefKey  = 'lead_script_url';
+  static const String _nameKey     = 'lead_source_name';
   static String? _cachedUrl;
+  static String? _cachedName;
 
   /// Column names in sheet order — populated from the last successful fetchLeads().
   static List<String> _schema = [];
@@ -15,9 +21,18 @@ class LeadService {
 
   // ── URL persistence ───────────────────────────────────────────────────────
   static Future<String> getUrl() async {
-    _cachedUrl ??=
-        (await SharedPreferences.getInstance()).getString(_urlPrefKey) ??
-            _defaultUrl;
+    if (_cachedUrl == null) {
+      final prefs  = await SharedPreferences.getInstance();
+      final stored = prefs.getString(_urlPrefKey);
+      // Migrate: if stored is the old default (or absent), switch to new default
+      if (stored == null || stored == _oldDefaultUrl) {
+        _cachedUrl = _defaultUrl;
+        _schema    = [];
+        await prefs.setString(_urlPrefKey, _defaultUrl);
+      } else {
+        _cachedUrl = stored;
+      }
+    }
     return _cachedUrl!;
   }
 
@@ -26,6 +41,20 @@ class LeadService {
     _schema    = []; // reset so columns re-detect from the new sheet
     await (await SharedPreferences.getInstance())
         .setString(_urlPrefKey, url.trim());
+  }
+
+  // ── Source name persistence ───────────────────────────────────────────────
+  static Future<String> getSourceName() async {
+    _cachedName ??=
+        (await SharedPreferences.getInstance()).getString(_nameKey) ??
+            'Meta Leads';
+    return _cachedName!;
+  }
+
+  static Future<void> saveSourceName(String name) async {
+    _cachedName = name.trim().isEmpty ? 'Meta Leads' : name.trim();
+    await (await SharedPreferences.getInstance())
+        .setString(_nameKey, _cachedName!);
   }
 
   // ── Connection test ───────────────────────────────────────────────────────

@@ -21,19 +21,21 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   String? _error;
   String _selectedStatus = 'All';
   String _scriptUrl = '';
+  String _sourceName = 'Meta Leads';
   final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
-    _loadUrl();
+    _loadMeta();
     _fetch();
   }
 
-  Future<void> _loadUrl() async {
-    final url = await LeadService.getUrl();
-    if (mounted) setState(() => _scriptUrl = url);
+  Future<void> _loadMeta() async {
+    final url  = await LeadService.getUrl();
+    final name = await LeadService.getSourceName();
+    if (mounted) setState(() { _scriptUrl = url; _sourceName = name; });
   }
 
   String _shortUrl(String url) {
@@ -610,8 +612,8 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Meta Leads',
-                            style: TextStyle(
+                        Text(_sourceName,
+                            style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: _blue)),
