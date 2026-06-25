@@ -182,20 +182,26 @@ class SupabaseService {
   // ── Leave Applications ────────────────────────────────────────────────
 
   static Future<void> saveLeaveApplication(LeaveApplication app) async {
+    // Core upsert — only columns that exist in the original schema
     try {
       await _db?.from('leave_applications').upsert({
-        'id':            app.id,
-        'employee_name': app.employeeName,
-        'department':    app.department,
-        'leave_type':    app.leaveType,
-        'from_date':     app.from.toIso8601String().substring(0, 10),
-        'to_date':       app.to.toIso8601String().substring(0, 10),
+        'id':             app.id,
+        'employee_name':  app.employeeName,
+        'department':     app.department,
+        'leave_type':     app.leaveType,
+        'from_date':      app.from.toIso8601String().substring(0, 10),
+        'to_date':        app.to.toIso8601String().substring(0, 10),
         'days':           app.days,
-        'is_half_day':    app.isHalfDay,
         'reason':         app.reason,
         'applied_on':     app.appliedOn.toIso8601String(),
         'manager_status': app.managerStatus.name,
       });
+    } catch (_) {}
+    // is_half_day — added later; skipped silently if column not yet in DB
+    try {
+      await _db?.from('leave_applications')
+          .update({'is_half_day': app.isHalfDay})
+          .eq('id', app.id);
     } catch (_) {}
   }
 
