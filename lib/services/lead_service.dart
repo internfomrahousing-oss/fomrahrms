@@ -24,7 +24,7 @@ class LeadSource {
 class LeadService {
   // The single permanent GAS deployment — handles ALL sheets via spreadsheetId param
   static const String _gasBaseUrl =
-      'https://script.google.com/macros/s/AKfycbxo0DuztEe4hIAPiEjbttV-LPJDEvvaTSFyUs6M-LNRWhNucJTUJw6bJ-4AuK4OS6t6Yw/exec';
+      'https://script.google.com/macros/s/AKfycbxLOtqiULJPAQt4OedV74mres2vNm8W1i-qz_7PZkTEgyXQqcqGlGfP69hNvawCfmVeZw/exec';
 
   static const String _defaultUrl = _gasBaseUrl;
 

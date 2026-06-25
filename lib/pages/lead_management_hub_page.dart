@@ -227,13 +227,16 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
     }
   }
 
+  static const _gasScriptUrl =
+      'https://script.google.com/macros/s/AKfycbxLOtqiULJPAQt4OedV74mres2vNm8W1i-qz_7PZkTEgyXQqcqGlGfP69hNvawCfmVeZw/exec';
+
   void _showSetupGuide() {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 680),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -250,7 +253,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                       color: Colors.white, size: 20),
                   const SizedBox(width: 10),
                   const Expanded(
-                    child: Text('Apps Script Setup Guide',
+                    child: Text('How to Add a New Sheet',
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -272,47 +275,74 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Do this once per new Google Sheet to connect it to the app.',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
-                      ),
-                      const SizedBox(height: 16),
-                      _guideStep('1', 'Open Apps Script',
-                          'Go to script.google.com and click New project.'),
-                      _guideStep('2', 'Paste the code',
-                          'Delete everything in the editor. Paste the GAS script code provided by your developer.'),
-                      _guideStep('3', 'Deploy as Web App',
-                          'Click Deploy → New deployment.\nSet type to Web app.\nExecute as: Me.\nWho has access: Anyone.\nClick Deploy.'),
-                      _guideStep('4', 'Copy the URL',
-                          'After deploying, copy the URL ending in /exec. This is your Apps Script URL.'),
-                      _guideStep('5', 'Paste in Add New',
-                          'Come back here, tap Add New, and paste the copied URL in the URL field. Test the connection, then save.'),
-                      const Divider(height: 28),
+                      // GAS URL banner
                       Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
+                          color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.amber.shade200),
+                          border: Border.all(color: const Color(0xFFA5D6A7)),
                         ),
-                        child: Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline_rounded,
-                                size: 16, color: Colors.amber.shade800),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text(
-                                'Each Google Sheet needs its own Apps Script deployment. '
-                                'Once deployed, the same URL works forever — you only need '
-                                'to redo this if you create a brand new sheet.',
+                            const Row(children: [
+                              Icon(Icons.check_circle_rounded,
+                                  size: 15, color: Color(0xFF2E7D32)),
+                              SizedBox(width: 6),
+                              Text('Apps Script is already deployed',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF2E7D32))),
+                            ]),
+                            const SizedBox(height: 6),
+                            const Text('GAS Script URL:',
                                 style: TextStyle(
-                                    fontSize: 11.5, color: Color(0xFF5D4037)),
+                                    fontSize: 11, color: Color(0xFF546E7A))),
+                            const SizedBox(height: 4),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                    color: const Color(0xFFA5D6A7)),
+                              ),
+                              child: SelectableText(
+                                _gasScriptUrl,
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    fontFamily: 'monospace',
+                                    color: Color(0xFF1B5E20)),
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Follow these steps for each new Google Sheet:',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A237E)),
+                      ),
+                      const SizedBox(height: 14),
+                      _guideStep('1', 'Create the Google Sheet',
+                          'Open Google Sheets and create a new spreadsheet. Add your column headers in the first row (e.g. Name, Phone, Status).'),
+                      _guideStep('2', 'Open Apps Script',
+                          'In the sheet, click Extensions → Apps Script. Or go to script.google.com and click New project.'),
+                      _guideStep('3', 'Paste the script code',
+                          'Delete everything in the editor. Paste the GAS script code (get it from your developer). Click Save.'),
+                      _guideStep('4', 'Deploy as Web App',
+                          'Click Deploy → New deployment.\nType: Web app\nExecute as: Me\nWho has access: Anyone\nClick Deploy and authorise when prompted.'),
+                      _guideStep('5', 'Copy the /exec URL',
+                          'After deploying, copy the URL ending in /exec. That is your Apps Script URL for this sheet.'),
+                      _guideStep('6', 'Add it in the app',
+                          'Tap Add New here, enter a name, paste the /exec URL, click Test Connection, then Add.'),
                     ],
                   ),
                 ),
