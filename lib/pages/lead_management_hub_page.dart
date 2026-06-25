@@ -46,8 +46,40 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
           title: const Text('Add new source',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           content: SizedBox(
-            width: 360,
+            width: 400,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
+              // Step-by-step guide
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F0FE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('How to add a new sheet:',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A237E))),
+                    const SizedBox(height: 8),
+                    ...[
+                      '1. Create a Google Sheet with column headers in row 1',
+                      '2. Click Share → add info@fomrahousing.in as Editor',
+                      '3. Copy the URL from the browser address bar',
+                      '4. Paste it below and click Test Connection',
+                    ].map((step) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(step,
+                              style: const TextStyle(
+                                  fontSize: 11.5, color: Color(0xFF283593))),
+                        )),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
               TextField(
                 controller: nameCtrl,
                 textCapitalization: TextCapitalization.words,
