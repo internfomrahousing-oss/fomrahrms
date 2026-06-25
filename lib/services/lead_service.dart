@@ -23,9 +23,7 @@ class LeadService {
         .setString(_urlPrefKey, url.trim());
   }
 
-  // ── Column mapping ─────────────────────────────────────────────────────────
-  // Maps each app field to the UPPERCASE column name in the sheet.
-  // Stored in SharedPreferences so changes survive app updates.
+  // ── Core column mapping ────────────────────────────────────────────────────
   static const String _mappingPrefKey = 'lead_col_mapping';
 
   static const Map<String, String> defaultMapping = {
@@ -53,12 +51,38 @@ class LeadService {
   }
 
   static Future<void> saveColumnMapping(Map<String, String> mapping) async {
-    // Normalize values to uppercase so they match what the script returns
     _cachedMapping = {
       for (final e in mapping.entries) e.key: e.value.trim().toUpperCase()
     };
     await (await SharedPreferences.getInstance())
         .setString(_mappingPrefKey, jsonEncode(_cachedMapping));
+  }
+
+  // ── Extra dynamic columns ──────────────────────────────────────────────────
+  // Each entry: {'label': 'Email', 'column': 'EMAIL'}
+  static const String _extraColsPrefKey = 'lead_extra_cols';
+  static List<Map<String, String>>? _cachedExtraCols;
+
+  static Future<List<Map<String, String>>> getExtraColumns() async {
+    if (_cachedExtraCols != null) return List.from(_cachedExtraCols!);
+    final prefs = await SharedPreferences.getInstance();
+    final s = prefs.getString(_extraColsPrefKey);
+    if (s == null) return [];
+    try {
+      final decoded = jsonDecode(s) as List;
+      _cachedExtraCols =
+          decoded.map((e) => Map<String, String>.from(e as Map)).toList();
+      return List.from(_cachedExtraCols!);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveExtraColumns(
+      List<Map<String, String>> cols) async {
+    _cachedExtraCols = List.from(cols);
+    await (await SharedPreferences.getInstance())
+        .setString(_extraColsPrefKey, jsonEncode(cols));
   }
 
   // ── Connection test ────────────────────────────────────────────────────────
@@ -75,7 +99,6 @@ class LeadService {
     final List rows = decoded is List
         ? decoded
         : (decoded is Map ? (decoded['leads'] as List? ?? []) : []);
-
     List<String> columns = [];
     if (rows.isNotEmpty && rows[0] is Map) {
       columns = (rows[0] as Map).keys.map((k) => k.toString()).toList();
@@ -85,10 +108,11 @@ class LeadService {
 
   // ── CRUD ───────────────────────────────────────────────────────────────────
   static Future<List<Lead>> fetchLeads() async {
-    final base = await getUrl();
-    final mapping = await getColumnMapping();
-    final uri = Uri.parse('$base?action=list');
-    final response = await http.get(uri);
+    final base      = await getUrl();
+    final mapping   = await getColumnMapping();
+    final extraCols = await getExtraColumns();
+    final uri       = Uri.parse('$base?action=list');
+    final response  = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
 
     dynamic decoded;
@@ -110,31 +134,43 @@ class LeadService {
 
     return rows
         .where((e) => e is Map)
-        .map((e) => Lead.fromMappedJson(Map<String, dynamic>.from(e as Map), mapping))
+        .map((e) => Lead.fromMappedJson(
+              Map<String, dynamic>.from(e as Map), mapping, extraCols))
         .toList();
   }
 
   static Future<void> updateLead(Lead lead) async {
-    final base = await getUrl();
-    final m = await getColumnMapping();
-    final uri = Uri.parse(base).replace(queryParameters: {
-      'action':     'update',
-      m['leadId']!: lead.leadId.toString(),
-      m['name']!:   lead.name,
-      m['phone']!:  lead.phone,
+    final base      = await getUrl();
+    final m         = await getColumnMapping();
+    final extraCols = await getExtraColumns();
+
+    final params = <String, String>{
+      'action':      'update',
+      m['leadId']!:  lead.leadId.toString(),
+      m['name']!:    lead.name,
+      m['phone']!:   lead.phone,
       m['project']!: lead.project,
-      m['source']!: lead.source,
-      m['status']!: lead.status,
-    });
+      m['source']!:  lead.source,
+      m['status']!:  lead.status,
+    };
+    for (final col in extraCols) {
+      final colName = (col['column'] ?? '').toUpperCase().trim();
+      final label   = (col['label']  ?? colName).trim();
+      if (colName.isNotEmpty) params[colName] = lead.extra[label] ?? '';
+    }
+
+    final uri = Uri.parse(base).replace(queryParameters: params);
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body);
   }
 
   static Future<void> addLead(Lead lead) async {
-    final base = await getUrl();
-    final m = await getColumnMapping();
-    final uri = Uri.parse(base).replace(queryParameters: {
+    final base      = await getUrl();
+    final m         = await getColumnMapping();
+    final extraCols = await getExtraColumns();
+
+    final params = <String, String>{
       'action':      'add',
       m['leadId']!:  lead.leadId.toString(),
       m['name']!:    lead.name,
@@ -142,7 +178,14 @@ class LeadService {
       m['project']!: lead.project,
       m['source']!:  lead.source,
       m['status']!:  lead.status,
-    });
+    };
+    for (final col in extraCols) {
+      final colName = (col['column'] ?? '').toUpperCase().trim();
+      final label   = (col['label']  ?? colName).trim();
+      if (colName.isNotEmpty) params[colName] = lead.extra[label] ?? '';
+    }
+
+    final uri = Uri.parse(base).replace(queryParameters: params);
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
     _checkWriteResponse(response.body);
@@ -150,8 +193,8 @@ class LeadService {
 
   static Future<void> deleteLead(int leadId) async {
     final base = await getUrl();
-    final m = await getColumnMapping();
-    final uri = Uri.parse(base).replace(queryParameters: {
+    final m    = await getColumnMapping();
+    final uri  = Uri.parse(base).replace(queryParameters: {
       'action':     'delete',
       m['leadId']!: leadId.toString(),
     });

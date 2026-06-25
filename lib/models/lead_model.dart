@@ -5,6 +5,8 @@ class Lead {
   final String project;
   final String source;
   final String status;
+  // Extra dynamic columns: label → value
+  final Map<String, String> extra;
 
   const Lead({
     required this.leadId,
@@ -13,14 +15,14 @@ class Lead {
     required this.project,
     required this.source,
     required this.status,
+    this.extra = const {},
   });
 
-  // Reads JSON using a saved column mapping (field → sheet column name).
-  // Falls back to uppercase normalization if a mapped column isn't found.
   factory Lead.fromMappedJson(
-      Map<String, dynamic> json, Map<String, String> mapping) {
-    // The script returns UPPERCASE column names. Normalise all keys so lookups
-    // work regardless of what the script actually returned.
+    Map<String, dynamic> json,
+    Map<String, String> mapping,
+    List<Map<String, String>> extraCols,
+  ) {
     final upper = {
       for (final e in json.entries) e.key.toUpperCase().trim(): e.value
     };
@@ -28,21 +30,27 @@ class Lead {
     String? get(String field) {
       final col = mapping[field]?.toUpperCase().trim();
       if (col != null && upper.containsKey(col)) return upper[col]?.toString();
-      // Fallback: try the default uppercase name
       return upper[field.toUpperCase()]?.toString();
     }
 
+    final extra = <String, String>{};
+    for (final col in extraCols) {
+      final colName = (col['column'] ?? '').toUpperCase().trim();
+      final label   = (col['label']  ?? colName).trim();
+      if (colName.isNotEmpty) extra[label] = upper[colName]?.toString() ?? '';
+    }
+
     return Lead(
-      leadId:  int.tryParse(get('leadId')  ?? get('LEAD ID') ?? '0') ?? 0,
+      leadId:  int.tryParse(get('leadId') ?? get('LEAD ID') ?? '0') ?? 0,
       name:    get('name')    ?? '',
       phone:   get('phone')   ?? '',
       project: get('project') ?? '',
       source:  get('source')  ?? '',
       status:  get('status')  ?? '',
+      extra:   extra,
     );
   }
 
-  // Legacy convenience — used when no mapping is available.
   factory Lead.fromJson(Map<String, dynamic> json) {
     final upper = {
       for (final e in json.entries) e.key.toUpperCase().trim(): e.value
@@ -64,6 +72,7 @@ class Lead {
     String? project,
     String? source,
     String? status,
+    Map<String, String>? extra,
   }) {
     return Lead(
       leadId:  leadId  ?? this.leadId,
@@ -72,6 +81,7 @@ class Lead {
       project: project ?? this.project,
       source:  source  ?? this.source,
       status:  status  ?? this.status,
+      extra:   extra   ?? Map.from(this.extra),
     );
   }
 }

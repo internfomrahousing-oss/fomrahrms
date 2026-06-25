@@ -19,13 +19,30 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   bool _loading = false;
   String? _error;
   String _selectedStatus = 'All';
+  String _scriptUrl = '';
   final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
+    _loadUrl();
     _fetch();
+  }
+
+  Future<void> _loadUrl() async {
+    final url = await LeadService.getUrl();
+    if (mounted) setState(() => _scriptUrl = url);
+  }
+
+  String _shortUrl(String url) {
+    final re = RegExp(r'/s/([^/]+)/exec');
+    final m = re.firstMatch(url);
+    if (m != null) {
+      final id = m.group(1)!;
+      return 'script…/${id.length > 14 ? id.substring(0, 14) : id}…';
+    }
+    return url.length > 40 ? '${url.substring(0, 40)}…' : url;
   }
 
   @override
@@ -144,135 +161,149 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 
   Future<void> _showEditDialog(Lead lead) async {
-    final nameCtrl = TextEditingController(text: lead.name);
-    final phoneCtrl = TextEditingController(text: lead.phone);
+    final nameCtrl    = TextEditingController(text: lead.name);
+    final phoneCtrl   = TextEditingController(text: lead.phone);
     final projectCtrl = TextEditingController(text: lead.project);
-    final sourceCtrl = TextEditingController(text: lead.source);
-    final statusCtrl = TextEditingController(text: lead.status);
+    final sourceCtrl  = TextEditingController(text: lead.source);
+    final statusCtrl  = TextEditingController(text: lead.status);
+    final extraCols   = await LeadService.getExtraColumns();
+    final extraCtrls  = {
+      for (final c in extraCols)
+        (c['label'] ?? c['column'] ?? ''):
+            TextEditingController(text: lead.extra[c['label'] ?? ''] ?? ''),
+    };
 
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Edit Lead',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _blue)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _inputField('Name', nameCtrl),
-              const SizedBox(height: 12),
-              _inputField('Phone', phoneCtrl,
-                  keyboard: TextInputType.phone),
-              const SizedBox(height: 12),
-              _inputField('Project', projectCtrl),
-              const SizedBox(height: 12),
-              _inputField('Source', sourceCtrl),
-              const SizedBox(height: 12),
-              _inputField('Status', statusCtrl),
-            ],
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _inputField('Name', nameCtrl),
+            const SizedBox(height: 12),
+            _inputField('Phone', phoneCtrl, keyboard: TextInputType.phone),
+            const SizedBox(height: 12),
+            _inputField('Project', projectCtrl),
+            const SizedBox(height: 12),
+            _inputField('Source', sourceCtrl),
+            const SizedBox(height: 12),
+            _inputField('Status', statusCtrl),
+            ...extraCols.map((col) {
+              final label = col['label'] ?? col['column'] ?? '';
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _inputField(label, extraCtrls[label]!),
+              );
+            }),
+          ]),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: _blue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              final updated = lead.copyWith(
-                name: nameCtrl.text.trim(),
-                phone: phoneCtrl.text.trim(),
+              final extra = {
+                for (final e in extraCtrls.entries) e.key: e.value.text.trim()
+              };
+              await _doUpdate(lead.copyWith(
+                name:    nameCtrl.text.trim(),
+                phone:   phoneCtrl.text.trim(),
                 project: projectCtrl.text.trim(),
-                source: sourceCtrl.text.trim(),
-                status: statusCtrl.text.trim(),
-              );
-              await _doUpdate(updated);
+                source:  sourceCtrl.text.trim(),
+                status:  statusCtrl.text.trim(),
+                extra:   extra,
+              ));
             },
             child: const Text('Save'),
           ),
         ],
       ),
     );
+    for (final c in extraCtrls.values) c.dispose();
   }
 
   Future<void> _showAddDialog() async {
     final nextId = _all.isEmpty
         ? 1
         : _all.map((l) => l.leadId).reduce((a, b) => a > b ? a : b) + 1;
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
+    final nameCtrl    = TextEditingController();
+    final phoneCtrl   = TextEditingController();
     final projectCtrl = TextEditingController();
-    final sourceCtrl = TextEditingController();
-    final statusCtrl = TextEditingController();
+    final sourceCtrl  = TextEditingController();
+    final statusCtrl  = TextEditingController();
+    final extraCols   = await LeadService.getExtraColumns();
+    final extraCtrls  = {
+      for (final c in extraCols)
+        (c['label'] ?? c['column'] ?? ''): TextEditingController(),
+    };
 
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add New Lead',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _blue)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _inputField('Name', nameCtrl),
-              const SizedBox(height: 12),
-              _inputField('Phone', phoneCtrl,
-                  keyboard: TextInputType.phone),
-              const SizedBox(height: 12),
-              _inputField('Project', projectCtrl),
-              const SizedBox(height: 12),
-              _inputField('Source', sourceCtrl),
-              const SizedBox(height: 12),
-              _inputField('Status', statusCtrl),
-            ],
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _inputField('Name', nameCtrl),
+            const SizedBox(height: 12),
+            _inputField('Phone', phoneCtrl, keyboard: TextInputType.phone),
+            const SizedBox(height: 12),
+            _inputField('Project', projectCtrl),
+            const SizedBox(height: 12),
+            _inputField('Source', sourceCtrl),
+            const SizedBox(height: 12),
+            _inputField('Status', statusCtrl),
+            ...extraCols.map((col) {
+              final label = col['label'] ?? col['column'] ?? '';
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _inputField(label, extraCtrls[label]!),
+              );
+            }),
+          ]),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: _blue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
               Navigator.pop(ctx);
-              final newLead = Lead(
-                leadId: nextId,
-                name: nameCtrl.text.trim(),
-                phone: phoneCtrl.text.trim(),
+              final extra = {
+                for (final e in extraCtrls.entries) e.key: e.value.text.trim()
+              };
+              await _doAdd(Lead(
+                leadId:  nextId,
+                name:    nameCtrl.text.trim(),
+                phone:   phoneCtrl.text.trim(),
                 project: projectCtrl.text.trim(),
-                source: sourceCtrl.text.trim(),
-                status: statusCtrl.text.trim(),
-              );
-              await _doAdd(newLead);
+                source:  sourceCtrl.text.trim(),
+                status:  statusCtrl.text.trim(),
+                extra:   extra,
+              ));
             },
             child: const Text('Add'),
           ),
         ],
       ),
     );
+    for (final c in extraCtrls.values) c.dispose();
   }
 
   Future<void> _showSettingsDialog() async {
     final urlCtrl = TextEditingController(text: await LeadService.getUrl());
     final savedMapping = await LeadService.getColumnMapping();
+    final savedExtra = await LeadService.getExtraColumns();
 
     // One controller per app field — pre-filled from saved mapping
     final colCtrls = {
@@ -283,6 +314,15 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       'source':  TextEditingController(text: savedMapping['source']  ?? 'SOURCE'),
       'status':  TextEditingController(text: savedMapping['status']  ?? 'STATUS'),
     };
+
+    // Extra column rows — mutable list, modified inside StatefulBuilder
+    final extraRows = <({TextEditingController label, TextEditingController column})>[
+      for (final c in savedExtra)
+        (
+          label:  TextEditingController(text: c['label']  ?? ''),
+          column: TextEditingController(text: c['column'] ?? ''),
+        ),
+    ];
 
     await showDialog(
       context: context,
@@ -453,6 +493,88 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                               ),
                             ]),
                           )),
+
+                          // ── Extra / custom columns ─────────────────────
+                          if (extraRows.isNotEmpty) ...[
+                            const Divider(height: 16),
+                            const Text('Custom Columns',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF78909C))),
+                            const SizedBox(height: 6),
+                            // Header row
+                            Row(children: const [
+                              SizedBox(width: 4),
+                              Expanded(child: Text('Label (shown in form)',
+                                  style: TextStyle(fontSize: 10, color: Color(0xFF90A4AE)))),
+                              SizedBox(width: 8),
+                              Expanded(child: Text('Sheet Column Name',
+                                  style: TextStyle(fontSize: 10, color: Color(0xFF90A4AE)))),
+                              SizedBox(width: 36),
+                            ]),
+                            const SizedBox(height: 4),
+                          ],
+                          ...List.generate(extraRows.length, (i) {
+                            final row = extraRows[i];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: row.label,
+                                    style: const TextStyle(fontSize: 12),
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. Email',
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: row.column,
+                                    style: const TextStyle(fontSize: 12),
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. EMAIL',
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFC62828)),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  onPressed: () => setS(() {
+                                    row.label.dispose();
+                                    row.column.dispose();
+                                    extraRows.removeAt(i);
+                                  }),
+                                ),
+                              ]),
+                            );
+                          }),
+
+                          // ── Add Column button ──────────────────────────
+                          TextButton.icon(
+                            onPressed: () => setS(() {
+                              extraRows.add((
+                                label:  TextEditingController(),
+                                column: TextEditingController(),
+                              ));
+                            }),
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            label: const Text('Add Column',
+                                style: TextStyle(fontSize: 12)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: _blue,
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -563,13 +685,21 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                 onPressed: testing ? null : () async {
                   final url = urlCtrl.text.trim();
                   if (url.isEmpty) return;
-                  // Save URL and column mapping together
                   await LeadService.saveUrl(url);
                   await LeadService.saveColumnMapping({
                     for (final e in colCtrls.entries)
                       e.key: e.value.text.trim(),
                   });
+                  await LeadService.saveExtraColumns([
+                    for (final r in extraRows)
+                      if (r.label.text.trim().isNotEmpty || r.column.text.trim().isNotEmpty)
+                        {
+                          'label':  r.label.text.trim(),
+                          'column': r.column.text.trim().toUpperCase(),
+                        },
+                  ]);
                   if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) setState(() => _scriptUrl = url);
                   await _fetch();
                 },
                 child: const Text('Save & Reload'),
@@ -581,6 +711,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     );
 
     for (final c in colCtrls.values) c.dispose();
+    for (final r in extraRows) { r.label.dispose(); r.column.dispose(); }
   }
 
   Future<void> _showDeleteDialog(Lead lead) async {
@@ -716,6 +847,12 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           style: const TextStyle(
                               fontSize: 12, color: Color(0xFF78909C)),
                         ),
+                        if (_scriptUrl.isNotEmpty)
+                          Text(
+                            'Sheet: ${_shortUrl(_scriptUrl)}',
+                            style: const TextStyle(
+                                fontSize: 10, color: Color(0xFF90A4AE)),
+                          ),
                       ],
                     ),
                   ),
