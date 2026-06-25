@@ -505,6 +505,35 @@ class _AppCard extends StatelessWidget {
             if (app.reason.isNotEmpty)
               _Chip(Icons.notes_rounded, app.reason),
           ]),
+          if (ms != LeaveApprovalStatus.pending) ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              Icon(Icons.manage_accounts_rounded,
+                  size: 12, color: _statusColor(ms).withValues(alpha: 0.7)),
+              const SizedBox(width: 4),
+              Text(
+                '${_statusLabel(ms)} by ${app.decidedBy.isEmpty ? 'Manager' : app.decidedBy}',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _statusColor(ms)),
+              ),
+              if (ms == LeaveApprovalStatus.denied &&
+                  app.rejectionComment.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '· "${app.rejectionComment}"',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red.shade700,
+                        fontStyle: FontStyle.italic),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ]),
+          ],
         ]),
       ),
     );

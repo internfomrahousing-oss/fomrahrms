@@ -236,10 +236,18 @@ class SupabaseService {
           reason:       (row['reason'] as String?) ?? '',
           appliedOn:    DateTime.parse(row['applied_on'] as String),
         );
-        app.managerStatus    = _parseStatus(row['manager_status']);
-        app.decidedBy        = (row['decided_by']        as String?) ?? '';
-        app.rejectionComment = (row['rejection_comment'] as String?) ?? '';
-        app.isHalfDay        = (row['is_half_day']       as bool?)   ?? false;
+        // Prefer management_status if it was set (legacy two-level data migration)
+        final mgmtStatus = _parseStatus(row['management_status']);
+        if (mgmtStatus != LeaveApprovalStatus.pending) {
+          app.managerStatus    = mgmtStatus;
+          app.decidedBy        = (row['management_decided_by']        as String?) ?? '';
+          app.rejectionComment = (row['management_rejection_comment'] as String?) ?? '';
+        } else {
+          app.managerStatus    = _parseStatus(row['manager_status']);
+          app.decidedBy        = (row['decided_by']        as String?) ?? '';
+          app.rejectionComment = (row['rejection_comment'] as String?) ?? '';
+        }
+        app.isHalfDay = (row['is_half_day'] as bool?) ?? false;
         return app;
       }).toList();
       return list;
