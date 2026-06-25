@@ -6,8 +6,8 @@ import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
 class TeamLeaveApprovalsPage extends StatefulWidget {
-  /// false = Manager (first-level, can be overridden by management)
-  /// true  = Management (second-level, final & locks manager)
+  /// false = Manager  →  sees only their team
+  /// true  = Management → sees all employees, can view/edit any decision
   final bool isManagement;
   const TeamLeaveApprovalsPage({super.key, this.isManagement = false});
 
@@ -25,7 +25,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   LeaveApprovalStatus? _filterStatus;
   bool _loading = false;
 
-  // Manager sees only their team; management sees everyone
+  // Management sees all; manager sees only their team
   List<LeaveApplication> get _requests {
     if (_isMgmt) return LeaveStore.applications;
     if (!_teamLoaded) return LeaveStore.applications;
@@ -34,26 +34,21 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
         .toList();
   }
 
-  // Filter by the level-appropriate status
   List<LeaveApplication> get _filtered => _requests.where((r) {
         final matchSearch = _search.isEmpty ||
             r.employeeName.toLowerCase().contains(_search.toLowerCase()) ||
             r.leaveType.toLowerCase().contains(_search.toLowerCase());
-        final status = _isMgmt ? r.managementStatus : r.managerStatus;
         final matchStatus =
-            _filterStatus == null || status == _filterStatus;
+            _filterStatus == null || r.managerStatus == _filterStatus;
         return matchSearch && matchStatus;
       }).toList();
 
-  LeaveApprovalStatus _statusOf(LeaveApplication r) =>
-      _isMgmt ? r.managementStatus : r.managerStatus;
-
   int get _pendingCount =>
-      _requests.where((r) => _statusOf(r) == LeaveApprovalStatus.pending).length;
+      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
   int get _approvedCount =>
-      _requests.where((r) => _statusOf(r) == LeaveApprovalStatus.approved).length;
+      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.approved).length;
   int get _deniedCount =>
-      _requests.where((r) => _statusOf(r) == LeaveApprovalStatus.denied).length;
+      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.denied).length;
 
   @override
   void initState() {
@@ -95,33 +90,19 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     }
   }
 
-  // ── Actions ────────────────────────────────────────────────────────────────
-
+  // Both manager and management update the same field
   Future<void> _approve(LeaveApplication app) async {
-    if (!_isMgmt && app.managementLocked) return; // manager locked
     final by = UserSession.name;
     setState(() {
-      if (_isMgmt) {
-        app.managementStatus    = LeaveApprovalStatus.approved;
-        app.managementDecidedBy = by;
-        app.managementRejectionComment = '';
-      } else {
-        app.managerStatus    = LeaveApprovalStatus.approved;
-        app.decidedBy        = by;
-        app.rejectionComment = '';
-      }
+      app.managerStatus    = LeaveApprovalStatus.approved;
+      app.decidedBy        = by;
+      app.rejectionComment = '';
     });
-    if (_isMgmt) {
-      await SupabaseService.updateLeaveManagementStatus(
-          app.id, LeaveApprovalStatus.approved, decidedBy: by);
-    } else {
-      await SupabaseService.updateLeaveManagerStatus(
-          app.id, LeaveApprovalStatus.approved, decidedBy: by);
-    }
+    await SupabaseService.updateLeaveManagerStatus(
+        app.id, LeaveApprovalStatus.approved, decidedBy: by);
   }
 
   Future<void> _deny(LeaveApplication app) async {
-    if (!_isMgmt && app.managementLocked) return;
     final reasonCtrl = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
@@ -139,7 +120,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             autofocus: true,
             decoration: InputDecoration(
               hintText: 'e.g. Insufficient notice / Busy period',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
@@ -164,49 +146,24 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     reasonCtrl.dispose();
     final by = UserSession.name;
     setState(() {
-      if (_isMgmt) {
-        app.managementStatus           = LeaveApprovalStatus.denied;
-        app.managementDecidedBy        = by;
-        app.managementRejectionComment = comment;
-      } else {
-        app.managerStatus    = LeaveApprovalStatus.denied;
-        app.decidedBy        = by;
-        app.rejectionComment = comment;
-      }
+      app.managerStatus    = LeaveApprovalStatus.denied;
+      app.decidedBy        = by;
+      app.rejectionComment = comment;
     });
-    if (_isMgmt) {
-      await SupabaseService.updateLeaveManagementStatus(
-          app.id, LeaveApprovalStatus.denied,
-          decidedBy: by, rejectionComment: comment);
-    } else {
-      await SupabaseService.updateLeaveManagerStatus(
-          app.id, LeaveApprovalStatus.denied,
-          decidedBy: by, rejectionComment: comment);
-    }
+    await SupabaseService.updateLeaveManagerStatus(
+        app.id, LeaveApprovalStatus.denied,
+        decidedBy: by, rejectionComment: comment);
   }
 
   Future<void> _reset(LeaveApplication app) async {
     setState(() {
-      if (_isMgmt) {
-        app.managementStatus           = LeaveApprovalStatus.pending;
-        app.managementDecidedBy        = '';
-        app.managementRejectionComment = '';
-      } else {
-        app.managerStatus    = LeaveApprovalStatus.pending;
-        app.decidedBy        = '';
-        app.rejectionComment = '';
-      }
+      app.managerStatus    = LeaveApprovalStatus.pending;
+      app.decidedBy        = '';
+      app.rejectionComment = '';
     });
-    if (_isMgmt) {
-      await SupabaseService.updateLeaveManagementStatus(
-          app.id, LeaveApprovalStatus.pending);
-    } else {
-      await SupabaseService.updateLeaveManagerStatus(
-          app.id, LeaveApprovalStatus.pending);
-    }
+    await SupabaseService.updateLeaveManagerStatus(
+        app.id, LeaveApprovalStatus.pending);
   }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +172,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       backgroundColor: const Color(0xFFF5F7FA),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(children: [
             const NavBackButton(),
@@ -227,18 +185,20 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                _isMgmt ? Icons.admin_panel_settings_rounded : Icons.group_rounded,
+                _isMgmt
+                    ? Icons.admin_panel_settings_rounded
+                    : Icons.group_rounded,
                 color: _color, size: 26),
             ),
             const SizedBox(width: 16),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
-                _isMgmt ? 'Leave Approvals (Final)' : 'Team Leave Approvals',
+                _isMgmt ? 'Leave Approvals' : 'Team Leave Approvals',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               Text(
                 _isMgmt
-                    ? 'Your decision is final and locks manager edits'
+                    ? 'View and edit all leave decisions'
                     : 'Employees under your wing',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
               ),
@@ -256,8 +216,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               active: _filterStatus == LeaveApprovalStatus.pending,
               onTap: () => setState(() => _filterStatus =
                   _filterStatus == LeaveApprovalStatus.pending
-                      ? null
-                      : LeaveApprovalStatus.pending),
+                      ? null : LeaveApprovalStatus.pending),
             ),
             const SizedBox(width: 10),
             _SummaryChip(
@@ -268,8 +227,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               active: _filterStatus == LeaveApprovalStatus.approved,
               onTap: () => setState(() => _filterStatus =
                   _filterStatus == LeaveApprovalStatus.approved
-                      ? null
-                      : LeaveApprovalStatus.approved),
+                      ? null : LeaveApprovalStatus.approved),
             ),
             const SizedBox(width: 10),
             _SummaryChip(
@@ -280,13 +238,12 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               active: _filterStatus == LeaveApprovalStatus.denied,
               onTap: () => setState(() => _filterStatus =
                   _filterStatus == LeaveApprovalStatus.denied
-                      ? null
-                      : LeaveApprovalStatus.denied),
+                      ? null : LeaveApprovalStatus.denied),
             ),
           ]),
           const SizedBox(height: 16),
 
-          // Search
+          // Search bar
           Card(
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -294,13 +251,15 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
                   hintText: 'Search employee or leave type...',
-                  prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
+                  prefixIcon:
+                      const Icon(Icons.search_rounded, color: _color, size: 20),
                   suffixIcon: _search.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
                           onPressed: () => setState(() => _search = ''))
                       : null,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
@@ -311,7 +270,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   ),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
             ),
@@ -331,7 +291,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   onTap: () => setState(() => _filterStatus = null),
                   child: const Text('Clear',
                       style: TextStyle(
-                          fontSize: 12, color: _color, fontWeight: FontWeight.w600)),
+                          fontSize: 12,
+                          color: _color,
+                          fontWeight: FontWeight.w600)),
                 ),
               ]),
             ),
@@ -367,11 +329,11 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             ...filtered.map((app) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _RequestCard(
-                    request:     app,
+                    request:      app,
                     isManagement: _isMgmt,
-                    onApprove:   () => _approve(app),
-                    onDeny:      () => _deny(app),
-                    onReset:     () => _reset(app),
+                    onApprove:    () => _approve(app),
+                    onDeny:       () => _deny(app),
+                    onReset:      () => _reset(app),
                   ),
                 )),
         ]),
@@ -380,7 +342,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   }
 
   Widget _emptyCard(
-      {required IconData icon, required String title, required String subtitle}) {
+      {required IconData icon,
+      required String title,
+      required String subtitle}) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
@@ -441,15 +405,16 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The status relevant to THIS role's view
-    final myStatus   = isManagement ? request.managementStatus : request.managerStatus;
-    final locked     = !isManagement && request.managementLocked;
+    final status = request.managerStatus;
+    final sc     = _sc(status);
+    final si     = _si(status);
+    final sl     = _sl(status);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // ── Employee header ─────────────────────────────────────────────
+          // Employee header
           Row(children: [
             CircleAvatar(
               radius: 20,
@@ -466,21 +431,24 @@ class _RequestCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(request.employeeName,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A237E))),
-                Text(request.department,
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF78909C))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(request.employeeName,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A237E))),
+                    Text(request.department,
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFF78909C))),
+                  ]),
             ),
-            _StatusPill(_sl(myStatus), _sc(myStatus), _si(myStatus)),
+            _StatusPill(sl, sc, si),
           ]),
           const SizedBox(height: 14),
 
-          // ── Leave details box ───────────────────────────────────────────
+          // Leave details
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -507,166 +475,85 @@ class _RequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // ── Manager decision info (only shown in management view) ────────
-          if (isManagement) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF37474F).withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(children: [
-                const Icon(Icons.manage_accounts_rounded,
-                    size: 14, color: Color(0xFF78909C)),
-                const SizedBox(width: 6),
-                Text(
-                  request.managerStatus == LeaveApprovalStatus.pending
-                      ? 'Manager: Pending decision'
-                      : '${_sl(request.managerStatus)} by manager'
-                        '${request.decidedBy.isNotEmpty ? ': ${request.decidedBy}' : ''}',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: _sc(request.managerStatus),
-                      fontWeight: FontWeight.w600),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 10),
-          ],
-
-          // ── Management locked banner (only shown in manager view) ────────
-          if (locked) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: _sc(request.managementStatus).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: _sc(request.managementStatus).withValues(alpha: 0.3)),
-              ),
-              child: Row(children: [
-                Icon(Icons.lock_rounded,
-                    size: 14, color: _sc(request.managementStatus)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Final decision by management: '
-                    '${_sl(request.managementStatus)}'
-                    '${request.managementDecidedBy.isNotEmpty ? ' (${request.managementDecidedBy})' : ''}',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: _sc(request.managementStatus),
-                        fontWeight: FontWeight.w600),
+          // Action row
+          if (status == LeaveApprovalStatus.pending)
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onDeny,
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  label: const Text('Deny'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    side: BorderSide(color: Colors.red.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-              ]),
-            ),
-            if (request.managementStatus == LeaveApprovalStatus.denied &&
-                request.managementRejectionComment.isNotEmpty) ...[
-              const SizedBox(height: 6),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onApprove,
+                  icon: const Icon(Icons.check_rounded, size: 16),
+                  label: const Text('Approve'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ])
+          else
+            Row(children: [
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.red.shade200),
+                  color: sc.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(request.managementRejectionComment,
-                    style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(si, size: 16, color: sc),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$sl by ${request.decidedBy.isEmpty ? 'Manager' : request.decidedBy}',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: sc),
+                  ),
+                ]),
               ),
-            ],
-          ],
+              const Spacer(),
+              TextButton.icon(
+                onPressed: onReset,
+                icon: const Icon(Icons.undo_rounded, size: 15),
+                label: const Text('Undo'),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF78909C)),
+              ),
+            ]),
 
-          // ── Action row ─────────────────────────────────────────────────
-          if (!locked) ...[
-            if (myStatus == LeaveApprovalStatus.pending)
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onDeny,
-                    icon: const Icon(Icons.close_rounded, size: 16),
-                    label: const Text('Deny'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade700,
-                      side: BorderSide(color: Colors.red.shade300),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check_rounded, size: 16),
-                    label: Text(isManagement ? 'Final Approve' : 'Approve'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              ])
-            else
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _sc(myStatus).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(_si(myStatus), size: 16, color: _sc(myStatus)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${_sl(myStatus)} by '
-                      '${isManagement ? (request.managementDecidedBy.isEmpty ? 'Management' : request.managementDecidedBy) : (request.decidedBy.isEmpty ? 'Manager' : request.decidedBy)}',
-                      style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600,
-                          color: _sc(myStatus)),
-                    ),
-                  ]),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: onReset,
-                  icon: const Icon(Icons.undo_rounded, size: 15),
-                  label: const Text('Undo'),
-                  style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF78909C)),
-                ),
-              ]),
-
-            // Denial reason strip
-            if (myStatus == LeaveApprovalStatus.denied) ...[
-              const SizedBox(height: 8),
-              Builder(builder: (ctx) {
-                final comment = isManagement
-                    ? request.managementRejectionComment
-                    : request.rejectionComment;
-                if (comment.isEmpty) return const SizedBox.shrink();
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Text(comment,
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.red.shade800)),
-                );
-              }),
-            ],
+          // Denial reason
+          if (status == LeaveApprovalStatus.denied &&
+              request.rejectionComment.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Text(request.rejectionComment,
+                  style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
+            ),
           ],
         ]),
       ),
@@ -689,11 +576,15 @@ class _DetailRow extends StatelessWidget {
       const SizedBox(width: 8),
       Text('$label: ',
           style: const TextStyle(
-              fontSize: 12, color: Color(0xFF78909C), fontWeight: FontWeight.w500)),
+              fontSize: 12,
+              color: Color(0xFF78909C),
+              fontWeight: FontWeight.w500)),
       Expanded(
         child: Text(value,
             style: const TextStyle(
-                fontSize: 12, color: Color(0xFF1A237E), fontWeight: FontWeight.w600)),
+                fontSize: 12,
+                color: Color(0xFF1A237E),
+                fontWeight: FontWeight.w600)),
       ),
     ]);
   }
@@ -752,7 +643,8 @@ class _SummaryChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: active ? color : color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? color : color.withValues(alpha: 0.3)),
+          border: Border.all(
+              color: active ? color : color.withValues(alpha: 0.3)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, size: 14, color: active ? Colors.white : color),

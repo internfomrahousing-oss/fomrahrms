@@ -247,21 +247,10 @@ class _ApplicationCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(),
           const SizedBox(height: 10),
-          // ── Manager-level decision ──────────────────────────────────
           _DecisionRow(
-            role: 'Manager',
             status: app.managerStatus,
             decidedBy: app.decidedBy,
             comment: app.rejectionComment,
-          ),
-          const SizedBox(height: 8),
-          // ── Management-level decision (final) ───────────────────────
-          _DecisionRow(
-            role: 'Management (Final)',
-            status: app.managementStatus,
-            decidedBy: app.managementDecidedBy,
-            comment: app.managementRejectionComment,
-            isFinal: true,
           ),
         ]),
       ),
@@ -370,17 +359,13 @@ class _StatusBadge extends StatelessWidget {
 // ── HR audit row showing one level's decision with name ────────────────────
 
 class _DecisionRow extends StatelessWidget {
-  final String role;
   final LeaveApprovalStatus status;
   final String decidedBy;
   final String comment;
-  final bool isFinal;
   const _DecisionRow({
-    required this.role,
     required this.status,
     required this.decidedBy,
     required this.comment,
-    this.isFinal = false,
   });
 
   Color _color() => switch (status) {
@@ -408,19 +393,13 @@ class _DecisionRow extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          if (isFinal)
-            const Icon(Icons.lock_rounded, size: 13, color: Color(0xFF78909C))
-          else
-            const Icon(Icons.manage_accounts_rounded,
-                size: 13, color: Color(0xFF78909C)),
+          const Icon(Icons.manage_accounts_rounded,
+              size: 13, color: Color(0xFF78909C)),
           const SizedBox(width: 5),
-          Text('$role: ',
-              style: const TextStyle(
-                  fontSize: 11, color: Color(0xFF78909C), fontWeight: FontWeight.w500)),
           Text(
             status == LeaveApprovalStatus.pending
-                ? 'Pending'
-                : '${_label()} by ${decidedBy.isEmpty ? role : decidedBy}',
+                ? 'Pending decision'
+                : '${_label()} by ${decidedBy.isEmpty ? 'Manager' : decidedBy}',
             style: TextStyle(
                 fontSize: 11, color: c, fontWeight: FontWeight.w700),
           ),
@@ -429,7 +408,9 @@ class _DecisionRow extends StatelessWidget {
           const SizedBox(height: 4),
           Text('"$comment"',
               style: TextStyle(
-                  fontSize: 11, color: Colors.red.shade700, fontStyle: FontStyle.italic)),
+                  fontSize: 11,
+                  color: Colors.red.shade700,
+                  fontStyle: FontStyle.italic)),
         ],
       ]),
     );
