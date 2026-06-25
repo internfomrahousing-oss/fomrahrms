@@ -24,6 +24,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
   }
 
   Future<void> _load() async {
+    LeadService.invalidateCache(); // always read fresh from SharedPreferences
     final sources = await LeadService.getSources();
     if (mounted) setState(() { _sources = sources; _loading = false; });
   }

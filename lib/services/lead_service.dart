@@ -44,6 +44,9 @@ class LeadService {
 
   // ── Sources persistence ───────────────────────────────────────────────────
 
+  /// Force the next getSources() call to re-read from SharedPreferences.
+  static void invalidateCache() => _cachedSources = null;
+
   static Future<List<LeadSource>> getSources() async {
     if (_cachedSources != null) return _cachedSources!;
 
@@ -51,18 +54,23 @@ class LeadService {
     final json  = prefs.getString(_sourcesKey);
 
     if (json != null) {
-      final list = jsonDecode(json) as List;
-      _cachedSources =
-          list.map((e) => LeadSource.fromJson(e as Map<String, dynamic>)).toList();
-    } else {
-      // Migrate from old single-source storage
-      final oldUrl  = prefs.getString(_legacyUrlKey)  ?? _defaultUrl;
-      final oldName = prefs.getString(_legacyNameKey) ?? 'Meta Leads';
-      _cachedSources = [
-        LeadSource(id: _id(), name: oldName, url: oldUrl),
-      ];
-      await _persist(prefs);
+      try {
+        final list = jsonDecode(json) as List;
+        _cachedSources =
+            list.map((e) => LeadSource.fromJson(e as Map<String, dynamic>)).toList();
+        return _cachedSources!;
+      } catch (_) {
+        // Corrupt data — fall through to migration below
+      }
     }
+
+    // First run or corrupt — migrate from old single-source storage
+    final oldUrl  = prefs.getString(_legacyUrlKey)  ?? _defaultUrl;
+    final oldName = prefs.getString(_legacyNameKey) ?? 'Meta Leads';
+    _cachedSources = [
+      LeadSource(id: _id(), name: oldName, url: oldUrl),
+    ];
+    await _persist(prefs);
     return _cachedSources!;
   }
 
