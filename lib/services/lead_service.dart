@@ -3,63 +3,102 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/lead_model.dart';
 
+// ── Model ─────────────────────────────────────────────────────────────────────
+class LeadSource {
+  final String id;
+  String name;
+  final String url;
+
+  LeadSource({required this.id, required this.name, required this.url});
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'url': url};
+
+  factory LeadSource.fromJson(Map<String, dynamic> j) => LeadSource(
+        id:   j['id']   as String,
+        name: j['name'] as String,
+        url:  j['url']  as String,
+      );
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
 class LeadService {
-  // When _defaultUrl is updated, add the old value here so existing users
-  // are automatically migrated to the new default on next launch.
-  static const String _oldDefaultUrl =
-      'https://script.google.com/macros/s/AKfycbyOG5h_Pdh00gLTdaqB3JC7ivAAwBBk7J3Wk_2C9p2Ge_HO9sfktvJjqoCxnYvO_SOV/exec';
   static const String _defaultUrl =
       'https://script.google.com/macros/s/AKfycbxo0DuztEe4hIAPiEjbttV-LPJDEvvaTSFyUs6M-LNRWhNucJTUJw6bJ-4AuK4OS6t6Yw/exec';
-  static const String _urlPrefKey  = 'lead_script_url';
-  static const String _nameKey     = 'lead_source_name';
-  static String? _cachedUrl;
-  static String? _cachedName;
 
-  /// Column names in sheet order — populated from the last successful fetchLeads().
-  static List<String> _schema = [];
-  static List<String> get columnSchema => List.from(_schema);
+  // Legacy single-source pref keys — kept only for migration
+  static const String _legacyUrlKey  = 'lead_script_url';
+  static const String _legacyNameKey = 'lead_source_name';
 
-  // ── URL persistence ───────────────────────────────────────────────────────
-  static Future<String> getUrl() async {
-    if (_cachedUrl == null) {
-      final prefs  = await SharedPreferences.getInstance();
-      final stored = prefs.getString(_urlPrefKey);
-      // Migrate: if stored is the old default (or absent), switch to new default
-      if (stored == null || stored == _oldDefaultUrl) {
-        _cachedUrl = _defaultUrl;
-        _schema    = [];
-        await prefs.setString(_urlPrefKey, _defaultUrl);
-      } else {
-        _cachedUrl = stored;
-      }
+  static const String _sourcesKey = 'lead_sources_v2';
+
+  static List<LeadSource>? _cachedSources;
+
+  // Per-URL schema cache so switching sheets re-detects columns correctly
+  static final Map<String, List<String>> _schemaCache = {};
+
+  static List<String> schemaFor(String url) =>
+      List.from(_schemaCache[url] ?? []);
+
+  // ── Sources persistence ───────────────────────────────────────────────────
+
+  static Future<List<LeadSource>> getSources() async {
+    if (_cachedSources != null) return _cachedSources!;
+
+    final prefs = await SharedPreferences.getInstance();
+    final json  = prefs.getString(_sourcesKey);
+
+    if (json != null) {
+      final list = jsonDecode(json) as List;
+      _cachedSources =
+          list.map((e) => LeadSource.fromJson(e as Map<String, dynamic>)).toList();
+    } else {
+      // Migrate from old single-source storage
+      final oldUrl  = prefs.getString(_legacyUrlKey)  ?? _defaultUrl;
+      final oldName = prefs.getString(_legacyNameKey) ?? 'Meta Leads';
+      _cachedSources = [
+        LeadSource(id: _id(), name: oldName, url: oldUrl),
+      ];
+      await _persist(prefs);
     }
-    return _cachedUrl!;
+    return _cachedSources!;
   }
 
-  static Future<void> saveUrl(String url) async {
-    _cachedUrl = url.trim();
-    _schema    = []; // reset so columns re-detect from the new sheet
-    await (await SharedPreferences.getInstance())
-        .setString(_urlPrefKey, url.trim());
+  static Future<LeadSource> addSource(String name, String url) async {
+    final sources = await getSources();
+    final source  = LeadSource(
+        id: _id(), name: name.trim().isEmpty ? 'New Source' : name.trim(), url: url.trim());
+    sources.add(source);
+    await _persist();
+    return source;
   }
 
-  // ── Source name persistence ───────────────────────────────────────────────
-  static Future<String> getSourceName() async {
-    _cachedName ??=
-        (await SharedPreferences.getInstance()).getString(_nameKey) ??
-            'Meta Leads';
-    return _cachedName!;
+  static Future<void> renameSource(String id, String newName) async {
+    final sources = await getSources();
+    final s = sources.firstWhere((s) => s.id == id, orElse: () => throw Exception('Not found'));
+    s.name = newName.trim().isEmpty ? s.name : newName.trim();
+    await _persist();
   }
 
-  static Future<void> saveSourceName(String name) async {
-    _cachedName = name.trim().isEmpty ? 'Meta Leads' : name.trim();
-    await (await SharedPreferences.getInstance())
-        .setString(_nameKey, _cachedName!);
+  static Future<void> deleteSource(String id) async {
+    final sources = await getSources();
+    sources.removeWhere((s) => s.id == id);
+    _schemaCache.remove(id);
+    await _persist();
   }
+
+  static Future<void> _persist([SharedPreferences? p]) async {
+    final prefs = p ?? await SharedPreferences.getInstance();
+    await prefs.setString(
+        _sourcesKey,
+        jsonEncode(_cachedSources!.map((s) => s.toJson()).toList()));
+  }
+
+  static String _id() => DateTime.now().microsecondsSinceEpoch.toString();
 
   // ── Connection test ───────────────────────────────────────────────────────
+
   static Future<({int count, List<String> columns})> testUrl(String url) async {
-    final uri = Uri.parse('${url.trim()}?action=list');
+    final uri      = Uri.parse('${url.trim()}?action=list');
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw Exception('Server returned HTTP ${response.statusCode}');
@@ -78,10 +117,10 @@ class LeadService {
     return (count: rows.length, columns: columns);
   }
 
-  // ── Fetch all leads (fully automatic — no mapping config needed) ──────────
-  static Future<List<Lead>> fetchLeads() async {
-    final base     = await getUrl();
-    final uri      = Uri.parse('$base?action=list');
+  // ── Fetch leads from a specific URL ──────────────────────────────────────
+
+  static Future<List<Lead>> fetchLeads(String url) async {
+    final uri      = Uri.parse('${url.trim()}?action=list');
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
 
@@ -102,9 +141,9 @@ class LeadService {
       throw Exception('Unexpected response format');
     }
 
-    // Cache the schema (column names in order) from the first row
+    // Cache schema per URL
     if (rows.isNotEmpty && rows[0] is Map) {
-      _schema = (rows[0] as Map).keys.map((k) => k.toString()).toList();
+      _schemaCache[url] = (rows[0] as Map).keys.map((k) => k.toString()).toList();
     }
 
     return rows.where((e) => e is Map).map((e) {
@@ -116,10 +155,10 @@ class LeadService {
     }).toList();
   }
 
-  // ── CRUD — all operations use the first column as the row identifier ───────
-  static Future<void> addLead(Lead lead) async {
-    final base = await getUrl();
-    final uri  = Uri.parse(base).replace(queryParameters: {
+  // ── CRUD — all operations scoped to the provided URL ─────────────────────
+
+  static Future<void> addLead(String url, Lead lead) async {
+    final uri = Uri.parse(url.trim()).replace(queryParameters: {
       'action': 'add',
       ...lead.fields,
     });
@@ -128,9 +167,8 @@ class LeadService {
     _checkWriteResponse(response.body);
   }
 
-  static Future<void> updateLead(Lead lead) async {
-    final base = await getUrl();
-    final uri  = Uri.parse(base).replace(queryParameters: {
+  static Future<void> updateLead(String url, Lead lead) async {
+    final uri = Uri.parse(url.trim()).replace(queryParameters: {
       'action': 'update',
       ...lead.fields,
     });
@@ -139,11 +177,10 @@ class LeadService {
     _checkWriteResponse(response.body);
   }
 
-  static Future<void> deleteLead(Lead lead) async {
-    final base = await getUrl();
-    final uri  = Uri.parse(base).replace(queryParameters: {
-      'action':           'delete',
-      lead.rowKeyColumn:  lead.rowKeyValue,
+  static Future<void> deleteLead(String url, Lead lead) async {
+    final uri = Uri.parse(url.trim()).replace(queryParameters: {
+      'action':          'delete',
+      lead.rowKeyColumn: lead.rowKeyValue,
     });
     final response = await http.get(uri);
     if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');

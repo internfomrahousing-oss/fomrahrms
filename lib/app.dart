@@ -175,8 +175,11 @@ final _router = GoRouter(
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/ads-management',                  builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/lead-management',
-            builder: (_, __) => const LeadManagementHubPage(leadsRoute: '/lead-management/meta-leads')),
-        GoRoute(path: '/lead-management/meta-leads',       builder: (_, __) => const LeadManagementPage()),
+            builder: (_, __) => const LeadManagementHubPage(basePath: '/lead-management')),
+        GoRoute(path: '/lead-management/leads', builder: (_, s) {
+          final x = s.extra as Map<String, String>? ?? {};
+          return LeadManagementPage(url: x['url'] ?? '', name: x['name'] ?? 'Leads');
+        }),
         GoRoute(path: '/maintenance-management',          builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/approvals',                       builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/notifications',                   builder: (_, __) => const NotificationsPage()),
@@ -292,8 +295,11 @@ final _router = GoRouter(
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/management/ads-management',         builder: (_, __) => const AdsManagementPage()),
         GoRoute(path: '/management/lead-management',
-            builder: (_, __) => const LeadManagementHubPage(leadsRoute: '/management/lead-management/meta-leads')),
-        GoRoute(path: '/management/lead-management/meta-leads', builder: (_, __) => const LeadManagementPage()),
+            builder: (_, __) => const LeadManagementHubPage(basePath: '/management/lead-management')),
+        GoRoute(path: '/management/lead-management/leads', builder: (_, s) {
+          final x = s.extra as Map<String, String>? ?? {};
+          return LeadManagementPage(url: x['url'] ?? '', name: x['name'] ?? 'Leads');
+        }),
         GoRoute(path: '/management/maintenance-management', builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/management/approvals',              builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/management/notifications',          builder: (_, __) => const NotificationsPage()),

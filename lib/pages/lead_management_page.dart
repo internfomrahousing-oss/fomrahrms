@@ -7,7 +7,13 @@ const _blue = Color(0xFF0D47A1);
 
 
 class LeadManagementPage extends StatefulWidget {
-  const LeadManagementPage({super.key});
+  final String url;
+  final String name;
+  const LeadManagementPage({
+    super.key,
+    required this.url,
+    required this.name,
+  });
 
   @override
   State<LeadManagementPage> createState() => _LeadManagementPageState();
@@ -20,22 +26,16 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   bool _loading = false;
   String? _error;
   String _selectedStatus = 'All';
-  String _scriptUrl = '';
-  String _sourceName = 'Meta Leads';
   final _searchCtrl = TextEditingController();
+
+  String get _scriptUrl  => widget.url;
+  String get _sourceName => widget.name;
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
-    _loadMeta();
     _fetch();
-  }
-
-  Future<void> _loadMeta() async {
-    final url  = await LeadService.getUrl();
-    final name = await LeadService.getSourceName();
-    if (mounted) setState(() { _scriptUrl = url; _sourceName = name; });
   }
 
   String _shortUrl(String url) {
@@ -64,7 +64,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       _selectedStatus = 'All';
     });
     try {
-      final leads = await LeadService.fetchLeads();
+      final leads = await LeadService.fetchLeads(_scriptUrl);
       final statuses = leads
           .map((l) => l.status)
           .where((s) => s.isNotEmpty)
@@ -227,7 +227,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 
   Future<void> _showAddDialog() async {
-    final schema = LeadService.columnSchema;
+    final schema = LeadService.schemaFor(_scriptUrl);
     if (schema.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('No columns detected yet. Refresh first.'),
@@ -297,189 +297,6 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     for (final c in ctrls.values) c.dispose();
   }
 
-  Future<void> _showSettingsDialog() async {
-    final urlCtrl = TextEditingController(text: await LeadService.getUrl());
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        bool testing = false;
-        String? testError;
-        int? testCount;
-        List<String> detectedCols = [];
-
-        return StatefulBuilder(builder: (ctx, setS) {
-          return AlertDialog(
-            title: const Row(children: [
-              Icon(Icons.settings_rounded, color: _blue, size: 20),
-              SizedBox(width: 8),
-              Text('Google Sheets Setup',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
-            ]),
-            content: SizedBox(
-              width: 480,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Apps Script URL',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: urlCtrl,
-                      onChanged: (_) => setS(() { testError = null; testCount = null; }),
-                      decoration: InputDecoration(
-                        hintText: 'https://script.google.com/macros/s/…/exec',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // ── Test result ──────────────────────────────────────
-                    if (testing)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Row(children: [
-                          SizedBox(width: 16, height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2)),
-                          SizedBox(width: 10),
-                          Text('Testing connection…',
-                              style: TextStyle(fontSize: 12, color: _blue)),
-                        ]),
-                      )
-                    else if (testError != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFEF9A9A)),
-                        ),
-                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Icon(Icons.error_outline_rounded, size: 15, color: Color(0xFFC62828)),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(testError!,
-                              style: const TextStyle(fontSize: 11, color: Color(0xFFC62828)))),
-                        ]),
-                      )
-                    else if (testCount != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFA5D6A7)),
-                        ),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            const Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF2E7D32)),
-                            const SizedBox(width: 8),
-                            Text('Connected — $testCount lead${testCount == 1 ? '' : 's'} found',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32),
-                                    fontWeight: FontWeight.w600)),
-                          ]),
-                          if (detectedCols.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text('Columns detected (${detectedCols.length}): ${detectedCols.join(' · ')}',
-                                style: const TextStyle(fontSize: 10, color: Color(0xFF2E7D32))),
-                          ],
-                        ]),
-                      ),
-
-                    const SizedBox(height: 16),
-                    // ── Info ────────────────────────────────────────────
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            Icon(Icons.auto_awesome_rounded, size: 15, color: _blue),
-                            SizedBox(width: 6),
-                            Text('Fully automatic — no column config needed',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _blue)),
-                          ]),
-                          SizedBox(height: 8),
-                          Text(
-                            'The app reads every column from your Google Sheet in order and '
-                            'shows all of them automatically. Just connect the script and it works.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF37474F)),
-                          ),
-                          SizedBox(height: 10),
-                          _SetupStep(n: '1', text: 'Open your Google Sheet → Extensions → Apps Script'),
-                          _SetupStep(n: '2', text: 'Paste the UPDATED script (see your admin), press Ctrl+S'),
-                          _SetupStep(n: '3', text: 'Deploy → Manage deployments → Edit → New version → Deploy'),
-                          _SetupStep(n: '4', text: '"Execute as: Me" and "Who has access: Anyone"'),
-                          _SetupStep(n: '5', text: 'Paste the URL above → Test → Save & Reload'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: testing ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-                onPressed: testing ? null : () async {
-                  final url = urlCtrl.text.trim();
-                  if (url.isEmpty) return;
-                  setS(() { testing = true; testError = null; testCount = null; });
-                  try {
-                    final result = await LeadService.testUrl(url);
-                    setS(() {
-                      testing    = false;
-                      testCount  = result.count;
-                      detectedCols = result.columns;
-                    });
-                  } catch (e) {
-                    setS(() {
-                      testing   = false;
-                      testError = e.toString().replaceFirst('Exception: ', '');
-                    });
-                  }
-                },
-                child: const Text('Test'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: testing ? null : () async {
-                  final url = urlCtrl.text.trim();
-                  if (url.isEmpty) return;
-                  await LeadService.saveUrl(url);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  if (mounted) setState(() => _scriptUrl = url);
-                  await _fetch();
-                },
-                child: const Text('Save & Reload'),
-              ),
-            ],
-          );
-        });
-      },
-    );
-
-    urlCtrl.dispose();
-  }
 
   Future<void> _showDeleteDialog(Lead lead) async {
     if (!lead.canDelete) {
@@ -520,7 +337,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _doDelete(Lead lead) async {
     try {
-      await LeadService.deleteLead(lead);
+      await LeadService.deleteLead(_scriptUrl, lead);
       await _fetch();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -538,7 +355,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _doUpdate(Lead lead) async {
     try {
-      await LeadService.updateLead(lead);
+      await LeadService.updateLead(_scriptUrl, lead);
       await _fetch();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -556,7 +373,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _doAdd(Lead lead) async {
     try {
-      await LeadService.addLead(lead);
+      await LeadService.addLead(_scriptUrl, lead);
       await _fetch();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -657,11 +474,6 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: _blue))
                         : const Icon(Icons.refresh_rounded, color: _blue),
-                  ),
-                  IconButton(
-                    tooltip: 'Google Sheets Settings',
-                    onPressed: _showSettingsDialog,
-                    icon: const Icon(Icons.settings_rounded, color: _blue),
                   ),
                 ]),
                 const SizedBox(height: 12),
