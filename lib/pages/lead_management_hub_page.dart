@@ -340,7 +340,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                           'Delete everything in the editor. Paste the code below, then click Save (Ctrl+S).'),
                       const _GasCodeBlock(),
                       _guideStep('4', 'Deploy as Web App',
-                          'Click Deploy → New deployment.\nType: Web app\nExecute as: Me\nWho has access: Anyone\nClick Deploy and authorise when prompted.'),
+                          'First time: Click Deploy → New deployment → Type: Web app → Execute as: Me → Who has access: Anyone → Deploy → Authorise when prompted.\n\nUpdating existing script: Click Deploy → Manage deployments → pencil icon → change Version to "New version" → Deploy.'),
                       _guideStep('5', 'Copy the /exec URL',
                           'After deploying, copy the URL ending in /exec. That is your Apps Script URL for this sheet.'),
                       _guideStep('6', 'Add it in the app',
