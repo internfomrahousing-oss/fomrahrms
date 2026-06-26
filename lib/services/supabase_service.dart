@@ -38,6 +38,26 @@ import '../models/user_session.dart';
   alter table leave_applications add column if not exists management_decided_by text default '';
   alter table leave_applications add column if not exists management_rejection_comment text default '';
 
+  create table if not exists onboarding_forms (
+    id uuid primary key default gen_random_uuid(),
+    submitted_at timestamptz default now(),
+    name text, phone_number text, father_name text, designation text,
+    date_of_joining text, full_name text, date_of_birth text,
+    postal_address text, permanent_address text,
+    family_details jsonb default '[]',
+    education jsonb default '[]',
+    experience jsonb default '[]',
+    last_reporting_name text, last_reporting_designation text,
+    last_company text, reference1 text, reference2 text,
+    esi_number text, pf_number text, languages_known text,
+    hobbies text, interests text, related_to_employee text,
+    professional_membership text, specialized_training text,
+    other_information text, blood_group text, allergic_to text,
+    major_illness text, emergency_contact_name text,
+    emergency_contact_number text, emergency_contact_address text,
+    aadhar_number text, declaration_date text, declaration_place text
+  );
+
   create table if not exists lead_sources (
     id text primary key,
     name text not null,

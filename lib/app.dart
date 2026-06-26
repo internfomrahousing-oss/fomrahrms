@@ -26,6 +26,7 @@ import 'pages/payroll_management_page.dart';
 import 'pages/interview_process_page.dart';
 import 'pages/candidate_application_form_page.dart';
 import 'pages/employee_onboarding_page.dart';
+import 'pages/onboarding_form_page.dart';
 import 'pages/lead_management_hub_page.dart';
 import 'pages/lead_management_page.dart';
 import 'pages/maintenance_management_page.dart';
@@ -62,6 +63,7 @@ String? _guard(GoRouterState state) {
   if (path == '/login') return null;
   if (path == '/candidate-application') return null; // public form
   if (path == '/candidate-detail') return null;       // accessed from within shells
+  if (path == '/onboarding-form') return null;        // public joining form
 
   if (!UserSession.loggedIn) return '/login';
 
@@ -116,6 +118,7 @@ final _router = GoRouter(
     // ── Public routes (no login required) ─────────────────────────────────
     GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
     GoRoute(path: '/candidate-application', builder: (_, __) => const CandidateApplicationFormPage()),
+    GoRoute(path: '/onboarding-form', builder: (_, __) => const OnboardingFormPage()),
 
     // ── HR Shell ───────────────────────────────────────────────────────────
     ShellRoute(
