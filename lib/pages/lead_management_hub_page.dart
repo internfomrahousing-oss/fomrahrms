@@ -353,7 +353,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                             const Row(children: [
                               Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFF57F17)),
                               SizedBox(width: 6),
-                              Text('Important — make sure your script has this:',
+                              Text('This script handles any sheet layout:',
                                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFF57F17))),
                             ]),
                             const SizedBox(height: 8),
@@ -365,14 +365,14 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const SelectableText(
-                                'var ss = sheetId\n  ? SpreadsheetApp.openById(sheetId)\n  : SpreadsheetApp.getActiveSpreadsheet();\nvar sheet = ss.getSheets()[0];',
+                                'function findHeaderRow(data) {\n  for (var i = 0; i < Math.min(data.length, 5); i++) {\n    if (data[i].some(function(cell) { return cell !== \'\'; })) return i;\n  }\n  return 0;\n}',
                                 style: TextStyle(fontSize: 11, color: Color(0xFF80CBC4), fontFamily: 'monospace'),
                               ),
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'This ensures leads always read/write to the first sheet tab, even if someone has the spreadsheet open on a different tab.',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF795548)),
+                              '• Headers in row 1 or row 2 — both work automatically\n• Blank rows in the middle of data are skipped\n• Skips hidden tabs — always uses the first visible sheet',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF795548), height: 1.5),
                             ),
                           ],
                         ),
@@ -704,13 +704,21 @@ class _GasCodeBlock extends StatefulWidget {
 class _GasCodeBlockState extends State<_GasCodeBlock> {
   bool _copied = false;
 
-  static const _code = r'''function doGet(e) {
+  static const _code = r'''function getVisibleSheet(ss) {
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (!sheets[i].isSheetHidden()) return sheets[i];
+  }
+  return sheets[0];
+}
+
+function doGet(e) {
   try {
     var sheetId = e.parameter.spreadsheetId;
     var ss = sheetId
       ? SpreadsheetApp.openById(sheetId)
       : SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheets()[0];
+    var sheet = getVisibleSheet(ss);
     var action = e.parameter.action;
     if (action === 'list')   return list(sheet);
     if (action === 'add')    return add(sheet, e.parameter);
