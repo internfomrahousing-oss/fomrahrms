@@ -4,6 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Status helpers
+Color _statusColor(String s) {
+  if (s == 'hr_approved') return const Color(0xFF2E7D32);
+  if (s == 'hr_denied')   return const Color(0xFFC62828);
+  if (s == 'access_granted') return const Color(0xFF6A1B9A);
+  return const Color(0xFFE65100);
+}
+String _statusLabel(String s) {
+  if (s == 'hr_approved')    return 'HR Approved';
+  if (s == 'hr_denied')      return 'Denied';
+  if (s == 'access_granted') return 'Access Granted';
+  return 'Pending';
+}
+
 const _blue = Color(0xFF0D47A1);
 
 class EmployeeOnboardingPage extends StatefulWidget {
@@ -189,7 +203,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                       padding: EdgeInsets.all(pad),
                       itemCount: _filtered.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _SubmissionCard(data: _filtered[i]),
+                      itemBuilder: (_, i) => _SubmissionCard(data: _filtered[i], onRefresh: _fetch),
                     ),
         ),
       ]),
@@ -200,7 +214,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 // ── Submission card ────────────────────────────────────────────────────────────
 class _SubmissionCard extends StatefulWidget {
   final Map<String, dynamic> data;
-  const _SubmissionCard({required this.data});
+  final VoidCallback onRefresh;
+  const _SubmissionCard({required this.data, required this.onRefresh});
 
   @override
   State<_SubmissionCard> createState() => _SubmissionCardState();
@@ -208,6 +223,49 @@ class _SubmissionCard extends StatefulWidget {
 
 class _SubmissionCardState extends State<_SubmissionCard> {
   bool _expanded = false;
+  bool _acting = false;
+
+  Future<void> _updateStatus(String status) async {
+    setState(() => _acting = true);
+    try {
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({'status': status})
+          .eq('id', widget.data['id'].toString());
+      widget.onRefresh();
+    } catch (_) {
+      setState(() => _acting = false);
+    }
+  }
+
+  Future<void> _delete(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Submission', style: TextStyle(color: Colors.red)),
+        content: const Text('Are you sure you want to permanently delete this submission?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _acting = true);
+    try {
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .delete()
+          .eq('id', widget.data['id'].toString());
+      widget.onRefresh();
+    } catch (_) {
+      setState(() => _acting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -219,8 +277,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         ? DateTime.tryParse(d['submitted_at'] as String)?.toLocal()
         : null;
     final dateStr = submittedAt != null
-        ? '${submittedAt.day.toString().padLeft(2,'0')}/${submittedAt.month.toString().padLeft(2,'0')}/${submittedAt.year}  ${submittedAt.hour.toString().padLeft(2,'0')}:${submittedAt.minute.toString().padLeft(2,'0')}'
+        ? '${submittedAt.day.toString().padLeft(2,'0')}/${submittedAt.month.toString().padLeft(2,'0')}/${submittedAt.year}'
         : '—';
+    final status = (d['status'] as String?) ?? 'pending';
+    final isPending = status == 'pending';
 
     return Card(
       elevation: 0,
@@ -246,9 +306,27 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   Text(name,
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1A237E))),
                   const SizedBox(height: 2),
-                  Text('${(d['designation'] as String?) ?? ''}  ·  Submitted $dateStr',
+                  Text('${(d['designation'] as String?) ?? ''}  ·  $dateStr',
                       style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
                 ]),
+              ),
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _statusColor(status).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(_statusLabel(status),
+                    style: TextStyle(fontSize: 11, color: _statusColor(status), fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 8),
+              // Delete button
+              IconButton(
+                tooltip: 'Delete',
+                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                visualDensity: VisualDensity.compact,
+                onPressed: _acting ? null : () => _delete(context),
               ),
               Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
                   color: const Color(0xFF78909C)),
@@ -311,6 +389,41 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 _row('Place', d['declaration_place']),
               ]),
               _attachmentsSection(d['attachments']),
+
+              // Approve / Deny buttons (only if pending)
+              if (isPending) ...[
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      label: const Text('Deny'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: _acting ? null : () => _updateStatus('hr_denied'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_rounded, size: 16),
+                      label: const Text('Approve'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: _acting ? null : () => _updateStatus('hr_approved'),
+                    ),
+                  ),
+                ]),
+              ],
             ]),
           ),
         ],

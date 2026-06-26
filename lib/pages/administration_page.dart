@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
 
@@ -55,7 +56,7 @@ class _AdministrationPageState extends State<AdministrationPage>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     _loadUsers();
   }
 
@@ -133,6 +134,7 @@ class _AdministrationPageState extends State<AdministrationPage>
                   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   tabs: const [
                     Tab(icon: Icon(Icons.group_add_rounded, size: 18), text: 'Users'),
+                    Tab(icon: Icon(Icons.how_to_reg_rounded, size: 18), text: 'Onboarding'),
                     Tab(icon: Icon(Icons.shield_rounded, size: 18), text: 'Roles'),
                     Tab(icon: Icon(Icons.lock_open_rounded, size: 18), text: 'Access Control'),
                   ],
@@ -147,6 +149,7 @@ class _AdministrationPageState extends State<AdministrationPage>
               controller: _tabs,
               children: [
                 _UsersTab(users: _users, roles: _roles, onUpsert: _upsertUser, onDelete: _deleteUser),
+                _OnboardingTab(users: _users, onUserCreated: _loadUsers),
                 _RolesTab(roles: _roles, onChange: () => setState(() {})),
                 _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
               ],
@@ -541,6 +544,309 @@ class _UsersTab extends StatelessWidget {
       case 'Management': return 'This user will access the Management Dashboard with full access.';
       default:           return '';
     }
+  }
+}
+
+// ── Onboarding tab ────────────────────────────────────────────────────────────
+
+class _OnboardingTab extends StatefulWidget {
+  final List<AppUser> users;
+  final Future<void> Function() onUserCreated;
+  const _OnboardingTab({required this.users, required this.onUserCreated});
+
+  @override
+  State<_OnboardingTab> createState() => _OnboardingTabState();
+}
+
+class _OnboardingTabState extends State<_OnboardingTab> {
+  List<Map<String, dynamic>> _forms = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final data = await Supabase.instance.client
+          .from('onboarding_forms')
+          .select()
+          .inFilter('status', ['hr_approved', 'access_granted'])
+          .order('submitted_at', ascending: false);
+      setState(() { _forms = List<Map<String, dynamic>>.from(data); _loading = false; });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _grantAccess(BuildContext context, Map<String, dynamic> form) async {
+    final nameCtrl  = TextEditingController(text: form['name'] ?? '');
+    final emailCtrl = TextEditingController(
+        text: (form['name'] as String? ?? '').toLowerCase().replaceAll(' ', '.'));
+    final empIdCtrl = TextEditingController();
+    final desigCtrl = TextEditingController(text: form['designation'] ?? '');
+    final managers  = widget.users.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+    String selectedManager = managers.isNotEmpty ? managers.first : '';
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Grant Access', style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _DialogField(controller: nameCtrl,  label: 'Full Name',    icon: Icons.person_rounded),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: const Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
+                  suffix: const Text('@fomrahousing.in',
+                      style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _DialogField(controller: empIdCtrl, label: 'Employee ID (e.g. EMP001)', icon: Icons.badge_rounded),
+              const SizedBox(height: 12),
+              _DialogField(controller: desigCtrl, label: 'Designation', icon: Icons.work_rounded),
+              const SizedBox(height: 12),
+              if (managers.isNotEmpty) DropdownButtonFormField<String>(
+                value: selectedManager.isNotEmpty ? selectedManager : null,
+                decoration: InputDecoration(
+                  labelText: 'Reporting Manager',
+                  prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: managers.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                onChanged: (v) => setS(() => selectedManager = v ?? ''),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _mgmtColor, foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final user = AppUser(
+                  name:             nameCtrl.text.trim(),
+                  email:            '${emailCtrl.text.trim()}@fomrahousing.in',
+                  employeeId:       empIdCtrl.text.trim(),
+                  designation:      desigCtrl.text.trim(),
+                  role:             'Employee',
+                  active:           true,
+                  reportingManager: selectedManager,
+                  dateOfJoining:    form['date_of_joining'] as String? ?? '',
+                );
+                await UserStore.upsertOne(user);
+                await Supabase.instance.client
+                    .from('onboarding_forms')
+                    .update({'status': 'access_granted'})
+                    .eq('id', form['id'].toString());
+                await widget.onUserCreated();
+                await _load();
+              },
+              child: const Text('Grant Access'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _viewDetails(BuildContext context, Map<String, dynamic> form) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          child: Column(children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: _mgmtColor,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              child: Row(children: [
+                Expanded(child: Text(
+                  form['name'] ?? 'Onboarding Details',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                )),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ]),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: _buildDetails(form),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetails(Map<String, dynamic> d) {
+    Widget row(String label, dynamic value) {
+      final v = (value?.toString() ?? '').trim();
+      if (v.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 180, child: Text(label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF546E7A)))),
+          Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)))),
+        ]),
+      );
+    }
+    Widget section(String title, List<Widget> rows) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _mgmtColor)),
+        const Divider(height: 10),
+        ...rows,
+      ],
+    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      section('Basic Information', [
+        row('Name', d['name']), row('Phone', d['phone_number']),
+        row('Father Name', d['father_name']), row('Designation', d['designation']),
+        row('Date of Joining', d['date_of_joining']),
+      ]),
+      section('Personal', [
+        row('Full Name', d['full_name']), row('Date of Birth', d['date_of_birth']),
+        row('Postal Address', d['postal_address']), row('Permanent Address', d['permanent_address']),
+      ]),
+      section('Emergency', [
+        row('Blood Group', d['blood_group']), row('Allergic To', d['allergic_to']),
+        row('Emergency Contact', d['emergency_contact_name']),
+        row('Emergency Number', d['emergency_contact_number']),
+        row('Aadhar Number', d['aadhar_number']),
+      ]),
+      section('Additional', [
+        row('ESI Number', d['esi_number']), row('PF Number', d['pf_number']),
+        row('Languages', d['languages_known']), row('Hobbies', d['hobbies']),
+      ]),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final narrow = MediaQuery.of(context).size.width < 700;
+    return _loading
+        ? const Center(child: CircularProgressIndicator(color: _mgmtColor))
+        : _forms.isEmpty
+            ? Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.how_to_reg_rounded, size: 56, color: Colors.grey.shade300),
+                  const SizedBox(height: 12),
+                  Text('No HR-approved submissions yet',
+                      style: TextStyle(color: Colors.grey.shade500)),
+                ]),
+              )
+            : ListView.separated(
+                padding: EdgeInsets.all(narrow ? 16 : 24),
+                itemCount: _forms.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (_, i) {
+                  final f = _forms[i];
+                  final status = (f['status'] as String?) ?? '';
+                  final granted = status == 'access_granted';
+                  return Card(
+                    elevation: 0,
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: granted ? const Color(0xFF6A1B9A) : const Color(0xFFE8EAF6))),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: _mgmtColor.withValues(alpha: 0.12),
+                            child: Text(
+                              ((f['name'] as String?) ?? '?')[0].toUpperCase(),
+                              style: const TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text((f['name'] as String?) ?? '—',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1A237E))),
+                            Text('${f['designation'] ?? ''}  ·  ${f['phone_number'] ?? ''}',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                          ])),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (granted ? const Color(0xFF6A1B9A) : const Color(0xFF2E7D32)).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(granted ? 'Access Granted' : 'HR Approved',
+                                style: TextStyle(fontSize: 11,
+                                    color: granted ? const Color(0xFF6A1B9A) : const Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ]),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.visibility_rounded, size: 15),
+                            label: const Text('View Details', style: TextStyle(fontSize: 12)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _mgmtColor,
+                              side: const BorderSide(color: _mgmtColor),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => _viewDetails(context, f),
+                          ),
+                          const SizedBox(width: 10),
+                          if (!granted)
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.vpn_key_rounded, size: 15),
+                              label: const Text('Grant Access', style: TextStyle(fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _mgmtColor,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => _grantAccess(context, f),
+                            ),
+                          if (granted)
+                            const Row(children: [
+                              Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF6A1B9A)),
+                              SizedBox(width: 4),
+                              Text('User account created', style: TextStyle(fontSize: 12, color: Color(0xFF6A1B9A))),
+                            ]),
+                        ]),
+                      ]),
+                    ),
+                  );
+                },
+              );
   }
 }
 

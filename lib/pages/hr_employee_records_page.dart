@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
@@ -378,8 +379,27 @@ class _ProfileDialog extends StatelessWidget {
                     ? '${user.leaveAllocation} days / year'
                     : ''),
 
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => _FullProfileDialog(user: user),
+                ),
+                icon: const Icon(Icons.folder_open_rounded, size: 16),
+                label: const Text('Interview & Onboarding Records'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1565C0),
+                  side: const BorderSide(color: Color(0xFF1565C0)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
             if (canEdit) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -408,6 +428,195 @@ class _ProfileDialog extends StatelessWidget {
             ],
           ]),
         ),
+      ),
+    );
+  }
+}
+
+// ── Full profile: interview + onboarding data ─────────────────────────────────
+
+class _FullProfileDialog extends StatefulWidget {
+  final AppUser user;
+  const _FullProfileDialog({required this.user});
+  @override
+  State<_FullProfileDialog> createState() => _FullProfileDialogState();
+}
+
+class _FullProfileDialogState extends State<_FullProfileDialog>
+    with SingleTickerProviderStateMixin {
+  static const _c = Color(0xFF0D47A1);
+  late final TabController _tabs;
+  Map<String, dynamic>? _onboarding;
+  Map<String, dynamic>? _interview;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    final db = Supabase.instance.client;
+    final name = widget.user.name;
+    final email = widget.user.email;
+    try {
+      final ob = await db.from('onboarding_forms').select().or('name.ilike.%$name%,phone_number.eq.$email').limit(1);
+      final ca = await db.from('candidate_applications').select().or('name.ilike.%$name%,email.eq.$email').limit(1);
+      setState(() {
+        _onboarding = (ob as List).isNotEmpty ? ob.first as Map<String, dynamic> : null;
+        _interview  = (ca as List).isNotEmpty ? ca.first as Map<String, dynamic> : null;
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Widget _row(String label, dynamic value) {
+    final v = (value?.toString() ?? '').trim();
+    if (v.isEmpty || v == 'null') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(
+            width: 170,
+            child: Text(label,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF546E7A)))),
+        Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)))),
+      ]),
+    );
+  }
+
+  Widget _section(String title, List<Widget> rows) {
+    final nonEmpty = rows.whereType<Padding>().toList();
+    if (nonEmpty.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 14),
+      Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _c)),
+      const Divider(height: 8),
+      ...rows,
+    ]);
+  }
+
+  Widget _onboardingView(Map<String, dynamic> d) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _section('Basic Info', [
+        _row('Name', d['name']), _row('Phone', d['phone_number']),
+        _row('Designation', d['designation']), _row('Date of Joining', d['date_of_joining']),
+      ]),
+      _section('Personal', [
+        _row('Full Name', d['full_name']), _row('Date of Birth', d['date_of_birth']),
+        _row('Father Name', d['father_name']),
+        _row('Postal Address', d['postal_address']), _row('Permanent Address', d['permanent_address']),
+      ]),
+      _section('Emergency', [
+        _row('Blood Group', d['blood_group']), _row('Allergic To', d['allergic_to']),
+        _row('Emergency Contact', d['emergency_contact_name']),
+        _row('Emergency Number', d['emergency_contact_number']),
+        _row('Aadhar Number', d['aadhar_number']),
+      ]),
+      _section('Additional', [
+        _row('ESI Number', d['esi_number']), _row('PF Number', d['pf_number']),
+        _row('Languages', d['languages_known']), _row('Hobbies', d['hobbies']),
+      ]),
+    ],
+  );
+
+  Widget _interviewView(Map<String, dynamic> d) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _section('Application', [
+        _row('Name', d['name']), _row('Post Applied', d['post_applied']),
+        _row('Interview Date', d['interview_date']), _row('Mobile', d['mobile']),
+        _row('Email', d['email']), _row('Place', d['place']),
+        _row('Date of Birth', d['dob']), _row('Gender', d['gender']),
+        _row('Nationality', d['nationality']), _row('Marital Status', d['marital_status']),
+      ]),
+      _section('Experience', [
+        _row('Total Experience', d['total_experience']),
+        _row('Relevant Experience', d['relevant_experience']),
+        _row('Reason for Change', d['reason_for_change']),
+        _row('Current CTC', d['current_ctc']), _row('Expected CTC', d['expected_ctc']),
+        _row('Notice Period', d['notice_period']),
+      ]),
+      _section('HR Review', [
+        _row('HR Status', d['hr_status']), _row('HR Comment', d['hr_comment']),
+        _row('Manager Status', d['manager_status']), _row('Manager Comment', d['manager_comment']),
+        _row('Management Status', d['management_status']),
+      ]),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 720),
+        child: Column(children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: _c,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                child: Text(widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(widget.user.name,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(widget.user.designation,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ])),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ]),
+          ),
+          TabBar(
+            controller: _tabs,
+            indicatorColor: _c,
+            labelColor: _c,
+            unselectedLabelColor: Colors.grey,
+            tabs: const [
+              Tab(icon: Icon(Icons.assignment_ind_rounded, size: 18), text: 'Onboarding'),
+              Tab(icon: Icon(Icons.work_history_rounded, size: 18), text: 'Interview'),
+            ],
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: _c))
+                : TabBarView(
+                    controller: _tabs,
+                    children: [
+                      _onboarding != null
+                          ? SingleChildScrollView(
+                              padding: const EdgeInsets.all(16),
+                              child: _onboardingView(_onboarding!))
+                          : const Center(child: Text('No onboarding form found for this employee.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey))),
+                      _interview != null
+                          ? SingleChildScrollView(
+                              padding: const EdgeInsets.all(16),
+                              child: _interviewView(_interview!))
+                          : const Center(child: Text('No interview application found for this employee.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey))),
+                    ],
+                  ),
+          ),
+        ]),
       ),
     );
   }
