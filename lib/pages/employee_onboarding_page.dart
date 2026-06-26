@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmployeeOnboardingPage extends StatefulWidget {
@@ -71,7 +72,12 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
               ),
             ]),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // Form link banner
+          _FormLinkBanner(),
+
+          const SizedBox(height: 16),
 
           if (_loading)
             const Center(child: Padding(
@@ -100,6 +106,71 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             )),
         ]),
       ),
+    );
+  }
+}
+
+class _FormLinkBanner extends StatelessWidget {
+  static const _link = 'https://fomrahrms-zeta.vercel.app/onboarding-form';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFA5D6A7)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Icon(Icons.link_rounded, color: Color(0xFF2E7D32), size: 16),
+          SizedBox(width: 6),
+          Text('Joining Form Link',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF2E7D32))),
+          SizedBox(width: 6),
+          Text('— Share this with new employees',
+              style: TextStyle(fontSize: 11, color: Color(0xFF546E7A))),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFA5D6A7)),
+              ),
+              child: const SelectableText(
+                _link,
+                style: TextStyle(fontSize: 12, color: Color(0xFF1B5E20), fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.copy_rounded, size: 14),
+            label: const Text('Copy', style: TextStyle(fontSize: 12)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: _link));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Link copied to clipboard'),
+                duration: Duration(seconds: 2),
+                backgroundColor: Color(0xFF2E7D32),
+              ));
+            },
+          ),
+        ]),
+      ]),
     );
   }
 }
