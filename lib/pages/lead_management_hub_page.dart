@@ -365,7 +365,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const SelectableText(
-                                'function findHeaderRow(data) {\n  for (var i = 0; i < Math.min(data.length, 5); i++) {\n    if (data[i].some(function(cell) { return cell !== \'\'; })) return i;\n  }\n  return 0;\n}',
+                                'function getVisibleSheet(ss) {\n  var sheets = ss.getSheets();\n  for (var i = 0; i < sheets.length; i++) {\n    if (!sheets[i].isSheetHidden()) return sheets[i];\n  }\n  return sheets[0];\n}',
                                 style: TextStyle(fontSize: 11, color: Color(0xFF80CBC4), fontFamily: 'monospace'),
                               ),
                             ),
