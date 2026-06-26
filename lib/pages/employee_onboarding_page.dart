@@ -359,8 +359,15 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                       })
                       .eq('id', widget.data['id'].toString());
                   widget.onRefresh();
-                } catch (_) {
+                } catch (e) {
                   setState(() => _acting = false);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Failed to forward: $e\n\nHave you run the SQL to add the status columns in Supabase?'),
+                      backgroundColor: Colors.red.shade700,
+                      duration: const Duration(seconds: 8),
+                    ));
+                  }
                 }
               },
               child: const Text('Forward'),
