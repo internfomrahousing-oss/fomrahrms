@@ -34,6 +34,9 @@ import '../models/user_session.dart';
   alter table leave_applications add column if not exists decided_by text default '';
   alter table leave_applications add column if not exists rejection_comment text default '';
   alter table leave_applications add column if not exists is_half_day boolean default false;
+  alter table leave_applications add column if not exists management_status text default 'pending';
+  alter table leave_applications add column if not exists management_decided_by text default '';
+  alter table leave_applications add column if not exists management_rejection_comment text default '';
 
   create table if not exists maintenance_tickets (
     id text primary key,
@@ -217,6 +220,20 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  /// Called when management (HR/admin) approves or denies — writes to the
+  /// separate management columns so the manager's decision is never overwritten.
+  static Future<void> updateLeaveManagementStatus(
+      String id, LeaveApprovalStatus status,
+      {String decidedBy = '', String rejectionComment = ''}) async {
+    try {
+      await _db?.from('leave_applications').update({
+        'management_status':            status.name,
+        'management_decided_by':        decidedBy,
+        'management_rejection_comment': rejectionComment,
+      }).eq('id', id);
+    } catch (_) {}
+  }
+
   static Future<List<LeaveApplication>> fetchLeaveApplications() async {
     try {
       final data = await _db
@@ -236,9 +253,10 @@ class SupabaseService {
           reason:       (row['reason'] as String?) ?? '',
           appliedOn:    DateTime.parse(row['applied_on'] as String),
         );
-        // Prefer management_status if it was set (legacy two-level data migration)
+        // Prefer management_status if set — it overrides manager decision and locks manager controls
         final mgmtStatus = _parseStatus(row['management_status']);
         if (mgmtStatus != LeaveApprovalStatus.pending) {
+          app.managementDecided = true;
           app.managerStatus    = mgmtStatus;
           app.decidedBy        = (row['management_decided_by']        as String?) ?? '';
           app.rejectionComment = (row['management_rejection_comment'] as String?) ?? '';

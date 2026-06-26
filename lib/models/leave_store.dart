@@ -17,6 +17,9 @@ class LeaveApplication {
   String rejectionComment = '';
   bool   isHalfDay        = false;
 
+  // True once management (HR/admin) has made a decision — locks manager's controls
+  bool managementDecided = false;
+
   /// Actual deduction: 0.5 for half day, full days otherwise.
   double get effectiveDays => isHalfDay ? 0.5 : days.toDouble();
 

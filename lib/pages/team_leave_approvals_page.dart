@@ -95,16 +95,21 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     }
   }
 
-  // Both manager and management update the same field
   Future<void> _approve(LeaveApplication app) async {
     final by = UserSession.name;
     setState(() {
       app.managerStatus    = LeaveApprovalStatus.approved;
       app.decidedBy        = by;
       app.rejectionComment = '';
+      if (_isMgmt) app.managementDecided = true;
     });
-    await SupabaseService.updateLeaveManagerStatus(
-        app.id, LeaveApprovalStatus.approved, decidedBy: by);
+    if (_isMgmt) {
+      await SupabaseService.updateLeaveManagementStatus(
+          app.id, LeaveApprovalStatus.approved, decidedBy: by);
+    } else {
+      await SupabaseService.updateLeaveManagerStatus(
+          app.id, LeaveApprovalStatus.approved, decidedBy: by);
+    }
   }
 
   Future<void> _deny(LeaveApplication app) async {
@@ -154,10 +159,17 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       app.managerStatus    = LeaveApprovalStatus.denied;
       app.decidedBy        = by;
       app.rejectionComment = comment;
+      if (_isMgmt) app.managementDecided = true;
     });
-    await SupabaseService.updateLeaveManagerStatus(
-        app.id, LeaveApprovalStatus.denied,
-        decidedBy: by, rejectionComment: comment);
+    if (_isMgmt) {
+      await SupabaseService.updateLeaveManagementStatus(
+          app.id, LeaveApprovalStatus.denied,
+          decidedBy: by, rejectionComment: comment);
+    } else {
+      await SupabaseService.updateLeaveManagerStatus(
+          app.id, LeaveApprovalStatus.denied,
+          decidedBy: by, rejectionComment: comment);
+    }
   }
 
   Future<void> _reset(LeaveApplication app) async {
@@ -165,9 +177,15 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       app.managerStatus    = LeaveApprovalStatus.pending;
       app.decidedBy        = '';
       app.rejectionComment = '';
+      if (_isMgmt) app.managementDecided = false;
     });
-    await SupabaseService.updateLeaveManagerStatus(
-        app.id, LeaveApprovalStatus.pending);
+    if (_isMgmt) {
+      await SupabaseService.updateLeaveManagementStatus(
+          app.id, LeaveApprovalStatus.pending);
+    } else {
+      await SupabaseService.updateLeaveManagerStatus(
+          app.id, LeaveApprovalStatus.pending);
+    }
   }
 
   @override
@@ -480,8 +498,32 @@ class _RequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Action row
-          if (status == LeaveApprovalStatus.pending)
+          // Action row — locked for managers when management has already decided
+          if (!isManagement && request.managementDecided)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: Row(children: [
+                Icon(Icons.lock_rounded, size: 15, color: Colors.grey.shade500),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Decision locked by Management: $sl'
+                    '${request.decidedBy.isNotEmpty ? ' (${request.decidedBy})' : ''}',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ]),
+            )
+          else if (status == LeaveApprovalStatus.pending)
             Row(children: [
               Expanded(
                 child: OutlinedButton.icon(
