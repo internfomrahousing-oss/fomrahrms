@@ -610,6 +610,8 @@ class _LeadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final allColumns = lead.fields.entries.toList();
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
@@ -622,105 +624,56 @@ class _LeadCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor:
-                    const Color(0xFF0D47A1).withValues(alpha: 0.1),
+            // ── Row identifier header ──────────────────────────────────
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: Text(
-                  lead.name.isNotEmpty
-                      ? lead.name[0].toUpperCase()
-                      : '?',
+                  '${lead.rowKeyColumn}: ${lead.rowKeyValue}',
                   style: const TextStyle(
-                      color: _blue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17),
+                      fontSize: 11, color: _blue, fontWeight: FontWeight.w700),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lead.name.isEmpty ? (lead.fields.values.elementAtOrNull(1) ?? 'Unknown') : lead.name,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700, color: _blue),
-                    ),
-                    const SizedBox(height: 3),
-                    if (lead.phone.isNotEmpty)
-                      Row(children: [
-                        const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF78909C)),
-                        const SizedBox(width: 4),
-                        Text(lead.phone,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
-                      ]),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              const Spacer(),
+              statusBadge,
+            ]),
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+            const SizedBox(height: 10),
+
+            // ── All columns ────────────────────────────────────────────
+            ...allColumns.map((e) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  statusBadge,
-                  const SizedBox(height: 4),
-                  Text(
-                    '${lead.rowKeyColumn}: ${lead.rowKeyValue}',
-                    style: const TextStyle(
-                        fontSize: 10, color: Color(0xFF78909C)),
+                  SizedBox(
+                    width: 160,
+                    child: Text(
+                      e.key,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF78909C),
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      e.value.isEmpty ? '—' : e.value,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF1A237E)),
+                    ),
                   ),
                 ],
               ),
-            ]),
-            // ── All other columns ──────────────────────────────────────
-            Builder(builder: (_) {
-              // Skip first col (row key), name-like col, phone-like col, status-like col
-              final skipKeys = {lead.rowKeyColumn};
-              for (final key in lead.fields.keys) {
-                final k = key.toUpperCase();
-                if (k.contains('NAME') || k.contains('CANDIDATE') ||
-                    k.contains('CUSTOMER') || k.contains('CLIENT')) skipKeys.add(key);
-                if (k.contains('PHONE') || k.contains('MOBILE')) skipKeys.add(key);
-                if (k.contains('STATUS') || k.contains('STAGE')) skipKeys.add(key);
-              }
-              final extras = lead.fields.entries
-                  .where((e) => !skipKeys.contains(e.key) && e.value.isNotEmpty)
-                  .toList();
-              if (extras.isEmpty) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: extras.map((e) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F4FF),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFD0D8F0)),
-                    ),
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${e.key}: ',
-                            style: const TextStyle(
-                                fontSize: 10, color: Color(0xFF78909C),
-                                fontWeight: FontWeight.w600),
-                          ),
-                          TextSpan(
-                            text: e.value,
-                            style: const TextStyle(
-                                fontSize: 10, color: Color(0xFF374151)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )).toList(),
-                ),
-              );
-            }),
-            const SizedBox(height: 10),
+            )),
+
+            const SizedBox(height: 8),
             const Divider(height: 1, color: Color(0xFFEEEEEE)),
             const SizedBox(height: 8),
             Row(
