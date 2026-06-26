@@ -722,22 +722,35 @@ class _GasCodeBlockState extends State<_GasCodeBlock> {
   }
 }
 
+// Finds the first non-empty row index (header row) within the first 5 rows
+function findHeaderRow(data) {
+  for (var i = 0; i < Math.min(data.length, 5); i++) {
+    if (data[i].some(function(cell) { return cell !== ''; })) return i;
+  }
+  return 0;
+}
+
 function list(sheet) {
   var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return respond([]);
-  var headers = data[0];
-  var leads = data.slice(1).map(function(row) {
-    var obj = {};
-    headers.forEach(function(h, i) {
-      obj[h] = row[i] != null ? String(row[i]) : '';
+  var hi = findHeaderRow(data);
+  if (data.length <= hi + 1) return respond([]);
+  var headers = data[hi];
+  var leads = data.slice(hi + 1)
+    .filter(function(row) { return row.some(function(cell) { return cell !== ''; }); })
+    .map(function(row) {
+      var obj = {};
+      headers.forEach(function(h, i) {
+        obj[h] = row[i] != null ? String(row[i]) : '';
+      });
+      return obj;
     });
-    return obj;
-  });
   return respond(leads);
 }
 
 function add(sheet, params) {
-  var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  var data = sheet.getRange(1, 1, Math.min(5, sheet.getLastRow()), sheet.getLastColumn()).getValues();
+  var hi = findHeaderRow(data);
+  var headers = data[hi];
   var newRow = headers.map(function(h) { return params[h] || ''; });
   sheet.appendRow(newRow);
   SpreadsheetApp.flush();
@@ -746,9 +759,10 @@ function add(sheet, params) {
 
 function update(sheet, params) {
   var data = sheet.getDataRange().getValues();
-  var headers = data[0];
+  var hi = findHeaderRow(data);
+  var headers = data[hi];
   var keyValue = params[headers[0]];
-  for (var i = 1; i < data.length; i++) {
+  for (var i = hi + 1; i < data.length; i++) {
     if (String(data[i][0]) === String(keyValue)) {
       var updated = headers.map(function(h, j) {
         return params[h] !== undefined ? params[h] : String(data[i][j]);
@@ -763,9 +777,10 @@ function update(sheet, params) {
 
 function deleteRow(sheet, params) {
   var data = sheet.getDataRange().getValues();
-  var headers = data[0];
+  var hi = findHeaderRow(data);
+  var headers = data[hi];
   var keyValue = params[headers[0]];
-  for (var i = 1; i < data.length; i++) {
+  for (var i = hi + 1; i < data.length; i++) {
     if (String(data[i][0]) === String(keyValue)) {
       sheet.deleteRow(i + 1);
       SpreadsheetApp.flush();
