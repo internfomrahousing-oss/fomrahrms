@@ -46,7 +46,6 @@
     <div class="spinner"></div>
   </div>
   <script>
-    // Unregister any old service workers so users always get fresh code
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
         regs.forEach(function(reg) { reg.unregister(); });
