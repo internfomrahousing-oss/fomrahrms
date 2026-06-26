@@ -149,7 +149,7 @@ class _AdministrationPageState extends State<AdministrationPage>
               controller: _tabs,
               children: [
                 _UsersTab(users: _users, roles: _roles, onUpsert: _upsertUser, onDelete: _deleteUser),
-                _OnboardingTab(users: _users, onUserCreated: _loadUsers),
+                const _OnboardingTab(),
                 _RolesTab(roles: _roles, onChange: () => setState(() {})),
                 _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
               ],
@@ -550,9 +550,7 @@ class _UsersTab extends StatelessWidget {
 // ── Onboarding tab ────────────────────────────────────────────────────────────
 
 class _OnboardingTab extends StatefulWidget {
-  final List<AppUser> users;
-  final Future<void> Function() onUserCreated;
-  const _OnboardingTab({required this.users, required this.onUserCreated});
+  const _OnboardingTab();
 
   @override
   State<_OnboardingTab> createState() => _OnboardingTabState();
@@ -574,7 +572,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
       final data = await Supabase.instance.client
           .from('onboarding_forms')
           .select()
-          .inFilter('status', ['hr_approved', 'access_granted'])
+          .inFilter('status', ['hr_approved', 'mgmt_approved', 'mgmt_denied', 'access_granted'])
           .order('submitted_at', ascending: false);
       setState(() { _forms = List<Map<String, dynamic>>.from(data); _loading = false; });
     } catch (_) {
@@ -582,87 +580,14 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
   }
 
-  Future<void> _grantAccess(BuildContext context, Map<String, dynamic> form) async {
-    final nameCtrl  = TextEditingController(text: form['name'] ?? '');
-    final emailCtrl = TextEditingController(
-        text: (form['name'] as String? ?? '').toLowerCase().replaceAll(' ', '.'));
-    final empIdCtrl = TextEditingController();
-    final desigCtrl = TextEditingController(text: form['designation'] ?? '');
-    final managers  = widget.users.where((u) => u.role == 'Manager').map((u) => u.name).toList();
-    String selectedManager = managers.isNotEmpty ? managers.first : '';
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: const Text('Grant Access', style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              _DialogField(controller: nameCtrl,  label: 'Full Name',    icon: Icons.person_rounded),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  prefixIcon: const Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
-                  suffix: const Text('@fomrahousing.in',
-                      style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  filled: true, fillColor: Colors.white,
-                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _DialogField(controller: empIdCtrl, label: 'Employee ID (e.g. EMP001)', icon: Icons.badge_rounded),
-              const SizedBox(height: 12),
-              _DialogField(controller: desigCtrl, label: 'Designation', icon: Icons.work_rounded),
-              const SizedBox(height: 12),
-              if (managers.isNotEmpty) DropdownButtonFormField<String>(
-                value: selectedManager.isNotEmpty ? selectedManager : null,
-                decoration: InputDecoration(
-                  labelText: 'Reporting Manager',
-                  prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  filled: true, fillColor: Colors.white,
-                ),
-                items: managers.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                onChanged: (v) => setS(() => selectedManager = v ?? ''),
-              ),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _mgmtColor, foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final user = AppUser(
-                  name:             nameCtrl.text.trim(),
-                  email:            '${emailCtrl.text.trim()}@fomrahousing.in',
-                  employeeId:       empIdCtrl.text.trim(),
-                  designation:      desigCtrl.text.trim(),
-                  role:             'Employee',
-                  active:           true,
-                  reportingManager: selectedManager,
-                  dateOfJoining:    form['date_of_joining'] as String? ?? '',
-                );
-                await UserStore.upsertOne(user);
-                await Supabase.instance.client
-                    .from('onboarding_forms')
-                    .update({'status': 'access_granted'})
-                    .eq('id', form['id'].toString());
-                await widget.onUserCreated();
-                await _load();
-              },
-              child: const Text('Grant Access'),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _updateStatus(String id, String status) async {
+    try {
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({'status': status})
+          .eq('id', id);
+      await _load();
+    } catch (_) {}
   }
 
   Future<void> _viewDetails(BuildContext context, Map<String, dynamic> form) async {
@@ -768,13 +693,20 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                 itemBuilder: (_, i) {
                   final f = _forms[i];
                   final status = (f['status'] as String?) ?? '';
-                  final granted = status == 'access_granted';
+                  final id = f['id'].toString();
+                  Color statusColor;
+                  String statusLabel;
+                  if (status == 'mgmt_approved') { statusColor = const Color(0xFF2E7D32); statusLabel = 'Approved'; }
+                  else if (status == 'mgmt_denied') { statusColor = const Color(0xFFB71C1C); statusLabel = 'Denied'; }
+                  else if (status == 'access_granted') { statusColor = const Color(0xFF6A1B9A); statusLabel = 'Active'; }
+                  else { statusColor = const Color(0xFF1565C0); statusLabel = 'Awaiting Review'; }
+
                   return Card(
                     elevation: 0,
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: granted ? const Color(0xFF6A1B9A) : const Color(0xFFE8EAF6))),
+                        side: BorderSide(color: statusColor.withValues(alpha: 0.3))),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -797,13 +729,11 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: (granted ? const Color(0xFF6A1B9A) : const Color(0xFF2E7D32)).withValues(alpha: 0.1),
+                              color: statusColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(granted ? 'Access Granted' : 'HR Approved',
-                                style: TextStyle(fontSize: 11,
-                                    color: granted ? const Color(0xFF6A1B9A) : const Color(0xFF2E7D32),
-                                    fontWeight: FontWeight.w600)),
+                            child: Text(statusLabel,
+                                style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w600)),
                           ),
                         ]),
                         const SizedBox(height: 12),
@@ -821,11 +751,23 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                             ),
                             onPressed: () => _viewDetails(context, f),
                           ),
-                          const SizedBox(width: 10),
-                          if (!granted)
+                          if (status == 'hr_approved') ...[
+                            const SizedBox(width: 10),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.close_rounded, size: 15),
+                              label: const Text('Deny', style: TextStyle(fontSize: 12)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => _updateStatus(id, 'mgmt_denied'),
+                            ),
+                            const SizedBox(width: 10),
                             ElevatedButton.icon(
-                              icon: const Icon(Icons.vpn_key_rounded, size: 15),
-                              label: const Text('Grant Access', style: TextStyle(fontSize: 12)),
+                              icon: const Icon(Icons.check_rounded, size: 15),
+                              label: const Text('Approve', style: TextStyle(fontSize: 12)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _mgmtColor,
                                 foregroundColor: Colors.white,
@@ -833,14 +775,15 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              onPressed: () => _grantAccess(context, f),
+                              onPressed: () => _updateStatus(id, 'mgmt_approved'),
                             ),
-                          if (granted)
-                            const Row(children: [
-                              Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF6A1B9A)),
-                              SizedBox(width: 4),
-                              Text('User account created', style: TextStyle(fontSize: 12, color: Color(0xFF6A1B9A))),
-                            ]),
+                          ],
+                          if (status == 'access_granted') ...[
+                            const SizedBox(width: 10),
+                            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF6A1B9A)),
+                            const SizedBox(width: 4),
+                            const Text('Account active', style: TextStyle(fontSize: 12, color: Color(0xFF6A1B9A))),
+                          ],
                         ]),
                       ]),
                     ),

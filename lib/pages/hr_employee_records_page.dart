@@ -402,6 +402,25 @@ class _ProfileDialog extends StatelessWidget {
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    user.active = !user.active;
+                    onSave(user);
+                    Navigator.pop(context);
+                  },
+                  icon: Icon(user.active ? Icons.person_off_rounded : Icons.person_rounded, size: 16),
+                  label: Text(user.active ? 'Deactivate Account' : 'Activate Account'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: user.active ? Colors.red : Colors.green,
+                    side: BorderSide(color: user.active ? Colors.red : Colors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);

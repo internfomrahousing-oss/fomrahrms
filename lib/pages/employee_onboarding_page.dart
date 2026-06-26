@@ -3,18 +3,46 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/app_user.dart';
+import '../services/user_store.dart';
+
+Future<List<AppUser>> _loadAllUsers() async {
+  try { return await UserStore.load(); } catch (_) { return []; }
+}
+Future<void> _saveUser(AppUser u) async { await UserStore.upsertOne(u); }
+
+// Thin wrapper to avoid importing AppUser constructor verbosely
+AppUser _AppUserRecord({
+  required String name,
+  required String email,
+  required String employeeId,
+  required String designation,
+  required String role,
+  required bool active,
+  required String reportingManager,
+  required String dateOfJoining,
+}) =>
+    AppUser(
+      name: name, email: email, employeeId: employeeId,
+      designation: designation, role: role, active: active,
+      reportingManager: reportingManager, dateOfJoining: dateOfJoining,
+    );
 
 // Status helpers
 Color _statusColor(String s) {
-  if (s == 'hr_approved') return const Color(0xFF2E7D32);
-  if (s == 'hr_denied')   return const Color(0xFFC62828);
+  if (s == 'hr_approved')    return const Color(0xFF1565C0);
+  if (s == 'hr_denied')      return const Color(0xFFC62828);
+  if (s == 'mgmt_approved')  return const Color(0xFF2E7D32);
+  if (s == 'mgmt_denied')    return const Color(0xFFB71C1C);
   if (s == 'access_granted') return const Color(0xFF6A1B9A);
   return const Color(0xFFE65100);
 }
 String _statusLabel(String s) {
-  if (s == 'hr_approved')    return 'HR Approved';
-  if (s == 'hr_denied')      return 'Denied';
-  if (s == 'access_granted') return 'Access Granted';
+  if (s == 'hr_approved')    return 'Awaiting Management';
+  if (s == 'hr_denied')      return 'HR Denied';
+  if (s == 'mgmt_approved')  return 'Mgmt Approved';
+  if (s == 'mgmt_denied')    return 'Mgmt Denied';
+  if (s == 'access_granted') return 'Active';
   return 'Pending';
 }
 
@@ -238,6 +266,99 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     }
   }
 
+  Future<void> _activateAccount(BuildContext context) async {
+    // Load managers from UserStore to pick one
+    final allUsers = await _loadAllUsers();
+    final managers = allUsers.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+    if (!context.mounted) return;
+
+    final d = widget.data;
+    final emailCtrl = TextEditingController(
+        text: (d['name'] as String? ?? '').toLowerCase().replaceAll(' ', '.'));
+    final empIdCtrl = TextEditingController();
+    String selectedManager = managers.isNotEmpty ? managers.first : '';
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Activate Account', style: TextStyle(color: _blue, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                controller: emailCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: const Icon(Icons.email_rounded, color: _blue, size: 20),
+                  suffix: const Text('@fomrahousing.in',
+                      style: TextStyle(color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: empIdCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Employee ID (e.g. EMP001)',
+                  prefixIcon: const Icon(Icons.badge_rounded, color: _blue, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+              if (managers.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedManager.isNotEmpty ? selectedManager : null,
+                  decoration: InputDecoration(
+                    labelText: 'Reporting Manager',
+                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _blue, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    filled: true, fillColor: Colors.white,
+                  ),
+                  items: managers.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                  onChanged: (v) => setS(() => selectedManager = v ?? ''),
+                ),
+              ],
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _blue, foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                setState(() => _acting = true);
+                try {
+                  final user = _AppUserRecord(
+                    name:             d['name'] as String? ?? '',
+                    email:            '${emailCtrl.text.trim()}@fomrahousing.in',
+                    employeeId:       empIdCtrl.text.trim(),
+                    designation:      d['designation'] as String? ?? '',
+                    role:             'Employee',
+                    active:           true,
+                    reportingManager: selectedManager,
+                    dateOfJoining:    d['date_of_joining'] as String? ?? '',
+                  );
+                  await _saveUser(user);
+                  await _updateStatus('access_granted');
+                } catch (_) {
+                  setState(() => _acting = false);
+                }
+              },
+              child: const Text('Activate'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _delete(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -390,7 +511,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
               ]),
               _attachmentsSection(d['attachments']),
 
-              // Approve / Deny buttons (only if pending)
+              // HR: Approve/Deny on pending
               if (isPending) ...[
                 const SizedBox(height: 16),
                 const Divider(height: 1),
@@ -412,9 +533,9 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   Expanded(
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.check_rounded, size: 16),
-                      label: const Text('Approve'),
+                      label: const Text('Send to Management'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
+                        backgroundColor: const Color(0xFF1565C0),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -423,6 +544,26 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                     ),
                   ),
                 ]),
+              ],
+              // HR: Activate account after management approval
+              if (status == 'mgmt_approved') ...[
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.person_add_rounded, size: 16),
+                    label: const Text('Activate Account'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _acting ? null : () => _activateAccount(context),
+                  ),
+                ),
               ],
             ]),
           ),
