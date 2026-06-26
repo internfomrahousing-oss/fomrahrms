@@ -228,9 +228,6 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
     }
   }
 
-  static const _gasScriptUrl =
-      'https://script.google.com/macros/s/AKfycbxLOtqiULJPAQt4OedV74mres2vNm8W1i-qz_7PZkTEgyXQqcqGlGfP69hNvawCfmVeZw/exec';
-
   void _showSetupGuide() {
     showDialog(
       context: context,
@@ -276,54 +273,6 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // GAS URL banner
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFA5D6A7)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(children: [
-                              Icon(Icons.check_circle_rounded,
-                                  size: 15, color: Color(0xFF2E7D32)),
-                              SizedBox(width: 6),
-                              Text('Apps Script is already deployed',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF2E7D32))),
-                            ]),
-                            const SizedBox(height: 6),
-                            const Text('GAS Script URL:',
-                                style: TextStyle(
-                                    fontSize: 11, color: Color(0xFF546E7A))),
-                            const SizedBox(height: 4),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                    color: const Color(0xFFA5D6A7)),
-                              ),
-                              child: SelectableText(
-                                _gasScriptUrl,
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    fontFamily: 'monospace',
-                                    color: Color(0xFF1B5E20)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
                       const Text(
                         'Follow these steps for each new Google Sheet:',
                         style: TextStyle(
