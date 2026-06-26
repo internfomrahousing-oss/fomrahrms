@@ -559,6 +559,7 @@ class _OnboardingTab extends StatefulWidget {
 class _OnboardingTabState extends State<_OnboardingTab> {
   List<Map<String, dynamic>> _forms = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -567,7 +568,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final data = await Supabase.instance.client
           .from('onboarding_forms')
@@ -575,8 +576,8 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           .inFilter('status', ['hr_approved', 'mgmt_approved', 'mgmt_denied', 'access_granted'])
           .order('submitted_at', ascending: false);
       setState(() { _forms = List<Map<String, dynamic>>.from(data); _loading = false; });
-    } catch (_) {
-      setState(() => _loading = false);
+    } catch (e) {
+      setState(() { _loading = false; _error = e.toString(); });
     }
   }
 
@@ -587,7 +588,9 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           .update({'status': status})
           .eq('id', id);
       await _load();
-    } catch (_) {}
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
   }
 
   Future<void> _viewDetails(BuildContext context, Map<String, dynamic> form) async {
@@ -675,18 +678,45 @@ class _OnboardingTabState extends State<_OnboardingTab> {
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
-    return _loading
-        ? const Center(child: CircularProgressIndicator(color: _mgmtColor))
-        : _forms.isEmpty
-            ? Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.how_to_reg_rounded, size: 56, color: Colors.grey.shade300),
-                  const SizedBox(height: 12),
-                  Text('No HR-approved submissions yet',
-                      style: TextStyle(color: Colors.grey.shade500)),
-                ]),
-              )
-            : ListView.separated(
+    if (_loading) return const Center(child: CircularProgressIndicator(color: _mgmtColor));
+    if (_error != null) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+        const SizedBox(height: 12),
+        const Text('Could not load submissions.', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text('Make sure you ran the SQL to add the status column\n(see Supabase setup guide).',
+            textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: _load,
+          icon: const Icon(Icons.refresh_rounded, size: 16),
+          label: const Text('Retry'),
+          style: ElevatedButton.styleFrom(backgroundColor: _mgmtColor, foregroundColor: Colors.white),
+        ),
+      ]));
+    }
+    return Column(children: [
+      Padding(
+        padding: EdgeInsets.fromLTRB(narrow ? 16 : 24, narrow ? 12 : 16, narrow ? 16 : 24, 0),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('HR Forwarded (${_forms.length})',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _mgmtColor)),
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, color: _mgmtColor),
+            onPressed: _load,
+          ),
+        ]),
+      ),
+      if (_forms.isEmpty)
+        Expanded(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.how_to_reg_rounded, size: 56, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+          Text('No HR-forwarded submissions yet', style: TextStyle(color: Colors.grey.shade500)),
+        ])))
+      else
+        Expanded(child: ListView.separated(
                 padding: EdgeInsets.all(narrow ? 16 : 24),
                 itemCount: _forms.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -789,7 +819,8 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                     ),
                   );
                 },
-              );
+              )),
+    ]);
   }
 }
 
