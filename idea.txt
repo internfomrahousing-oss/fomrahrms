@@ -1,2 +1,1 @@
-in "leave management" for hr : he can see the details of al the employees and the no of allocated leaves for each of them. 
-allocation is done by the hr which is relefected in employee dashboard under " totall leaves" 
+                

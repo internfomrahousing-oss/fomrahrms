@@ -38,6 +38,8 @@ import '../models/user_session.dart';
   alter table leave_applications add column if not exists management_decided_by text default '';
   alter table leave_applications add column if not exists management_rejection_comment text default '';
 
+  alter table onboarding_forms disable row level security;
+
   create table if not exists onboarding_forms (
     id uuid primary key default gen_random_uuid(),
     submitted_at timestamptz default now(),
