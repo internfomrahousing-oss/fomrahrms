@@ -731,14 +731,6 @@ function deleteRow(sheet, params) {
   var keyValue = params[headers[0]];
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(keyValue)) {
-      // Archive to "Deleted Leads" tab before removing
-      var ss = sheet.getParent();
-      var archive = ss.getSheetByName('Deleted Leads');
-      if (!archive) {
-        archive = ss.insertSheet('Deleted Leads');
-        archive.appendRow(headers.concat(['Deleted At']));
-      }
-      archive.appendRow(data[i].concat([new Date().toLocaleString()]));
       sheet.deleteRow(i + 1);
       SpreadsheetApp.flush();
       return respond({ success: true, message: 'Row deleted' });
