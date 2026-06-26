@@ -707,8 +707,6 @@ class _GasCodeBlockState extends State<_GasCodeBlock> {
   static const _code = r'''function doGet(e) {
   try {
     var sheetId = e.parameter.spreadsheetId;
-    // Always use the first (leftmost) sheet to avoid getActiveSheet() returning
-    // a different tab if someone had the spreadsheet open on another tab.
     var ss = sheetId
       ? SpreadsheetApp.openById(sheetId)
       : SpreadsheetApp.getActiveSpreadsheet();
