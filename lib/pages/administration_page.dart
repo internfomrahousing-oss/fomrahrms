@@ -593,6 +593,33 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
   }
 
+  Future<void> _approve(Map<String, dynamic> form) async {
+    try {
+      // Create user account from the details HR pre-filled
+      final email    = (form['assigned_email']   as String?) ?? '';
+      final empId    = (form['assigned_emp_id']  as String?) ?? '';
+      final manager  = (form['assigned_manager'] as String?) ?? '';
+      final user = AppUser(
+        name:             (form['name']         as String?) ?? '',
+        email:            email,
+        employeeId:       empId,
+        designation:      (form['designation']  as String?) ?? '',
+        role:             'Employee',
+        active:           true,
+        reportingManager: manager,
+        dateOfJoining:    (form['date_of_joining'] as String?) ?? '',
+      );
+      await UserStore.upsertOne(user);
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({'status': 'access_granted'})
+          .eq('id', form['id'].toString());
+      await _load();
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
+  }
+
   Future<void> _viewDetails(BuildContext context, Map<String, dynamic> form) async {
     await showDialog(
       context: context,
@@ -766,6 +793,25 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w600)),
                           ),
                         ]),
+                        // Show pre-assigned account details (set by HR)
+                        if ((f['assigned_email'] as String? ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8EAF6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Text('Account details prepared by HR:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _mgmtColor)),
+                              const SizedBox(height: 4),
+                              Text('Email: ${f['assigned_email'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _mgmtColor)),
+                              Text('Emp ID: ${f['assigned_emp_id'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _mgmtColor)),
+                              Text('Manager: ${f['assigned_manager'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _mgmtColor)),
+                            ]),
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         const Divider(height: 1),
                         const SizedBox(height: 12),
@@ -805,7 +851,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              onPressed: () => _updateStatus(id, 'mgmt_approved'),
+                              onPressed: () => _approve(f),
                             ),
                           ],
                           if (status == 'access_granted') ...[

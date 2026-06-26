@@ -204,6 +204,9 @@ import '../models/user_session.dart';
   -- Onboarding workflow columns (run if table already exists):
   alter table onboarding_forms add column if not exists status text default 'pending';
   alter table onboarding_forms add column if not exists hr_comment text default '';
+  alter table onboarding_forms add column if not exists assigned_email text default '';
+  alter table onboarding_forms add column if not exists assigned_emp_id text default '';
+  alter table onboarding_forms add column if not exists assigned_manager text default '';
 */
 
 class SupabaseService {

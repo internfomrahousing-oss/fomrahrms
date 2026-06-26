@@ -9,24 +9,19 @@ import '../services/user_store.dart';
 Future<List<AppUser>> _loadAllUsers() async {
   try { return await UserStore.load(); } catch (_) { return []; }
 }
-Future<void> _saveUser(AppUser u) async { await UserStore.upsertOne(u); }
 
-// Thin wrapper to avoid importing AppUser constructor verbosely
-AppUser _AppUserRecord({
-  required String name,
-  required String email,
-  required String employeeId,
-  required String designation,
-  required String role,
-  required bool active,
-  required String reportingManager,
-  required String dateOfJoining,
-}) =>
-    AppUser(
-      name: name, email: email, employeeId: employeeId,
-      designation: designation, role: role, active: active,
-      reportingManager: reportingManager, dateOfJoining: dateOfJoining,
-    );
+String _autoEmail(String name) =>
+    name.trim().toLowerCase().split(RegExp(r'\s+')).join('.');
+
+String _nextEmpId(List<AppUser> users) {
+  final nums = users
+      .map((u) => u.employeeId)
+      .where((id) => RegExp(r'^EMP\d+$').hasMatch(id))
+      .map((id) => int.tryParse(id.substring(3)) ?? 0)
+      .toList();
+  final next = nums.isEmpty ? 1 : (nums.reduce((a, b) => a > b ? a : b) + 1);
+  return 'EMP${next.toString().padLeft(3, '0')}';
+}
 
 // Status helpers
 Color _statusColor(String s) {
@@ -266,25 +261,40 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     }
   }
 
-  Future<void> _activateAccount(BuildContext context) async {
-    // Load managers from UserStore to pick one
+  Future<void> _sendToManagement(BuildContext context) async {
     final allUsers = await _loadAllUsers();
     final managers = allUsers.where((u) => u.role == 'Manager').map((u) => u.name).toList();
     if (!context.mounted) return;
 
     final d = widget.data;
-    final emailCtrl = TextEditingController(
-        text: (d['name'] as String? ?? '').toLowerCase().replaceAll(' ', '.'));
-    final empIdCtrl = TextEditingController();
+    final name = (d['name'] as String?) ?? '';
+    final emailCtrl = TextEditingController(text: _autoEmail(name));
+    final empIdCtrl  = TextEditingController(text: _nextEmpId(allUsers));
     String selectedManager = managers.isNotEmpty ? managers.first : '';
 
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Activate Account', style: TextStyle(color: _blue, fontWeight: FontWeight.bold)),
+          title: const Text('Forward to Management', style: TextStyle(color: _blue, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.info_outline_rounded, color: _blue, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(
+                    'These details will be used to create the employee account once Management approves.',
+                    style: const TextStyle(fontSize: 12, color: _blue),
+                  )),
+                ]),
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: emailCtrl,
                 decoration: InputDecoration(
@@ -301,7 +311,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
               TextField(
                 controller: empIdCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Employee ID (e.g. EMP001)',
+                  labelText: 'Employee ID',
                   prefixIcon: const Icon(Icons.badge_rounded, color: _blue, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
@@ -321,6 +331,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   items: managers.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                   onChanged: (v) => setS(() => selectedManager = v ?? ''),
                 ),
+              ] else ...[
+                const SizedBox(height: 8),
+                Text('No managers found. Add a Manager user first.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
               ],
             ]),
           ),
@@ -328,30 +342,28 @@ class _SubmissionCardState extends State<_SubmissionCard> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _blue, foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF1565C0), foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () async {
                 Navigator.pop(ctx);
                 setState(() => _acting = true);
                 try {
-                  final user = _AppUserRecord(
-                    name:             d['name'] as String? ?? '',
-                    email:            '${emailCtrl.text.trim()}@fomrahousing.in',
-                    employeeId:       empIdCtrl.text.trim(),
-                    designation:      d['designation'] as String? ?? '',
-                    role:             'Employee',
-                    active:           true,
-                    reportingManager: selectedManager,
-                    dateOfJoining:    d['date_of_joining'] as String? ?? '',
-                  );
-                  await _saveUser(user);
-                  await _updateStatus('access_granted');
+                  await Supabase.instance.client
+                      .from('onboarding_forms')
+                      .update({
+                        'status':           'hr_approved',
+                        'assigned_email':   '${emailCtrl.text.trim()}@fomrahousing.in',
+                        'assigned_emp_id':  empIdCtrl.text.trim(),
+                        'assigned_manager': selectedManager,
+                      })
+                      .eq('id', widget.data['id'].toString());
+                  widget.onRefresh();
                 } catch (_) {
                   setState(() => _acting = false);
                 }
               },
-              child: const Text('Activate'),
+              child: const Text('Forward'),
             ),
           ],
         ),
@@ -540,29 +552,27 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      onPressed: _acting ? null : () => _updateStatus('hr_approved'),
+                      onPressed: _acting ? null : () => _sendToManagement(context),
                     ),
                   ),
                 ]),
               ],
-              // HR: Activate account after management approval
-              if (status == 'mgmt_approved') ...[
-                const SizedBox(height: 16),
-                const Divider(height: 1),
+              // Show assigned details once forwarded
+              if (status == 'hr_approved') ...[
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.person_add_rounded, size: 16),
-                    label: const Text('Activate Account'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: _acting ? null : () => _activateAccount(context),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Forwarded with details:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _blue)),
+                    const SizedBox(height: 4),
+                    Text('Email: ${d['assigned_email'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
+                    Text('Emp ID: ${d['assigned_emp_id'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
+                    Text('Manager: ${d['assigned_manager'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
+                  ]),
                 ),
               ],
             ]),
