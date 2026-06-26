@@ -310,6 +310,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 _row('Date',  d['declaration_date']),
                 _row('Place', d['declaration_place']),
               ]),
+              _attachmentsSection(d['attachments']),
             ]),
           ),
         ],
@@ -362,6 +363,37 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: keys.map((k) => _row(_keyLabel(k), item[k])).toList()),
+        );
+      }),
+    ]);
+  }
+
+  Widget _attachmentsSection(dynamic data) {
+    final items = data is List ? data : [];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 14),
+      const Text('Attachments', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+      const Divider(height: 10),
+      ...items.map((item) {
+        final name = item['name']?.toString() ?? '';
+        final type = item['doc_type']?.toString() ?? '';
+        final url  = item['url']?.toString() ?? '';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(children: [
+            const Icon(Icons.insert_drive_file_rounded, size: 14, color: _blue),
+            const SizedBox(width: 6),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A))),
+              Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E))),
+            ])),
+            if (url.isNotEmpty)
+              TextButton(
+                onPressed: () => html.window.open(url, '_blank'),
+                child: const Text('View', style: TextStyle(fontSize: 12)),
+              ),
+          ]),
         );
       }),
     ]);

@@ -1,5 +1,15 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+class _AttachFile {
+  final String name;
+  final Uint8List bytes;
+  final String mime;
+  _AttachFile({required this.name, required this.bytes, required this.mime});
+}
 
 class OnboardingFormPage extends StatefulWidget {
   const OnboardingFormPage({super.key});
@@ -68,6 +78,17 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   final _declarationPlace = TextEditingController();
   bool _declarationAgreed = false;
 
+  // ── Attachments (6 doc types, each can have multiple files)
+  static const _docLabels = [
+    'Photocopies of all Educational certificates & degree mark sheets etc.',
+    'Aadhar Card',
+    'PAN Card',
+    'Experience & Relieving letters of Previous employment\'s',
+    'Pay Slips or Bank Statement of Previous employment\'s',
+    'Passport Size Photo (2)',
+  ];
+  final List<List<_AttachFile>> _attachments = List.generate(6, (_) => []);
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +156,59 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Map<String, dynamic> _rowToMap(Map<String, TextEditingController> row) =>
       row.map((k, v) => MapEntry(k, v.text.trim()));
 
+  void _pickFiles(int docIndex) {
+    final input = html.FileUploadInputElement()
+      ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
+      ..multiple = true;
+    input.onChange.listen((_) async {
+      for (final file in input.files ?? []) {
+        if (file.size > 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('"${file.name}" exceeds 1 MB limit and was skipped.'),
+              backgroundColor: Colors.red,
+            ));
+          }
+          continue;
+        }
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+        final bytes = (reader.result as ByteBuffer).asUint8List();
+        if (mounted) {
+          setState(() => _attachments[docIndex].add(
+            _AttachFile(name: file.name, bytes: bytes, mime: file.type),
+          ));
+        }
+      }
+    });
+    input.click();
+  }
+
+  Future<List<Map<String, dynamic>>> _uploadAttachments() async {
+    final result = <Map<String, dynamic>>[];
+    final ts = DateTime.now().millisecondsSinceEpoch.toString();
+    for (int i = 0; i < _attachments.length; i++) {
+      for (final file in _attachments[i]) {
+        try {
+          final path = '$ts/doc${i + 1}_${file.name}';
+          await Supabase.instance.client.storage
+              .from('onboarding-attachments')
+              .uploadBinary(path, file.bytes,
+                  fileOptions: FileOptions(
+                      contentType: file.mime.isEmpty ? 'application/octet-stream' : file.mime));
+          final url = Supabase.instance.client.storage
+              .from('onboarding-attachments')
+              .getPublicUrl(path);
+          result.add({'doc_type': _docLabels[i], 'name': file.name, 'url': url});
+        } catch (_) {
+          result.add({'doc_type': _docLabels[i], 'name': file.name, 'url': ''});
+        }
+      }
+    }
+    return result;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_declarationAgreed) {
@@ -145,6 +219,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       return;
     }
     setState(() => _saving = true);
+
+    final uploadedFiles = await _uploadAttachments();
 
     final payload = {
       'name':                      _name.text.trim(),
@@ -182,6 +258,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       'aadhar_number':             _aadharNumber.text.trim(),
       'declaration_date':          _declarationDate.text.trim(),
       'declaration_place':         _declarationPlace.text.trim(),
+      'attachments':               uploadedFiles,
     };
 
     try {
@@ -246,6 +323,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 _buildAdditionalSection(),
                 const SizedBox(height: 20),
                 _buildEmergencySection(),
+                const SizedBox(height: 20),
+                _buildAttachmentsSection(),
                 const SizedBox(height: 20),
                 _buildDeclarationSection(),
                 const SizedBox(height: 28),
@@ -532,6 +611,69 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       _field(_emergencyNumber,   'Emergency Contact Person Number', keyboardType: TextInputType.phone),
       _field(_emergencyAddress,  'Emergency Contact Person Address', maxLines: 2),
       _field(_aadharNumber,      'Aadhar Number'),
+    ]),
+  );
+
+  Widget _buildAttachmentsSection() => _card(
+    title: 'Attachments',
+    icon: Icons.attach_file_rounded,
+    subtitle: 'To be given as hard copy also · Max 1 MB per file',
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      ...List.generate(_docLabels.length, (i) {
+        final files = _attachments[i];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FF),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(
+                child: Row(children: [
+                  Text('${i + 1}. ', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0D47A1), fontSize: 13)),
+                  Expanded(child: Text(_docLabels[i],
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF37474F)))),
+                ]),
+              ),
+            ]),
+            if (files.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...files.asMap().entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(children: [
+                  const Icon(Icons.insert_drive_file_rounded, size: 14, color: Color(0xFF0D47A1)),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(e.value.name,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)),
+                      overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => setState(() => _attachments[i].removeAt(e.key)),
+                    child: const Icon(Icons.close_rounded, size: 14, color: Colors.red),
+                  ),
+                ]),
+              )),
+            ],
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.add_rounded, size: 14),
+              label: const Text('Add', style: TextStyle(fontSize: 12)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0D47A1),
+                side: const BorderSide(color: Color(0xFF0D47A1)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              onPressed: () => _pickFiles(i),
+            ),
+          ]),
+        );
+      }),
     ]),
   );
 
