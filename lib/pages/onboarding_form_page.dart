@@ -219,6 +219,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_declarationAgreed) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please agree to the declaration before submitting.'),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
     setState(() => _saving = true);
 
     final uploadedFiles = await _uploadAttachments();
