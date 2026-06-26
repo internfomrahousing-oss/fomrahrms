@@ -46,11 +46,6 @@
     <div class="spinner"></div>
   </div>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        regs.forEach(function(reg) { reg.unregister(); });
-      });
-    }
     window.addEventListener('flutter-first-frame', function() {
       document.getElementById('loading').remove();
     });
