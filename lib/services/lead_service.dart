@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/lead_model.dart';
 
 // ── Model ─────────────────────────────────────────────────────────────────────
@@ -22,17 +22,10 @@ class LeadSource {
 
 // ── Service ───────────────────────────────────────────────────────────────────
 class LeadService {
-  // The single permanent GAS deployment — handles ALL sheets via spreadsheetId param
   static const String _gasBaseUrl =
       'https://script.google.com/macros/s/AKfycbxLOtqiULJPAQt4OedV74mres2vNm8W1i-qz_7PZkTEgyXQqcqGlGfP69hNvawCfmVeZw/exec';
 
-  static const String _defaultUrl = _gasBaseUrl;
-
-  // Legacy single-source pref keys — kept only for migration
-  static const String _legacyUrlKey  = 'lead_script_url';
-  static const String _legacyNameKey = 'lead_source_name';
-
-  static const String _sourcesKey = 'lead_sources_v2';
+  static SupabaseClient? get _db => Supabase.instance.client;
 
   static List<LeadSource>? _cachedSources;
 
@@ -42,68 +35,55 @@ class LeadService {
   static List<String> schemaFor(String url) =>
       List.from(_schemaCache[url] ?? []);
 
-  // ── Sources persistence ───────────────────────────────────────────────────
+  // ── Sources persistence (Supabase) ────────────────────────────────────────
 
-  /// Force the next getSources() call to re-read from SharedPreferences.
   static void invalidateCache() => _cachedSources = null;
 
   static Future<List<LeadSource>> getSources() async {
     if (_cachedSources != null) return _cachedSources!;
-
-    final prefs = await SharedPreferences.getInstance();
-    final json  = prefs.getString(_sourcesKey);
-
-    if (json != null) {
-      try {
-        final list = jsonDecode(json) as List;
-        _cachedSources =
-            list.map((e) => LeadSource.fromJson(e as Map<String, dynamic>)).toList();
-        return _cachedSources!;
-      } catch (_) {
-        // Corrupt data — fall through to migration below
-      }
+    try {
+      final data = await _db!.from('lead_sources').select().order('created_at');
+      final rows = data as List;
+      _cachedSources = rows.map((r) => LeadSource(
+        id:   r['id']   as String,
+        name: r['name'] as String,
+        url:  r['url']  as String,
+      )).toList();
+      return _cachedSources!;
+    } catch (_) {
+      _cachedSources ??= [];
+      return _cachedSources!;
     }
-
-    // First run or corrupt — migrate from old single-source storage
-    final oldUrl  = prefs.getString(_legacyUrlKey)  ?? _defaultUrl;
-    final oldName = prefs.getString(_legacyNameKey) ?? 'Meta Leads';
-    _cachedSources = [
-      LeadSource(id: _id(), name: oldName, url: oldUrl),
-    ];
-    await _persist(prefs);
-    return _cachedSources!;
   }
 
   static Future<LeadSource> addSource(String name, String url) async {
-    final sources = await getSources();
-    final source  = LeadSource(
-        id: _id(),
-        name: name.trim().isEmpty ? 'New Source' : name.trim(),
-        url: resolveUrl(url)); // auto-convert Sheets URL → GAS URL
-    sources.add(source);
-    await _persist();
+    final source = LeadSource(
+      id:   _id(),
+      name: name.trim().isEmpty ? 'New Source' : name.trim(),
+      url:  resolveUrl(url),
+    );
+    try {
+      await _db!.from('lead_sources').insert(source.toJson());
+    } catch (_) {}
+    _cachedSources?.add(source);
     return source;
   }
 
   static Future<void> renameSource(String id, String newName) async {
-    final sources = await getSources();
-    final s = sources.firstWhere((s) => s.id == id, orElse: () => throw Exception('Not found'));
-    s.name = newName.trim().isEmpty ? s.name : newName.trim();
-    await _persist();
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return;
+    try {
+      await _db!.from('lead_sources').update({'name': trimmed}).eq('id', id);
+    } catch (_) {}
+    _cachedSources?.firstWhere((s) => s.id == id, orElse: () => LeadSource(id: '', name: '', url: '')).name = trimmed;
   }
 
   static Future<void> deleteSource(String id) async {
-    final sources = await getSources();
-    sources.removeWhere((s) => s.id == id);
+    try {
+      await _db!.from('lead_sources').delete().eq('id', id);
+    } catch (_) {}
+    _cachedSources?.removeWhere((s) => s.id == id);
     _schemaCache.remove(id);
-    await _persist();
-  }
-
-  static Future<void> _persist([SharedPreferences? p]) async {
-    final prefs = p ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-        _sourcesKey,
-        jsonEncode(_cachedSources!.map((s) => s.toJson()).toList()));
   }
 
   static String _id() => DateTime.now().microsecondsSinceEpoch.toString();

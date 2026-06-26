@@ -38,6 +38,13 @@ import '../models/user_session.dart';
   alter table leave_applications add column if not exists management_decided_by text default '';
   alter table leave_applications add column if not exists management_rejection_comment text default '';
 
+  create table if not exists lead_sources (
+    id text primary key,
+    name text not null,
+    url text not null,
+    created_at timestamptz default now()
+  );
+
   create table if not exists maintenance_tickets (
     id text primary key,
     reported_by_role text not null,
