@@ -158,14 +158,20 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   void _pickFiles(int docIndex) {
     final input = html.FileUploadInputElement()
-      ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
-      ..multiple = true;
+      ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg'
+      ..multiple = true
+      ..style.display = 'none';
+
+    // Must be in the DOM for click to work across all browsers
+    html.document.body!.append(input);
+
     input.onChange.listen((_) async {
-      for (final file in input.files ?? []) {
+      final files = input.files ?? [];
+      for (final file in files) {
         if (file.size > 1024 * 1024) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('"${file.name}" exceeds 1 MB limit and was skipped.'),
+              content: Text('"${file.name}" exceeds 1 MB — skipped.'),
               backgroundColor: Colors.red,
             ));
           }
@@ -181,7 +187,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           ));
         }
       }
+      input.remove(); // clean up from DOM
     });
+
     input.click();
   }
 
@@ -617,59 +625,96 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Widget _buildAttachmentsSection() => _card(
     title: 'Attachments',
     icon: Icons.attach_file_rounded,
-    subtitle: 'To be given as hard copy also · Max 1 MB per file',
+    subtitle: 'To be given as hard copy also · PDF / image / any format · Max 1 MB per file',
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       ...List.generate(_docLabels.length, (i) {
         final files = _attachments[i];
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FF),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
+            border: Border.all(
+              color: files.isNotEmpty ? const Color(0xFF0D47A1) : const Color(0xFFE0E0E0),
+              width: files.isNotEmpty ? 1.5 : 1,
+            ),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(
-                child: Row(children: [
-                  Text('${i + 1}. ', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0D47A1), fontSize: 13)),
-                  Expanded(child: Text(_docLabels[i],
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF37474F)))),
-                ]),
-              ),
-            ]),
-            if (files.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ...files.asMap().entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(children: [
-                  const Icon(Icons.insert_drive_file_rounded, size: 14, color: Color(0xFF0D47A1)),
-                  const SizedBox(width: 6),
-                  Expanded(child: Text(e.value.name,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)),
-                      overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => setState(() => _attachments[i].removeAt(e.key)),
-                    child: const Icon(Icons.close_rounded, size: 14, color: Colors.red),
+            // Doc label row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 22, height: 22,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D47A1),
+                    borderRadius: BorderRadius.circular(11),
                   ),
-                ]),
-              )),
-            ],
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.add_rounded, size: 14),
-              label: const Text('Add', style: TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF0D47A1),
-                side: const BorderSide(color: Color(0xFF0D47A1)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  child: Center(
+                    child: Text('${i + 1}',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(_docLabels[i],
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF37474F), fontWeight: FontWeight.w500))),
+              ]),
+            ),
+
+            // Uploaded files list
+            if (files.isNotEmpty) ...[
+              const Divider(height: 1, color: Color(0xFFE8EAF6)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Column(
+                  children: files.asMap().entries.map((e) => Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.insert_drive_file_rounded, size: 16, color: Color(0xFF2E7D32)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(e.value.name,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF1B5E20), fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis)),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => setState(() => _attachments[i].removeAt(e.key)),
+                        child: Container(
+                          width: 20, height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.close_rounded, size: 13, color: Colors.red),
+                        ),
+                      ),
+                    ]),
+                  )).toList(),
+                ),
               ),
-              onPressed: () => _pickFiles(i),
+            ],
+
+            // Add button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.upload_file_rounded, size: 15),
+                label: Text(files.isEmpty ? 'Add File' : 'Add More',
+                    style: const TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0D47A1),
+                  side: const BorderSide(color: Color(0xFF0D47A1)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                ),
+                onPressed: () => _pickFiles(i),
+              ),
             ),
           ]),
         );
