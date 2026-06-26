@@ -87,6 +87,12 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
               Text('Task Management',
                   style: Theme.of(context).textTheme.headlineMedium),
               const Spacer(),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6A1B9A)),
+                onPressed: _load,
+              ),
+              const SizedBox(width: 4),
               ElevatedButton.icon(
                 onPressed: () async {
                   await context.push(_addRoute);

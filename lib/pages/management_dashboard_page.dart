@@ -96,16 +96,23 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!narrow) ...[
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Management Dashboard',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 4),
-                Text('FOMRA Housing & Infrastructure — Management Portal',
-                    style: Theme.of(context).textTheme.bodyMedium),
-              ]),
-              const SizedBox(height: 24),
-            ],
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              if (!narrow)
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Management Dashboard',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  const SizedBox(height: 4),
+                  Text('FOMRA Housing & Infrastructure — Management Portal',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ]),
+              if (narrow) const SizedBox.shrink(),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: _loadCount,
+              ),
+            ]),
+            const SizedBox(height: 24),
 
             // Welcome card
             Container(

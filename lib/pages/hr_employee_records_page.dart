@@ -110,6 +110,12 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
               Text('Employee Records',
                   style: Theme.of(context).textTheme.headlineMedium),
               const Spacer(),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded, color: _color),
+                onPressed: _load,
+              ),
+              const SizedBox(width: 4),
               if (UserSession.role == UserRole.hr ||
                   UserSession.role == UserRole.management)
                 ElevatedButton.icon(

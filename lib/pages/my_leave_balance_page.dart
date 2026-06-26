@@ -120,6 +120,12 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                         style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
                       ),
                     ]),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Refresh',
+                      icon: const Icon(Icons.refresh_rounded, color: _color),
+                      onPressed: _load,
+                    ),
                   ]),
                   const SizedBox(height: 24),
 

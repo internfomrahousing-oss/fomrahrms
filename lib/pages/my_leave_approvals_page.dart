@@ -70,6 +70,12 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
               const SizedBox(width: 16),
               Text('Leave History',
                   style: Theme.of(context).textTheme.headlineMedium),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded, color: _color),
+                onPressed: _loadData,
+              ),
             ]),
             const SizedBox(height: 24),
 

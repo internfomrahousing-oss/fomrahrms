@@ -62,6 +62,11 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             style: TextStyle(color: _color, fontSize: 12)),
                       ]),
                     ),
+                    IconButton(
+                      tooltip: 'Refresh',
+                      icon: const Icon(Icons.refresh_rounded, color: _color),
+                      onPressed: _load,
+                    ),
                   ]),
                 ),
                 const SizedBox(height: 20),

@@ -124,6 +124,12 @@ class _MyTasksPageState extends State<MyTasksPage> {
               const SizedBox(width: 14),
               Text('My Tasks',
                   style: Theme.of(context).textTheme.headlineMedium),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0288D1)),
+                onPressed: _load,
+              ),
             ]),
             const SizedBox(height: 20),
 
