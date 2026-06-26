@@ -375,8 +375,8 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     try {
       final prevCount = _all.length;
       await LeadService.addLead(_scriptUrl, lead);
-      // Give GAS up to 2 s to write before re-fetching
-      await Future.delayed(const Duration(seconds: 2));
+      // Give GAS up to 4 s to write before re-fetching
+      await Future.delayed(const Duration(seconds: 4));
       await _fetch();
       if (!mounted) return;
       if (_all.length > prevCount) {

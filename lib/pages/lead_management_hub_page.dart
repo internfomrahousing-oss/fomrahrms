@@ -669,9 +669,12 @@ class _GasCodeBlockState extends State<_GasCodeBlock> {
   static const _code = r'''function doGet(e) {
   try {
     var sheetId = e.parameter.spreadsheetId;
-    var sheet = sheetId
-      ? SpreadsheetApp.openById(sheetId).getActiveSheet()
-      : SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    // Always use the first (leftmost) sheet to avoid getActiveSheet() returning
+    // a different tab if someone had the spreadsheet open on another tab.
+    var ss = sheetId
+      ? SpreadsheetApp.openById(sheetId)
+      : SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheets()[0];
     var action = e.parameter.action;
     if (action === 'list')   return list(sheet);
     if (action === 'add')    return add(sheet, e.parameter);
@@ -701,6 +704,7 @@ function add(sheet, params) {
   var headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
   var newRow = headers.map(function(h) { return params[h] || ''; });
   sheet.appendRow(newRow);
+  SpreadsheetApp.flush();
   return respond({ success: true, message: 'Row added' });
 }
 
@@ -714,6 +718,7 @@ function update(sheet, params) {
         return params[h] !== undefined ? params[h] : String(data[i][j]);
       });
       sheet.getRange(i+1,1,1,headers.length).setValues([updated]);
+      SpreadsheetApp.flush();
       return respond({ success: true, message: 'Row updated' });
     }
   }
@@ -727,6 +732,7 @@ function deleteRow(sheet, params) {
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(keyValue)) {
       sheet.deleteRow(i + 1);
+      SpreadsheetApp.flush();
       return respond({ success: true, message: 'Row deleted' });
     }
   }
