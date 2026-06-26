@@ -365,13 +365,13 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const SelectableText(
-                                'function getVisibleSheet(ss) {\n  var sheets = ss.getSheets();\n  for (var i = 0; i < sheets.length; i++) {\n    if (!sheets[i].isSheetHidden()) return sheets[i];\n  }\n  return sheets[0];\n}',
+                                'function getVisibleSheet(ss) {\n  var sheets = ss.getSheets();\n  for (var i = 0; i < sheets.length; i++) {\n    if (!sheets[i].isSheetHidden()) return sheets[i];\n  }\n  return sheets[0];\n}\n\nfunction findHeaderRow(data) {\n  var best = 0, bestCount = 0;\n  for (var i = 0; i < Math.min(data.length, 5); i++) {\n    var count = data[i].filter(function(c) { return c !== \'\'; }).length;\n    if (count > bestCount) { bestCount = count; best = i; }\n  }\n  return best;\n}',
                                 style: TextStyle(fontSize: 11, color: Color(0xFF80CBC4), fontFamily: 'monospace'),
                               ),
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              '• Headers in row 1 or row 2 — both work automatically\n• Blank rows in the middle of data are skipped\n• Skips hidden tabs — always uses the first visible sheet',
+                              '• Works even if row 1 is a title row (e.g. "Fomra Hiring Details") — picks the row with the most columns as the real header\n• Blank rows in the middle of data are skipped\n• Skips hidden tabs — always uses the first visible sheet',
                               style: TextStyle(fontSize: 11, color: Color(0xFF795548), height: 1.5),
                             ),
                           ],
