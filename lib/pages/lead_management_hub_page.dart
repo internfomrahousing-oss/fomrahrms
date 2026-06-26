@@ -339,6 +339,44 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                       _guideStep('3', 'Paste the script code',
                           'Delete everything in the editor. Paste the code below, then click Save (Ctrl+S).'),
                       const _GasCodeBlock(),
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF8E1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFFCC02)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(children: [
+                              Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFF57F17)),
+                              SizedBox(width: 6),
+                              Text('Important — make sure your script has this:',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFF57F17))),
+                            ]),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E1E1E),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const SelectableText(
+                                'var ss = sheetId\n  ? SpreadsheetApp.openById(sheetId)\n  : SpreadsheetApp.getActiveSpreadsheet();\nvar sheet = ss.getSheets()[0];',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF80CBC4), fontFamily: 'monospace'),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'This ensures leads always read/write to the first sheet tab, even if someone has the spreadsheet open on a different tab.',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF795548)),
+                            ),
+                          ],
+                        ),
+                      ),
                       _guideStep('4', 'Deploy as Web App',
                           'First time: Click Deploy → New deployment → Type: Web app → Execute as: Me → Who has access: Anyone → Deploy → Authorise when prompted.\n\nUpdating existing script: Click Deploy → Manage deployments → pencil icon → change Version to "New version" → Deploy.'),
                       _guideStep('5', 'Copy the /exec URL',
