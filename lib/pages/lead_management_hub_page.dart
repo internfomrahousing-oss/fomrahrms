@@ -730,12 +730,14 @@ function doGet(e) {
   }
 }
 
-// Finds the first non-empty row index (header row) within the first 5 rows
+// Finds the row with the most filled cells within the first 5 rows (the real header row)
 function findHeaderRow(data) {
+  var best = 0, bestCount = 0;
   for (var i = 0; i < Math.min(data.length, 5); i++) {
-    if (data[i].some(function(cell) { return cell !== ''; })) return i;
+    var count = data[i].filter(function(c) { return c !== ''; }).length;
+    if (count > bestCount) { bestCount = count; best = i; }
   }
-  return 0;
+  return best;
 }
 
 function list(sheet) {
