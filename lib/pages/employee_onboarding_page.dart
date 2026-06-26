@@ -58,13 +58,13 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 
   void _openForm() {
     html.window.open(
-      '${html.window.location.href.split('#')[0]}#/onboarding-form',
+      'https://fomrahrms-zeta.vercel.app/#/onboarding-form',
       '_blank',
     );
   }
 
   void _copyLink() {
-    final link = '${html.window.location.href.split('#')[0]}#/onboarding-form';
+    final link = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form';
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Link copied to clipboard'),

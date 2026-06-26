@@ -338,7 +338,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                   ),
                   OutlinedButton.icon(
                     onPressed: () {
-                      final link = '${html.window.location.href.split('#')[0]}#/candidate-application';
+                      final link = 'https://fomrahrms-zeta.vercel.app/#/candidate-application';
                       html.window.navigator.clipboard?.writeText(link);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('Link copied to clipboard'),
@@ -358,7 +358,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => html.window.open(
-                      '${html.window.location.href.split('#')[0]}#/candidate-application',
+                      'https://fomrahrms-zeta.vercel.app/#/candidate-application',
                       '_blank',
                     ),
                     icon: const Icon(Icons.assignment_ind_rounded, size: 16),
