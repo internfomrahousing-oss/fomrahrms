@@ -336,6 +336,26 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                       ],
                     ),
                   ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      final link = '${html.window.location.href.split('#')[0]}#/candidate-application';
+                      html.window.navigator.clipboard?.writeText(link);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Link copied to clipboard'),
+                        duration: Duration(seconds: 2),
+                        backgroundColor: Color(0xFF2E7D32),
+                      ));
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 15),
+                    label: const Text('Copy Link', style: TextStyle(fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _blue,
+                      side: const BorderSide(color: _blue),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => html.window.open(
                       '${html.window.location.href.split('#')[0]}#/candidate-application',
