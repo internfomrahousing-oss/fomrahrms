@@ -22,11 +22,47 @@ class LeadManagementPage extends StatefulWidget {
 class _LeadManagementPageState extends State<LeadManagementPage> {
   List<Lead> _all = [];
   List<Lead> _filtered = [];
-  List<String> _statusOptions = ['All'];
   bool _loading = false;
   String? _error;
-  String _selectedStatus = 'All';
+
+  // Column filter
+  String? _filterColumn;   // null = auto-detect status column
+  String _filterValue = 'All';
+  List<String> _filterOptions = ['All'];
+
   final _searchCtrl = TextEditingController();
+
+  // Determines the effective column used for chip filtering
+  String? get _effectiveFilterColumn {
+    if (_filterColumn != null) return _filterColumn;
+    if (_all.isEmpty) return null;
+    // Auto-detect the status-like column (same logic as Lead.status)
+    final keys = _all.first.fields.keys;
+    for (final k in keys) {
+      final u = k.toUpperCase();
+      if (['CALL STATUS','STATUS','STAGE','INTERVIEW STATUS'].any((kw) => u.contains(kw))) return k;
+    }
+    return null;
+  }
+
+  List<String> _optionsForColumn(String col) {
+    final vals = _all
+        .map((l) => l.fields[col] ?? '')
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...vals];
+  }
+
+  void _setFilterColumn(String col) {
+    setState(() {
+      _filterColumn = col;
+      _filterValue  = 'All';
+      _filterOptions = _optionsForColumn(col);
+    });
+    _applyFilter();
+  }
 
   String get _scriptUrl  => widget.url;
   String get _sourceName => widget.name;
@@ -56,25 +92,20 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   Future<void> _fetch() async {
     setState(() {
-      _loading       = true;
-      _error         = null;
-      _all           = [];
-      _filtered      = [];
-      _statusOptions = ['All'];
-      _selectedStatus = 'All';
+      _loading     = true;
+      _error       = null;
+      _all         = [];
+      _filtered    = [];
+      _filterValue = 'All';
     });
     try {
       final leads = await LeadService.fetchLeads(_scriptUrl);
-      final statuses = leads
-          .map((l) => l.status)
-          .where((s) => s.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
       setState(() {
         _all = leads;
+        // Rebuild chip options for current column
+        final col = _effectiveFilterColumn;
+        _filterOptions = col != null ? _optionsForColumn(col) : ['All'];
         _filtered = _computeFilter(leads);
-        _statusOptions = ['All', ...statuses];
         _loading = false;
       });
     } catch (e) {
@@ -86,21 +117,20 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 
   List<Lead> _computeFilter(List<Lead> source) {
-    final q = _searchCtrl.text.trim().toLowerCase();
+    final q   = _searchCtrl.text.trim().toLowerCase();
+    final col = _effectiveFilterColumn;
     return source.where((lead) {
-      final matchesStatus =
-          _selectedStatus == 'All' || lead.status == _selectedStatus;
-      // Search across ALL column values automatically
+      final matchesChip = _filterValue == 'All' ||
+          col == null ||
+          (lead.fields[col] ?? '') == _filterValue;
       final matchesSearch = q.isEmpty ||
           lead.fields.values.any((v) => v.toLowerCase().contains(q));
-      return matchesStatus && matchesSearch;
+      return matchesChip && matchesSearch;
     }).toList();
   }
 
   void _applyFilter() {
-    setState(() {
-      _filtered = _computeFilter(_all);
-    });
+    setState(() => _filtered = _computeFilter(_all));
   }
 
   Widget _statusBadge(String status) {
@@ -402,6 +432,101 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     }
   }
 
+  void _showDetailDialog(Lead lead) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 700),
+          child: Column(children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: const BoxDecoration(
+                color: _blue,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+              ),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white24, borderRadius: BorderRadius.circular(8)),
+                  child: Text('${lead.rowKeyColumn}: ${lead.rowKeyValue}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+                const Spacer(),
+                if (lead.status.isNotEmpty)
+                  Text(lead.status,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                  padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                ),
+              ]),
+            ),
+            // Fields
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: lead.fields.entries.map((e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      SizedBox(
+                        width: 180,
+                        child: Text(e.key,
+                            style: const TextStyle(
+                                fontSize: 12, color: Color(0xFF78909C), fontWeight: FontWeight.w600)),
+                      ),
+                      Expanded(
+                        child: Text(
+                          e.value.isEmpty ? '—' : e.value,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E), fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ]),
+                  )).toList(),
+                ),
+              ),
+            ),
+            // Actions
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit_rounded, size: 15),
+                  label: const Text('Edit'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _blue,
+                    side: const BorderSide(color: _blue),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () { Navigator.pop(ctx); _showEditDialog(lead); },
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 15),
+                  label: const Text('Delete'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFC62828),
+                    side: const BorderSide(color: Color(0xFFC62828)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () { Navigator.pop(ctx); _showDeleteDialog(lead); },
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
@@ -513,53 +638,88 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Status filter chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _statusOptions.map((s) {
-                      final isSelected = _selectedStatus == s;
-                      final count = s == 'All'
-                          ? _all.length
-                          : _all.where((l) => l.status == s).length;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() => _selectedStatus = s);
-                            _applyFilter();
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? _blue
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? _blue
-                                    : const Color(0xFFDDDDDD),
+                // Column picker + dynamic value chips
+                if (_all.isNotEmpty) ...[
+                  Row(children: [
+                    const Icon(Icons.filter_list_rounded, size: 16, color: Color(0xFF78909C)),
+                    const SizedBox(width: 6),
+                    const Text('Filter by:',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF78909C), fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _all.first.fields.keys.map((col) {
+                            final isActive = (_filterColumn == col) ||
+                                (_filterColumn == null && col == _effectiveFilterColumn);
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: GestureDetector(
+                                onTap: () => _setFilterColumn(col),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 120),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isActive ? _blue : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: isActive ? _blue : const Color(0xFFCCCCCC)),
+                                  ),
+                                  child: Text(col,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isActive ? Colors.white : const Color(0xFF78909C))),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              count > 0 ? '$s ($count)' : s,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF546E7A),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  // Value chips for selected column
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _filterOptions.map((v) {
+                        final isSelected = _filterValue == v;
+                        final col = _effectiveFilterColumn;
+                        final count = v == 'All'
+                            ? _all.length
+                            : _all.where((l) => col != null && (l.fields[col] ?? '') == v).length;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _filterValue = v);
+                              _applyFilter();
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isSelected ? _blue : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: isSelected ? _blue : const Color(0xFFDDDDDD)),
+                              ),
+                              child: Text(
+                                count > 0 ? '$v ($count)' : v,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected ? Colors.white : const Color(0xFF546E7A)),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -581,6 +741,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                               return _LeadCard(
                                 lead: lead,
                                 statusBadge: _statusBadge(lead.status),
+                                onTap: () => _showDetailDialog(lead),
                                 onEdit: () => _showEditDialog(lead),
                                 onDelete: () => _showDeleteDialog(lead),
                               );
@@ -593,109 +754,151 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 }
 
-// ── Lead Card ────────────────────────────────────────────────────────────────
+// ── Lead Card (compact — tap to view full details) ───────────────────────────
 
 class _LeadCard extends StatelessWidget {
   final Lead lead;
   final Widget statusBadge;
+  final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _LeadCard({
     required this.lead,
     required this.statusBadge,
+    required this.onTap,
     required this.onEdit,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final allColumns = lead.fields.entries.toList();
+    final name    = lead.name;
+    final phone   = lead.phone;
+    final project = lead.project;
+    final source  = lead.source;
+    // Show a few extra columns that aren't already covered above
+    final extras = lead.fields.entries
+        .where((e) {
+          final v = e.value.trim();
+          if (v.isEmpty) return false;
+          if (v == name || v == phone || v == project || v == source) return false;
+          if (v == lead.rowKeyValue) return false;
+          return true;
+        })
+        .take(3)
+        .toList();
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Row identifier header ──────────────────────────────────
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${lead.rowKeyColumn}: ${lead.rowKeyValue}',
-                  style: const TextStyle(
-                      fontSize: 11, color: _blue, fontWeight: FontWeight.w700),
-                ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Avatar
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: _blue.withValues(alpha: 0.1),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              const Spacer(),
-              statusBadge,
-            ]),
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFEEEEEE)),
-            const SizedBox(height: 10),
-
-            // ── All columns ────────────────────────────────────────────
-            ...allColumns.map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 160,
-                    child: Text(
-                      e.key,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF78909C),
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
                   Expanded(
                     child: Text(
-                      e.value.isEmpty ? '—' : e.value,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF1A237E)),
+                      name.isNotEmpty ? name : '(No name)',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A237E)),
                     ),
                   ),
+                  statusBadge,
+                ]),
+                if (phone.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Row(children: [
+                    const Icon(Icons.phone_rounded, size: 11, color: Color(0xFF78909C)),
+                    const SizedBox(width: 4),
+                    Text(phone, style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                  ]),
                 ],
-              ),
-            )),
-
-            const SizedBox(height: 8),
-            const Divider(height: 1, color: Color(0xFFEEEEEE)),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _ActionButton(
-                  label: 'Edit',
-                  icon: Icons.edit_rounded,
-                  color: _blue,
-                  onTap: onEdit,
-                ),
-                const SizedBox(width: 8),
-                _ActionButton(
-                  label: 'Delete',
-                  icon: Icons.delete_outline_rounded,
-                  color: const Color(0xFFC62828),
-                  onTap: onDelete,
-                ),
-              ],
+                if (project.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Row(children: [
+                    const Icon(Icons.work_outline_rounded, size: 11, color: Color(0xFF78909C)),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text(project,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A)),
+                        maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  ]),
+                ],
+                if (extras.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Wrap(spacing: 8, runSpacing: 4,
+                    children: extras.map((e) => Text(
+                      '${e.key}: ${e.value}',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF90A4AE)),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                    )).toList(),
+                  ),
+                ],
+              ]),
             ),
-          ],
+            const SizedBox(width: 8),
+            // Row id + actions
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(lead.rowKeyValue,
+                    style: const TextStyle(fontSize: 10, color: _blue, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                _SmallIconBtn(icon: Icons.edit_rounded, color: _blue, onTap: onEdit),
+                const SizedBox(width: 4),
+                _SmallIconBtn(icon: Icons.delete_outline_rounded, color: const Color(0xFFC62828), onTap: onDelete),
+              ]),
+            ]),
+          ]),
         ),
+      ),
+    );
+  }
+}
+
+class _SmallIconBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _SmallIconBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Icon(icon, size: 13, color: color),
       ),
     );
   }
