@@ -300,6 +300,117 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     );
   }
 
+  void _showSendEmailDialog(BuildContext context, Map<String, dynamic> row) {
+    final name  = (row['name']         ?? '').toString().trim();
+    final post  = (row['post_applied'] ?? '').toString().trim();
+    final email = (row['email']        ?? '').toString().trim();
+
+    const formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form';
+
+    final subject = Uri.encodeComponent(
+      'Congratulations — Next Steps for Joining FOMRA Housing & Infrastructure',
+    );
+
+    final bodyText = '''Dear $name,
+
+Congratulations! We are pleased to inform you that your interview for the position of ${post.isNotEmpty ? post : 'the applied role'} at FOMRA Housing & Infrastructure has been successfully completed and approved by our team.
+
+As the next step, please fill in your Joining / Onboarding Form using the link below:
+
+$formLink
+
+Kindly complete the form at the earliest so we can proceed with your joining formalities.
+
+Should you have any questions, feel free to reach out to us.
+
+Warm regards,
+HR Team
+FOMRA Housing & Infrastructure''';
+
+    final mailtoUrl = 'mailto:$email?subject=$subject&body=${Uri.encodeComponent(bodyText)}';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1565C0).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.mail_outline_rounded, color: Color(0xFF1565C0), size: 18),
+          ),
+          const SizedBox(width: 10),
+          const Text('Send Invitation Email',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
+        ]),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // To field
+              _EmailField(label: 'To', value: email.isNotEmpty ? email : '(email not on file)'),
+              const SizedBox(height: 8),
+              _EmailField(label: 'Subject',
+                  value: 'Congratulations — Next Steps for Joining FOMRA Housing & Infrastructure'),
+              const SizedBox(height: 12),
+              // Body preview
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                ),
+                child: Text(bodyText,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF37474F), height: 1.6)),
+              ),
+              if (email.isEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFE65100)),
+                    SizedBox(width: 6),
+                    Expanded(child: Text(
+                        'No email address on file for this candidate. Add it in their application first.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFFE65100)))),
+                  ]),
+                ),
+              ],
+            ]),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.open_in_new_rounded, size: 15),
+            label: const Text('Open in Mail App'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1565C0),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: email.isEmpty ? null : () {
+              Navigator.pop(ctx);
+              html.window.open(mailtoUrl, '_self');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
@@ -473,6 +584,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
                                 onAccept: () => _showAcceptDialog(row),
                                 onReject: () => _showRejectDialog(row),
                                 onComment: () => _showCommentDialog(row),
+                                onSendEmail: () => _showSendEmailDialog(context, row),
                                 onView: () {
                                   CandidateStore.selected = row;
                                   context.push('/candidate-detail');
@@ -498,6 +610,7 @@ class _ApplicationCard extends StatelessWidget {
   final VoidCallback onReject;
   final VoidCallback onComment;
   final VoidCallback onView;
+  final VoidCallback? onSendEmail;
 
   const _ApplicationCard({
     required this.row,
@@ -508,6 +621,7 @@ class _ApplicationCard extends StatelessWidget {
     required this.onReject,
     required this.onComment,
     required this.onView,
+    this.onSendEmail,
   });
 
   @override
@@ -701,6 +815,14 @@ class _ApplicationCard extends StatelessWidget {
                 color: _blue,
                 onTap: onView,
               ),
+              if (isApproved && onSendEmail != null)
+                _ActionButton(
+                  label: 'Send Email',
+                  icon: Icons.mail_outline_rounded,
+                  color: const Color(0xFF1565C0),
+                  onTap: onSendEmail!,
+                  highlight: true,
+                ),
             ]),
           ],
         ),
@@ -748,11 +870,13 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final bool highlight;
   const _ActionButton({
     required this.label,
     required this.icon,
     required this.color,
     required this.onTap,
+    this.highlight = false,
   });
 
   @override
@@ -763,19 +887,44 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: highlight ? color : color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: highlight ? color : color.withValues(alpha: 0.3)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: color),
+          Icon(icon, size: 14, color: highlight ? Colors.white : color),
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(
-                  fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+                  fontSize: 12,
+                  color: highlight ? Colors.white : color,
+                  fontWeight: FontWeight.w600)),
         ]),
       ),
     );
+  }
+}
+
+// ── Email field helper ────────────────────────────────────────────────────────
+class _EmailField extends StatelessWidget {
+  final String label;
+  final String value;
+  const _EmailField({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        width: 60,
+        child: Text('$label:',
+            style: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+      ),
+      Expanded(
+        child: Text(value,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E))),
+      ),
+    ]);
   }
 }
 
