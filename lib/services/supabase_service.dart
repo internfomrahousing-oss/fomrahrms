@@ -530,22 +530,20 @@ class SupabaseService {
   }
 
   static Future<void> upsertAppUser(AppUser u) async {
-    try {
-      await _db?.from('app_users').upsert({
-        'email':              u.email,
-        'name':               u.name,
-        'employee_id':        u.employeeId,
-        'designation':        u.designation,
-        'role':               u.role,
-        'active':             u.active,
-        'password':           u.password,
-        'leave_allocation':   u.leaveAllocation,
-        'reporting_manager':  u.reportingManager,
-        'mobile':             u.mobile,
-        'address':            u.address,
-        'date_of_joining':    u.dateOfJoining,
-      });
-    } catch (_) {}
+    await _db?.from('app_users').upsert({
+      'email':              u.email,
+      'name':               u.name,
+      'employee_id':        u.employeeId,
+      'designation':        u.designation,
+      'role':               u.role,
+      'active':             u.active,
+      'password':           u.password,
+      'leave_allocation':   u.leaveAllocation,
+      'reporting_manager':  u.reportingManager,
+      'mobile':             u.mobile,
+      'address':            u.address,
+      'date_of_joining':    u.dateOfJoining,
+    });
   }
 
   static Future<void> deleteAppUser(String email) async {

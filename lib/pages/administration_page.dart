@@ -593,17 +593,25 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
   }
 
-  Future<void> _approve(Map<String, dynamic> form) async {
+  Future<void> _approve(BuildContext context, Map<String, dynamic> form) async {
+    final email   = (form['assigned_email']   as String?) ?? '';
+    final empId   = (form['assigned_emp_id']  as String?) ?? '';
+    final manager = (form['assigned_manager'] as String?) ?? '';
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No email assigned. Ask HR to re-forward this submission.'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
+
     try {
-      // Create user account from the details HR pre-filled
-      final email    = (form['assigned_email']   as String?) ?? '';
-      final empId    = (form['assigned_emp_id']  as String?) ?? '';
-      final manager  = (form['assigned_manager'] as String?) ?? '';
       final user = AppUser(
-        name:             (form['name']         as String?) ?? '',
+        name:             (form['name']          as String?) ?? '',
         email:            email,
         employeeId:       empId,
-        designation:      (form['designation']  as String?) ?? '',
+        designation:      (form['designation']   as String?) ?? '',
         role:             'Employee',
         active:           true,
         reportingManager: manager,
@@ -615,8 +623,21 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           .update({'status': 'access_granted'})
           .eq('id', form['id'].toString());
       await _load();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Account created for ${user.name} (${user.email})'),
+          backgroundColor: Colors.green.shade700,
+        ));
+      }
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = 'Failed to create account: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 8),
+        ));
+      }
     }
   }
 
@@ -851,7 +872,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              onPressed: () => _approve(f),
+                              onPressed: () => _approve(context, f),
                             ),
                           ],
                           if (status == 'access_granted') ...[
