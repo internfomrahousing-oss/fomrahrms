@@ -313,6 +313,54 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     );
   }
 
+  Future<void> _markPreOfferSent(BuildContext ctx, Map<String, dynamic> row) async {
+    final name = (row['name'] ?? '').toString().trim();
+    final confirmed = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Row(children: [
+          Icon(Icons.mark_email_read_rounded, color: Color(0xFF6A1B9A), size: 20),
+          SizedBox(width: 8),
+          Text('Mark as Sent',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF6A1B9A))),
+        ]),
+        content: Text(
+          'Confirm that the pre-offer & onboarding email has been sent to $name?',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6A1B9A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Yes, Mark as Sent'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    try {
+      await SupabaseService.updateCandidateStatus(id, {
+        'pre_offer_sent': true,
+        'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
+      });
+      _fetch();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteForHr(BuildContext ctx, Map<String, dynamic> row) async {
     final name = (row['name'] ?? '').toString().trim();
     final confirmed = await showDialog<bool>(
@@ -655,6 +703,7 @@ FOMRA Housing & Infrastructure''';
                                 onReject: () => _showRejectDialog(row),
                                 onComment: () => _showCommentDialog(row),
                                 onSendEmail: () => _showSendEmailDialog(context, row),
+                                onMarkPreOffer: () => _markPreOfferSent(context, row),
                                 onDelete: () => _deleteForHr(context, row),
                                 onView: () {
                                   CandidateStore.selected = row;
@@ -683,6 +732,7 @@ class _ApplicationCard extends StatelessWidget {
   final VoidCallback onView;
   final VoidCallback? onSendEmail;
   final VoidCallback? onDelete;
+  final VoidCallback? onMarkPreOffer;
 
   const _ApplicationCard({
     required this.row,
@@ -695,6 +745,7 @@ class _ApplicationCard extends StatelessWidget {
     required this.onView,
     this.onSendEmail,
     this.onDelete,
+    this.onMarkPreOffer,
   });
 
   @override
@@ -709,8 +760,9 @@ class _ApplicationCard extends StatelessWidget {
     final managerStatus = (row['manager_status']  ?? 'pending').toString();
     final mgmtStatus    = (row['management_status']?? 'pending').toString();
 
-    final isPending   = status == 'pending';
-    final isApproved  = status == 'approved';
+    final isPending      = status == 'pending';
+    final isApproved     = status == 'approved';
+    final preOfferSent   = row['pre_offer_sent'] == true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -822,6 +874,26 @@ class _ApplicationCard extends StatelessWidget {
                           fontWeight: FontWeight.w600)),
                 ]),
               ),
+              if (preOfferSent) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE7F6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.mark_email_read_rounded,
+                        size: 15, color: Color(0xFF6A1B9A)),
+                    SizedBox(width: 6),
+                    Text('Pre Offer & Onboarding Sent',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6A1B9A),
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ],
             ],
 
             if (mgmtStatus == 'rejected') ...[
@@ -895,6 +967,13 @@ class _ApplicationCard extends StatelessWidget {
                   color: const Color(0xFF1565C0),
                   onTap: onSendEmail!,
                   highlight: true,
+                ),
+              if (isApproved && !preOfferSent && onMarkPreOffer != null)
+                _ActionButton(
+                  label: 'Pre Offer & Onboarding Sent',
+                  icon: Icons.mark_email_read_rounded,
+                  color: const Color(0xFF6A1B9A),
+                  onTap: onMarkPreOffer!,
                 ),
               if (onDelete != null)
                 _ActionButton(
