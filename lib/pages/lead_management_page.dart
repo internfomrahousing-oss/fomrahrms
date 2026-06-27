@@ -29,6 +29,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   String? _filterColumn;   // null = auto-detect status column
   String _filterValue = 'All';
   List<String> _filterOptions = ['All'];
+  bool _showFilter = false;
 
   final _searchCtrl = TextEditingController();
 
@@ -615,34 +616,76 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                   ),
                 ]),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name, phone, project…',
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        color: _blue, size: 20),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: _searchCtrl.clear,
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: const Color(0xFFF5F7FA),
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, phone, project…',
+                        prefixIcon: const Icon(Icons.search_rounded, color: _blue, size: 20),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: _searchCtrl.clear,
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: const Color(0xFFF5F7FA),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                // Column picker + dynamic value chips
-                if (_all.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  // Filter toggle button
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => setState(() => _showFilter = !_showFilter),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _showFilter ? _blue : const Color(0xFFF5F7FA),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _showFilter ? _blue : const Color(0xFFDDDDDD)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.tune_rounded, size: 16,
+                                color: _showFilter ? Colors.white : _blue),
+                            const SizedBox(width: 5),
+                            Text('Filter',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _showFilter ? Colors.white : _blue)),
+                          ]),
+                        ),
+                      ),
+                      // Active filter dot
+                      if (_filterValue != 'All')
+                        Positioned(
+                          top: -3, right: -3,
+                          child: Container(
+                            width: 8, height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.orange, shape: BoxShape.circle),
+                          ),
+                        ),
+                    ],
+                  ),
+                ]),
+
+                // Column picker + value chips — only shown when filter is open
+                if (_showFilter && _all.isNotEmpty) ...[
+                  const SizedBox(height: 10),
                   Row(children: [
-                    const Icon(Icons.filter_list_rounded, size: 16, color: Color(0xFF78909C)),
-                    const SizedBox(width: 6),
                     const Text('Filter by:',
                         style: TextStyle(fontSize: 12, color: Color(0xFF78909C), fontWeight: FontWeight.w600)),
                     const SizedBox(width: 8),
@@ -680,7 +723,6 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                     ),
                   ]),
                   const SizedBox(height: 8),
-                  // Value chips for selected column
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
