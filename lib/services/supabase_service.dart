@@ -504,6 +504,12 @@ class SupabaseService {
     await db.from('candidate_applications').update(fields).eq('id', id);
   }
 
+  static Future<void> deleteCandidateApplication(String id) async {
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized.');
+    await db.from('candidate_applications').delete().eq('id', id);
+  }
+
   // ── App Users (Administration) ────────────────────────────────────────
 
   static Future<List<AppUser>> fetchAppUsers() async {

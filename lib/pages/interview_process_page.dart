@@ -41,11 +41,14 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final rows = await SupabaseService.fetchCandidateApplications();
+      // HR only sees records they haven't soft-deleted
+      final visible = rows.where((r) => r['hr_deleted'] != true).toList();
       setState(() {
-        _all      = rows;
-        _filtered = rows;
+        _all      = visible;
+        _filtered = visible;
         _loading  = false;
       });
+      _applyFilter();
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
@@ -308,6 +311,51 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteForHr(BuildContext ctx, Map<String, dynamic> row) async {
+    final name = (row['name'] ?? '').toString().trim();
+    final confirmed = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Row(children: [
+          Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+          SizedBox(width: 8),
+          Text('Remove from your view',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        ]),
+        content: Text(
+          'This will hide "$name" from your Interview Process dashboard.\n\nManagement will still be able to see this application.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    try {
+      await SupabaseService.updateCandidateStatus(id, {'hr_deleted': true});
+      _fetch();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _showSendEmailDialog(BuildContext context, Map<String, dynamic> row) {
@@ -607,6 +655,7 @@ FOMRA Housing & Infrastructure''';
                                 onReject: () => _showRejectDialog(row),
                                 onComment: () => _showCommentDialog(row),
                                 onSendEmail: () => _showSendEmailDialog(context, row),
+                                onDelete: () => _deleteForHr(context, row),
                                 onView: () {
                                   CandidateStore.selected = row;
                                   context.push('/candidate-detail');
@@ -633,6 +682,7 @@ class _ApplicationCard extends StatelessWidget {
   final VoidCallback onComment;
   final VoidCallback onView;
   final VoidCallback? onSendEmail;
+  final VoidCallback? onDelete;
 
   const _ApplicationCard({
     required this.row,
@@ -644,6 +694,7 @@ class _ApplicationCard extends StatelessWidget {
     required this.onComment,
     required this.onView,
     this.onSendEmail,
+    this.onDelete,
   });
 
   @override
@@ -844,6 +895,13 @@ class _ApplicationCard extends StatelessWidget {
                   color: const Color(0xFF1565C0),
                   onTap: onSendEmail!,
                   highlight: true,
+                ),
+              if (onDelete != null)
+                _ActionButton(
+                  label: 'Delete',
+                  icon: Icons.delete_outline_rounded,
+                  color: Colors.red.shade700,
+                  onTap: onDelete!,
                 ),
             ]),
           ],

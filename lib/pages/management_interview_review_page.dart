@@ -212,6 +212,51 @@ class _ManagementInterviewReviewPageState
     );
   }
 
+  Future<void> _deleteRecord(BuildContext ctx, Map<String, dynamic> row) async {
+    final name = (row['name'] ?? '').toString().trim();
+    final confirmed = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Row(children: [
+          Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20),
+          SizedBox(width: 8),
+          Text('Delete Application',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        ]),
+        content: Text(
+          'Permanently delete "$name"\'s application?\n\nThis will remove it from both Management and HR dashboards and cannot be undone.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    try {
+      await SupabaseService.deleteCandidateApplication(id);
+      _fetch();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _updateStatus(
       Map<String, dynamic> row, String status, String? comment) async {
     final id = row['id']?.toString() ?? '';
@@ -493,14 +538,19 @@ class _ManagementInterviewReviewPageState
                                           ),
                                           _ActionBtn(
                                             label: 'View',
-                                            icon:
-                                                Icons.open_in_new_rounded,
+                                            icon: Icons.open_in_new_rounded,
                                             color: _mgmtColor,
                                             onTap: () {
                                               CandidateStore.selected = row;
                                               context.push(
                                                   '/management/candidate-detail');
                                             },
+                                          ),
+                                          _ActionBtn(
+                                            label: 'Delete',
+                                            icon: Icons.delete_forever_rounded,
+                                            color: Colors.red.shade700,
+                                            onTap: () => _deleteRecord(context, row),
                                           ),
                                         ]),
                                   ],
