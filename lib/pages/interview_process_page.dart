@@ -20,6 +20,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   List<Map<String, dynamic>> _filtered = [];
   bool _loading = false;
   String? _error;
+  bool _showDoneOnly = false;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -51,13 +52,18 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
   void _applyFilter() {
     final q = _searchCtrl.text.trim().toLowerCase();
+    var base = _showDoneOnly
+        ? _all.where((r) => _compositeStatus(r) == 'approved').toList()
+        : _all;
     setState(() {
       _filtered = q.isEmpty
-          ? _all
-          : _all.where((r) => r.values.any(
+          ? base
+          : base.where((r) => r.values.any(
               (v) => v.toString().toLowerCase().contains(q))).toList();
     });
   }
+
+  int get _doneCount => _all.where((r) => _compositeStatus(r) == 'approved').length;
 
   String _cell(Map<String, dynamic> row, String key) {
     final v = row[key];
@@ -389,6 +395,36 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
                 if (_all.isNotEmpty) ...[
                   const SizedBox(height: 12),
+                  // Filter chips
+                  Row(children: [
+                    FilterChip(
+                      label: const Text('All Applications'),
+                      selected: !_showDoneOnly,
+                      onSelected: (_) => setState(() { _showDoneOnly = false; _applyFilter(); }),
+                      selectedColor: _blue.withValues(alpha: 0.15),
+                      checkmarkColor: _blue,
+                      labelStyle: TextStyle(
+                          color: !_showDoneOnly ? _blue : Colors.grey.shade600,
+                          fontWeight: !_showDoneOnly ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 12),
+                      side: BorderSide(color: !_showDoneOnly ? _blue : Colors.grey.shade300),
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      avatar: const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF2E7D32)),
+                      label: Text('Interview Done ($_doneCount)'),
+                      selected: _showDoneOnly,
+                      onSelected: (_) => setState(() { _showDoneOnly = true; _applyFilter(); }),
+                      selectedColor: const Color(0xFFE8F5E9),
+                      checkmarkColor: const Color(0xFF2E7D32),
+                      labelStyle: TextStyle(
+                          color: _showDoneOnly ? const Color(0xFF2E7D32) : Colors.grey.shade600,
+                          fontWeight: _showDoneOnly ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 12),
+                      side: BorderSide(color: _showDoneOnly ? const Color(0xFF2E7D32) : Colors.grey.shade300),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _searchCtrl,
                     decoration: InputDecoration(

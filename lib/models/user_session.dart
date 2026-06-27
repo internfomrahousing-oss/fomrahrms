@@ -5,11 +5,13 @@ class UserSession {
   static UserRole role       = UserRole.hr;
   static String   name       = '';
   static String   employeeId = '';
+  static String   email      = '';
 
   static void clear() {
     loggedIn   = false;
     role       = UserRole.hr;
     name       = '';
     employeeId = '';
+    email      = '';
   }
 }

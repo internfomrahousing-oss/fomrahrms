@@ -247,6 +247,25 @@ class _SubmissionCard extends StatefulWidget {
 class _SubmissionCardState extends State<_SubmissionCard> {
   bool _expanded = false;
   bool _acting = false;
+  Map<String, dynamic>? _linkedInterview;
+
+  Future<void> _fetchLinkedInterview() async {
+    if (_linkedInterview != null) return;
+    final d    = widget.data;
+    final name  = ((d['name'] as String?) ?? '').trim();
+    final phone = ((d['phone_number'] as String?) ?? '').trim();
+    if (name.isEmpty) return;
+    try {
+      final results = await Supabase.instance.client
+          .from('candidate_applications')
+          .select('name, post_applied, hr_status, manager_status, management_status')
+          .or('name.ilike.%$name%${phone.isNotEmpty ? ",mobile.eq.$phone" : ""}')
+          .limit(1);
+      if (results.isNotEmpty && mounted) {
+        setState(() => _linkedInterview = results.first as Map<String, dynamic>);
+      }
+    } catch (_) {}
+  }
 
   Future<void> _updateStatus(String status) async {
     setState(() => _acting = true);
@@ -431,7 +450,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       child: Column(children: [
         InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => setState(() => _expanded = !_expanded),
+          onTap: () {
+            setState(() => _expanded = !_expanded);
+            if (_expanded) _fetchLinkedInterview();
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(children: [
@@ -478,6 +500,11 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Linked interview record indicator
+              if (_linkedInterview != null) ...[
+                _LinkedInterviewBanner(data: _linkedInterview!),
+                const SizedBox(height: 12),
+              ],
               _section('Basic Information', [
                 _row('Name',            d['name']),
                 _row('Phone Number',    d['phone_number']),
@@ -675,4 +702,75 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       .split(' ')
       .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
+}
+
+// ── Linked interview banner ────────────────────────────────────────────────────
+class _LinkedInterviewBanner extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _LinkedInterviewBanner({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final post   = (data['post_applied'] ?? '').toString();
+    final hrS    = (data['hr_status'] ?? 'pending').toString();
+    final mgrS   = (data['manager_status'] ?? 'pending').toString();
+    final mgmtS  = (data['management_status'] ?? 'pending').toString();
+
+    bool _ok(String s) => s == 'accepted' || s == 'approved';
+    final allDone = _ok(hrS) && _ok(mgrS) && _ok(mgmtS);
+
+    Widget _chip(String label, String s) {
+      final ok  = _ok(s);
+      final rej = s == 'rejected';
+      final c   = ok ? const Color(0xFF2E7D32) : rej ? const Color(0xFFC62828) : const Color(0xFFE65100);
+      final bg  = ok ? const Color(0xFFE8F5E9) : rej ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+        child: Text('$label: ${ok ? "✓" : rej ? "✗" : "…"}',
+            style: TextStyle(fontSize: 10, color: c, fontWeight: FontWeight.w600)),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: allDone ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: allDone ? const Color(0xFF2E7D32) : _blue,
+          width: 1,
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(
+            allDone ? Icons.verified_rounded : Icons.assignment_rounded,
+            size: 14,
+            color: allDone ? const Color(0xFF2E7D32) : _blue,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            allDone ? 'Interview Done — All Approvals Received' : 'Matched Interview Application',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: allDone ? const Color(0xFF2E7D32) : _blue,
+            ),
+          ),
+        ]),
+        if (post.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text('Applied for: $post',
+              style: TextStyle(fontSize: 11, color: allDone ? const Color(0xFF388E3C) : const Color(0xFF546E7A))),
+        ],
+        const SizedBox(height: 8),
+        Wrap(spacing: 6, runSpacing: 4, children: [
+          _chip('HR', hrS),
+          _chip('Manager', mgrS),
+          _chip('Management', mgmtS),
+        ]),
+      ]),
+    );
+  }
 }

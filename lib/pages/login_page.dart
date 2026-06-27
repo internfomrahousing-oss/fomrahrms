@@ -69,7 +69,8 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       _completeLogin(AppUser.userRoleFor(dynamicUser.role), dynamicUser.name,
-          dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email);
+          dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
+          email: dynamicUser.email);
       return;
     }
 
@@ -106,14 +107,16 @@ class _LoginPageState extends State<LoginPage> {
     await UserStore.upsertOne(user);
     if (!mounted) return;
     _completeLogin(AppUser.userRoleFor(user.role), user.name,
-        user.employeeId.isNotEmpty ? user.employeeId : user.email);
+        user.employeeId.isNotEmpty ? user.employeeId : user.email,
+        email: user.email);
   }
 
-  void _completeLogin(UserRole role, String name, String employeeId) {
+  void _completeLogin(UserRole role, String name, String employeeId, {String email = ''}) {
     UserSession.loggedIn   = true;
     UserSession.role       = role;
     UserSession.name       = name;
     UserSession.employeeId = employeeId;
+    UserSession.email      = email;
     setState(() => _loading = false);
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');
