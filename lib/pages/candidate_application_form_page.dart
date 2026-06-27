@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:html' as html;
 import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
 import '../models/form_config.dart';
 
@@ -61,16 +62,17 @@ class _CandidateApplicationFormPageState
   // ── Address / Declaration
   final _address         = TextEditingController();
   final _declarationName = TextEditingController();
-  final _signatureDate   = TextEditingController();
 
   // ── Dates / choices
   DateTime? _interviewDate;
   DateTime? _dob;
+  DateTime? _declarationDate;
   String? _gender;
   String? _maritalStatus;
   String? _postApplied;
   String? _noticePeriod;
   String? _source;
+  bool _declarationAgreed = false;
 
   // ── Resume
   String? _resumeFileName;
@@ -261,7 +263,7 @@ class _CandidateApplicationFormPageState
       _name, _mobile, _place, _nationality, _email, _age,
       _totalExp, _relevantExp, _reasonChange, _currentCtc, _expectedCtc,
       _jobPortal, _referredBy, _relatedEmp, _appliedBefore,
-      _address, _declarationName, _signatureDate,
+      _address, _declarationName,
     ]) { c.dispose(); }
     for (final r in _education)  r.dispose();
     for (final r in _empHistory) r.dispose();
@@ -290,6 +292,21 @@ class _CandidateApplicationFormPageState
       if (isInterview) _interviewDate = picked;
       else _dob = picked;
     });
+  }
+
+  Future<void> _pickDeclarationDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+            colorScheme: const ColorScheme.light(primary: _blue)),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _declarationDate = picked);
   }
 
   Future<void> _pickResume() async {
@@ -383,6 +400,23 @@ class _CandidateApplicationFormPageState
       }
     }
 
+    if (_secEnabled('declaration')) {
+      if (_declarationDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please select a date in the Declaration section.'),
+          backgroundColor: Colors.redAccent,
+        ));
+        return;
+      }
+      if (!_declarationAgreed) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('You must agree to the declaration before submitting.'),
+          backgroundColor: Colors.redAccent,
+        ));
+        return;
+      }
+    }
+
     setState(() => _submitting = true);
 
     try {
@@ -415,7 +449,8 @@ class _CandidateApplicationFormPageState
       'referrals':           _referrals.map((r) => r.toMap()).toList(),
       'address':             _address.text.trim(),
       'declaration_name':    _declarationName.text.trim(),
-      'signature_date':      _signatureDate.text.trim(),
+      'signature_date':      _fmt(_declarationDate),
+      'declaration_agreed':  true,
       'resume_url':          _resumeUrl ?? '',
       'custom_field_values': {
         for (final e in _customTextControllers.entries)
@@ -494,7 +529,7 @@ class _CandidateApplicationFormPageState
       _name, _mobile, _place, _nationality, _email, _age,
       _totalExp, _relevantExp, _reasonChange, _currentCtc, _expectedCtc,
       _jobPortal, _referredBy, _relatedEmp, _appliedBefore,
-      _address, _declarationName, _signatureDate,
+      _address, _declarationName,
     ]) { c.clear(); }
     for (final r in _education)  r.clear();
     for (final r in _empHistory) r.clear();
@@ -505,6 +540,7 @@ class _CandidateApplicationFormPageState
       _gender = null; _maritalStatus = null;
       _postApplied = null; _noticePeriod = null; _source = null;
       _standingArrears = null;
+      _declarationDate = null; _declarationAgreed = false;
       _resumeFileName = null; _resumeUrl = null;
       _customMcqValues.clear();
       _customFileNames.clear();
@@ -579,7 +615,8 @@ class _CandidateApplicationFormPageState
                       _row(narrow, [
                         _Field(label: 'Name', controller: _name, required: true),
                         _Field(label: 'Mobile Number', controller: _mobile,
-                            keyboard: TextInputType.phone, required: true),
+                            keyboard: TextInputType.phone, required: true,
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))]),
                       ]),
                       const SizedBox(height: 14),
                       _row(narrow, [
@@ -591,7 +628,8 @@ class _CandidateApplicationFormPageState
                         _Field(label: 'Email ID', controller: _email,
                             keyboard: TextInputType.emailAddress, required: true),
                         _Field(label: 'Age', controller: _age,
-                            keyboard: TextInputType.number, required: true),
+                            keyboard: TextInputType.number, required: true,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
                       ]),
                       const SizedBox(height: 14),
                       _DateField(label: 'Date of Birth', value: _fmt(_dob),
@@ -618,8 +656,9 @@ class _CandidateApplicationFormPageState
                       const SizedBox(height: 14),
                       _RadioGroup(label: 'Post Applied', required: true, wrap: true,
                           options: _secOptions('interview_details', 'post_applied_options',
-                              const ['HR','ACCOUNTS','SALES','MARKETING',
-                                  'GMI','PROJECTS','LAND ACQUISITION','DIGITAL MARKETING']),
+                              const ['HR','ADMIN','OPERATION','CRM',
+                                  'PROJECTS','LAND ACQUISITION','ACCOUNTS',
+                                  'SALES','DIGITAL MARKETING']),
                           value: _postApplied, onChanged: (v) => setState(() => _postApplied = v)),
                       ..._renderCustomFields(_sectionCustomFields('interview_details'), narrow),
                       ], // end interview_details
@@ -642,9 +681,11 @@ class _CandidateApplicationFormPageState
                       const SizedBox(height: 14),
                       _row(narrow, [
                         _Field(label: 'Current CTC per Month (INR)', controller: _currentCtc,
-                            keyboard: TextInputType.number, required: true),
+                            keyboard: TextInputType.number, required: true,
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
                         _Field(label: 'Expected CTC per Month (INR)', controller: _expectedCtc,
-                            keyboard: TextInputType.number, required: true),
+                            keyboard: TextInputType.number, required: true,
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
                       ]),
                       const SizedBox(height: 14),
                       _RadioGroup(label: 'Notice Period (to join if selected)', required: true,
@@ -765,9 +806,10 @@ class _CandidateApplicationFormPageState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Declaration text
                             RichText(
                               text: const TextSpan(
-                                style: TextStyle(fontSize: 13, color: Color(0xFF37474F), height: 1.5),
+                                style: TextStyle(fontSize: 13, color: Color(0xFF37474F), height: 1.6),
                                 children: [
                                   TextSpan(text: 'I, '),
                                   TextSpan(text: '___________________________',
@@ -778,12 +820,52 @@ class _CandidateApplicationFormPageState
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
+                            // Full Name (required) + Date (required)
                             _row(narrow, [
-                              _Field(label: 'Full Name (Declaration)', controller: _declarationName),
-                              _Field(label: 'Signature with Date', controller: _signatureDate,
-                                  hint: 'e.g. 23/06/2025'),
+                              _Field(label: 'Full Name', controller: _declarationName, required: true),
+                              _DateField(
+                                label: 'Date',
+                                value: _fmt(_declarationDate),
+                                required: true,
+                                onTap: _pickDeclarationDate,
+                              ),
                             ]),
+                            const SizedBox(height: 16),
+                            // I AGREE checkbox (compulsory)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                color: _declarationAgreed
+                                    ? const Color(0xFFE8F5E9)
+                                    : const Color(0xFFFFF8E1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _declarationAgreed
+                                      ? const Color(0xFF4CAF50)
+                                      : const Color(0xFFFFCC02),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: CheckboxListTile(
+                                value: _declarationAgreed,
+                                onChanged: (v) => setState(
+                                    () => _declarationAgreed = v ?? false),
+                                activeColor: _blue,
+                                checkColor: Colors.white,
+                                controlAffinity: ListTileControlAffinity.leading,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 2),
+                                title: const Text(
+                                  'I AGREE TO THE ABOVE DECLARATION  *',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF37474F),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -968,8 +1050,9 @@ class _EducationTableState extends State<_EducationTable> {
                   _eCell(row.degree,  colWidths[1]),
                   _eCell(row.college, colWidths[2]),
                   _eCell(row.passing, colWidths[3], hint: 'MM/YYYY'),
-                  _eCell(row.marks,   colWidths[4],
-                      keyboard: TextInputType.number),
+                  _eCell(row.marks, colWidths[4],
+                      keyboard: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
                   // Certificate Yes/No
                   Container(
                     width: colWidths[5],
@@ -1020,7 +1103,8 @@ class _EducationTableState extends State<_EducationTable> {
   }
 
   Widget _eCell(TextEditingController ctrl, double width,
-      {String? hint, TextInputType keyboard = TextInputType.text}) {
+      {String? hint, TextInputType keyboard = TextInputType.text,
+      List<TextInputFormatter>? inputFormatters}) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -1030,6 +1114,7 @@ class _EducationTableState extends State<_EducationTable> {
       child: TextField(
         controller: ctrl,
         keyboardType: keyboard,
+        inputFormatters: inputFormatters,
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
           hintText: hint,
@@ -1165,7 +1250,9 @@ class _EmpHistoryTable extends StatelessWidget {
                   _tableCell(e.value.position, widths[1], last: false),
                   _tableCell(e.value.from,     widths[2], last: false, hint: 'MM-YYYY'),
                   _tableCell(e.value.to,       widths[3], last: false, hint: 'MM-YYYY'),
-                  _tableCell(e.value.ctc,      widths[4], last: false),
+                  _tableCell(e.value.ctc, widths[4], last: false,
+                      keyboard: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
                   _tableCell(e.value.reason,   widths[5], last: true),
                 ],
               ),
@@ -1179,7 +1266,9 @@ class _EmpHistoryTable extends StatelessWidget {
   }
 
   Widget _tableCell(TextEditingController ctrl, double width,
-      {required bool last, String? hint}) {
+      {required bool last, String? hint,
+      TextInputType keyboard = TextInputType.text,
+      List<TextInputFormatter>? inputFormatters}) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -1192,6 +1281,8 @@ class _EmpHistoryTable extends StatelessWidget {
       ),
       child: TextField(
         controller: ctrl,
+        keyboardType: keyboard,
+        inputFormatters: inputFormatters,
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
           hintText: hint,
@@ -1423,10 +1514,12 @@ class _Field extends StatelessWidget {
   final String? hint;
   final int maxLines;
   final bool required;
+  final List<TextInputFormatter>? inputFormatters;
   const _Field({
     required this.label, required this.controller,
     this.keyboard = TextInputType.text, this.hint,
     this.maxLines = 1, this.required = false,
+    this.inputFormatters,
   });
 
   @override
@@ -1435,6 +1528,7 @@ class _Field extends StatelessWidget {
       controller: controller,
       keyboardType: keyboard,
       maxLines: maxLines,
+      inputFormatters: inputFormatters,
       style: const TextStyle(fontSize: 13),
       validator: required
           ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
