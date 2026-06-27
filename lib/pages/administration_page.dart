@@ -641,6 +641,116 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
   }
 
+  Future<void> _editAssigned(BuildContext context, Map<String, dynamic> form) async {
+    final emailCtrl   = TextEditingController(text: (form['assigned_email']   as String? ?? '').replaceAll('@fomrahousing.in', ''));
+    final empIdCtrl   = TextEditingController(text: form['assigned_emp_id']   as String? ?? '');
+    final managerCtrl = TextEditingController(text: form['assigned_manager']  as String? ?? '');
+
+    // Load managers list for dropdown
+    List<String> managers = [];
+    try {
+      final users = await UserStore.load();
+      managers = users.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+    } catch (_) {}
+    String selectedManager = managerCtrl.text.isNotEmpty ? managerCtrl.text : (managers.isNotEmpty ? managers.first : '');
+
+    if (!context.mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Edit Account Details', style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                controller: emailCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: const Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
+                  suffix: const Text('@fomrahousing.in',
+                      style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: empIdCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Employee ID',
+                  prefixIcon: const Icon(Icons.badge_rounded, color: _mgmtColor, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (managers.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  value: managers.contains(selectedManager) ? selectedManager : null,
+                  decoration: InputDecoration(
+                    labelText: 'Reporting Manager',
+                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    filled: true, fillColor: Colors.white,
+                  ),
+                  items: managers.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                  onChanged: (v) => setS(() => selectedManager = v ?? ''),
+                )
+              else
+                TextField(
+                  controller: managerCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Reporting Manager',
+                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    filled: true, fillColor: Colors.white,
+                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                  ),
+                ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _mgmtColor, foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                final newEmail   = '${emailCtrl.text.trim()}@fomrahousing.in';
+                final newEmpId   = empIdCtrl.text.trim();
+                final newManager = managers.isNotEmpty ? selectedManager : managerCtrl.text.trim();
+                Navigator.pop(ctx);
+                try {
+                  await Supabase.instance.client
+                      .from('onboarding_forms')
+                      .update({
+                        'assigned_email':   newEmail,
+                        'assigned_emp_id':  newEmpId,
+                        'assigned_manager': newManager,
+                      })
+                      .eq('id', form['id'].toString());
+                  await _load();
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Save failed: $e'),
+                      backgroundColor: Colors.red.shade700,
+                    ));
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _viewDetails(BuildContext context, Map<String, dynamic> form) async {
     await showDialog(
       context: context,
@@ -814,22 +924,33 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w600)),
                           ),
                         ]),
-                        // Show pre-assigned account details (set by HR)
-                        if ((f['assigned_email'] as String? ?? '').isNotEmpty) ...[
+                        // Show pre-assigned account details (set by HR) — editable by Management
+                        if ((f['assigned_email'] as String? ?? '').isNotEmpty ||
+                            status == 'hr_approved') ...[
                           const SizedBox(height: 10),
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE8EAF6),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              const Text('Account details prepared by HR:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _mgmtColor)),
-                              const SizedBox(height: 4),
-                              Text('Email: ${f['assigned_email'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _mgmtColor)),
-                              Text('Emp ID: ${f['assigned_emp_id'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _mgmtColor)),
-                              Text('Manager: ${f['assigned_manager'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _mgmtColor)),
+                            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                const Text('Account details (set by HR):',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _mgmtColor)),
+                                const SizedBox(height: 5),
+                                _DetailRow(Icons.email_rounded,           'Email',    f['assigned_email']   as String? ?? '—'),
+                                _DetailRow(Icons.badge_rounded,           'Emp ID',   f['assigned_emp_id']  as String? ?? '—'),
+                                _DetailRow(Icons.manage_accounts_rounded, 'Manager',  f['assigned_manager'] as String? ?? '—'),
+                              ])),
+                              if (status == 'hr_approved')
+                                IconButton(
+                                  tooltip: 'Edit details',
+                                  icon: const Icon(Icons.edit_rounded, size: 16, color: _mgmtColor),
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () => _editAssigned(context, f),
+                                ),
                             ]),
                           ),
                         ],
@@ -888,6 +1009,25 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                 },
               )),
     ]);
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _DetailRow(this.icon, this.label, this.value);
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(children: [
+        Icon(icon, size: 12, color: _mgmtColor),
+        const SizedBox(width: 5),
+        Text('$label: ', style: const TextStyle(fontSize: 11, color: _mgmtColor, fontWeight: FontWeight.w600)),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF1A237E)))),
+      ]),
+    );
   }
 }
 
