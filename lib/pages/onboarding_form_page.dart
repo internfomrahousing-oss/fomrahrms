@@ -1,13 +1,15 @@
 // ignore: avoid_web_libraries_in_flutter
+import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _AttachFile {
   final String name;
-  final Uint8List bytes;
-  final String mime;
+  Uint8List bytes;
+  String mime;
   _AttachFile({required this.name, required this.bytes, required this.mime});
 }
 
@@ -28,17 +30,21 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   final _name        = TextEditingController();
   final _phone       = TextEditingController();
   final _fatherName  = TextEditingController();
+  final _motherName  = TextEditingController();
   final _designation = TextEditingController();
-  final _dateJoining = TextEditingController();
+  DateTime? _dateJoiningDate;
 
   // ── Section 2: Personal Data
-  final _fullName        = TextEditingController();
-  final _dob             = TextEditingController();
-  final _postalAddress   = TextEditingController();
-  final _permanentAddress= TextEditingController();
+  final _fullName         = TextEditingController();
+  DateTime? _dobDate;
+  final _postalAddress    = TextEditingController();
+  final _permanentAddress = TextEditingController();
 
-  // ── Section 3: Family Details (dynamic rows)
+  // ── Section 3: Family Details (dynamic rows + parallel state)
   List<Map<String, TextEditingController>> _familyRows = [];
+  List<String?> _familyGenders   = [];
+  List<String?> _familyRelations = [];
+  List<_AttachFile?> _familyAadhars = [];
 
   // ── Section 4: Education (dynamic rows)
   List<Map<String, TextEditingController>> _educationRows = [];
@@ -65,16 +71,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   final _otherInfo          = TextEditingController();
 
   // ── Section 8: Emergency Details
-  final _bloodGroup        = TextEditingController();
-  final _allergicTo        = TextEditingController();
-  final _majorIllness      = TextEditingController();
-  final _emergencyName     = TextEditingController();
-  final _emergencyNumber   = TextEditingController();
-  final _emergencyAddress  = TextEditingController();
-  final _aadharNumber      = TextEditingController();
+  String? _bloodGroupValue;
+  final _allergicTo       = TextEditingController();
+  final _majorIllness     = TextEditingController();
+  final _emergencyName    = TextEditingController();
+  final _emergencyNumber  = TextEditingController();
+  final _emergencyAddress = TextEditingController();
+  _AttachFile? _emergencyAadharFile;
 
   // ── Declaration
-  final _declarationDate  = TextEditingController();
+  DateTime? _declarationDateVal;
   final _declarationPlace = TextEditingController();
   bool _declarationAgreed = false;
 
@@ -97,15 +103,17 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     _addExperienceRow();
   }
 
+  // ── Row management ────────────────────────────────────────────────────────
+
   void _addFamilyRow() {
     _familyRows.add({
       'name':       TextEditingController(),
       'age':        TextEditingController(),
-      'gender':     TextEditingController(),
-      'relation':   TextEditingController(),
       'occupation': TextEditingController(),
-      'aadhar':     TextEditingController(),
     });
+    _familyGenders.add(null);
+    _familyRelations.add(null);
+    _familyAadhars.add(null);
     setState(() {});
   }
 
@@ -138,6 +146,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   void _removeFamilyRow(int i) {
     for (final c in _familyRows[i].values) c.dispose();
     _familyRows.removeAt(i);
+    _familyGenders.removeAt(i);
+    _familyRelations.removeAt(i);
+    _familyAadhars.removeAt(i);
     setState(() {});
   }
 
@@ -153,69 +164,155 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     setState(() {});
   }
 
-  Map<String, dynamic> _rowToMap(Map<String, TextEditingController> row) =>
-      row.map((k, v) => MapEntry(k, v.text.trim()));
+  // ── Date helpers ──────────────────────────────────────────────────────────
 
+  String _fmt(DateTime? d) => d == null
+      ? ''
+      : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<DateTime?> _pickDate({
+    DateTime? initial,
+    DateTime? first,
+    DateTime? last,
+  }) =>
+      showDatePicker(
+        context: context,
+        initialDate: initial ?? DateTime.now(),
+        firstDate: first ?? DateTime(1950),
+        lastDate: last ?? DateTime(2100),
+        builder: (ctx, child) => Theme(
+          data: Theme.of(ctx).copyWith(
+              colorScheme: const ColorScheme.light(primary: _primary)),
+          child: child!,
+        ),
+      );
+
+  // ── File helpers ──────────────────────────────────────────────────────────
+
+  // Pick a single file (for aadhar uploads). Auto-compresses images > 1 MB.
+  Future<_AttachFile?> _pickSingleFile(
+      {String accept = 'image/*,.pdf'}) async {
+    final input = html.FileUploadInputElement()..accept = accept;
+    input.click();
+    await input.onChange.first;
+    final fileList = input.files;
+    if (fileList == null || fileList.isEmpty) return null;
+    final file = fileList[0];
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+    var bytes = (reader.result as ByteBuffer).asUint8List();
+    var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
+    if (bytes.length > 1024 * 1024 && mime.startsWith('image/')) {
+      final compressed = await _compressImage(bytes, mime);
+      if (compressed != null) {
+        bytes = compressed;
+        mime = 'image/jpeg';
+      }
+    }
+    return _AttachFile(name: file.name, bytes: bytes, mime: mime);
+  }
+
+  // Pick multiple files (for attachment section). Auto-compresses images > 1 MB.
   void _pickFiles(int docIndex) {
     final input = html.FileUploadInputElement()
-      ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg'
-      ..multiple = true
-      ..style.display = 'none';
-
-    // Must be in the DOM for click to work across all browsers
-    html.document.body!.append(input);
-
+      ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
+      ..multiple = true;
+    input.click();
     input.onChange.listen((_) async {
-      final files = input.files ?? [];
-      for (final file in files) {
-        if (file.size > 1024 * 1024) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('"${file.name}" exceeds 1 MB — skipped.'),
-              backgroundColor: Colors.red,
-            ));
-          }
-          continue;
-        }
+      final fileList = input.files;
+      if (fileList == null || fileList.isEmpty) return;
+      for (int fi = 0; fi < fileList.length; fi++) {
+        final file = fileList[fi];
         final reader = html.FileReader();
         reader.readAsArrayBuffer(file);
         await reader.onLoad.first;
-        final bytes = (reader.result as ByteBuffer).asUint8List();
+        var bytes = (reader.result as ByteBuffer).asUint8List();
+        var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
+        // Auto-compress images > 1 MB
+        if (bytes.length > 1024 * 1024 && file.type.startsWith('image/')) {
+          final compressed = await _compressImage(bytes, file.type);
+          if (compressed != null) {
+            bytes = compressed;
+            mime = 'image/jpeg';
+          }
+        }
         if (mounted) {
-          setState(() => _attachments[docIndex].add(
-            _AttachFile(name: file.name, bytes: bytes, mime: file.type),
-          ));
+          setState(() => _attachments[docIndex]
+              .add(_AttachFile(name: file.name, bytes: bytes, mime: mime)));
         }
       }
-      input.remove(); // clean up from DOM
     });
-
-    input.click();
   }
 
-  Future<List<Map<String, dynamic>>> _uploadAttachments() async {
+  // Compress image using Canvas API until it's under 1 MB.
+  Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
+    try {
+      final blob = html.Blob([bytes], mime);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final img = html.ImageElement(src: url);
+      await img.onLoad.first;
+      html.Url.revokeObjectUrl(url);
+
+      int w = img.naturalWidth;
+      int h = img.naturalHeight;
+      const maxDim = 1920;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = (h * maxDim / w).round();
+          w = maxDim;
+        } else {
+          w = (w * maxDim / h).round();
+          h = maxDim;
+        }
+      }
+
+      for (final quality in [0.7, 0.5, 0.3, 0.15]) {
+        final canvas = html.CanvasElement(width: w, height: h);
+        canvas.context2D
+            .drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
+        final dataUrl = canvas.toDataUrl('image/jpeg', quality);
+        final compressed =
+            Uint8List.fromList(base64Decode(dataUrl.split(',').last));
+        if (compressed.length <= 1024 * 1024) return compressed;
+      }
+      // Last resort at minimum quality
+      final canvas = html.CanvasElement(width: w, height: h);
+      canvas.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
+      return Uint8List.fromList(
+          base64Decode(canvas.toDataUrl('image/jpeg', 0.1).split(',').last));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _uploadSingleFile(_AttachFile file, String path) async {
+    try {
+      await Supabase.instance.client.storage
+          .from('onboarding-attachments')
+          .uploadBinary(path, file.bytes,
+              fileOptions: FileOptions(contentType: file.mime));
+      return Supabase.instance.client.storage
+          .from('onboarding-attachments')
+          .getPublicUrl(path);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _uploadAttachments(String ts) async {
     final result = <Map<String, dynamic>>[];
-    final ts = DateTime.now().millisecondsSinceEpoch.toString();
     for (int i = 0; i < _attachments.length; i++) {
       for (final file in _attachments[i]) {
-        try {
-          final path = '$ts/doc${i + 1}_${file.name}';
-          await Supabase.instance.client.storage
-              .from('onboarding-attachments')
-              .uploadBinary(path, file.bytes,
-                  fileOptions: FileOptions(
-                      contentType: file.mime.isEmpty ? 'application/octet-stream' : file.mime));
-          final url = Supabase.instance.client.storage
-              .from('onboarding-attachments')
-              .getPublicUrl(path);
-          result.add({'doc_type': _docLabels[i], 'name': file.name, 'url': url});
-        } catch (_) {
-          result.add({'doc_type': _docLabels[i], 'name': file.name, 'url': ''});
-        }
+        final path = '$ts/doc${i + 1}_${file.name}';
+        final url = await _uploadSingleFile(file, path) ?? '';
+        result.add({'doc_type': _docLabels[i], 'name': file.name, 'url': url});
       }
     }
     return result;
   }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -228,53 +325,87 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     }
     setState(() => _saving = true);
 
-    final uploadedFiles = await _uploadAttachments();
+    final ts = DateTime.now().millisecondsSinceEpoch.toString();
+
+    // Upload family aadhar files
+    final familyAadharUrls = <String?>[];
+    for (int i = 0; i < _familyAadhars.length; i++) {
+      final f = _familyAadhars[i];
+      familyAadharUrls.add(f != null
+          ? await _uploadSingleFile(f, '$ts/family_aadhar_${i}_${f.name}')
+          : null);
+    }
+
+    // Upload emergency aadhar
+    String? emergencyAadharUrl;
+    if (_emergencyAadharFile != null) {
+      emergencyAadharUrl = await _uploadSingleFile(
+          _emergencyAadharFile!,
+          '$ts/emergency_aadhar_${_emergencyAadharFile!.name}');
+    }
+
+    // Build family data
+    final familyData = _familyRows.asMap().entries.map((e) {
+      final i = e.key;
+      final row = e.value;
+      return {
+        'name':       row['name']!.text.trim(),
+        'age':        row['age']!.text.trim(),
+        'occupation': row['occupation']!.text.trim(),
+        'gender':     _familyGenders[i] ?? '',
+        'relation':   _familyRelations[i] ?? '',
+        'aadhar_url': familyAadharUrls[i] ?? '',
+      };
+    }).toList();
+
+    final uploadedFiles = await _uploadAttachments(ts);
 
     final payload = {
-      'name':                      _name.text.trim(),
-      'phone_number':              _phone.text.trim(),
-      'father_name':               _fatherName.text.trim(),
-      'designation':               _designation.text.trim(),
-      'date_of_joining':           _dateJoining.text.trim(),
-      'full_name':                 _fullName.text.trim(),
-      'date_of_birth':             _dob.text.trim(),
-      'postal_address':            _postalAddress.text.trim(),
-      'permanent_address':         _permanentAddress.text.trim(),
-      'family_details':            _familyRows.map(_rowToMap).toList(),
-      'education':                 _educationRows.map(_rowToMap).toList(),
-      'experience':                _experienceRows.map(_rowToMap).toList(),
-      'last_reporting_name':       _lastReportingName.text.trim(),
-      'last_reporting_designation':_lastReportingDesig.text.trim(),
-      'last_company':              _lastCompany.text.trim(),
-      'reference1':                _ref1.text.trim(),
-      'reference2':                _ref2.text.trim(),
-      'esi_number':                _esiNumber.text.trim(),
-      'pf_number':                 _pfNumber.text.trim(),
-      'languages_known':           _languages.text.trim(),
-      'hobbies':                   _hobbies.text.trim(),
-      'interests':                 _interests.text.trim(),
-      'related_to_employee':       _relatedToEmployee.text.trim(),
-      'professional_membership':   _professionalMember.text.trim(),
-      'specialized_training':      _specializedTraining.text.trim(),
-      'other_information':         _otherInfo.text.trim(),
-      'blood_group':               _bloodGroup.text.trim(),
-      'allergic_to':               _allergicTo.text.trim(),
-      'major_illness':             _majorIllness.text.trim(),
-      'emergency_contact_name':    _emergencyName.text.trim(),
-      'emergency_contact_number':  _emergencyNumber.text.trim(),
-      'emergency_contact_address': _emergencyAddress.text.trim(),
-      'aadhar_number':             _aadharNumber.text.trim(),
-      'declaration_date':          _declarationDate.text.trim(),
-      'declaration_place':         _declarationPlace.text.trim(),
-      'attachments':               uploadedFiles,
+      'name':                       _name.text.trim(),
+      'phone_number':               _phone.text.trim(),
+      'father_name':                _fatherName.text.trim(),
+      'mother_name':                _motherName.text.trim(),
+      'designation':                _designation.text.trim(),
+      'date_of_joining':            _fmt(_dateJoiningDate),
+      'full_name':                  _fullName.text.trim(),
+      'date_of_birth':              _fmt(_dobDate),
+      'postal_address':             _postalAddress.text.trim(),
+      'permanent_address':          _permanentAddress.text.trim(),
+      'family_details':             familyData,
+      'education':                  _educationRows.map(_rowToMap).toList(),
+      'experience':                 _experienceRows.map(_rowToMap).toList(),
+      'last_reporting_name':        _lastReportingName.text.trim(),
+      'last_reporting_designation': _lastReportingDesig.text.trim(),
+      'last_company':               _lastCompany.text.trim(),
+      'reference1':                 _ref1.text.trim(),
+      'reference2':                 _ref2.text.trim(),
+      'esi_number':                 _esiNumber.text.trim(),
+      'pf_number':                  _pfNumber.text.trim(),
+      'languages_known':            _languages.text.trim(),
+      'hobbies':                    _hobbies.text.trim(),
+      'interests':                  _interests.text.trim(),
+      'related_to_employee':        _relatedToEmployee.text.trim(),
+      'professional_membership':    _professionalMember.text.trim(),
+      'specialized_training':       _specializedTraining.text.trim(),
+      'other_information':          _otherInfo.text.trim(),
+      'blood_group':                _bloodGroupValue ?? '',
+      'allergic_to':                _allergicTo.text.trim(),
+      'major_illness':              _majorIllness.text.trim(),
+      'emergency_contact_name':     _emergencyName.text.trim(),
+      'emergency_contact_number':   _emergencyNumber.text.trim(),
+      'emergency_contact_address':  _emergencyAddress.text.trim(),
+      'aadhar_url':                 emergencyAadharUrl ?? '',
+      'declaration_date':           _fmt(_declarationDateVal),
+      'declaration_place':          _declarationPlace.text.trim(),
+      'attachments':                uploadedFiles,
     };
 
     try {
       await Supabase.instance.client.from('onboarding_forms').insert(payload);
-      setState(() { _saving = false; _submitted = true; });
+      if (mounted) setState(() { _saving = false; _submitted = true; });
     } catch (e) {
-      setState(() => _saving = false);
       if (mounted) {
+        setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error submitting form: $e'),
           backgroundColor: Colors.red,
@@ -283,23 +414,28 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     }
   }
 
+  Map<String, dynamic> _rowToMap(Map<String, TextEditingController> row) =>
+      row.map((k, v) => MapEntry(k, v.text.trim()));
+
   @override
   void dispose() {
     for (final c in [
-      _name, _phone, _fatherName, _designation, _dateJoining,
-      _fullName, _dob, _postalAddress, _permanentAddress,
+      _name, _phone, _fatherName, _motherName, _designation,
+      _fullName, _postalAddress, _permanentAddress,
       _lastReportingName, _lastReportingDesig, _lastCompany, _ref1, _ref2,
       _esiNumber, _pfNumber, _languages, _hobbies, _interests,
       _relatedToEmployee, _professionalMember, _specializedTraining, _otherInfo,
-      _bloodGroup, _allergicTo, _majorIllness,
-      _emergencyName, _emergencyNumber, _emergencyAddress, _aadharNumber,
-      _declarationDate, _declarationPlace,
+      _allergicTo, _majorIllness,
+      _emergencyName, _emergencyNumber, _emergencyAddress,
+      _declarationPlace,
     ]) { c.dispose(); }
     for (final row in _familyRows)    { for (final c in row.values) c.dispose(); }
     for (final row in _educationRows) { for (final c in row.values) c.dispose(); }
     for (final row in _experienceRows){ for (final c in row.values) c.dispose(); }
     super.dispose();
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -357,13 +493,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16)],
           ),
-          child: Column(children: [
-            const Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 64),
-            const SizedBox(height: 16),
-            const Text('Form Submitted Successfully!',
+          child: const Column(children: [
+            Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 64),
+            SizedBox(height: 16),
+            Text('Form Submitted Successfully!',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-            const SizedBox(height: 8),
-            const Text('Your joining form has been submitted.\nHR will review your details.',
+            SizedBox(height: 8),
+            Text('Your joining form has been submitted.\nHR will review your details.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Color(0xFF546E7A), fontSize: 14)),
           ]),
@@ -396,28 +532,54 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
+  // ── Section 1: Basic Info ─────────────────────────────────────────────────
+
   Widget _buildSection1() => _card(
     title: 'Basic Information',
     icon: Icons.person_rounded,
     child: Column(children: [
-      _field(_name,        'Name *',             required: true),
-      _field(_phone,       'Phone Number *',      required: true, keyboardType: TextInputType.phone),
-      _field(_fatherName,  'Father Name'),
+      _field(_name, 'Name *', required: true),
+      _field(_phone, 'Phone Number *', required: true,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+      _field(_fatherName, 'Father Name'),
+      _field(_motherName, 'Mother Name'),
       _field(_designation, 'Designation'),
-      _field(_dateJoining, 'Date of Joining',    hint: 'DD/MM/YYYY'),
+      _dateField(
+        label: 'Date of Joining',
+        value: _fmt(_dateJoiningDate),
+        onTap: () async {
+          final d = await _pickDate(initial: _dateJoiningDate);
+          if (d != null) setState(() => _dateJoiningDate = d);
+        },
+      ),
     ]),
   );
+
+  // ── Section 2: Personal Data ──────────────────────────────────────────────
 
   Widget _buildSection2() => _card(
     title: 'Personal Data Form',
     icon: Icons.assignment_ind_rounded,
     child: Column(children: [
-      _field(_fullName,         'Full Name'),
-      _field(_dob,              'Date of Birth', hint: 'DD/MM/YYYY'),
-      _field(_postalAddress,    'Postal Address', maxLines: 3),
+      _field(_fullName, 'Full Name'),
+      _dateField(
+        label: 'Date of Birth',
+        value: _fmt(_dobDate),
+        onTap: () async {
+          final d = await _pickDate(
+              initial: _dobDate,
+              first: DateTime(1950),
+              last: DateTime.now());
+          if (d != null) setState(() => _dobDate = d);
+        },
+      ),
+      _field(_postalAddress,    'Postal Address',    maxLines: 3),
       _field(_permanentAddress, 'Permanent Address', maxLines: 3),
     ]),
   );
+
+  // ── Family section ────────────────────────────────────────────────────────
 
   Widget _buildFamilySection() => _card(
     title: 'Family Details',
@@ -429,7 +591,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
-  Widget _buildFamilyRow(int i, Map<String, TextEditingController> row) => Container(
+  Widget _buildFamilyRow(int i, Map<String, TextEditingController> row) =>
+      Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
@@ -439,33 +602,67 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text('Member ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
+        Text('Member ${i + 1}',
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
-        if (i > 0) IconButton(
-          icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-          onPressed: () => _removeFamilyRow(i),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
+        if (i > 0)
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline,
+                color: Colors.red, size: 20),
+            onPressed: () => _removeFamilyRow(i),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: _field(row['name']!, 'Name', compact: true)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _field(row['age']!, 'Age', compact: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _dropdownField(
+            value: _familyGenders[i],
+            label: 'Gender',
+            items: const ['Male', 'Female'],
+            onChanged: (v) => setState(() => _familyGenders[i] = v),
+          ),
         ),
       ]),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: _field(row['name']!,       'Name', compact: true)),
-        const SizedBox(width: 8),
-        Expanded(child: _field(row['age']!,        'Age',  compact: true, keyboardType: TextInputType.number)),
-        const SizedBox(width: 8),
-        Expanded(child: _field(row['gender']!,     'Gender', compact: true)),
-      ]),
-      const SizedBox(height: 8),
-      Row(children: [
-        Expanded(child: _field(row['relation']!,   'Relation',   compact: true)),
+        Expanded(
+          child: _dropdownField(
+            value: _familyRelations[i],
+            label: 'Relation',
+            items: const ['Mother', 'Father', 'Child', 'Spouse'],
+            onChanged: (v) => setState(() => _familyRelations[i] = v),
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(child: _field(row['occupation']!, 'Occupation', compact: true)),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['aadhar']!,     'Aadhar No.', compact: true)),
+        Expanded(
+          child: _fileUploadTile(
+            label: 'Aadhar Copy',
+            file: _familyAadhars[i],
+            onPick: () async {
+              final f = await _pickSingleFile();
+              if (f != null) setState(() => _familyAadhars[i] = f);
+            },
+            onRemove: () => setState(() => _familyAadhars[i] = null),
+          ),
+        ),
       ]),
     ]),
   );
+
+  // ── Education section ─────────────────────────────────────────────────────
 
   Widget _buildEducationSection() => _card(
     title: 'Education Qualification',
@@ -478,7 +675,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
-  Widget _buildEducationRow(int i, Map<String, TextEditingController> row) => Container(
+  Widget _buildEducationRow(int i, Map<String, TextEditingController> row) =>
+      Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
@@ -488,31 +686,45 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text('Entry ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
+        Text('Entry ${i + 1}',
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
-        if (i > 0) IconButton(
-          icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-          onPressed: () => _removeEducationRow(i),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
+        if (i > 0)
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline,
+                color: Colors.red, size: 20),
+            onPressed: () => _removeEducationRow(i),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
       ]),
       const SizedBox(height: 8),
       Row(children: [
         Expanded(child: _field(row['qualification']!, 'Qualification', compact: true)),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['university']!,    'University / Institute', compact: true)),
+        Expanded(child: _field(row['university']!, 'University / Institute', compact: true)),
       ]),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: _field(row['year']!,    'Year of Passing', compact: true)),
+        Expanded(
+          child: _field(row['year']!, 'Year of Passing', compact: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['marks']!,   '% Marks', compact: true)),
+        Expanded(
+          child: _field(row['marks']!, '% Marks', compact: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
+        ),
         const SizedBox(width: 8),
         Expanded(child: _field(row['subject']!, 'Major Subject', compact: true)),
       ]),
     ]),
   );
+
+  // ── Experience section ────────────────────────────────────────────────────
 
   Widget _buildExperienceSection() => _card(
     title: 'Experience',
@@ -525,7 +737,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
-  Widget _buildExperienceRow(int i, Map<String, TextEditingController> row) => Container(
+  Widget _buildExperienceRow(int i, Map<String, TextEditingController> row) =>
+      Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
@@ -535,14 +748,18 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text('Experience ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
+        Text('Experience ${i + 1}',
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
-        if (i > 0) IconButton(
-          icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-          onPressed: () => _removeExperienceRow(i),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
+        if (i > 0)
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline,
+                color: Colors.red, size: 20),
+            onPressed: () => _removeExperienceRow(i),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
       ]),
       const SizedBox(height: 8),
       _field(row['organisation']!, 'Organisation', compact: true),
@@ -564,12 +781,18 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       Row(children: [
         Expanded(child: _field(row['superior']!, 'Designation of Immediate Superior', compact: true)),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['salary']!,   'Gross Salary Drawn', compact: true)),
+        Expanded(
+          child: _field(row['salary']!, 'Gross Salary Drawn', compact: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
+        ),
       ]),
       const SizedBox(height: 8),
       _field(row['reason']!, 'Reason for Leaving', compact: true),
     ]),
   );
+
+  // ── Last Position section ─────────────────────────────────────────────────
 
   Widget _buildLastPositionSection() => _card(
     title: 'Last Position Held',
@@ -586,6 +809,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
+  // ── Additional Info section ───────────────────────────────────────────────
+
   Widget _buildAdditionalSection() => _card(
     title: 'Additional Information',
     icon: Icons.info_outline_rounded,
@@ -595,37 +820,69 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         const SizedBox(width: 12),
         Expanded(child: _field(_pfNumber,  'PF Number')),
       ]),
-      _field(_languages,         'Languages Known'),
-      _field(_hobbies,           'Your Hobbies'),
-      _field(_interests,         'Interests (Sports / Music / Dance / Singing etc.)'),
-      _field(_relatedToEmployee, 'Related to any employee? If yes, name'),
-      _field(_professionalMember,'Membership of any Professional Institution / Association'),
+      _field(_languages,          'Languages Known'),
+      _field(_hobbies,            'Your Hobbies'),
+      _field(_interests,          'Interests (Sports / Music / Dance / Singing etc.)'),
+      _field(_relatedToEmployee,  'Related to any employee? If yes, name'),
+      _field(_professionalMember, 'Membership of any Professional Institution / Association'),
       _field(_specializedTraining,'Any Specialized Training Program attended'),
-      _field(_otherInfo,         'Any Other Information / Suggestion', maxLines: 3),
+      _field(_otherInfo,          'Any Other Information / Suggestion', maxLines: 3),
     ]),
   );
 
+  // ── Emergency section ─────────────────────────────────────────────────────
+
   Widget _buildEmergencySection() => _card(
-    title: 'Emergency Details',
+    title: 'EMERGENCY DETAILS OF EMPLOYEE',
     icon: Icons.emergency_rounded,
-    child: Column(children: [
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Expanded(child: _field(_bloodGroup, 'Blood Group')),
+        Expanded(
+          child: _dropdownField(
+            value: _bloodGroupValue,
+            label: 'Blood Group',
+            items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+            onChanged: (v) => setState(() => _bloodGroupValue = v),
+            bottomPad: 12,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(child: _field(_allergicTo, 'Allergic To')),
       ]),
-      _field(_majorIllness,      'Any Major Illness', maxLines: 2),
-      _field(_emergencyName,     'Emergency Contact Person Name'),
-      _field(_emergencyNumber,   'Emergency Contact Person Number', keyboardType: TextInputType.phone),
-      _field(_emergencyAddress,  'Emergency Contact Person Address', maxLines: 2),
-      _field(_aadharNumber,      'Aadhar Number'),
+      _field(_majorIllness,    'Any Major Illness', maxLines: 2),
+      _field(_emergencyName,   'Emergency Contact Person Name'),
+      _field(_emergencyNumber, 'Emergency Contact Person Number',
+          keyboardType: TextInputType.phone,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+      _field(_emergencyAddress,'Emergency Contact Person Address', maxLines: 2),
+      // Aadhar Copy upload
+      Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Aadhar Copy',
+              style: TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+          const SizedBox(height: 6),
+          _fileUploadTile(
+            label: 'Upload Aadhar Copy (PDF / image · max 1 MB)',
+            file: _emergencyAadharFile,
+            onPick: () async {
+              final f = await _pickSingleFile();
+              if (f != null) setState(() => _emergencyAadharFile = f);
+            },
+            onRemove: () => setState(() => _emergencyAadharFile = null),
+            fullWidth: true,
+          ),
+        ]),
+      ),
     ]),
   );
+
+  // ── Attachments section ───────────────────────────────────────────────────
 
   Widget _buildAttachmentsSection() => _card(
     title: 'Attachments',
     icon: Icons.attach_file_rounded,
-    subtitle: 'To be given as hard copy also · PDF / image / any format · Max 1 MB per file',
+    subtitle: 'PDF / image · Images > 1 MB are auto-compressed · To be given as hard copy also',
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       ...List.generate(_docLabels.length, (i) {
         final files = _attachments[i];
@@ -635,7 +892,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: files.isNotEmpty ? const Color(0xFF0D47A1) : const Color(0xFFE0E0E0),
+              color: files.isNotEmpty
+                  ? const Color(0xFF0D47A1)
+                  : const Color(0xFFE0E0E0),
               width: files.isNotEmpty ? 1.5 : 1,
             ),
           ),
@@ -652,12 +911,20 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   ),
                   child: Center(
                     child: Text('${i + 1}',
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 10),
-                Expanded(child: Text(_docLabels[i],
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF37474F), fontWeight: FontWeight.w500))),
+                Expanded(
+                  child: Text(_docLabels[i],
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF37474F),
+                          fontWeight: FontWeight.w500)),
+                ),
               ]),
             ),
 
@@ -669,27 +936,36 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 child: Column(
                   children: files.asMap().entries.map((e) => Container(
                     margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 7),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.insert_drive_file_rounded, size: 16, color: Color(0xFF2E7D32)),
+                      const Icon(Icons.insert_drive_file_rounded,
+                          size: 16, color: Color(0xFF2E7D32)),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(e.value.name,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF1B5E20), fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis)),
+                      Expanded(
+                        child: Text(e.value.name,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF1B5E20),
+                                fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis),
+                      ),
                       const SizedBox(width: 6),
                       GestureDetector(
-                        onTap: () => setState(() => _attachments[i].removeAt(e.key)),
+                        onTap: () => setState(
+                            () => _attachments[i].removeAt(e.key)),
                         child: Container(
                           width: 20, height: 20,
                           decoration: BoxDecoration(
                             color: Colors.red.shade100,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.close_rounded, size: 13, color: Colors.red),
+                          child: const Icon(Icons.close_rounded,
+                              size: 13, color: Colors.red),
                         ),
                       ),
                     ]),
@@ -698,20 +974,23 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               ),
             ],
 
-            // Add button
+            // Upload button
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.upload_file_rounded, size: 15),
-                label: Text(files.isEmpty ? 'Add File' : 'Add More',
+                label: Text(
+                    files.isEmpty ? 'Add File' : 'Add More',
                     style: const TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF0D47A1),
                   side: const BorderSide(color: Color(0xFF0D47A1)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(7)),
                 ),
                 onPressed: () => _pickFiles(i),
               ),
@@ -721,6 +1000,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       }),
     ]),
   );
+
+  // ── Declaration section ───────────────────────────────────────────────────
 
   Widget _buildDeclarationSection() => _card(
     title: 'Declaration',
@@ -740,7 +1021,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ),
       const SizedBox(height: 16),
       Row(children: [
-        Expanded(child: _field(_declarationDate,  'Date',  hint: 'DD/MM/YYYY')),
+        Expanded(
+          child: _dateField(
+            label: 'Date',
+            value: _fmt(_declarationDateVal),
+            onTap: () async {
+              final d = await _pickDate(initial: _declarationDateVal);
+              if (d != null) setState(() => _declarationDateVal = d);
+            },
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(child: _field(_declarationPlace, 'Place')),
       ]),
@@ -763,7 +1053,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     width: double.infinity,
     child: ElevatedButton.icon(
       icon: _saving
-          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          ? const SizedBox(
+              width: 18, height: 18,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2))
           : const Icon(Icons.send_rounded, size: 18),
       label: Text(_saving ? 'Submitting...' : 'Submit Joining Form',
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
@@ -777,12 +1070,20 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ),
   );
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Shared widget helpers ─────────────────────────────────────────────────
 
-  Widget _card({required String title, required IconData icon, required Widget child, String? subtitle}) =>
+  Widget _card({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    String? subtitle,
+  }) =>
       Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE8EAF6))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFFE8EAF6)),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -797,9 +1098,18 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
-                  if (subtitle != null) Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A237E))),
+                  if (subtitle != null)
+                    Text(subtitle,
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFF78909C))),
                 ]),
               ),
             ]),
@@ -811,12 +1121,15 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         ),
       );
 
-  Widget _field(TextEditingController ctrl, String label, {
+  Widget _field(
+    TextEditingController ctrl,
+    String label, {
     bool required = false,
     int maxLines = 1,
     TextInputType? keyboardType,
     String? hint,
     bool compact = false,
+    List<TextInputFormatter>? inputFormatters,
   }) =>
       Padding(
         padding: EdgeInsets.only(bottom: compact ? 0 : 12),
@@ -824,33 +1137,186 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           controller: ctrl,
           maxLines: maxLines,
           keyboardType: keyboardType,
-          validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+          inputFormatters: inputFormatters,
+          validator: required
+              ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+              : null,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
             filled: true,
             fillColor: Colors.white,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 10 : 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(9), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(9), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(9), borderSide: const BorderSide(color: _primary, width: 1.5)),
-            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(9), borderSide: const BorderSide(color: Colors.red)),
-            labelStyle: const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 10 : 14),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: _primary, width: 1.5)),
+            errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Colors.red)),
+            labelStyle:
+                const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
           ),
         ),
       );
 
-  Widget _addRowButton(String label, VoidCallback onTap) => OutlinedButton.icon(
-    icon: const Icon(Icons.add_rounded, size: 16),
-    label: Text(label, style: const TextStyle(fontSize: 13)),
-    style: OutlinedButton.styleFrom(
-      foregroundColor: _primary,
-      side: const BorderSide(color: _primary),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-    onPressed: onTap,
-  );
+  // Calendar date picker field (read-only, opens date picker on tap)
+  Widget _dateField({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+    bool compact = false,
+  }) =>
+      Padding(
+        padding: EdgeInsets.only(bottom: compact ? 0 : 12),
+        child: GestureDetector(
+          onTap: onTap,
+          child: AbsorbPointer(
+            child: TextFormField(
+              readOnly: true,
+              controller: TextEditingController(text: value),
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                labelText: label,
+                suffixIcon: const Icon(Icons.calendar_today_rounded,
+                    size: 17, color: _primary),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12, vertical: compact ? 10 : 14),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(9),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(9),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(9),
+                    borderSide:
+                        const BorderSide(color: _primary, width: 1.5)),
+                labelStyle:
+                    const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  // Dropdown field
+  Widget _dropdownField({
+    required String? value,
+    required String label,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+    double bottomPad = 0,
+  }) =>
+      Padding(
+        padding: EdgeInsets.only(bottom: bottomPad),
+        child: DropdownButtonFormField<String>(
+          value: value,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: label,
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: _primary, width: 1.5)),
+            labelStyle:
+                const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF37474F)),
+          items: items
+              .map((item) => DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(item),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      );
+
+  // Compact file upload tile (shows filename when picked, upload button otherwise)
+  Widget _fileUploadTile({
+    required String label,
+    required _AttachFile? file,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+    bool fullWidth = false,
+  }) {
+    if (file != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: const Color(0xFF4CAF50)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.insert_drive_file_rounded,
+              size: 15, color: Color(0xFF2E7D32)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(file.name,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF1B5E20),
+                    fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis),
+          ),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close_rounded,
+                size: 16, color: Colors.red),
+          ),
+        ]),
+      );
+    }
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.upload_file_rounded, size: 14),
+      label: Text(label,
+          style: const TextStyle(fontSize: 11),
+          overflow: TextOverflow.ellipsis),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _primary,
+        side: const BorderSide(color: _primary),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        minimumSize:
+            fullWidth ? const Size(double.infinity, 42) : const Size(0, 38),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+        alignment: Alignment.centerLeft,
+      ),
+      onPressed: onPick,
+    );
+  }
+
+  Widget _addRowButton(String label, VoidCallback onTap) =>
+      OutlinedButton.icon(
+        icon: const Icon(Icons.add_rounded, size: 16),
+        label: Text(label, style: const TextStyle(fontSize: 13)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _primary,
+          side: const BorderSide(color: _primary),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        onPressed: onTap,
+      );
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -859,5 +1325,8 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(label,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF546E7A)));
+      style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF546E7A)));
 }
