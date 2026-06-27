@@ -58,11 +58,16 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     final q = _searchCtrl.text.trim().toLowerCase();
     List<Map<String, dynamic>> base;
     switch (_filter) {
-      case 'done':
-        base = _all.where((r) => _compositeStatus(r) == 'approved').toList();
-        break;
       case 'pending':
         base = _all.where((r) => _compositeStatus(r) != 'approved').toList();
+        break;
+      case 'done':
+        // approved but NOT yet marked pre-offer sent
+        base = _all.where((r) =>
+            _compositeStatus(r) == 'approved' && r['pre_offer_sent'] != true).toList();
+        break;
+      case 'pre_offer':
+        base = _all.where((r) => r['pre_offer_sent'] == true).toList();
         break;
       default:
         base = _all;
@@ -75,8 +80,9 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     });
   }
 
-  int get _doneCount    => _all.where((r) => _compositeStatus(r) == 'approved').length;
-  int get _pendingCount => _all.where((r) => _compositeStatus(r) != 'approved').length;
+  int get _pendingCount   => _all.where((r) => _compositeStatus(r) != 'approved').length;
+  int get _doneCount      => _all.where((r) => _compositeStatus(r) == 'approved' && r['pre_offer_sent'] != true).length;
+  int get _preOfferCount  => _all.where((r) => r['pre_offer_sent'] == true).length;
 
   String _cell(Map<String, dynamic> row, String key) {
     final v = row[key];
@@ -639,6 +645,19 @@ FOMRA Housing & Infrastructure''';
                           fontWeight: _filter == 'done' ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12),
                       side: BorderSide(color: _filter == 'done' ? const Color(0xFF2E7D32) : Colors.grey.shade300),
+                    ),
+                    FilterChip(
+                      avatar: const Icon(Icons.mark_email_read_rounded, size: 13, color: Color(0xFF6A1B9A)),
+                      label: Text('Pre Offer & Onboarding Sent ($_preOfferCount)'),
+                      selected: _filter == 'pre_offer',
+                      onSelected: (_) => setState(() { _filter = 'pre_offer'; _applyFilter(); }),
+                      selectedColor: const Color(0xFFEDE7F6),
+                      checkmarkColor: const Color(0xFF6A1B9A),
+                      labelStyle: TextStyle(
+                          color: _filter == 'pre_offer' ? const Color(0xFF6A1B9A) : Colors.grey.shade600,
+                          fontWeight: _filter == 'pre_offer' ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 12),
+                      side: BorderSide(color: _filter == 'pre_offer' ? const Color(0xFF6A1B9A) : Colors.grey.shade300),
                     ),
                     FilterChip(
                       label: Text('All Applications (${_all.length})'),
