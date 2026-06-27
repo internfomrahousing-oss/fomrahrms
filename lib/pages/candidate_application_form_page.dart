@@ -5,11 +5,13 @@ import 'dart:html' as html;
 import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import '../models/form_config.dart';
 
 const _blue  = Color(0xFF0D47A1);
 
 class CandidateApplicationFormPage extends StatefulWidget {
-  const CandidateApplicationFormPage({super.key});
+  final String? version;
+  const CandidateApplicationFormPage({super.key, this.version});
   @override
   State<CandidateApplicationFormPage> createState() =>
       _CandidateApplicationFormPageState();
@@ -77,6 +79,182 @@ class _CandidateApplicationFormPageState
 
   bool _submitting = false;
 
+  // ── Form config
+  Map<String, dynamic> _config = {};
+  bool _configLoading = true;
+
+  // ── Custom fields state (keyed by field id from config)
+  final Map<String, TextEditingController> _customTextControllers = {};
+  final Map<String, String?> _customMcqValues = {};
+  final Map<String, String?> _customFileNames = {};
+  final Map<String, String?> _customFileUrls = {};
+  final Map<String, bool> _customFileUploading = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      Map<String, dynamic>? versionData;
+      final v = widget.version;
+      if (v != null && v.isNotEmpty) {
+        final vNum = int.tryParse(v);
+        if (vNum != null) {
+          versionData = await SupabaseService.fetchFormVersionByNumber(vNum);
+        }
+      } else {
+        versionData = await SupabaseService.fetchActiveFormVersion();
+      }
+      if (versionData != null && mounted) {
+        final cfg = Map<String, dynamic>.from(
+            versionData['form_config'] as Map);
+        // Pre-create controllers for custom short-answer fields
+        for (final section in FormConfig.getSections(cfg)) {
+          for (final field in FormConfig.getCustomFields(section)) {
+            final id = (field['id'] as String?) ?? '';
+            if (id.isEmpty) continue;
+            if ((field['type'] as String?) == 'short_answer') {
+              _customTextControllers.putIfAbsent(
+                  id, () => TextEditingController());
+            }
+          }
+        }
+        setState(() {
+          _config = cfg;
+          _configLoading = false;
+        });
+        return;
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _configLoading = false);
+  }
+
+  List<Map<String, dynamic>> _sectionCustomFields(String id) {
+    if (_config.isEmpty) return [];
+    try {
+      final s = FormConfig.getSections(_config)
+          .firstWhere((s) => s['id'] == id);
+      return FormConfig.getCustomFields(s);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _pickCustomFile(String fieldId) async {
+    setState(() => _customFileUploading[fieldId] = true);
+    try {
+      final nameCompleter = Completer<String?>();
+      final bytesCompleter = Completer<Uint8List?>();
+      final mimeCompleter = Completer<String?>();
+
+      final input = html.FileUploadInputElement()
+        ..accept = '.pdf,.jpg,.jpeg,.png'
+        ..click();
+
+      input.onChange.listen((_) {
+        final file = input.files?.first;
+        if (file == null) {
+          nameCompleter.complete(null);
+          bytesCompleter.complete(null);
+          mimeCompleter.complete(null);
+          return;
+        }
+        nameCompleter.complete(file.name);
+        mimeCompleter.complete(file.type);
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onLoad.listen((_) {
+          final result = reader.result;
+          if (result is ByteBuffer) {
+            bytesCompleter.complete(result.asUint8List());
+          } else {
+            bytesCompleter.complete(null);
+          }
+        });
+        reader.onError.listen((_) => bytesCompleter.complete(null));
+      });
+
+      final name  = await nameCompleter.future;
+      final bytes = await bytesCompleter.future;
+      final mime  = await mimeCompleter.future;
+
+      if (name != null && bytes != null) {
+        final url =
+            await SupabaseService.uploadFile(bytes, name, mime ?? '');
+        if (mounted) {
+          setState(() {
+            _customFileNames[fieldId] = name;
+            _customFileUrls[fieldId] = url;
+          });
+        }
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _customFileUploading[fieldId] = false);
+    }
+  }
+
+  List<Widget> _renderCustomFields(
+      List<Map<String, dynamic>> fields, bool narrow) {
+    if (fields.isEmpty) return [];
+    final widgets = <Widget>[];
+    for (final field in fields) {
+      final id = (field['id'] as String?) ?? '';
+      if (id.isEmpty) continue;
+      final type = (field['type'] as String?) ?? 'short_answer';
+      final label = (field['label'] as String?) ?? '';
+      final isRequired = (field['required'] as bool?) ?? false;
+
+      widgets.add(const SizedBox(height: 14));
+
+      if (type == 'short_answer') {
+        final ctrl = _customTextControllers.putIfAbsent(
+            id, () => TextEditingController());
+        widgets.add(_Field(
+          label: label,
+          controller: ctrl,
+          required: isRequired,
+        ));
+      } else if (type == 'mcq') {
+        final rawOpts = field['options'];
+        final opts = rawOpts is List
+            ? List<String>.from(rawOpts.cast<String>())
+            : <String>[];
+        widgets.add(_RadioGroup(
+          label: label,
+          options: opts,
+          value: _customMcqValues[id],
+          onChanged: (v) => setState(() => _customMcqValues[id] = v),
+          required: isRequired,
+          wrap: opts.length > 3,
+        ));
+      } else if (type == 'file_upload') {
+        widgets.add(_CustomFileUploader(
+          label: label,
+          isRequired: isRequired,
+          fileName: _customFileNames[id],
+          uploading: _customFileUploading[id] ?? false,
+          onPick: () => _pickCustomFile(id),
+        ));
+      }
+    }
+    return widgets;
+  }
+
+  bool _secEnabled(String id) =>
+      _config.isEmpty || FormConfig.isSectionEnabled(_config, id);
+
+  String _secTitle(String id, String fallback) =>
+      _config.isEmpty ? fallback : FormConfig.getSectionTitle(_config, id, fallback);
+
+  List<String> _secOptions(String id, String key, List<String> fallback) =>
+      _config.isEmpty
+          ? fallback
+          : FormConfig.getSectionOptions(_config, id, key, fallback);
+
   @override
   void dispose() {
     for (final c in [
@@ -88,6 +266,7 @@ class _CandidateApplicationFormPageState
     for (final r in _education)  r.dispose();
     for (final r in _empHistory) r.dispose();
     for (final r in _referrals)  r.dispose();
+    for (final c in _customTextControllers.values) c.dispose();
     super.dispose();
   }
 
@@ -176,6 +355,34 @@ class _CandidateApplicationFormPageState
       return;
     }
 
+    // Validate required custom fields
+    for (final section in FormConfig.getSections(_config)) {
+      final sId = (section['id'] as String?) ?? '';
+      if (!_secEnabled(sId)) continue;
+      for (final field in FormConfig.getCustomFields(section)) {
+        final fId = (field['id'] as String?) ?? '';
+        final isReq = (field['required'] as bool?) ?? false;
+        if (!isReq || fId.isEmpty) continue;
+        final fType = (field['type'] as String?) ?? 'short_answer';
+        final fLabel = (field['label'] as String?) ?? 'field';
+        bool missing = false;
+        if (fType == 'short_answer') {
+          missing = (_customTextControllers[fId]?.text.trim() ?? '').isEmpty;
+        } else if (fType == 'mcq') {
+          missing = _customMcqValues[fId] == null;
+        } else if (fType == 'file_upload') {
+          missing = _customFileUrls[fId] == null;
+        }
+        if (missing) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Required: "$fLabel"'),
+            backgroundColor: Colors.redAccent,
+          ));
+          return;
+        }
+      }
+    }
+
     setState(() => _submitting = true);
 
     try {
@@ -210,6 +417,12 @@ class _CandidateApplicationFormPageState
       'declaration_name':    _declarationName.text.trim(),
       'signature_date':      _signatureDate.text.trim(),
       'resume_url':          _resumeUrl ?? '',
+      'custom_field_values': {
+        for (final e in _customTextControllers.entries)
+          e.key: e.value.text.trim(),
+        for (final e in _customMcqValues.entries) e.key: e.value ?? '',
+        for (final e in _customFileUrls.entries) e.key: e.value ?? '',
+      },
     });
     } catch (e) {
       if (!mounted) return;
@@ -286,12 +499,16 @@ class _CandidateApplicationFormPageState
     for (final r in _education)  r.clear();
     for (final r in _empHistory) r.clear();
     for (final r in _referrals)  r.clear();
+    for (final c in _customTextControllers.values) c.clear();
     setState(() {
       _interviewDate = null; _dob = null;
       _gender = null; _maritalStatus = null;
       _postApplied = null; _noticePeriod = null; _source = null;
       _standingArrears = null;
       _resumeFileName = null; _resumeUrl = null;
+      _customMcqValues.clear();
+      _customFileNames.clear();
+      _customFileUrls.clear();
       _submitting = false;
     });
   }
@@ -300,6 +517,13 @@ class _CandidateApplicationFormPageState
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
     final pad    = narrow ? 16.0 : 24.0;
+
+    if (_configLoading) {
+      return const Material(
+        color: Color(0xFFF5F7FA),
+        child: Center(child: CircularProgressIndicator(color: _blue)),
+      );
+    }
 
     return Material(
       color: const Color(0xFFF5F7FA),
@@ -349,7 +573,8 @@ class _CandidateApplicationFormPageState
                     children: [
 
                       // ── Personal Information ─────────────────────────
-                      _SectionHeader(icon: Icons.person_rounded, title: 'Personal Information'),
+                      if (_secEnabled('personal_info')) ...[
+                      _SectionHeader(icon: Icons.person_rounded, title: _secTitle('personal_info', 'Personal Information')),
                       const SizedBox(height: 16),
                       _row(narrow, [
                         _Field(label: 'Name', controller: _name, required: true),
@@ -379,22 +604,31 @@ class _CandidateApplicationFormPageState
                       _RadioGroup(label: 'Marital Status', required: true,
                           options: const ['Single', 'Married', 'Separated'],
                           value: _maritalStatus, onChanged: (v) => setState(() => _maritalStatus = v)),
+                      ..._renderCustomFields(_sectionCustomFields('personal_info'), narrow),
+                      ], // end personal_info
 
-                      const SizedBox(height: 24),
                       // ── Interview Details ────────────────────────────
-                      _SectionHeader(icon: Icons.event_note_rounded, title: 'Interview Details'),
+                      if (_secEnabled('interview_details')) ...[
+                      const SizedBox(height: 24),
+                      _SectionHeader(icon: Icons.event_note_rounded,
+                          title: _secTitle('interview_details', 'Interview Details')),
                       const SizedBox(height: 16),
                       _DateField(label: 'Interview Attended Date', value: _fmt(_interviewDate),
                           required: true, onTap: () => _pickDate(true)),
                       const SizedBox(height: 14),
                       _RadioGroup(label: 'Post Applied', required: true, wrap: true,
-                          options: const ['HR','ACCOUNTS','SALES','MARKETING',
-                              'GMI','PROJECTS','LAND ACQUISITION','DIGITAL MARKETING'],
+                          options: _secOptions('interview_details', 'post_applied_options',
+                              const ['HR','ACCOUNTS','SALES','MARKETING',
+                                  'GMI','PROJECTS','LAND ACQUISITION','DIGITAL MARKETING']),
                           value: _postApplied, onChanged: (v) => setState(() => _postApplied = v)),
+                      ..._renderCustomFields(_sectionCustomFields('interview_details'), narrow),
+                      ], // end interview_details
 
-                      const SizedBox(height: 24),
                       // ── Experience & CTC ─────────────────────────────
-                      _SectionHeader(icon: Icons.work_history_rounded, title: 'Experience & CTC'),
+                      if (_secEnabled('experience_ctc')) ...[
+                      const SizedBox(height: 24),
+                      _SectionHeader(icon: Icons.work_history_rounded,
+                          title: _secTitle('experience_ctc', 'Experience & CTC')),
                       const SizedBox(height: 16),
                       _row(narrow, [
                         _Field(label: 'Total Experience', controller: _totalExp,
@@ -414,34 +648,47 @@ class _CandidateApplicationFormPageState
                       ]),
                       const SizedBox(height: 14),
                       _RadioGroup(label: 'Notice Period (to join if selected)', required: true,
-                          options: const ['Immediate','15 Days','30 Days','60 Days or more'],
+                          options: _secOptions('experience_ctc', 'notice_period_options',
+                              const ['Immediate','15 Days','30 Days','60 Days or more']),
                           value: _noticePeriod, onChanged: (v) => setState(() => _noticePeriod = v)),
+                      ..._renderCustomFields(_sectionCustomFields('experience_ctc'), narrow),
+                      ], // end experience_ctc
 
-                      const SizedBox(height: 24),
                       // ── Educational Qualifications ───────────────────
+                      if (_secEnabled('education')) ...[
+                      const SizedBox(height: 24),
                       _SectionHeader(icon: Icons.school_rounded,
-                          title: 'Educational Qualifications'),
+                          title: _secTitle('education', 'Educational Qualifications')),
                       const SizedBox(height: 16),
                       _EducationTable(
                         rows: _education,
                         standingArrears: _standingArrears,
                         onArrearsChanged: (v) => setState(() => _standingArrears = v),
                       ),
+                      ..._renderCustomFields(_sectionCustomFields('education'), narrow),
+                      ], // end education
 
-                      const SizedBox(height: 24),
                       // ── Employment History ───────────────────────────
+                      if (_secEnabled('employment_history')) ...[
+                      const SizedBox(height: 24),
                       _SectionHeader(icon: Icons.business_center_rounded,
-                          title: 'Employment History (Current & Previous, if any)'),
+                          title: _secTitle('employment_history',
+                              'Employment History (Current & Previous, if any)')),
                       const SizedBox(height: 16),
                       _EmpHistoryTable(rows: _empHistory),
+                      ..._renderCustomFields(_sectionCustomFields('employment_history'), narrow),
+                      ], // end employment_history
 
-                      const SizedBox(height: 24),
                       // ── Source ───────────────────────────────────────
-                      _SectionHeader(icon: Icons.campaign_rounded, title: 'Source'),
+                      if (_secEnabled('source')) ...[
+                      const SizedBox(height: 24),
+                      _SectionHeader(icon: Icons.campaign_rounded,
+                          title: _secTitle('source', 'Source')),
                       const SizedBox(height: 16),
                       _RadioGroup(label: 'Source', required: true,
-                          options: const ['Walk In','Referred by Employee',
-                              'Consultancy (Specify)','Job Portal / Other (Specify)','Other'],
+                          options: _secOptions('source', 'source_options',
+                              const ['Walk In','Referred by Employee',
+                                  'Consultancy (Specify)','Job Portal / Other (Specify)','Other']),
                           value: _source, onChanged: (v) => setState(() => _source = v)),
                       const SizedBox(height: 14),
                       _Field(label: 'Mention Job Portal (if applicable)',
@@ -452,42 +699,61 @@ class _CandidateApplicationFormPageState
                       const SizedBox(height: 14),
                       _Field(label: 'If Related to Any Employee — Name, EMP ID & Relationship',
                           controller: _relatedEmp, hint: 'Name, EMP ID, Relationship', maxLines: 2),
+                      ..._renderCustomFields(_sectionCustomFields('source'), narrow),
+                      ], // end source
 
-                      const SizedBox(height: 24),
                       // ── Referrals ────────────────────────────────────
+                      if (_secEnabled('referrals')) ...[
+                      const SizedBox(height: 24),
                       _SectionHeader(icon: Icons.group_add_rounded,
-                          title: 'Refer Friends / Relatives Looking for a Job'),
+                          title: _secTitle('referrals',
+                              'Refer Friends / Relatives Looking for a Job')),
                       const SizedBox(height: 16),
                       _ReferralTable(rows: _referrals),
+                      ..._renderCustomFields(_sectionCustomFields('referrals'), narrow),
+                      ], // end referrals
 
-                      const SizedBox(height: 24),
                       // ── Previous Application ─────────────────────────
-                      _SectionHeader(icon: Icons.history_rounded, title: 'Previous Application'),
+                      if (_secEnabled('previous_application')) ...[
+                      const SizedBox(height: 24),
+                      _SectionHeader(icon: Icons.history_rounded,
+                          title: _secTitle('previous_application', 'Previous Application')),
                       const SizedBox(height: 16),
                       _Field(label: 'Have you applied for a job with us earlier?',
                           controller: _appliedBefore,
                           hint: 'If yes, mention Job and Date', maxLines: 2),
+                      ..._renderCustomFields(_sectionCustomFields('previous_application'), narrow),
+                      ], // end previous_application
 
-                      const SizedBox(height: 24),
                       // ── Address ──────────────────────────────────────
+                      if (_secEnabled('address')) ...[
+                      const SizedBox(height: 24),
                       _SectionHeader(icon: Icons.location_on_rounded,
-                          title: 'Address for Communication'),
+                          title: _secTitle('address', 'Address for Communication')),
                       const SizedBox(height: 16),
                       _Field(label: 'Full Address', controller: _address, maxLines: 3),
+                      ..._renderCustomFields(_sectionCustomFields('address'), narrow),
+                      ], // end address
 
-                      const SizedBox(height: 24),
                       // ── Resume Upload ────────────────────────────────
-                      _SectionHeader(icon: Icons.attach_file_rounded, title: 'Resume'),
+                      if (_secEnabled('resume')) ...[
+                      const SizedBox(height: 24),
+                      _SectionHeader(icon: Icons.attach_file_rounded,
+                          title: _secTitle('resume', 'Resume')),
                       const SizedBox(height: 16),
                       _ResumeUploader(
                         fileName: _resumeFileName,
                         uploading: _uploadingResume,
                         onPick: _pickResume,
                       ),
+                      ..._renderCustomFields(_sectionCustomFields('resume'), narrow),
+                      ], // end resume
 
-                      const SizedBox(height: 24),
                       // ── Declaration ──────────────────────────────────
-                      _SectionHeader(icon: Icons.verified_rounded, title: 'Declaration'),
+                      if (_secEnabled('declaration')) ...[
+                      const SizedBox(height: 24),
+                      _SectionHeader(icon: Icons.verified_rounded,
+                          title: _secTitle('declaration', 'Declaration')),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -521,6 +787,8 @@ class _CandidateApplicationFormPageState
                           ],
                         ),
                       ),
+                      ..._renderCustomFields(_sectionCustomFields('declaration'), narrow),
+                      ], // end declaration
 
                       const SizedBox(height: 32),
                       // ── Submit ───────────────────────────────────────
@@ -1230,6 +1498,112 @@ class _DateField extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CustomFileUploader extends StatelessWidget {
+  final String label;
+  final bool isRequired;
+  final String? fileName;
+  final bool uploading;
+  final VoidCallback onPick;
+  const _CustomFileUploader({
+    required this.label,
+    required this.isRequired,
+    required this.fileName,
+    required this.uploading,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: fileName != null ? _blue : const Color(0xFFE0E0E0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isRequired ? '$label *' : label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF37474F)),
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                fileName != null
+                    ? Icons.check_circle_rounded
+                    : Icons.upload_file_rounded,
+                color: _blue, size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fileName ?? 'No file selected',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: fileName != null
+                            ? _blue
+                            : const Color(0xFF78909C),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    const Text('PDF, JPG or PNG accepted',
+                        style: TextStyle(
+                            fontSize: 11, color: Color(0xFFBBBBBB))),
+                  ]),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: uploading ? null : onPick,
+              icon: uploading
+                  ? const SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : Icon(
+                      fileName != null
+                          ? Icons.swap_horiz_rounded
+                          : Icons.attach_file_rounded,
+                      size: 16),
+              label: Text(
+                  uploading
+                      ? 'Uploading…'
+                      : fileName != null ? 'Change' : 'Choose File',
+                  style: const TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _blue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ]),
+        ],
       ),
     );
   }

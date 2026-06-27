@@ -57,6 +57,7 @@ import 'pages/management_dashboard_page.dart';
 import 'pages/candidate_detail_page.dart';
 import 'pages/manager_interview_review_page.dart';
 import 'pages/management_interview_review_page.dart';
+import 'pages/edit_form_page.dart';
 
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
@@ -117,7 +118,12 @@ final _router = GoRouter(
   routes: [
     // ── Public routes (no login required) ─────────────────────────────────
     GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
-    GoRoute(path: '/candidate-application', builder: (_, __) => const CandidateApplicationFormPage()),
+    GoRoute(
+      path: '/candidate-application',
+      builder: (_, state) => CandidateApplicationFormPage(
+        version: state.uri.queryParameters['v'],
+      ),
+    ),
     GoRoute(path: '/onboarding-form', builder: (_, __) => const OnboardingFormPage()),
 
     // ── HR Shell ───────────────────────────────────────────────────────────
@@ -173,6 +179,7 @@ final _router = GoRouter(
         GoRoute(path: '/salary-hike-engine',              builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/payroll-management',              builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/edit-form',                       builder: (_, __) => const EditFormPage()),
         GoRoute(path: '/candidate-detail',                builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/lead-management',

@@ -207,6 +207,19 @@ import '../models/user_session.dart';
   alter table onboarding_forms add column if not exists assigned_email text default '';
   alter table onboarding_forms add column if not exists assigned_emp_id text default '';
   alter table onboarding_forms add column if not exists assigned_manager text default '';
+
+  create table if not exists form_versions (
+    id uuid default gen_random_uuid() primary key,
+    created_at timestamptz default now(),
+    created_by text default '',
+    status text default 'pending',
+    form_config jsonb not null default '{}',
+    version_number integer default 1,
+    approved_at timestamptz,
+    approved_by text default '',
+    rejection_note text default ''
+  );
+  alter table form_versions disable row level security;
 */
 
 class SupabaseService {
@@ -479,6 +492,26 @@ class SupabaseService {
     }
   }
 
+  // Custom field file uploads (PDF / image) — stored in the same bucket under custom_uploads/
+  // SQL: alter table candidate_applications add column if not exists custom_field_values jsonb default '{}';
+  static Future<String?> uploadFile(
+      Uint8List bytes, String fileName, String mimeType) async {
+    try {
+      final path =
+          'custom_uploads/${DateTime.now().millisecondsSinceEpoch}_$fileName';
+      await _db?.storage.from('resumes').uploadBinary(
+        path, bytes,
+        fileOptions: FileOptions(
+            contentType: mimeType.isNotEmpty
+                ? mimeType
+                : 'application/octet-stream'),
+      );
+      return _db?.storage.from('resumes').getPublicUrl(path);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Candidate Applications ────────────────────────────────────────────
 
   static Future<void> saveCandidateApplication(Map<String, dynamic> data) async {
@@ -599,6 +632,115 @@ class SupabaseService {
           .toList();
     } catch (_) {
       return [];
+    }
+  }
+
+  // ── Form Versions ─────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchFormVersions() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db
+          .from('form_versions')
+          .select()
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchActiveFormVersion() async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('form_versions')
+          .select()
+          .eq('status', 'approved')
+          .order('approved_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchFormVersionById(
+      String id) async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('form_versions')
+          .select()
+          .eq('id', id)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchFormVersionByNumber(
+      int versionNumber) async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('form_versions')
+          .select()
+          .eq('version_number', versionNumber)
+          .eq('status', 'approved')
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveFormVersion(Map<String, dynamic> data) async {
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized.');
+    await db.from('form_versions').insert(data);
+  }
+
+  static Future<void> updateFormVersionStatus(
+    String id,
+    String status, {
+    String decidedBy = '',
+    String note = '',
+  }) async {
+    final db = _db;
+    if (db == null) return;
+    final update = <String, dynamic>{'status': status};
+    if (status == 'approved') {
+      update['approved_at'] =
+          DateTime.now().toUtc().toIso8601String();
+      update['approved_by'] = decidedBy;
+    }
+    if (note.isNotEmpty) update['rejection_note'] = note;
+    await db.from('form_versions').update(update).eq('id', id);
+  }
+
+  static Future<int> getNextFormVersionNumber() async {
+    final db = _db;
+    if (db == null) return 1;
+    try {
+      final data = await db
+          .from('form_versions')
+          .select('version_number')
+          .order('version_number', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      if (list.isEmpty) return 1;
+      return ((list.first['version_number'] as int?) ?? 0) + 1;
+    } catch (_) {
+      return 1;
     }
   }
 

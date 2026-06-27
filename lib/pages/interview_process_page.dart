@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../models/candidate_store.dart';
+import '../models/form_config.dart';
 
 const _blue = Color(0xFF0D47A1);
 
@@ -23,12 +24,24 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   // 'pending' | 'done' | 'all'
   String _filter = 'pending';
   final _searchCtrl = TextEditingController();
+  String _activeFormLink = FormConfig.baseLink;
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
     _fetch();
+    _loadActiveFormLink();
+  }
+
+  Future<void> _loadActiveFormLink() async {
+    try {
+      final active = await SupabaseService.fetchActiveFormVersion();
+      if (active != null && mounted) {
+        final vNum = (active['version_number'] as int?) ?? 1;
+        setState(() => _activeFormLink = FormConfig.versionedLink(vNum));
+      }
+    } catch (_) {}
   }
 
   @override
@@ -567,34 +580,51 @@ FOMRA Housing & Infrastructure''';
                   ),
                   OutlinedButton.icon(
                     onPressed: () {
-                      final link = 'https://fomrahrms-zeta.vercel.app/#/candidate-application';
-                      html.window.navigator.clipboard?.writeText(link);
+                      html.window.navigator.clipboard
+                          ?.writeText(_activeFormLink);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Link copied to clipboard'),
+                        content: Text('Form link copied to clipboard'),
                         duration: Duration(seconds: 2),
                         backgroundColor: Color(0xFF2E7D32),
                       ));
                     },
                     icon: const Icon(Icons.copy_rounded, size: 15),
-                    label: const Text('Copy Link', style: TextStyle(fontSize: 13)),
+                    label: const Text('Copy Link',
+                        style: TextStyle(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _blue,
                       side: const BorderSide(color: _blue),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: () => html.window.open(
-                      'https://fomrahrms-zeta.vercel.app/#/candidate-application',
-                      '_blank',
-                    ),
+                    onPressed: () =>
+                        html.window.open(_activeFormLink, '_blank'),
                     icon: const Icon(Icons.assignment_ind_rounded, size: 16),
                     label: const Text('Application Form',
                         style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => context.push('/edit-form'),
+                    icon: const Icon(Icons.edit_note_rounded, size: 16),
+                    label: const Text('Edit Form',
+                        style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6A1B9A),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
