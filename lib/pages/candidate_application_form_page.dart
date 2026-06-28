@@ -156,9 +156,11 @@ class _CandidateApplicationFormPageState
 
       final input = html.FileUploadInputElement()
         ..accept = '.pdf,.jpg,.jpeg,.png'
-        ..style.display = 'none';
+        ..style.position = 'fixed'
+        ..style.top = '-9999px'
+        ..style.left = '-9999px'
+        ..style.opacity = '0';
       html.document.body?.append(input);
-      input.click();
 
       // Detect dialog cancellation: window regains focus without onChange firing
       html.window.onFocus.first.then((_) {
@@ -193,6 +195,8 @@ class _CandidateApplicationFormPageState
         });
         reader.onError.listen((_) => bytesCompleter.complete(null));
       });
+
+      input.click();  // click AFTER listeners
 
       final name  = await nameCompleter.future;
       final bytes = await bytesCompleter.future;
@@ -401,7 +405,10 @@ class _CandidateApplicationFormPageState
 
       final input = html.FileUploadInputElement()
         ..accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*'
-        ..style.display = 'none';
+        ..style.position = 'fixed'
+        ..style.top = '-9999px'
+        ..style.left = '-9999px'
+        ..style.opacity = '0';
       html.document.body?.append(input);
 
       // Detect dialog cancellation: window regains focus without onChange firing

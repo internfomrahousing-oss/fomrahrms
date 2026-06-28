@@ -260,7 +260,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     final completer = Completer<List<html.File>?>();
     final input = html.FileUploadInputElement()
       ..accept = accept
-      ..style.display = 'none';
+      ..style.position = 'fixed'
+      ..style.top = '-9999px'
+      ..style.left = '-9999px'
+      ..style.opacity = '0';
     html.document.body?.append(input);
 
     input.onChange.listen((_) {
@@ -305,9 +308,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     final input = html.FileUploadInputElement()
       ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
       ..multiple = true
-      ..style.display = 'none';
+      ..style.position = 'fixed'
+      ..style.top = '-9999px'
+      ..style.left = '-9999px'
+      ..style.opacity = '0';
     html.document.body?.append(input);
-    input.click();
     input.onChange.listen((_) async {
       final fileList = input.files;  // read BEFORE remove
       input.remove();
@@ -333,6 +338,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         }
       }
     });
+    input.click();  // click AFTER listener is set up
   }
 
   // Compress image using Canvas API until it's under 1 MB.
