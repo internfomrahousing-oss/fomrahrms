@@ -91,6 +91,7 @@ class _CandidateApplicationFormPageState
   final Map<String, String?> _customFileUrls = {};
   final Map<String, bool> _customFileUploading = {};
   final Map<String, DateTime?> _customDateValues = {};
+  final Map<String, bool> _customCheckboxValues = {};
 
   @override
   void initState() {
@@ -270,6 +271,38 @@ class _CandidateApplicationFormPageState
             if (d != null) setState(() => _customDateValues[id] = d);
           },
         ));
+      } else if (type == 'checkbox') {
+        final checked = _customCheckboxValues[id] ?? false;
+        widgets.add(GestureDetector(
+          onTap: () => setState(() => _customCheckboxValues[id] = !checked),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: checked ? _blue : const Color(0xFFE0E0E0),
+              ),
+            ),
+            child: Row(children: [
+              Icon(
+                checked
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                color: checked ? _blue : const Color(0xFFBBBBBB),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isRequired ? '$label *' : label,
+                  style: const TextStyle(
+                      fontSize: 13, color: Color(0xFF37474F)),
+                ),
+              ),
+            ]),
+          ),
+        ));
       }
     }
     return widgets;
@@ -431,6 +464,8 @@ class _CandidateApplicationFormPageState
           missing = _customFileUrls[fId] == null;
         } else if (fType == 'date') {
           missing = _customDateValues[fId] == null;
+        } else if (fType == 'checkbox') {
+          missing = !(_customCheckboxValues[fId] ?? false);
         }
         if (missing) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -502,6 +537,7 @@ class _CandidateApplicationFormPageState
         for (final e in _customDateValues.entries)
           if (e.value != null)
             e.key: '${e.value!.day.toString().padLeft(2, '0')}/${e.value!.month.toString().padLeft(2, '0')}/${e.value!.year}',
+        for (final e in _customCheckboxValues.entries) e.key: e.value,
       },
     });
     } catch (e) {
@@ -591,6 +627,7 @@ class _CandidateApplicationFormPageState
       _customFileNames.clear();
       _customFileUrls.clear();
       _customDateValues.clear();
+      _customCheckboxValues.clear();
       _submitting = false;
     });
   }

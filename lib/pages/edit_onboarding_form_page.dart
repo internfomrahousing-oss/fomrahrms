@@ -880,6 +880,10 @@ class _CustomFieldPreview extends StatelessWidget {
         typeIcon = Icons.calendar_today_rounded;
         typeLabel = 'Date / Calendar';
         typeColor = const Color(0xFF6A1B9A);
+      case 'checkbox':
+        typeIcon = Icons.check_box_rounded;
+        typeLabel = 'Checkbox';
+        typeColor = const Color(0xFF2E7D32);
       default:
         typeIcon = Icons.short_text_rounded;
         typeLabel = 'Short Answer';
@@ -1079,6 +1083,13 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                   selected: _type,
                   onTap: () => setState(() => _type = 'date'),
                 ),
+                _TypeChip(
+                  icon: Icons.check_box_rounded,
+                  label: 'Checkbox',
+                  value: 'checkbox',
+                  selected: _type,
+                  onTap: () => setState(() => _type = 'checkbox'),
+                ),
               ]),
               const SizedBox(height: 18),
               TextField(
@@ -1246,6 +1257,28 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                       child: Text(
                         'A calendar date picker will be shown to the employee.',
                         style: TextStyle(fontSize: 11, color: Color(0xFF6A1B9A)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+              if (_type == 'checkbox') ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.check_box_rounded,
+                        size: 14, color: Color(0xFF2E7D32)),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'A single tick-box that the employee can check or leave unchecked.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
                       ),
                     ),
                   ]),

@@ -104,6 +104,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   final _customFileNames       = <String, String>{};
   final _customFileUrls        = <String, String>{};
   final _customDateValues      = <String, DateTime?>{};
+  final _customCheckboxValues  = <String, bool>{};
 
   @override
   void initState() {
@@ -563,6 +564,49 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         );
       }
 
+      if (type == 'checkbox') {
+        final checked = _customCheckboxValues[id] ?? false;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () =>
+                setState(() => _customCheckboxValues[id] = !checked),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: checked
+                      ? const Color(0xFF0D47A1)
+                      : const Color(0xFFE0E0E0),
+                ),
+              ),
+              child: Row(children: [
+                Icon(
+                  checked
+                      ? Icons.check_box_rounded
+                      : Icons.check_box_outline_blank_rounded,
+                  color: checked
+                      ? const Color(0xFF0D47A1)
+                      : const Color(0xFFBBBBBB),
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '$label${isRequired ? ' *' : ''}',
+                    style: const TextStyle(
+                        fontSize: 13, color: Color(0xFF37474F)),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        );
+      }
+
       // Short answer (default)
       _customTextControllers.putIfAbsent(id, () => TextEditingController());
       return Padding(
@@ -692,6 +736,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             .map((e) => MapEntry(
                 e.key,
                 '${e.value!.day.toString().padLeft(2, '0')}/${e.value!.month.toString().padLeft(2, '0')}/${e.value!.year}'))),
+        ..._customCheckboxValues,
       },
     };
 

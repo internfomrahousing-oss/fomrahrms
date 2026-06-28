@@ -1409,7 +1409,9 @@ class _FormPreviewDialog extends StatelessWidget {
                                           ? 'Numbers Only'
                                           : type == 'date'
                                               ? 'Date / Calendar'
-                                              : 'Short Answer';
+                                              : type == 'checkbox'
+                                                  ? 'Checkbox'
+                                                  : 'Short Answer';
                               return Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Row(children: [
