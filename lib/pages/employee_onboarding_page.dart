@@ -267,8 +267,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
           ]),
         ),
 
-        // ── Form Approval section ─────────────────────────────────────
-        if (_pendingVersions.isNotEmpty)
+        // ── Form Approval section (management only) ───────────────────
+        if (_pendingVersions.isNotEmpty && UserSession.role == UserRole.management)
           Container(
             color: const Color(0xFFFFF8E1),
             padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
