@@ -1,4 +1,5 @@
 // ignore: avoid_web_libraries_in_flutter
+import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:typed_data';
@@ -256,19 +257,32 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // Pick a single file (for aadhar uploads). Auto-compresses images > 1 MB.
   Future<_AttachFile?> _pickSingleFile(
       {String accept = 'image/*,.pdf'}) async {
+    final completer = Completer<List<html.File>?>();
     final input = html.FileUploadInputElement()
       ..accept = accept
       ..style.display = 'none';
     html.document.body?.append(input);
+
+    input.onChange.listen((_) {
+      if (!completer.isCompleted) {
+        final fl = input.files;  // read BEFORE remove
+        input.remove();
+        completer.complete(fl);
+      }
+    });
+    // Detect cancel: window regains focus after dialog closes
+    html.window.onFocus.first.then((_) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!completer.isCompleted) {
+          input.remove();
+          completer.complete(null);
+        }
+      });
+    });
+
     input.click();
-    // Wait for selection or cancellation (window refocus after dialog closes)
-    await Future.any([
-      input.onChange.first,
-      html.window.onFocus.first
-          .then((_) => Future.delayed(const Duration(milliseconds: 300))),
-    ]);
-    input.remove();
-    final fileList = input.files;
+
+    final fileList = await completer.future;
     if (fileList == null || fileList.isEmpty) return null;
     final file = fileList[0];
     final reader = html.FileReader();
@@ -295,8 +309,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     html.document.body?.append(input);
     input.click();
     input.onChange.listen((_) async {
+      final fileList = input.files;  // read BEFORE remove
       input.remove();
-      final fileList = input.files;
       if (fileList == null || fileList.isEmpty) return;
       for (int fi = 0; fi < fileList.length; fi++) {
         final file = fileList[fi];

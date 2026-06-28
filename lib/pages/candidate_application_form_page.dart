@@ -170,8 +170,8 @@ class _CandidateApplicationFormPageState
       });
 
       input.onChange.listen((_) {
+        final file = input.files?.first;  // read BEFORE remove
         input.remove();
-        final file = input.files?.first;
         if (file == null) {
           nameCompleter.complete(null);
           bytesCompleter.complete(null);
@@ -415,8 +415,8 @@ class _CandidateApplicationFormPageState
       });
 
       input.onChange.listen((_) {
+        final file = input.files?.first;  // read BEFORE remove
         input.remove();
-        final file = input.files?.first;
         if (file == null) {
           nameCompleter.complete(null);
           bytesCompleter.complete(null);
