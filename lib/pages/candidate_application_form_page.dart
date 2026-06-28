@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
@@ -399,10 +400,9 @@ class _CandidateApplicationFormPageState
       final mimeCompleter   = Completer<String?>();
 
       final input = html.FileUploadInputElement()
-        ..accept = '.pdf,.doc,.docx'
+        ..accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*'
         ..style.display = 'none';
       html.document.body?.append(input);
-      input.click();
 
       // Detect dialog cancellation: window regains focus without onChange firing
       html.window.onFocus.first.then((_) {
@@ -438,21 +438,62 @@ class _CandidateApplicationFormPageState
         reader.onError.listen((_) => bytesCompleter.complete(null));
       });
 
-      final name  = await nameCompleter.future;
-      final bytes = await bytesCompleter.future;
-      final mime  = await mimeCompleter.future;
+      input.click();
+
+      var name  = await nameCompleter.future;
+      var bytes = await bytesCompleter.future;
+      var mime  = await mimeCompleter.future;
+
+      // Auto-compress images > 1 MB
+      if (name != null && bytes != null && (mime ?? '').startsWith('image/') && bytes.length > 1024 * 1024) {
+        final compressed = await _compressImage(bytes, mime!);
+        if (compressed != null) {
+          bytes = compressed;
+          mime = 'image/jpeg';
+          name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg';
+        }
+      }
 
       if (name != null && bytes != null) {
         final url = await SupabaseService.uploadResume(bytes, name, mime ?? '');
-        setState(() {
-          _resumeFileName = name;
-          _resumeUrl      = url;
-        });
+        if (mounted) {
+          setState(() {
+            _resumeFileName = name;
+            _resumeUrl      = url;
+          });
+        }
       }
     } catch (_) {
     } finally {
-      setState(() => _uploadingResume = false);
+      if (mounted) setState(() => _uploadingResume = false);
     }
+  }
+
+  // Compress image using Canvas API until under 1 MB
+  Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
+    try {
+      final blob = html.Blob([bytes], mime);
+      final url  = html.Url.createObjectUrlFromBlob(blob);
+      final img  = html.ImageElement(src: url);
+      await img.onLoad.first;
+      html.Url.revokeObjectUrl(url);
+      int w = img.naturalWidth, h = img.naturalHeight;
+      const maxDim = 1920;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = (h * maxDim / w).round(); w = maxDim; }
+        else       { w = (w * maxDim / h).round(); h = maxDim; }
+      }
+      for (final q in [0.7, 0.5, 0.3, 0.15]) {
+        final c = html.CanvasElement(width: w, height: h);
+        c.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
+        final data = c.toDataUrl('image/jpeg', q);
+        final out  = Uint8List.fromList(base64Decode(data.split(',').last));
+        if (out.length <= 1024 * 1024) return out;
+      }
+      final c = html.CanvasElement(width: w, height: h);
+      c.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
+      return Uint8List.fromList(base64Decode(c.toDataUrl('image/jpeg', 0.1).split(',').last));
+    } catch (_) { return null; }
   }
 
   Future<void> _submit() async {
@@ -1599,7 +1640,7 @@ class _ResumeUploader extends StatelessWidget {
             Text(
               fileName != null
                   ? 'Resume uploaded successfully'
-                  : 'PDF, DOC or DOCX — max 10 MB',
+                  : 'PDF, DOC, DOCX or image — images > 1 MB auto-compressed',
               style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
             ),
           ]),

@@ -426,53 +426,106 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
       if (type == 'file_upload') {
         final fileName = _customFileNames[id];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: fileName != null
+                  ? const Color(0xFF0D47A1)
+                  : const Color(0xFFE0E0E0),
+              width: fileName != null ? 1.5 : 1,
+            ),
+          ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('$label${isRequired ? ' *' : ''}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
-            const SizedBox(height: 6),
-            fileName != null
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF4CAF50)),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.insert_drive_file_rounded,
-                          size: 16, color: Color(0xFF2E7D32)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(fileName,
-                            style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF1B5E20)),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                      GestureDetector(
-                        onTap: () => setState(() {
-                          _customFileNames.remove(id);
-                          _customFileUrls.remove(id);
-                        }),
-                        child: const Icon(Icons.close_rounded,
-                            size: 16, color: Colors.red),
-                      ),
-                    ]),
-                  )
-                : OutlinedButton.icon(
-                    icon: const Icon(Icons.upload_file_rounded, size: 14),
-                    label: Text('Upload ${label.isEmpty ? 'File' : label}',
-                        style: const TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0D47A1),
-                      side: const BorderSide(color: Color(0xFF0D47A1)),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () => _pickCustomFile(id),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 22, height: 22,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D47A1),
+                    borderRadius: BorderRadius.circular(11),
                   ),
+                  child: const Center(
+                    child: Icon(Icons.attach_file_rounded,
+                        color: Colors.white, size: 13),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '$label${isRequired ? ' *' : ''}',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF37474F),
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ]),
+            ),
+            if (fileName != null) ...[
+              const Divider(height: 1, color: Color(0xFFE8EAF6)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.insert_drive_file_rounded,
+                        size: 16, color: Color(0xFF2E7D32)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(fileName,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF1B5E20),
+                              fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _customFileNames.remove(id);
+                        _customFileUrls.remove(id);
+                      }),
+                      child: Container(
+                        width: 20, height: 20,
+                        decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.close_rounded,
+                            size: 13, color: Colors.red),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.upload_file_rounded, size: 15),
+                label: Text(
+                  fileName != null ? 'Change File' : 'Add File',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0D47A1),
+                  side: const BorderSide(color: Color(0xFF0D47A1)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(7)),
+                ),
+                onPressed: () => _pickCustomFile(id),
+              ),
+            ),
           ]),
         );
       }
