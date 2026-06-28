@@ -81,6 +81,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   final _emergencyAddress = TextEditingController();
   _AttachFile? _emergencyAadharFile;
 
+  // ── HR Policy
+  bool _policyAgreed = false;
+
   // ── Declaration
   DateTime? _declarationDateVal;
   final _declarationPlace = TextEditingController();
@@ -644,6 +647,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_cfgEnabled('hr_policy') && !_policyAgreed) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please read and agree to the HR Policy before submitting.'),
+        backgroundColor: Color(0xFFB71C1C),
+      ));
+      return;
+    }
     if (!_declarationAgreed) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please agree to the declaration before submitting.'),
@@ -811,7 +821,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     final defaultOrder = [
       'basic_info', 'personal_data', 'family_details', 'education',
       'experience', 'last_position', 'additional_info', 'emergency_details',
-      'attachments', 'declaration',
+      'attachments', 'hr_policy', 'declaration',
     ];
     final Map<String, Widget Function()> builders = {
       'basic_info':        _buildSection1,
@@ -823,6 +833,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       'additional_info':   _buildAdditionalSection,
       'emergency_details': _buildEmergencySection,
       'attachments':       _buildAttachmentsSection,
+      'hr_policy':         _buildHRPolicySection,
       'declaration':       _buildDeclarationSection,
     };
 
@@ -1393,6 +1404,111 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ..._renderCustomFields(_cfgCustomFields('attachments')),
     ]),
   );
+
+  // ── HR Policy section ─────────────────────────────────────────────────────
+
+  Widget _buildHRPolicySection() {
+    final policyText = OnboardingFormConfig.getPolicyTextFromSections(_configSections);
+    final sectionTitle = _cfgTitle('hr_policy', 'HR Policy');
+    return _card(
+      title: sectionTitle,
+      icon: Icons.policy_rounded,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F8E9),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFA5D6A7)),
+          ),
+          child: Column(children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1B5E20),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+              ),
+              child: const Row(children: [
+                Icon(Icons.menu_book_rounded, color: Colors.white, size: 14),
+                SizedBox(width: 8),
+                Text('Please read the following HR Policy carefully',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            Container(
+              height: 280,
+              padding: const EdgeInsets.all(14),
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  child: Text(
+                    policyText,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF2E4024),
+                        height: 1.7,
+                        fontFamily: 'monospace'),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        GestureDetector(
+          onTap: () => setState(() => _policyAgreed = !_policyAgreed),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: _policyAgreed
+                  ? const Color(0xFFE8F5E9)
+                  : const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _policyAgreed
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFF57C00),
+                width: 1.5,
+              ),
+            ),
+            child: Row(children: [
+              Icon(
+                _policyAgreed
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                color: _policyAgreed
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFF57C00),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    'I have read and agree to the HR Policy  *',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF37474F)),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'This is mandatory. You must accept before submitting the form.',
+                    style: TextStyle(fontSize: 10, color: Color(0xFF78909C)),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+        ..._renderCustomFields(_cfgCustomFields('hr_policy')),
+      ]),
+    );
+  }
 
   // ── Declaration section ───────────────────────────────────────────────────
 

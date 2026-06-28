@@ -17,6 +17,7 @@ const _obSectionIcons = <String, IconData>{
   'additional_info':   Icons.info_outline_rounded,
   'emergency_details': Icons.emergency_rounded,
   'attachments':       Icons.attach_file_rounded,
+  'hr_policy':         Icons.policy_rounded,
   'declaration':       Icons.verified_rounded,
 };
 
@@ -411,6 +412,84 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     });
   }
 
+  Future<void> _editPolicyText(int sectionIdx) async {
+    final current = (_sections[sectionIdx]['policy_text'] as String?) ?? '';
+    final ctrl = TextEditingController(text: current.isEmpty
+        ? OnboardingFormConfig.defaultPolicyText
+        : current);
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B5E20),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.policy_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Edit HR Policy Text',
+                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text(
+                'This text will be displayed to candidates on the onboarding form. They must read and agree to it before submitting.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.55,
+                ),
+                child: TextField(
+                  controller: ctrl,
+                  maxLines: null,
+                  expands: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.all(12),
+                    hintText: 'Enter policy text…',
+                  ),
+                  style: const TextStyle(fontSize: 12, height: 1.5),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.save_rounded, size: 16),
+                  label: const Text('Save Policy'),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                  onPressed: () => Navigator.of(ctx).pop(ctrl.text),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+    ctrl.dispose();
+    if (saved != null) {
+      setState(() => _sections[sectionIdx]['policy_text'] = saved);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
@@ -579,6 +658,9 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                                           e.key, field, fieldIdx),
                                   onDeleteField: (fieldIdx) =>
                                       _deleteCustomField(e.key, fieldIdx),
+                                  onEditPolicyText: (e.value['id'] == 'hr_policy')
+                                      ? () => _editPolicyText(e.key)
+                                      : null,
                                 )).toList(),
                           ),
 
@@ -627,6 +709,7 @@ class _ObSectionTile extends StatelessWidget {
   final VoidCallback onAddField;
   final void Function(Map<String, dynamic> field, int fieldIdx) onEditField;
   final void Function(int fieldIdx) onDeleteField;
+  final VoidCallback? onEditPolicyText;
 
   const _ObSectionTile({
     super.key,
@@ -639,6 +722,7 @@ class _ObSectionTile extends StatelessWidget {
     required this.onAddField,
     required this.onEditField,
     required this.onDeleteField,
+    this.onEditPolicyText,
   });
 
   @override
@@ -801,6 +885,35 @@ class _ObSectionTile extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+
+        // Policy text editor (hr_policy section only)
+        if (enabled && id == 'hr_policy' && onEditPolicyText != null) ...[
+          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Row(children: [
+              const Icon(Icons.description_rounded, size: 14, color: Color(0xFF1B5E20)),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Policy document displayed to candidates — they must agree before submitting.',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: onEditPolicyText,
+                icon: const Icon(Icons.edit_document, size: 14),
+                label: const Text('Edit Policy Text', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1B5E20),
+                  side: const BorderSide(color: Color(0xFF1B5E20)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                ),
+              ),
+            ]),
           ),
         ],
 
