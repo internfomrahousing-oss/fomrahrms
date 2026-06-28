@@ -27,6 +27,7 @@ class _ManagementInterviewReviewPageState
 
   // ── Tab 2: Form Approvals ─────────────────────────────────────────
   List<Map<String, dynamic>> _formVersions = [];
+  List<Map<String, dynamic>> _activeFormSections = [];
   bool _formLoading = false;
   String? _formError;
 
@@ -315,8 +316,22 @@ class _ManagementInterviewReviewPageState
     });
     try {
       final versions = await SupabaseService.fetchFormVersions();
+      // Extract active sections from the most recently approved version for diff
+      final approved = versions
+          .where((v) => (v['status'] as String?) == 'approved')
+          .toList()
+        ..sort((a, b) => ((b['version_number'] as int?) ?? 0)
+            .compareTo((a['version_number'] as int?) ?? 0));
+      List<Map<String, dynamic>> activeSects = [];
+      if (approved.isNotEmpty) {
+        final cfg = approved.first['form_config'] as Map?;
+        if (cfg != null) {
+          activeSects = FormConfig.getSections(Map<String, dynamic>.from(cfg));
+        }
+      }
       setState(() {
         _formVersions = versions;
+        _activeFormSections = activeSects;
         _formLoading = false;
       });
     } catch (e) {
@@ -587,6 +602,7 @@ class _ManagementInterviewReviewPageState
                           ? const _EmptyFormVersions()
                           : _FormVersionList(
                               versions: _formVersions,
+                              activeSections: _activeFormSections,
                               onApprove: _approveFormVersion,
                               onReject: _rejectFormVersion,
                             ),
@@ -797,15 +813,80 @@ class _CandidateList extends StatelessWidget {
   }
 }
 
+// ── Form diff helpers ─────────────────────────────────────────────────────────
+enum _AFDiffStatus { added, removed, modified, disabled, unchanged }
+
+class _AFSectionDiff {
+  final Map<String, dynamic> section;
+  final _AFDiffStatus status;
+  final List<String> addedFields;
+  final List<String> removedFields;
+  final List<String> hiddenChanged;
+  const _AFSectionDiff({
+    required this.section,
+    required this.status,
+    this.addedFields  = const [],
+    this.removedFields = const [],
+    this.hiddenChanged = const [],
+  });
+}
+
+List<_AFSectionDiff> _computeAFDiff(
+    List<Map<String, dynamic>> pending,
+    List<Map<String, dynamic>> active) {
+  final result = <_AFSectionDiff>[];
+  for (final s in pending) {
+    final id      = (s['id'] as String?) ?? '';
+    final enabled = (s['enabled'] as bool?) ?? true;
+    final aIdx    = active.indexWhere((a) => a['id'] == id);
+    if (aIdx == -1) {
+      result.add(_AFSectionDiff(section: s, status: _AFDiffStatus.added));
+      continue;
+    }
+    if (!enabled) {
+      result.add(_AFSectionDiff(section: s, status: _AFDiffStatus.disabled));
+      continue;
+    }
+    final a        = active[aIdx];
+    final pCustom  = FormConfig.getCustomFields(s);
+    final aCustom  = FormConfig.getCustomFields(a);
+    final pHidden  = FormConfig.getHiddenFieldIds(s).toSet();
+    final aHidden  = FormConfig.getHiddenFieldIds(a).toSet();
+    final pIds     = pCustom.map((f) => f['id'] as String? ?? '').toSet();
+    final aIds     = aCustom.map((f) => f['id'] as String? ?? '').toSet();
+    final added    = pIds.difference(aIds).toList();
+    final removed  = aIds.difference(pIds).toList();
+    final hidChg   = [...pHidden.difference(aHidden), ...aHidden.difference(pHidden)];
+    final titleChg = (s['title'] as String?) != (a['title'] as String?);
+    final isModified = added.isNotEmpty || removed.isNotEmpty || hidChg.isNotEmpty || titleChg;
+    result.add(_AFSectionDiff(
+      section: s,
+      status: isModified ? _AFDiffStatus.modified : _AFDiffStatus.unchanged,
+      addedFields: added,
+      removedFields: removed,
+      hiddenChanged: hidChg,
+    ));
+  }
+  for (final a in active) {
+    final id = (a['id'] as String?) ?? '';
+    if (!pending.any((p) => p['id'] == id)) {
+      result.add(_AFSectionDiff(section: a, status: _AFDiffStatus.removed));
+    }
+  }
+  return result;
+}
+
 // ── Form version list ─────────────────────────────────────────────────────────
 
 class _FormVersionList extends StatelessWidget {
   final List<Map<String, dynamic>> versions;
+  final List<Map<String, dynamic>> activeSections;
   final void Function(Map<String, dynamic>) onApprove;
   final void Function(Map<String, dynamic>) onReject;
 
   const _FormVersionList({
     required this.versions,
+    required this.activeSections,
     required this.onApprove,
     required this.onReject,
   });
@@ -816,285 +897,520 @@ class _FormVersionList extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: versions.length,
       itemBuilder: (ctx, idx) {
-        final v = versions[idx];
-        final vNum = (v['version_number'] as int?) ?? 0;
+        final v      = versions[idx];
         final status = (v['status'] as String?) ?? 'pending';
-        final createdBy = (v['created_by'] as String?) ?? '';
-        final approvedBy = (v['approved_by'] as String?) ?? '';
-        final rejectionNote = (v['rejection_note'] as String?) ?? '';
-        final isPending = status == 'pending';
-
-        String dateStr = '';
-        try {
-          final raw = v['created_at'];
-          if (raw != null) {
-            final dt = DateTime.parse(raw.toString()).toLocal();
-            dateStr =
-                '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}  '
-                '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-          }
-        } catch (_) {}
-
-        // Sections summary
-        final configRaw = v['form_config'];
-        List<Map<String, dynamic>> sections = [];
-        if (configRaw is Map) {
-          sections = FormConfig.getSections(
-              Map<String, dynamic>.from(configRaw));
-        }
-        final enabledSections =
-            sections.where((s) => (s['enabled'] as bool?) != false).toList();
-
-        late Color statusBg;
-        late Color statusFg;
-        late IconData statusIcon;
-        late String statusLabel;
-        switch (status) {
-          case 'approved':
-            statusBg = const Color(0xFFE8F5E9);
-            statusFg = const Color(0xFF2E7D32);
-            statusIcon = Icons.check_circle_rounded;
-            statusLabel = 'Approved';
-            break;
-          case 'rejected':
-            statusBg = const Color(0xFFFFEBEE);
-            statusFg = const Color(0xFFC62828);
-            statusIcon = Icons.cancel_rounded;
-            statusLabel = 'Rejected';
-            break;
-          default:
-            statusBg = const Color(0xFFFFF3E0);
-            statusFg = const Color(0xFFE65100);
-            statusIcon = Icons.hourglass_empty_rounded;
-            statusLabel = 'Pending Approval';
-        }
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: status == 'approved'
-                  ? const Color(0xFFA5D6A7)
-                  : status == 'rejected'
-                      ? const Color(0xFFEF9A9A)
-                      : const Color(0xFFE0E0E0),
-              width: status != 'pending' ? 1.5 : 1,
+        if (status == 'pending') {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _AFPendingCard(
+              version: v,
+              activeSections: activeSections,
+              onApprove: () => onApprove(v),
+              onReject:  () => onReject(v),
             ),
+          );
+        }
+        // Approved / Rejected — compact history card
+        return _AFHistoryCard(version: v);
+      },
+    );
+  }
+}
+
+// ── Pending form version card (full diff) ─────────────────────────────────────
+class _AFPendingCard extends StatefulWidget {
+  final Map<String, dynamic> version;
+  final List<Map<String, dynamic>> activeSections;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+  const _AFPendingCard({
+    required this.version,
+    required this.activeSections,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  State<_AFPendingCard> createState() => _AFPendingCardState();
+}
+
+class _AFPendingCardState extends State<_AFPendingCard> {
+  bool _acting = false;
+  final Set<String> _expandedSections = {};
+
+  Future<void> _act(Future<void> Function() fn) async {
+    setState(() => _acting = true);
+    await fn();
+    if (mounted) setState(() => _acting = false);
+  }
+
+  static const _sectionIcons = <String, IconData>{
+    'personal_info':       Icons.person_rounded,
+    'interview_details':   Icons.record_voice_over_rounded,
+    'experience_ctc':      Icons.work_history_rounded,
+    'education':           Icons.school_rounded,
+    'employment_history':  Icons.business_center_rounded,
+    'source':              Icons.ads_click_rounded,
+    'referrals':           Icons.people_rounded,
+    'previous_application': Icons.history_rounded,
+    'address':             Icons.home_rounded,
+    'resume':              Icons.description_rounded,
+    'declaration':         Icons.verified_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final v         = widget.version;
+    final vNum      = (v['version_number'] as int?) ?? 0;
+    final createdBy = (v['created_by'] as String?) ?? 'HR';
+    String dateStr  = '';
+    try {
+      final raw = v['created_at'];
+      if (raw != null) {
+        final dt = DateTime.parse(raw.toString()).toLocal();
+        dateStr = '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}';
+      }
+    } catch (_) {}
+
+    final configRaw = v['form_config'];
+    final pendingSections = configRaw is Map
+        ? FormConfig.getSections(Map<String, dynamic>.from(configRaw))
+        : <Map<String, dynamic>>[];
+    final diffs = _computeAFDiff(pendingSections, widget.activeSections);
+
+    final addedCount    = diffs.where((d) => d.status == _AFDiffStatus.added).length;
+    final modifiedCount = diffs.where((d) => d.status == _AFDiffStatus.modified).length;
+    final removedCount  = diffs.where((d) => d.status == _AFDiffStatus.removed || d.status == _AFDiffStatus.disabled).length;
+    final hasChanges    = addedCount + modifiedCount + removedCount > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFCE93D8), width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // Header
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF3E5F5),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _mgmtColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text('Form v$vNum',
-                        style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: _mgmtColor)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (createdBy.isNotEmpty)
-                          Text('Submitted by $createdBy',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF546E7A))),
-                        if (dateStr.isNotEmpty)
-                          Text(dateStr,
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF78909C))),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: _mgmtColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('Form v$vNum',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Submitted by $createdBy',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+                if (dateStr.isNotEmpty)
+                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+              ]),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFFF9800)),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.pending_actions_rounded, size: 12, color: Color(0xFFE65100)),
+                SizedBox(width: 4),
+                Text('Pending Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFE65100))),
+              ]),
+            ),
+          ]),
+        ),
+
+        // Changes summary
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(children: [
+            const Text('Changes vs current live form:',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+            const SizedBox(width: 8),
+            if (!hasChanges)
+              _AFDiffPill('No Changes', const Color(0xFF546E7A), const Color(0xFFF5F5F5))
+            else ...[
+              if (addedCount    > 0) ...[_AFDiffPill('+$addedCount New',      const Color(0xFF2E7D32), const Color(0xFFE8F5E9)), const SizedBox(width: 4)],
+              if (modifiedCount > 0) ...[_AFDiffPill('~$modifiedCount Changed', const Color(0xFFE65100), const Color(0xFFFFF3E0)), const SizedBox(width: 4)],
+              if (removedCount  > 0)   _AFDiffPill('-$removedCount Removed',  const Color(0xFFC62828), const Color(0xFFFFEBEE)),
+            ],
+          ]),
+        ),
+
+        const Divider(height: 20, indent: 16, endIndent: 16),
+
+        // Full form preview with diff
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Form Structure Preview',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+            const SizedBox(height: 10),
+            ...diffs.map((diff) {
+              final id = (diff.section['id'] as String?) ?? '';
+              return _AFSectionTile(
+                diff: diff,
+                icon: _sectionIcons[id] ?? Icons.segment_rounded,
+                expanded: _expandedSections.contains(id),
+                onToggle: () => setState(() {
+                  if (_expandedSections.contains(id)) _expandedSections.remove(id);
+                  else _expandedSections.add(id);
+                }),
+              );
+            }),
+          ]),
+        ),
+
+        // Actions
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _acting ? null : () => _act(() async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Reject Form Version',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
+                      content: Text('Reject application form v$vNum submitted by $createdBy?\n\nThe current live form will remain unchanged.',
+                          style: const TextStyle(fontSize: 13, height: 1.5)),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Reject'),
+                        ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: statusBg,
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(statusIcon, size: 12, color: statusFg),
-                      const SizedBox(width: 4),
-                      Text(statusLabel,
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: statusFg,
-                              fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                ]),
-
-                // Sections summary
-                if (sections.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                  const SizedBox(height: 8),
-                  Text(
-                      '${enabledSections.length} of ${sections.length} sections enabled',
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF78909C))),
-                  const SizedBox(height: 6),
-                  Wrap(spacing: 6, runSpacing: 4, children: [
-                    ...sections.map((s) {
-                      final sEnabled = (s['enabled'] as bool?) != false;
-                      final sTitle =
-                          (s['title'] as String?) ?? (s['id'] as String? ?? '');
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: sEnabled
-                              ? _mgmtColor.withValues(alpha: 0.08)
-                              : const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: sEnabled
-                                  ? _mgmtColor.withValues(alpha: 0.2)
-                                  : const Color(0xFFE0E0E0)),
-                        ),
-                        child: Text(sTitle,
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: sEnabled
-                                    ? _mgmtColor
-                                    : const Color(0xFFBBBBBB),
-                                decoration: sEnabled
-                                    ? null
-                                    : TextDecoration.lineThrough)),
-                      );
-                    }),
-                  ]),
-                ],
-
-                if (approvedBy.isNotEmpty && status == 'approved') ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.verified_rounded,
-                          size: 14, color: Color(0xFF2E7D32)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                            'Approved by $approvedBy\n${FormConfig.versionedLink(vNum)}',
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF2E7D32))),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Link copied'),
-                              backgroundColor: Color(0xFF2E7D32),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.copy_rounded,
-                            size: 12, color: Color(0xFF2E7D32)),
-                        label: const Text('Copy',
-                            style: TextStyle(
-                                fontSize: 11, color: Color(0xFF2E7D32))),
-                        style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      ),
-                    ]),
-                  ),
-                ],
-
-                if (rejectionNote.isNotEmpty && status == 'rejected') ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.cancel_rounded,
-                          size: 14, color: Color(0xFFC62828)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text('Reason: $rejectionNote',
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFFC62828))),
-                      ),
-                    ]),
-                  ),
-                ],
-
-                // Preview Form button (all versions)
-                const SizedBox(height: 8),
-                const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                const SizedBox(height: 6),
-                TextButton.icon(
-                  onPressed: () {
-                    final cfg = configRaw is Map
-                        ? Map<String, dynamic>.from(configRaw)
-                        : <String, dynamic>{};
-                    showDialog(
-                      context: context,
-                      builder: (_) => _FormPreviewDialog(
-                          config: cfg, vNum: vNum),
-                    );
-                  },
-                  icon: const Icon(Icons.preview_rounded, size: 15),
-                  label: const Text('Preview Full Form',
-                      style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                      foregroundColor: _mgmtColor,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6)),
+                  );
+                  if (confirm == true) widget.onReject();
+                }),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Reject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-
-                if (isPending) ...[
-                  const SizedBox(height: 4),
-                  Wrap(spacing: 8, runSpacing: 6, children: [
-                    _ActionBtn(
-                      label: 'Approve Form',
-                      icon: Icons.check_circle_outline_rounded,
-                      color: const Color(0xFF2E7D32),
-                      onTap: () => onApprove(v),
-                    ),
-                    _ActionBtn(
-                      label: 'Reject',
-                      icon: Icons.cancel_outlined,
-                      color: const Color(0xFFC62828),
-                      onTap: () => onReject(v),
-                    ),
-                  ]),
-                ],
-              ],
+              ),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: _acting ? null : () => _act(() async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Approve & Publish',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                      content: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text('Publish application form v$vNum?',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(8)),
+                          child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF2E7D32)),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'This will immediately become the live application form. A versioned link will be generated that candidates can use to apply.',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32), height: 1.5),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ]),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Approve & Publish'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) widget.onApprove();
+                }),
+                icon: _acting
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check_circle_rounded, size: 16),
+                label: const Text('Approve & Publish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── History card (approved / rejected) ────────────────────────────────────────
+class _AFHistoryCard extends StatelessWidget {
+  final Map<String, dynamic> version;
+  const _AFHistoryCard({required this.version});
+
+  @override
+  Widget build(BuildContext context) {
+    final v           = version;
+    final vNum        = (v['version_number'] as int?) ?? 0;
+    final status      = (v['status'] as String?) ?? '';
+    final createdBy   = (v['created_by'] as String?) ?? '';
+    final approvedBy  = (v['approved_by'] as String?) ?? '';
+    final rejectionNote = (v['rejection_note'] as String?) ?? '';
+    String dateStr = '';
+    try {
+      final raw = v['created_at'];
+      if (raw != null) {
+        final dt = DateTime.parse(raw.toString()).toLocal();
+        dateStr = '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}';
+      }
+    } catch (_) {}
+
+    final isApproved = status == 'approved';
+    final borderColor = isApproved ? const Color(0xFFA5D6A7) : const Color(0xFFEF9A9A);
+    final bgColor     = isApproved ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
+    final fgColor     = isApproved ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final statusLabel = isApproved ? 'Approved' : 'Rejected';
+    final statusIcon  = isApproved ? Icons.check_circle_rounded : Icons.cancel_rounded;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: _mgmtColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+            child: Text('Form v$vNum', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _mgmtColor)),
           ),
-        );
-      },
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (createdBy.isNotEmpty)
+                Text('By $createdBy', style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+              if (dateStr.isNotEmpty)
+                Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+            ]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(statusIcon, size: 12, color: fgColor),
+              const SizedBox(width: 4),
+              Text(statusLabel, style: TextStyle(fontSize: 11, color: fgColor, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ]),
+        if (isApproved && approvedBy.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            const Icon(Icons.verified_rounded, size: 13, color: Color(0xFF2E7D32)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text('Approved by $approvedBy  •  ${FormConfig.versionedLink(vNum)}',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32))),
+            ),
+          ]),
+        ],
+        if (!isApproved && rejectionNote.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            const Icon(Icons.cancel_rounded, size: 13, color: Color(0xFFC62828)),
+            const SizedBox(width: 6),
+            Expanded(child: Text('Reason: $rejectionNote', style: const TextStyle(fontSize: 11, color: Color(0xFFC62828)))),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+// ── Diff pill + section tile ───────────────────────────────────────────────────
+class _AFDiffPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color bg;
+  const _AFDiffPill(this.label, this.color, this.bg);
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4))),
+    child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+  );
+}
+
+class _AFSectionTile extends StatelessWidget {
+  final _AFSectionDiff diff;
+  final IconData icon;
+  final bool expanded;
+  final VoidCallback onToggle;
+  const _AFSectionTile({required this.diff, required this.icon, required this.expanded, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    final s     = diff.section;
+    final id    = (s['id'] as String?) ?? '';
+    final title = (s['title'] as String?) ?? id;
+
+    Color borderColor, bgColor, textColor;
+    String? badge;
+    Color badgeColor, badgeBg;
+    bool strikethrough = false;
+
+    switch (diff.status) {
+      case _AFDiffStatus.added:
+        borderColor = const Color(0xFF66BB6A); bgColor = const Color(0xFFE8F5E9); textColor = const Color(0xFF1B5E20);
+        badge = 'NEW'; badgeColor = const Color(0xFF1B5E20); badgeBg = const Color(0xFFA5D6A7);
+      case _AFDiffStatus.removed:
+        borderColor = const Color(0xFFEF9A9A); bgColor = const Color(0xFFFFEBEE); textColor = const Color(0xFFB71C1C);
+        badge = 'REMOVED'; badgeColor = const Color(0xFFB71C1C); badgeBg = const Color(0xFFFFCDD2); strikethrough = true;
+      case _AFDiffStatus.disabled:
+        borderColor = const Color(0xFFE0E0E0); bgColor = const Color(0xFFF5F5F5); textColor = const Color(0xFF9E9E9E);
+        badge = 'DISABLED'; badgeColor = const Color(0xFF757575); badgeBg = const Color(0xFFEEEEEE); strikethrough = true;
+      case _AFDiffStatus.modified:
+        borderColor = const Color(0xFFFFB74D); bgColor = const Color(0xFFFFF8E1); textColor = const Color(0xFFE65100);
+        badge = 'CHANGED'; badgeColor = const Color(0xFFE65100); badgeBg = const Color(0xFFFFE0B2);
+      case _AFDiffStatus.unchanged:
+        borderColor = const Color(0xFFCE93D8); bgColor = const Color(0xFFF3E5F5); textColor = _mgmtColor;
+        badge = null; badgeColor = _mgmtColor; badgeBg = const Color(0xFFCE93D8);
+    }
+
+    final builtInDefs = FormConfig.builtInFieldDefs[id] ?? [];
+    final customFields = FormConfig.getCustomFields(s);
+    final hiddenIds    = FormConfig.getHiddenFieldIds(s);
+    final totalFields  = builtInDefs.length + customFields.length;
+    final visibleCount = builtInDefs.where((f) => !hiddenIds.contains(f['id'])).length + customFields.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8), border: Border.all(color: borderColor)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(children: [
+              Icon(icon, size: 16, color: textColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor,
+                    decoration: strikethrough ? TextDecoration.lineThrough : null)),
+              ),
+              if (badge != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(10)),
+                  child: Text(badge, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: badgeColor, letterSpacing: 0.4)),
+                ),
+                const SizedBox(width: 4),
+              ],
+              if (diff.status != _AFDiffStatus.removed)
+                Text('$visibleCount/$totalFields fields',
+                    style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.7))),
+              const SizedBox(width: 4),
+              Icon(expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 16, color: textColor),
+            ]),
+          ),
+        ),
+        if (expanded) ...[
+          Divider(height: 1, color: borderColor),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (builtInDefs.isNotEmpty) ...[
+                Text('Built-in Fields:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: textColor.withValues(alpha: 0.8))),
+                const SizedBox(height: 4),
+                Wrap(spacing: 4, runSpacing: 3,
+                    children: builtInDefs.map((f) {
+                      final fId      = f['id'] as String? ?? '';
+                      final fLabel   = f['label'] as String? ?? fId;
+                      final isHidden = hiddenIds.contains(fId);
+                      final hidChg   = diff.hiddenChanged.contains(fId);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: hidChg ? const Color(0xFFFFF9C4) : (isHidden ? const Color(0xFFEEEEEE) : bgColor),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: hidChg ? const Color(0xFFFFEB3B) : borderColor),
+                        ),
+                        child: Text(isHidden ? '$fLabel (hidden)' : fLabel,
+                            style: TextStyle(fontSize: 10, color: isHidden ? Colors.grey : textColor,
+                                decoration: isHidden ? TextDecoration.lineThrough : null)),
+                      );
+                    }).toList()),
+                const SizedBox(height: 6),
+              ],
+              if (customFields.isNotEmpty || diff.addedFields.isNotEmpty || diff.removedFields.isNotEmpty) ...[
+                Text('Custom Fields:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: textColor.withValues(alpha: 0.8))),
+                const SizedBox(height: 4),
+                Wrap(spacing: 4, runSpacing: 3, children: [
+                  ...customFields.map((f) {
+                    final fId   = f['id'] as String? ?? '';
+                    final lbl   = (f['label'] as String?) ?? fId;
+                    final isNew = diff.addedFields.contains(fId);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isNew ? const Color(0xFFE8F5E9) : bgColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isNew ? const Color(0xFF66BB6A) : borderColor),
+                      ),
+                      child: Text(isNew ? '$lbl ✦' : lbl,
+                          style: TextStyle(fontSize: 10, color: isNew ? const Color(0xFF1B5E20) : textColor,
+                              fontWeight: isNew ? FontWeight.w700 : FontWeight.normal)),
+                    );
+                  }),
+                  ...diff.removedFields.map((fId) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFEF9A9A))),
+                    child: Text('$fId (removed)',
+                        style: const TextStyle(fontSize: 10, color: Color(0xFFB71C1C), decoration: TextDecoration.lineThrough)),
+                  )),
+                ]),
+              ],
+            ]),
+          ),
+        ],
+      ]),
     );
   }
 }
