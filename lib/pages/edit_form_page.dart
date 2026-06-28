@@ -45,6 +45,8 @@ class _EditFormPageState extends State<EditFormPage> {
   bool _historyLoading = false;
   String _activeFormLink = FormConfig.baseLink;
 
+  bool get _isManagement => UserSession.role == UserRole.management;
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +81,79 @@ class _EditFormPageState extends State<EditFormPage> {
     if (mounted) setState(() { _history = versions; _historyLoading = false; });
   }
 
+  Future<void> _saveAction() async {
+    if (_isManagement) {
+      await _publishDirectly();
+    } else {
+      await _sendForApproval();
+    }
+  }
+
+  // Management: publish immediately, no approval needed
+  Future<void> _publishDirectly() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Update & Publish Form',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+        content: const Text(
+            'This will immediately update the live Application Form for all new candidates. '
+            'The current version will be saved to history.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Update & Publish'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _saving = true);
+    try {
+      final vNum = _nextVersionNumber;
+      await SupabaseService.saveFormVersion({
+        'form_config': {'sections': _sections},
+        'status': 'approved',
+        'version_number': vNum,
+        'created_by': UserSession.name.isNotEmpty ? UserSession.name : 'Management',
+        'approved_by': UserSession.name.isNotEmpty ? UserSession.name : 'Management',
+        'approved_at': DateTime.now().toUtc().toIso8601String(),
+      });
+      final newLink = FormConfig.versionedLink(vNum);
+      if (mounted) {
+        setState(() {
+          _activeFormLink = newLink;
+          _nextVersionNumber = vNum + 1;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Form v$vNum published! Link updated.'),
+          backgroundColor: const Color(0xFF2E7D32),
+          duration: const Duration(seconds: 4),
+        ));
+        await _loadHistory();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+    if (mounted) setState(() => _saving = false);
+  }
+
+  // HR: send to management for approval
   Future<void> _sendForApproval() async {
     final pendingCount =
         _history.where((v) => (v['status'] as String?) == 'pending').length;
@@ -526,18 +601,28 @@ class _EditFormPageState extends State<EditFormPage> {
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
-                onPressed: _saving ? null : _sendForApproval,
+                onPressed: _saving ? null : _saveAction,
                 icon: _saving
                     ? const SizedBox(
                         width: 16, height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.send_rounded, size: 16),
+                    : Icon(
+                        _isManagement
+                            ? Icons.publish_rounded
+                            : Icons.send_rounded,
+                        size: 16),
                 label: Text(
-                    _saving ? 'Sending…' : 'Send for Approval',
+                    _saving
+                        ? (_isManagement ? 'Publishing…' : 'Sending…')
+                        : (_isManagement
+                            ? 'Update & Publish'
+                            : 'Send for Approval'),
                     style: const TextStyle(fontSize: 13)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A),
+                  backgroundColor: _isManagement
+                      ? _blue
+                      : const Color(0xFF6A1B9A),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
@@ -591,8 +676,9 @@ class _EditFormPageState extends State<EditFormPage> {
                               Expanded(
                                 child: Text(
                                   'Toggle sections on/off, rename them, edit option lists, '
-                                  'or add custom fields (Short Answer, MCQ, or File Upload) to any section. '
-                                  'Click "Send for Approval" when done.',
+                                  'or add custom fields to any section. '
+                                  'Tap a field chip × to hide it from the live form. '
+                                  'Click "Update & Publish" when done.',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF37474F)),

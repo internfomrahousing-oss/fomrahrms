@@ -36,6 +36,8 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
   List<Map<String, dynamic>> _history = [];
   bool _historyLoading = false;
 
+  bool get _isManagement => UserSession.role == UserRole.management;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +71,73 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
         _historyLoading = false;
       });
     }
+  }
+
+  Future<void> _saveAction() async {
+    if (_isManagement) {
+      await _publishDirectly();
+    } else {
+      await _sendForApproval();
+    }
+  }
+
+  Future<void> _publishDirectly() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Update & Publish Onboarding Form',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+        content: const Text(
+            'This will immediately update the live Onboarding Form for new employees. '
+            'The current version will be saved to history.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Update & Publish'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _saving = true);
+    try {
+      final vNum = _nextVersionNumber;
+      await SupabaseService.saveOnboardingFormVersion({
+        'form_config': {'sections': _sections},
+        'status': 'approved',
+        'version_number': vNum,
+        'created_by': UserSession.name.isNotEmpty ? UserSession.name : 'Management',
+        'approved_by': UserSession.name.isNotEmpty ? UserSession.name : 'Management',
+        'approved_at': DateTime.now().toUtc().toIso8601String(),
+      });
+      if (mounted) {
+        setState(() => _nextVersionNumber = vNum + 1);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Onboarding form v$vNum published!'),
+          backgroundColor: const Color(0xFF2E7D32),
+          duration: const Duration(seconds: 4),
+        ));
+        await _loadHistory();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+    if (mounted) setState(() => _saving = false);
   }
 
   Future<void> _sendForApproval() async {
@@ -365,35 +434,45 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                   color: _blue, size: 20),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Edit Onboarding Form',
+                    const Text('Edit Onboarding Form',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: _blue)),
                     Text(
-                        'Edit sections · Add custom fields · Send for Management approval',
-                        style: TextStyle(
+                        _isManagement
+                            ? 'Edit sections · Add custom fields · Update & Publish'
+                            : 'Edit sections · Add custom fields · Send for Management approval',
+                        style: const TextStyle(
                             fontSize: 12, color: Color(0xFF78909C))),
                   ]),
             ),
             if (!_loading) ...[
               ElevatedButton.icon(
-                onPressed: _saving ? null : _sendForApproval,
+                onPressed: _saving ? null : _saveAction,
                 icon: _saving
                     ? const SizedBox(
                         width: 16, height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.send_rounded, size: 16),
+                    : Icon(
+                        _isManagement
+                            ? Icons.publish_rounded
+                            : Icons.send_rounded,
+                        size: 16),
                 label: Text(
-                    _saving ? 'Sending…' : 'Send for Approval',
+                    _saving
+                        ? (_isManagement ? 'Publishing…' : 'Sending…')
+                        : (_isManagement ? 'Update & Publish' : 'Send for Approval'),
                     style: const TextStyle(fontSize: 13)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A),
+                  backgroundColor: _isManagement
+                      ? _blue
+                      : const Color(0xFF6A1B9A),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
@@ -446,7 +525,8 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                               Expanded(
                                 child: Text(
                                   'Toggle sections on/off, rename them, drag to reorder, '
-                                  'or add custom fields. Click "Send for Approval" when done.',
+                                  'or add custom fields. Tap a field chip × to hide it. '
+                                  'Click "Update & Publish" when done.',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF37474F)),

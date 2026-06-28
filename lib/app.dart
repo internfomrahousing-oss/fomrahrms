@@ -300,8 +300,10 @@ final _router = GoRouter(
         GoRoute(path: '/management/payroll-management',     builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/management/interview-process',      builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/management/interview-review',       builder: (_, __) => const ManagementInterviewReviewPage()),
+        GoRoute(path: '/management/edit-form',              builder: (_, __) => const EditFormPage()),
         GoRoute(path: '/management/candidate-detail',       builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
+        GoRoute(path: '/management/edit-onboarding-form',   builder: (_, __) => const EditOnboardingFormPage()),
         GoRoute(path: '/management/lead-management',
             builder: (_, __) => const LeadManagementHubPage(basePath: '/management/lead-management')),
         GoRoute(path: '/management/lead-management/leads', builder: (_, s) {
