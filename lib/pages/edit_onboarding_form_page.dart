@@ -1,64 +1,52 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
-import '../models/form_config.dart';
+import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 
 const _blue = Color(0xFF0D47A1);
 
-// Built-in (non-editable) field names shown per section
-const _sectionBuiltInFields = <String, List<String>>{
-  'personal_info':        ['Full Name', 'Date of Birth', 'Email', 'Mobile', 'Gender', 'Age', 'Marital Status', 'Nationality', 'Place'],
-  'interview_details':    ['Post Applied For', 'Interview Date', 'Interview Time'],
-  'experience_ctc':       ['Current Experience', 'Total Experience', 'Current CTC', 'Expected CTC', 'Notice Period', 'Reason for Change'],
-  'education':            ['Degree / Qualification', 'Institution', 'Year', '% Marks'],
-  'employment_history':   ['Organisation', 'Designation', 'Period From → To', 'Gross Salary'],
-  'source':               ['Source', 'Portal / Referral details'],
-  'referrals':            ['Name', 'Contact Number', 'Position'],
-  'previous_application': ['Applied before?', 'When?', 'Position?'],
-  'address':              ['Current Address', 'Permanent Address', 'City', 'State', 'PIN'],
-  'resume':               ['Resume upload (PDF / DOC)'],
-  'declaration':          ['Full Name', 'Date', 'I Agree checkbox'],
+// Built-in (non-editable) field names per onboarding section
+const _obBuiltInFields = <String, List<String>>{
+  'basic_info':        ['Name', 'Phone Number', 'Father Name', 'Mother Name', 'Designation', 'Date of Joining'],
+  'personal_data':     ['Full Name', 'Date of Birth', 'Postal Address', 'Permanent Address'],
+  'family_details':    ['Name', 'Age', 'Gender', 'Relation', 'Occupation', 'Aadhar Copy'],
+  'education':         ['Qualification', 'University / Institute', 'Year', '% Marks', 'Major Subject'],
+  'experience':        ['Organisation', 'Period From → To', 'Designation', 'Job Responsibility', 'Salary', 'Reason for Leaving'],
+  'last_position':     ['Last Reporting Person', 'Last Company', 'Reference 1', 'Reference 2'],
+  'additional_info':   ['ESI Number', 'PF Number', 'Languages', 'Hobbies', 'Interests', 'Other Info'],
+  'emergency_details': ['Blood Group', 'Allergic To', 'Major Illness', 'Emergency Contact', 'Emergency Number', 'Aadhar Copy'],
+  'attachments':       ['Educational Certificates', 'Aadhar Card', 'PAN Card', 'Experience Letters', 'Pay Slips', 'Passport Photo'],
+  'declaration':       ['Date', 'Place', 'I Agree checkbox'],
 };
 
-// Icons for each section id
-const _sectionIcons = <String, IconData>{
-  'personal_info': Icons.person_rounded,
-  'interview_details': Icons.event_note_rounded,
-  'experience_ctc': Icons.work_history_rounded,
-  'education': Icons.school_rounded,
-  'employment_history': Icons.business_center_rounded,
-  'source': Icons.campaign_rounded,
-  'referrals': Icons.group_add_rounded,
-  'previous_application': Icons.history_rounded,
-  'address': Icons.location_on_rounded,
-  'resume': Icons.attach_file_rounded,
-  'declaration': Icons.verified_rounded,
+const _obSectionIcons = <String, IconData>{
+  'basic_info':        Icons.person_rounded,
+  'personal_data':     Icons.assignment_ind_rounded,
+  'family_details':    Icons.family_restroom_rounded,
+  'education':         Icons.school_rounded,
+  'experience':        Icons.work_history_rounded,
+  'last_position':     Icons.business_center_rounded,
+  'additional_info':   Icons.info_outline_rounded,
+  'emergency_details': Icons.emergency_rounded,
+  'attachments':       Icons.attach_file_rounded,
+  'declaration':       Icons.verified_rounded,
 };
 
-// Keys for configurable option lists per section
-const _sectionOptionKeys = <String, Map<String, String>>{
-  'interview_details': {'post_applied_options': 'Post Applied Roles'},
-  'experience_ctc': {'notice_period_options': 'Notice Period Options'},
-  'source': {'source_options': 'Source Options'},
-};
-
-class EditFormPage extends StatefulWidget {
-  const EditFormPage({super.key});
+class EditOnboardingFormPage extends StatefulWidget {
+  const EditOnboardingFormPage({super.key});
 
   @override
-  State<EditFormPage> createState() => _EditFormPageState();
+  State<EditOnboardingFormPage> createState() =>
+      _EditOnboardingFormPageState();
 }
 
-class _EditFormPageState extends State<EditFormPage> {
+class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
   late List<Map<String, dynamic>> _sections;
   bool _loading = true;
   bool _saving = false;
   int _nextVersionNumber = 1;
   List<Map<String, dynamic>> _history = [];
   bool _historyLoading = false;
-  String _activeFormLink = FormConfig.baseLink;
 
   @override
   void initState() {
@@ -69,20 +57,16 @@ class _EditFormPageState extends State<EditFormPage> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final active = await SupabaseService.fetchActiveFormVersion();
+      final active = await SupabaseService.fetchActiveOnboardingFormVersion();
       final config = active != null
           ? Map<String, dynamic>.from(active['form_config'] as Map)
-          : FormConfig.defaults();
-      _sections = FormConfig.getSections(config);
+          : OnboardingFormConfig.defaults();
+      _sections = OnboardingFormConfig.getSections(config);
       _nextVersionNumber =
-          await SupabaseService.getNextFormVersionNumber();
-      if (active != null) {
-        final vNum = (active['version_number'] as int?) ?? 1;
-        _activeFormLink = FormConfig.versionedLink(vNum);
-      }
+          await SupabaseService.getNextOnboardingFormVersionNumber();
     } catch (_) {
-      _sections =
-          List<Map<String, dynamic>>.from(FormConfig.getSections(FormConfig.defaults()));
+      _sections = List<Map<String, dynamic>>.from(
+          OnboardingFormConfig.getSections(OnboardingFormConfig.defaults()));
     }
     if (mounted) setState(() => _loading = false);
     _loadHistory();
@@ -90,8 +74,13 @@ class _EditFormPageState extends State<EditFormPage> {
 
   Future<void> _loadHistory() async {
     setState(() => _historyLoading = true);
-    final versions = await SupabaseService.fetchFormVersions();
-    if (mounted) setState(() { _history = versions; _historyLoading = false; });
+    final versions = await SupabaseService.fetchOnboardingFormVersions();
+    if (mounted) {
+      setState(() {
+        _history = versions;
+        _historyLoading = false;
+      });
+    }
   }
 
   Future<void> _sendForApproval() async {
@@ -102,16 +91,20 @@ class _EditFormPageState extends State<EditFormPage> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Pending Approval Exists',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.orange)),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange)),
           content: const Text(
-              'There is already a form version waiting for Management approval. '
-              'Please wait for it to be reviewed before submitting another.',
+              'There is already an onboarding form version waiting for approval.',
               style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _blue, foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: _blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () => Navigator.pop(ctx),
               child: const Text('OK'),
@@ -125,11 +118,11 @@ class _EditFormPageState extends State<EditFormPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Send Form for Approval',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
+        title: const Text('Send for Approval',
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
-            'The updated form will be sent to Management for approval. '
-            'The current live form will remain active until the new version is approved.',
+            'The updated onboarding form will be sent to Management for approval.',
             style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
         actions: [
           TextButton(
@@ -139,7 +132,8 @@ class _EditFormPageState extends State<EditFormPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6A1B9A),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Send for Approval'),
@@ -151,7 +145,7 @@ class _EditFormPageState extends State<EditFormPage> {
 
     setState(() => _saving = true);
     try {
-      await SupabaseService.saveFormVersion({
+      await SupabaseService.saveOnboardingFormVersion({
         'form_config': {'sections': _sections},
         'status': 'pending',
         'version_number': _nextVersionNumber,
@@ -160,7 +154,7 @@ class _EditFormPageState extends State<EditFormPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Form version sent to Management for approval'),
+          content: Text('Onboarding form sent to Management for approval'),
           backgroundColor: Color(0xFF2E7D32),
         ));
         _nextVersionNumber++;
@@ -188,6 +182,51 @@ class _EditFormPageState extends State<EditFormPage> {
     });
   }
 
+  void _editTitle(int idx) async {
+    final ctrl = TextEditingController(
+        text: (_sections[idx]['title'] as String?) ?? '');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Section',
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'Section Title',
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+          onSubmitted: (_) {
+            setState(() => _sections[idx]['title'] = ctrl.text.trim());
+            Navigator.pop(ctx);
+          },
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              setState(() => _sections[idx]['title'] = ctrl.text.trim());
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _addSection() async {
     final ctrl = TextEditingController();
     await showDialog(
@@ -202,12 +241,14 @@ class _EditFormPageState extends State<EditFormPage> {
             autofocus: true,
             decoration: InputDecoration(
               labelText: 'Section Title *',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8)),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),
           const SizedBox(height: 8),
-          const Text('Custom fields can be added after the section is created.',
+          const Text(
+              'Custom fields can be added after the section is created.',
               style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
         ]),
         actions: [
@@ -244,10 +285,11 @@ class _EditFormPageState extends State<EditFormPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Remove Section',
             style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red)),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.red)),
         content: Text(
-            'Remove "${(_sections[idx]['title'] as String?) ?? 'this section'}"?\n'
-            'Built-in sections can be toggled off instead.',
+            'Remove "${(_sections[idx]['title'] as String?) ?? 'this section'}"?',
             style: const TextStyle(fontSize: 13)),
         actions: [
           TextButton(
@@ -263,173 +305,6 @@ class _EditFormPageState extends State<EditFormPage> {
       ),
     );
     if (confirmed == true) setState(() => _sections.removeAt(idx));
-  }
-
-  void _editTitle(int idx) async {
-    final ctrl =
-        TextEditingController(text: (_sections[idx]['title'] as String?) ?? '');
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rename Section',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: 'Section Title',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.all(12),
-          ),
-          onSubmitted: (_) {
-            setState(() => _sections[idx]['title'] = ctrl.text.trim());
-            Navigator.pop(ctx);
-          },
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _blue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () {
-              setState(() => _sections[idx]['title'] = ctrl.text.trim());
-              Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editOptions(int idx, String optionKey, String optionLabel) async {
-    final raw = _sections[idx][optionKey];
-    final workingList = raw is List
-        ? List<String>.from(raw.cast<String>())
-        : <String>[];
-    final addCtrl = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: Text('Edit $optionLabel',
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Hold and drag to reorder. Tap × to remove.',
-                    style:
-                        TextStyle(fontSize: 11, color: Color(0xFF78909C))),
-                const SizedBox(height: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 220),
-                  child: ReorderableListView(
-                    shrinkWrap: true,
-                    onReorder: (oldIdx, newIdx) {
-                      setS(() {
-                        if (newIdx > oldIdx) newIdx--;
-                        final item = workingList.removeAt(oldIdx);
-                        workingList.insert(newIdx, item);
-                      });
-                    },
-                    children: workingList.asMap().entries.map((e) {
-                      return ListTile(
-                        key: ValueKey('opt_${e.key}_${e.value}'),
-                        dense: true,
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 8),
-                        leading: const Icon(Icons.drag_handle_rounded,
-                            size: 16, color: Color(0xFFBBBBBB)),
-                        title: Text(e.value,
-                            style: const TextStyle(fontSize: 13)),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.close_rounded,
-                              size: 16, color: Colors.red),
-                          onPressed: () =>
-                              setS(() => workingList.removeAt(e.key)),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: addCtrl,
-                      decoration: InputDecoration(
-                        hintText: 'Add option…',
-                        isDense: true,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                      ),
-                      onSubmitted: (val) {
-                        val = val.trim();
-                        if (val.isNotEmpty) {
-                          setS(() {
-                            workingList.add(val);
-                            addCtrl.clear();
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      final val = addCtrl.text.trim();
-                      if (val.isNotEmpty) {
-                        setS(() {
-                          workingList.add(val);
-                          addCtrl.clear();
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('Add'),
-                  ),
-                ]),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () {
-                setState(() => _sections[idx][optionKey] = workingList);
-                Navigator.pop(ctx);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _addOrEditCustomField(int sectionIdx,
@@ -485,48 +360,26 @@ class _EditFormPageState extends State<EditFormPage> {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.edit_note_rounded, color: _blue, size: 20),
+              child: const Icon(Icons.edit_note_rounded,
+                  color: _blue, size: 20),
             ),
             const SizedBox(width: 12),
             const Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Edit Application Form',
+                    Text('Edit Onboarding Form',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: _blue)),
                     Text(
-                        'Edit form sections · Add custom fields · Send for Management approval',
+                        'Edit sections · Add custom fields · Send for Management approval',
                         style: TextStyle(
                             fontSize: 12, color: Color(0xFF78909C))),
                   ]),
             ),
             if (!_loading) ...[
-              OutlinedButton.icon(
-                onPressed: () {
-                  html.window.navigator.clipboard
-                      ?.writeText(_activeFormLink);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Current form link copied'),
-                    backgroundColor: Color(0xFF2E7D32),
-                    duration: Duration(seconds: 2),
-                  ));
-                },
-                icon: const Icon(Icons.copy_rounded, size: 15),
-                label: const Text('Copy Link',
-                    style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _blue,
-                  side: const BorderSide(color: _blue),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: _saving ? null : _sendForApproval,
                 icon: _saving
@@ -566,8 +419,7 @@ class _EditFormPageState extends State<EditFormPage> {
         // ── Body ────────────────────────────────────────────────────
         Expanded(
           child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: _blue))
+              ? const Center(child: CircularProgressIndicator(color: _blue))
               : SingleChildScrollView(
                   padding: EdgeInsets.all(pad),
                   child: Center(
@@ -592,9 +444,8 @@ class _EditFormPageState extends State<EditFormPage> {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Toggle sections on/off, rename them, edit option lists, '
-                                  'or add custom fields (Short Answer, MCQ, or File Upload) to any section. '
-                                  'Click "Send for Approval" when done.',
+                                  'Toggle sections on/off, rename them, drag to reorder, '
+                                  'or add custom fields. Click "Send for Approval" when done.',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF37474F)),
@@ -607,7 +458,7 @@ class _EditFormPageState extends State<EditFormPage> {
                           // ── Sections ────────────────────────────
                           Row(children: [
                             const Expanded(child: _HeadingRow(
-                                label: 'Form Sections',
+                                label: 'Onboarding Form Sections',
                                 icon: Icons.view_list_rounded)),
                             TextButton.icon(
                               onPressed: _addSection,
@@ -619,10 +470,10 @@ class _EditFormPageState extends State<EditFormPage> {
                             ),
                           ]),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Drag  ⠿  to reorder sections',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF78909C)),
-                          ),
+                          const Text('Drag  ⠿  to reorder sections',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF78909C))),
                           const SizedBox(height: 8),
                           ReorderableListView(
                             shrinkWrap: true,
@@ -630,7 +481,7 @@ class _EditFormPageState extends State<EditFormPage> {
                             buildDefaultDragHandles: false,
                             onReorder: _onReorderSection,
                             children: _sections.asMap().entries.map((e) =>
-                                _SectionTile(
+                                _ObSectionTile(
                                   key: ValueKey(e.value['id'] ?? e.key),
                                   index: e.key,
                                   section: e.value,
@@ -638,8 +489,6 @@ class _EditFormPageState extends State<EditFormPage> {
                                       _toggleSection(e.key, v),
                                   onRename: () => _editTitle(e.key),
                                   onDelete: () => _deleteSection(e.key),
-                                  onEditOptions: (optKey, optLabel) =>
-                                      _editOptions(e.key, optKey, optLabel),
                                   onAddField: () =>
                                       _addOrEditCustomField(e.key),
                                   onEditField: (field, fieldIdx) =>
@@ -653,8 +502,8 @@ class _EditFormPageState extends State<EditFormPage> {
                           const SizedBox(height: 30),
 
                           // ── History ─────────────────────────────
-                          _HeadingRow(
-                              label: 'Form Version History',
+                          const _HeadingRow(
+                              label: 'Version History',
                               icon: Icons.history_rounded),
                           const SizedBox(height: 12),
                           if (_historyLoading)
@@ -685,25 +534,23 @@ class _EditFormPageState extends State<EditFormPage> {
 
 // ── Section tile ──────────────────────────────────────────────────────────────
 
-class _SectionTile extends StatelessWidget {
+class _ObSectionTile extends StatelessWidget {
   final int index;
   final Map<String, dynamic> section;
   final ValueChanged<bool> onToggle;
   final VoidCallback onRename;
   final VoidCallback onDelete;
-  final void Function(String optKey, String optLabel) onEditOptions;
   final VoidCallback onAddField;
   final void Function(Map<String, dynamic> field, int fieldIdx) onEditField;
   final void Function(int fieldIdx) onDeleteField;
 
-  const _SectionTile({
+  const _ObSectionTile({
     super.key,
     required this.index,
     required this.section,
     required this.onToggle,
     required this.onRename,
     required this.onDelete,
-    required this.onEditOptions,
     required this.onAddField,
     required this.onEditField,
     required this.onDeleteField,
@@ -714,11 +561,10 @@ class _SectionTile extends StatelessWidget {
     final id = (section['id'] as String?) ?? '';
     final title = (section['title'] as String?) ?? id;
     final enabled = (section['enabled'] as bool?) ?? true;
-    final icon = _sectionIcons[id] ?? Icons.segment_rounded;
-    final optionKeys = _sectionOptionKeys[id] ?? {};
-    final customFields = FormConfig.getCustomFields(section);
-    final builtInFields = _sectionBuiltInFields[id] ?? [];
-    final isCustomSection = !_sectionIcons.containsKey(id);
+    final icon = _obSectionIcons[id] ?? Icons.segment_rounded;
+    final customFields = OnboardingFormConfig.getCustomFields(section);
+    final builtInFields = _obBuiltInFields[id] ?? [];
+    final isCustomSection = !_obSectionIcons.containsKey(id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -731,215 +577,148 @@ class _SectionTile extends StatelessWidget {
               : const Color(0xFFEEEEEE),
         ),
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 8, 14, 8),
-            child: Row(children: [
-              // Drag handle
-              ReorderableDragStartListener(
-                index: index,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Icon(Icons.drag_handle_rounded,
-                      size: 20, color: Color(0xFFBBBBBB)),
-                ),
+      child: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 14, 8),
+          child: Row(children: [
+            // Drag handle
+            ReorderableDragStartListener(
+              index: index,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Icon(Icons.drag_handle_rounded,
+                    size: 20, color: Color(0xFFBBBBBB)),
               ),
-              Container(
-                width: 34, height: 34,
-                decoration: BoxDecoration(
-                  color: enabled
-                      ? _blue.withValues(alpha: 0.1)
-                      : const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon,
-                    color: enabled ? _blue : const Color(0xFFBBBBBB),
-                    size: 18),
+            ),
+            Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: enabled
+                    ? _blue.withValues(alpha: 0.1)
+                    : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: enabled
-                          ? const Color(0xFF37474F)
-                          : const Color(0xFFBBBBBB),
-                    )),
-              ),
-              // Rename
-              IconButton(
-                tooltip: 'Rename section',
-                icon: Icon(Icons.edit_rounded,
-                    size: 16,
+              child: Icon(icon,
+                  color: enabled ? _blue : const Color(0xFFBBBBBB),
+                  size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                     color: enabled
-                        ? const Color(0xFF78909C)
-                        : const Color(0xFFDDDDDD)),
-                onPressed: enabled ? onRename : null,
+                        ? const Color(0xFF37474F)
+                        : const Color(0xFFBBBBBB),
+                  )),
+            ),
+            IconButton(
+              tooltip: 'Rename section',
+              icon: Icon(Icons.edit_rounded,
+                  size: 16,
+                  color: enabled
+                      ? const Color(0xFF78909C)
+                      : const Color(0xFFDDDDDD)),
+              onPressed: enabled ? onRename : null,
+            ),
+            if (isCustomSection)
+              IconButton(
+                tooltip: 'Remove section',
+                icon: const Icon(Icons.delete_outline_rounded,
+                    size: 16, color: Colors.red),
+                onPressed: onDelete,
               ),
-              // Delete (custom sections only)
-              if (isCustomSection)
-                IconButton(
-                  tooltip: 'Remove section',
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      size: 16, color: Colors.red),
-                  onPressed: onDelete,
+            Switch(
+              value: enabled,
+              onChanged: onToggle,
+              activeColor: _blue,
+            ),
+          ]),
+        ),
+
+        // Built-in fields preview
+        if (enabled && builtInFields.isNotEmpty) ...[
+          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Built-in Fields',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF90A4AE),
+                        letterSpacing: 0.3)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: builtInFields
+                      .map((f) => Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(12),
+                              border:
+                                  Border.all(color: const Color(0xFFE0E0E0)),
+                            ),
+                            child: Text(f,
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF546E7A))),
+                          ))
+                      .toList(),
                 ),
-              // Toggle
-              Switch(
-                value: enabled,
-                onChanged: onToggle,
-                activeColor: _blue,
-              ),
-            ]),
+              ],
+            ),
           ),
-
-          // Built-in fields preview
-          if (enabled && builtInFields.isNotEmpty) ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Built-in Fields',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF90A4AE),
-                          letterSpacing: 0.3)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: builtInFields.map((f) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                      ),
-                      child: Text(f,
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF546E7A))),
-                    )).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Option editors for configurable sections
-          if (enabled && optionKeys.isNotEmpty) ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: optionKeys.entries.map((opt) {
-                  final optKey = opt.key;
-                  final optLabel = opt.value;
-                  final rawOpts = section[optKey];
-                  final opts = rawOpts is List
-                      ? List<String>.from(rawOpts.cast<String>())
-                      : <String>[];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(optLabel,
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF78909C))),
-                              const SizedBox(height: 4),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                children: opts.map((o) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: _blue.withValues(alpha: 0.07),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                        color: _blue.withValues(alpha: 0.2)),
-                                  ),
-                                  child: Text(o,
-                                      style: const TextStyle(
-                                          fontSize: 11, color: _blue)),
-                                )).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () => onEditOptions(optKey, optLabel),
-                          icon: const Icon(Icons.tune_rounded, size: 14),
-                          label: const Text('Edit',
-                              style: TextStyle(fontSize: 12)),
-                          style: TextButton.styleFrom(
-                              foregroundColor: _blue),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-
-          // Custom fields sub-panel (always shown when enabled)
-          if (enabled) ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    const Text('Custom Fields',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF78909C))),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: onAddField,
-                      icon: const Icon(Icons.add_rounded, size: 14),
-                      label: const Text('Add Field',
-                          style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(foregroundColor: _blue),
-                    ),
-                  ]),
-                  if (customFields.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    ...customFields.asMap().entries.map((e) =>
-                        _CustomFieldPreview(
-                          field: e.value,
-                          onEdit: () => onEditField(e.value, e.key),
-                          onDelete: () => onDeleteField(e.key),
-                        )),
-                  ],
-                ],
-              ),
-            ),
-          ],
         ],
-      ),
+
+        // Custom fields sub-panel
+        if (enabled) ...[
+          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Text('Custom Fields',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF78909C))),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: onAddField,
+                    icon: const Icon(Icons.add_rounded, size: 14),
+                    label: const Text('Add Field',
+                        style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(foregroundColor: _blue),
+                  ),
+                ]),
+                if (customFields.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  ...customFields.asMap().entries.map((e) =>
+                      _CustomFieldPreview(
+                        field: e.value,
+                        onEdit: () => onEditField(e.value, e.key),
+                        onDelete: () => onDeleteField(e.key),
+                      )),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ]),
     );
   }
 }
 
-// ── Custom field preview row ──────────────────────────────────────────────────
+// ── Custom field preview row (shared) ────────────────────────────────────────
 
 class _CustomFieldPreview extends StatelessWidget {
   final Map<String, dynamic> field;
@@ -1000,7 +779,8 @@ class _CustomFieldPreview extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
+              style:
+                  const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
         ),
         if (isRequired) ...[
           const SizedBox(width: 6),
@@ -1026,7 +806,6 @@ class _CustomFieldPreview extends StatelessWidget {
           constraints:
               const BoxConstraints(minWidth: 28, minHeight: 28),
           padding: EdgeInsets.zero,
-          tooltip: 'Edit field',
         ),
         IconButton(
           icon: const Icon(Icons.delete_outline_rounded,
@@ -1035,7 +814,6 @@ class _CustomFieldPreview extends StatelessWidget {
           constraints:
               const BoxConstraints(minWidth: 28, minHeight: 28),
           padding: EdgeInsets.zero,
-          tooltip: 'Delete field',
         ),
       ]),
     );
@@ -1124,7 +902,6 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Type selector ──────────────────────────────────
               const Text('Field Type',
                   style: TextStyle(
                       fontSize: 11,
@@ -1155,8 +932,6 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 ),
               ]),
               const SizedBox(height: 18),
-
-              // ── Label ──────────────────────────────────────────
               TextField(
                 controller: _labelCtrl,
                 autofocus: true,
@@ -1169,8 +944,6 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // ── Required toggle ────────────────────────────────
               Row(children: [
                 Switch(
                   value: _required,
@@ -1179,11 +952,9 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 ),
                 const SizedBox(width: 8),
                 const Text('Required field',
-                    style: TextStyle(
-                        fontSize: 13, color: Color(0xFF37474F))),
+                    style:
+                        TextStyle(fontSize: 13, color: Color(0xFF37474F))),
               ]),
-
-              // ── MCQ options ────────────────────────────────────
               if (_type == 'mcq') ...[
                 const SizedBox(height: 16),
                 const Text('Answer Options',
@@ -1193,8 +964,8 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                         color: Color(0xFF546E7A))),
                 const SizedBox(height: 4),
                 const Text('Drag to reorder · tap × to remove',
-                    style: TextStyle(
-                        fontSize: 10, color: Color(0xFFAAAAAA))),
+                    style:
+                        TextStyle(fontSize: 10, color: Color(0xFFAAAAAA))),
                 const SizedBox(height: 8),
                 if (_mcqOptions.isNotEmpty)
                   ConstrainedBox(
@@ -1208,24 +979,32 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                           _mcqOptions.insert(newIdx, item);
                         });
                       },
-                      children: _mcqOptions.asMap().entries.map((e) =>
-                          ListTile(
-                            key: ValueKey(
-                                'mcqopt_${e.key}_${e.value}'),
-                            dense: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 8),
-                            leading: const Icon(Icons.drag_handle_rounded,
-                                size: 16, color: Color(0xFFBBBBBB)),
-                            title: Text(e.value,
-                                style: const TextStyle(fontSize: 13)),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.close_rounded,
-                                  size: 15, color: Colors.red),
-                              onPressed: () => setState(
-                                  () => _mcqOptions.removeAt(e.key)),
-                            ),
-                          )).toList(),
+                      children: _mcqOptions
+                          .asMap()
+                          .entries
+                          .map((e) => ListTile(
+                                key: ValueKey(
+                                    'mcqopt_${e.key}_${e.value}'),
+                                dense: true,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                leading: const Icon(
+                                    Icons.drag_handle_rounded,
+                                    size: 16,
+                                    color: Color(0xFFBBBBBB)),
+                                title: Text(e.value,
+                                    style:
+                                        const TextStyle(fontSize: 13)),
+                                trailing: IconButton(
+                                  icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 15,
+                                      color: Colors.red),
+                                  onPressed: () => setState(
+                                      () => _mcqOptions.removeAt(e.key)),
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -1258,8 +1037,6 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                   ),
                 ]),
               ],
-
-              // ── File upload info ───────────────────────────────
               if (_type == 'file_upload') ...[
                 const SizedBox(height: 14),
                 Container(
@@ -1267,8 +1044,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: const Color(0xFFA5D6A7)),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
                   ),
                   child: const Row(children: [
                     Icon(Icons.info_outline_rounded,
@@ -1276,7 +1052,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Candidates can upload a PDF document or a photo (JPG / PNG).',
+                        'Employee can upload a PDF or image (JPG / PNG).',
                         style: TextStyle(
                             fontSize: 11, color: Color(0xFF2E7D32)),
                       ),
@@ -1296,20 +1072,17 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: _blue,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          onPressed: _canSave
-              ? () => Navigator.pop(context, _buildResult())
-              : null,
+          onPressed:
+              _canSave ? () => Navigator.pop(context, _buildResult()) : null,
           child: const Text('Save Field'),
         ),
       ],
     );
   }
 }
-
-// ── Type chip ─────────────────────────────────────────────────────────────────
 
 class _TypeChip extends StatelessWidget {
   final IconData icon;
@@ -1343,9 +1116,7 @@ class _TypeChip extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon,
               size: 14,
-              color: isSelected
-                  ? Colors.white
-                  : const Color(0xFF546E7A)),
+              color: isSelected ? Colors.white : const Color(0xFF546E7A)),
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(
@@ -1387,10 +1158,6 @@ class _VersionHistoryCard extends StatelessWidget {
       }
     } catch (_) {}
 
-    final link = status == 'approved'
-        ? FormConfig.versionedLink(vNum)
-        : null;
-
     late Color statusBg;
     late Color statusFg;
     late IconData statusIcon;
@@ -1421,107 +1188,72 @@ class _VersionHistoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE0E0E0)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text('v$vNum',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _blue)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (createdBy.isNotEmpty)
-                    Text('Created by $createdBy',
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF546E7A))),
-                  if (dateStr.isNotEmpty)
-                    Text(dateStr,
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF78909C))),
-                ],
-              ),
-            ),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(20)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(statusIcon, size: 12, color: statusFg),
-                const SizedBox(width: 4),
-                Text(statusLabel,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: statusFg,
-                        fontWeight: FontWeight.w600)),
-              ]),
-            ),
-          ]),
-
-          if (approvedBy.isNotEmpty && status == 'approved') ...[
-            const SizedBox(height: 6),
-            Text('Approved by $approvedBy',
+            child: Text('v$vNum',
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF2E7D32))),
-          ],
-
-          if (rejectionNote.isNotEmpty && status == 'rejected') ...[
-            const SizedBox(height: 6),
-            Text('Reason: $rejectionNote',
-                style: const TextStyle(
-                    fontSize: 11, color: Color(0xFFC62828))),
-          ],
-
-          if (link != null) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            const SizedBox(height: 8),
-            Row(children: [
-              const Icon(Icons.link_rounded,
-                  size: 14, color: Color(0xFF78909C)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(link,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: _blue,
-                        decoration: TextDecoration.underline)),
-              ),
-              TextButton.icon(
-                onPressed: () {
-                  html.window.navigator.clipboard?.writeText(link);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Link copied'),
-                    backgroundColor: Color(0xFF2E7D32),
-                    duration: Duration(seconds: 2),
-                  ));
-                },
-                icon: const Icon(Icons.copy_rounded, size: 13),
-                label: const Text('Copy', style: TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(foregroundColor: _blue),
-              ),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _blue)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (createdBy.isNotEmpty)
+                  Text('Created by $createdBy',
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF546E7A))),
+                if (dateStr.isNotEmpty)
+                  Text(dateStr,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF78909C))),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: BorderRadius.circular(20)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(statusIcon, size: 12, color: statusFg),
+              const SizedBox(width: 4),
+              Text(statusLabel,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: statusFg,
+                      fontWeight: FontWeight.w600)),
             ]),
-          ],
+          ),
+        ]),
+        if (approvedBy.isNotEmpty && status == 'approved') ...[
+          const SizedBox(height: 6),
+          Text('Approved by $approvedBy',
+              style: const TextStyle(
+                  fontSize: 11, color: Color(0xFF2E7D32))),
         ],
-      ),
+        if (rejectionNote.isNotEmpty && status == 'rejected') ...[
+          const SizedBox(height: 6),
+          Text('Reason: $rejectionNote',
+              style: const TextStyle(
+                  fontSize: 11, color: Color(0xFFC62828))),
+        ],
+      ]),
     );
   }
 }
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
+// ── Shared helpers ────────────────────────────────────────────────────────────
 
 class _HeadingRow extends StatelessWidget {
   final String label;
@@ -1565,11 +1297,12 @@ class _EmptyHistory extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.history_rounded, size: 38, color: Color(0xFFBBDEFB)),
           SizedBox(height: 10),
-          Text('No form versions yet',
+          Text('No versions yet',
               style: TextStyle(fontSize: 13, color: Color(0xFF78909C))),
           SizedBox(height: 4),
           Text('Submitted versions will appear here after approval.',
-              style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
+              style:
+                  TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
         ]),
       ),
     );

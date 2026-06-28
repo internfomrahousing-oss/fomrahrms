@@ -192,6 +192,23 @@ import '../models/user_session.dart';
   -- If the table already exists, add the new column:
   alter table tasks add column if not exists team_member_statuses text default '{}';
 
+  create table if not exists onboarding_form_versions (
+    id uuid default gen_random_uuid() primary key,
+    created_at timestamptz default now(),
+    created_by text default '',
+    status text default 'pending',
+    form_config jsonb not null default '{}',
+    version_number integer default 1,
+    approved_at timestamptz,
+    approved_by text default '',
+    rejection_note text default ''
+  );
+  alter table onboarding_form_versions disable row level security;
+  alter table onboarding_forms add column if not exists mother_name text default '';
+  alter table onboarding_forms add column if not exists aadhar_url text default '';
+  alter table onboarding_forms add column if not exists attachments jsonb default '[]';
+  alter table onboarding_forms add column if not exists mother_name text default '';
+
   -- Disable Row Level Security for development (enable and add policies for production)
   alter table leave_applications disable row level security;
   alter table maintenance_tickets disable row level security;
@@ -733,6 +750,80 @@ class SupabaseService {
     try {
       final data = await db
           .from('form_versions')
+          .select('version_number')
+          .order('version_number', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      if (list.isEmpty) return 1;
+      return ((list.first['version_number'] as int?) ?? 0) + 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  // ── Onboarding Form Versions ─────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchOnboardingFormVersions() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db
+          .from('onboarding_form_versions')
+          .select()
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchActiveOnboardingFormVersion() async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('onboarding_form_versions')
+          .select()
+          .eq('status', 'approved')
+          .order('approved_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveOnboardingFormVersion(
+      Map<String, dynamic> data) async {
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized.');
+    await db.from('onboarding_form_versions').insert(data);
+  }
+
+  static Future<void> updateOnboardingFormVersionStatus(
+    String id,
+    String status, {
+    String decidedBy = '',
+    String note = '',
+  }) async {
+    final db = _db;
+    if (db == null) return;
+    final update = <String, dynamic>{'status': status};
+    if (status == 'approved') {
+      update['approved_at'] = DateTime.now().toUtc().toIso8601String();
+      update['approved_by'] = decidedBy;
+    }
+    if (note.isNotEmpty) update['rejection_note'] = note;
+    await db.from('onboarding_form_versions').update(update).eq('id', id);
+  }
+
+  static Future<int> getNextOnboardingFormVersionNumber() async {
+    final db = _db;
+    if (db == null) return 1;
+    try {
+      final data = await db
+          .from('onboarding_form_versions')
           .select('version_number')
           .order('version_number', ascending: false)
           .limit(1);

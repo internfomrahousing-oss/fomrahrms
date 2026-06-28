@@ -2,6 +2,7 @@
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
@@ -154,6 +155,18 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/edit-onboarding-form'),
+                  icon: const Icon(Icons.edit_note_rounded, size: 15),
+                  label: const Text('Edit Form', style: TextStyle(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF6A1B9A),
+                    side: const BorderSide(color: Color(0xFF6A1B9A)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 8),
               ],
               ElevatedButton.icon(
                 onPressed: _openForm,
@@ -262,7 +275,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           .or('name.ilike.%$name%${phone.isNotEmpty ? ",mobile.eq.$phone" : ""}')
           .limit(1);
       if (results.isNotEmpty && mounted) {
-        setState(() => _linkedInterview = results.first as Map<String, dynamic>);
+        setState(() => _linkedInterview = Map<String, dynamic>.from(results.first as Map));
       }
     } catch (_) {}
   }

@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/onboarding_form_config.dart';
+import '../services/supabase_service.dart';
 
 class _AttachFile {
   final String name;
@@ -95,12 +97,69 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   ];
   final List<List<_AttachFile>> _attachments = List.generate(6, (_) => []);
 
+  // ── Config (loaded from Supabase) ─────────────────────────────────────────
+  List<Map<String, dynamic>> _configSections = [];
+  final _customTextControllers = <String, TextEditingController>{};
+  final _customMcqValues       = <String, String?>{};
+  final _customFileNames       = <String, String>{};
+  final _customFileUrls        = <String, String>{};
+
   @override
   void initState() {
     super.initState();
     _addFamilyRow();
     _addEducationRow();
     _addExperienceRow();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      final active = await SupabaseService.fetchActiveOnboardingFormVersion();
+      final config = active != null
+          ? Map<String, dynamic>.from(active['form_config'] as Map)
+          : OnboardingFormConfig.defaults();
+      if (mounted) {
+        setState(() =>
+            _configSections = OnboardingFormConfig.getSections(config));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _configSections =
+            OnboardingFormConfig.getSections(OnboardingFormConfig.defaults()));
+      }
+    }
+  }
+
+  // Returns config title for a section ID, falling back to the default
+  String _cfgTitle(String id, String fallback) {
+    try {
+      final s = _configSections.firstWhere((s) => (s['id'] as String?) == id);
+      final t = (s['title'] as String?)?.trim();
+      return (t != null && t.isNotEmpty) ? t : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  // Returns whether a section is enabled in the config
+  bool _cfgEnabled(String id) {
+    try {
+      final s = _configSections.firstWhere((s) => (s['id'] as String?) == id);
+      return (s['enabled'] as bool?) ?? true;
+    } catch (_) {
+      return true; // show by default if not in config
+    }
+  }
+
+  // Returns custom fields for a section from config
+  List<Map<String, dynamic>> _cfgCustomFields(String id) {
+    try {
+      final s = _configSections.firstWhere((s) => (s['id'] as String?) == id);
+      return OnboardingFormConfig.getCustomFields(s);
+    } catch (_) {
+      return [];
+    }
   }
 
   // ── Row management ────────────────────────────────────────────────────────
@@ -312,6 +371,141 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     return result;
   }
 
+  // ── Custom field rendering ────────────────────────────────────────────────
+
+  Future<void> _pickCustomFile(String fieldId) async {
+    final f = await _pickSingleFile(accept: '.pdf,.jpg,.jpeg,.png,image/*');
+    if (f == null) return;
+    final url = await _uploadSingleFile(
+        f, '${DateTime.now().millisecondsSinceEpoch}_custom_${f.name}');
+    if (mounted) {
+      setState(() {
+        _customFileNames[fieldId] = f.name;
+        _customFileUrls[fieldId] = url ?? '';
+      });
+    }
+  }
+
+  List<Widget> _renderCustomFields(List<Map<String, dynamic>> fields) {
+    return fields.map((field) {
+      final id = (field['id'] as String?) ?? field.hashCode.toString();
+      final type = (field['type'] as String?) ?? 'short_answer';
+      final label = (field['label'] as String?) ?? '';
+      final isRequired = (field['required'] as bool?) ?? false;
+
+      if (type == 'file_upload') {
+        final fileName = _customFileNames[id];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('$label${isRequired ? ' *' : ''}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+            const SizedBox(height: 6),
+            fileName != null
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF4CAF50)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.insert_drive_file_rounded,
+                          size: 16, color: Color(0xFF2E7D32)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(fileName,
+                            style: const TextStyle(
+                                fontSize: 12, color: Color(0xFF1B5E20)),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() {
+                          _customFileNames.remove(id);
+                          _customFileUrls.remove(id);
+                        }),
+                        child: const Icon(Icons.close_rounded,
+                            size: 16, color: Colors.red),
+                      ),
+                    ]),
+                  )
+                : OutlinedButton.icon(
+                    icon: const Icon(Icons.upload_file_rounded, size: 14),
+                    label: Text('Upload ${label.isEmpty ? 'File' : label}',
+                        style: const TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0D47A1),
+                      side: const BorderSide(color: Color(0xFF0D47A1)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () => _pickCustomFile(id),
+                  ),
+          ]),
+        );
+      }
+
+      if (type == 'mcq') {
+        final options = (field['options'] as List?)
+                ?.whereType<String>()
+                .toList() ??
+            [];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('$label${isRequired ? ' *' : ''}',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF37474F),
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 6),
+            ...options.map((opt) => RadioListTile<String>(
+                  dense: true,
+                  title:
+                      Text(opt, style: const TextStyle(fontSize: 13)),
+                  value: opt,
+                  groupValue: _customMcqValues[id],
+                  onChanged: (v) =>
+                      setState(() => _customMcqValues[id] = v),
+                  activeColor: const Color(0xFF0D47A1),
+                  contentPadding: EdgeInsets.zero,
+                )),
+          ]),
+        );
+      }
+
+      // Short answer (default)
+      _customTextControllers.putIfAbsent(id, () => TextEditingController());
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextFormField(
+          controller: _customTextControllers[id],
+          validator: isRequired
+              ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+              : null,
+          decoration: InputDecoration(
+            labelText: '$label${isRequired ? ' *' : ''}',
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(
+                    color: Color(0xFF0D47A1), width: 1.5)),
+            labelStyle:
+                const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
@@ -398,6 +592,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       'declaration_date':           _fmt(_declarationDateVal),
       'declaration_place':          _declarationPlace.text.trim(),
       'attachments':                uploadedFiles,
+      'custom_field_values': {
+        ..._customTextControllers
+            .map((k, v) => MapEntry(k, v.text.trim())),
+        ..._customMcqValues.map((k, v) => MapEntry(k, v ?? '')),
+        ..._customFileUrls,
+      },
     };
 
     try {
@@ -432,6 +632,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     for (final row in _familyRows)    { for (final c in row.values) c.dispose(); }
     for (final row in _educationRows) { for (final c in row.values) c.dispose(); }
     for (final row in _experienceRows){ for (final c in row.values) c.dispose(); }
+    for (final c in _customTextControllers.values) c.dispose();
     super.dispose();
   }
 
@@ -452,25 +653,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _buildHeader(),
                 const SizedBox(height: 24),
-                _buildSection1(),
-                const SizedBox(height: 20),
-                _buildSection2(),
-                const SizedBox(height: 20),
-                _buildFamilySection(),
-                const SizedBox(height: 20),
-                _buildEducationSection(),
-                const SizedBox(height: 20),
-                _buildExperienceSection(),
-                const SizedBox(height: 20),
-                _buildLastPositionSection(),
-                const SizedBox(height: 20),
-                _buildAdditionalSection(),
-                const SizedBox(height: 20),
-                _buildEmergencySection(),
-                const SizedBox(height: 20),
-                _buildAttachmentsSection(),
-                const SizedBox(height: 20),
-                _buildDeclarationSection(),
+                ..._orderedSectionWidgets(),
                 const SizedBox(height: 28),
                 _buildSubmitButton(),
                 const SizedBox(height: 32),
@@ -479,6 +662,67 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // Returns section widgets in config order, skipping disabled sections.
+  // Built-in sections use the config title; custom sections show only custom fields.
+  List<Widget> _orderedSectionWidgets() {
+    final defaultOrder = [
+      'basic_info', 'personal_data', 'family_details', 'education',
+      'experience', 'last_position', 'additional_info', 'emergency_details',
+      'attachments', 'declaration',
+    ];
+    final Map<String, Widget Function()> builders = {
+      'basic_info':        _buildSection1,
+      'personal_data':     _buildSection2,
+      'family_details':    _buildFamilySection,
+      'education':         _buildEducationSection,
+      'experience':        _buildExperienceSection,
+      'last_position':     _buildLastPositionSection,
+      'additional_info':   _buildAdditionalSection,
+      'emergency_details': _buildEmergencySection,
+      'attachments':       _buildAttachmentsSection,
+      'declaration':       _buildDeclarationSection,
+    };
+
+    // Use config order if available, else defaults
+    final ordered = _configSections.isNotEmpty
+        ? _configSections.map((s) => (s['id'] as String?) ?? '').where((id) => id.isNotEmpty).toList()
+        : defaultOrder;
+
+    // Append any default sections not yet in config (in case config is partial)
+    for (final id in defaultOrder) {
+      if (!ordered.contains(id)) ordered.add(id);
+    }
+
+    final widgets = <Widget>[];
+    for (final id in ordered) {
+      if (!_cfgEnabled(id)) continue;
+      final builder = builders[id];
+      if (builder != null) {
+        widgets.add(builder());
+      } else {
+        // Pure custom section
+        final customFields = _cfgCustomFields(id);
+        if (customFields.isNotEmpty) {
+          widgets.add(_buildCustomOnlySection(id, customFields));
+        }
+      }
+      widgets.add(const SizedBox(height: 20));
+    }
+    if (widgets.isNotEmpty && widgets.last is SizedBox) widgets.removeLast();
+    return widgets;
+  }
+
+  Widget _buildCustomOnlySection(
+      String id, List<Map<String, dynamic>> customFields) {
+    final title = _cfgTitle(id, 'Additional');
+    return _card(
+      title: title,
+      icon: Icons.segment_rounded,
+      child: Column(
+          children: _renderCustomFields(customFields)),
     );
   }
 
@@ -535,7 +779,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // ── Section 1: Basic Info ─────────────────────────────────────────────────
 
   Widget _buildSection1() => _card(
-    title: 'Basic Information',
+    title: _cfgTitle('basic_info', 'Basic Information'),
     icon: Icons.person_rounded,
     child: Column(children: [
       _field(_name, 'Name *', required: true),
@@ -553,13 +797,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           if (d != null) setState(() => _dateJoiningDate = d);
         },
       ),
+      ..._renderCustomFields(_cfgCustomFields('basic_info')),
     ]),
   );
 
   // ── Section 2: Personal Data ──────────────────────────────────────────────
 
   Widget _buildSection2() => _card(
-    title: 'Personal Data Form',
+    title: _cfgTitle('personal_data', 'Personal Data Form'),
     icon: Icons.assignment_ind_rounded,
     child: Column(children: [
       _field(_fullName, 'Full Name'),
@@ -576,18 +821,20 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ),
       _field(_postalAddress,    'Postal Address',    maxLines: 3),
       _field(_permanentAddress, 'Permanent Address', maxLines: 3),
+      ..._renderCustomFields(_cfgCustomFields('personal_data')),
     ]),
   );
 
   // ── Family section ────────────────────────────────────────────────────────
 
   Widget _buildFamilySection() => _card(
-    title: 'Family Details',
+    title: _cfgTitle('family_details', 'Family Details'),
     icon: Icons.family_restroom_rounded,
     child: Column(children: [
       ..._familyRows.asMap().entries.map((e) => _buildFamilyRow(e.key, e.value)),
       const SizedBox(height: 8),
       _addRowButton('Add Family Member', _addFamilyRow),
+      ..._renderCustomFields(_cfgCustomFields('family_details')),
     ]),
   );
 
@@ -665,13 +912,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // ── Education section ─────────────────────────────────────────────────────
 
   Widget _buildEducationSection() => _card(
-    title: 'Education Qualification',
+    title: _cfgTitle('education', 'Education Qualification'),
     icon: Icons.school_rounded,
     subtitle: 'Start with School, College, Any Certification Course',
     child: Column(children: [
       ..._educationRows.asMap().entries.map((e) => _buildEducationRow(e.key, e.value)),
       const SizedBox(height: 8),
       _addRowButton('Add Education', _addEducationRow),
+      ..._renderCustomFields(_cfgCustomFields('education')),
     ]),
   );
 
@@ -727,13 +975,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // ── Experience section ────────────────────────────────────────────────────
 
   Widget _buildExperienceSection() => _card(
-    title: 'Experience',
+    title: _cfgTitle('experience', 'Experience'),
     icon: Icons.work_history_rounded,
     subtitle: 'Chronological order excluding last position',
     child: Column(children: [
       ..._experienceRows.asMap().entries.map((e) => _buildExperienceRow(e.key, e.value)),
       const SizedBox(height: 8),
       _addRowButton('Add Experience', _addExperienceRow),
+      ..._renderCustomFields(_cfgCustomFields('experience')),
     ]),
   );
 
@@ -795,7 +1044,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // ── Last Position section ─────────────────────────────────────────────────
 
   Widget _buildLastPositionSection() => _card(
-    title: 'Last Position Held',
+    title: _cfgTitle('last_position', 'Last Position Held'),
     icon: Icons.business_center_rounded,
     child: Column(children: [
       _field(_lastReportingName,  'Last Reporting Person Name'),
@@ -806,13 +1055,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       const SizedBox(height: 8),
       _field(_ref1, 'Reference 1 — Name & Contact Number'),
       _field(_ref2, 'Reference 2 — Name & Contact Number'),
+      ..._renderCustomFields(_cfgCustomFields('last_position')),
     ]),
   );
 
   // ── Additional Info section ───────────────────────────────────────────────
 
   Widget _buildAdditionalSection() => _card(
-    title: 'Additional Information',
+    title: _cfgTitle('additional_info', 'Additional Information'),
     icon: Icons.info_outline_rounded,
     child: Column(children: [
       Row(children: [
@@ -827,13 +1077,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       _field(_professionalMember, 'Membership of any Professional Institution / Association'),
       _field(_specializedTraining,'Any Specialized Training Program attended'),
       _field(_otherInfo,          'Any Other Information / Suggestion', maxLines: 3),
+      ..._renderCustomFields(_cfgCustomFields('additional_info')),
     ]),
   );
 
   // ── Emergency section ─────────────────────────────────────────────────────
 
   Widget _buildEmergencySection() => _card(
-    title: 'EMERGENCY DETAILS OF EMPLOYEE',
+    title: _cfgTitle('emergency_details', 'EMERGENCY DETAILS OF EMPLOYEE'),
     icon: Icons.emergency_rounded,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -874,13 +1125,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           ),
         ]),
       ),
+      ..._renderCustomFields(_cfgCustomFields('emergency_details')),
     ]),
   );
 
   // ── Attachments section ───────────────────────────────────────────────────
 
   Widget _buildAttachmentsSection() => _card(
-    title: 'Attachments',
+    title: _cfgTitle('attachments', 'Attachments'),
     icon: Icons.attach_file_rounded,
     subtitle: 'PDF / image · Images > 1 MB are auto-compressed · To be given as hard copy also',
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -998,13 +1250,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           ]),
         );
       }),
+      ..._renderCustomFields(_cfgCustomFields('attachments')),
     ]),
   );
 
   // ── Declaration section ───────────────────────────────────────────────────
 
   Widget _buildDeclarationSection() => _card(
-    title: 'Declaration',
+    title: _cfgTitle('declaration', 'Declaration'),
     icon: Icons.gavel_rounded,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
@@ -1046,6 +1299,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               style: TextStyle(fontSize: 13, color: Color(0xFF37474F))),
         ),
       ]),
+      ..._renderCustomFields(_cfgCustomFields('declaration')),
     ]),
   );
 

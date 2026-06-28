@@ -58,6 +58,7 @@ import 'pages/candidate_detail_page.dart';
 import 'pages/manager_interview_review_page.dart';
 import 'pages/management_interview_review_page.dart';
 import 'pages/edit_form_page.dart';
+import 'pages/edit_onboarding_form_page.dart';
 
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
@@ -180,6 +181,7 @@ final _router = GoRouter(
         GoRoute(path: '/payroll-management',              builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/edit-form',                       builder: (_, __) => const EditFormPage()),
+        GoRoute(path: '/edit-onboarding-form',            builder: (_, __) => const EditOnboardingFormPage()),
         GoRoute(path: '/candidate-detail',                builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/lead-management',
