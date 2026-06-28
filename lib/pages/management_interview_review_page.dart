@@ -1405,7 +1405,11 @@ class _FormPreviewDialog extends StatelessWidget {
                                   ? 'MCQ'
                                   : type == 'file_upload'
                                       ? 'File Upload'
-                                      : 'Short Answer';
+                                      : type == 'number'
+                                          ? 'Numbers Only'
+                                          : type == 'date'
+                                              ? 'Date / Calendar'
+                                              : 'Short Answer';
                               return Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Row(children: [

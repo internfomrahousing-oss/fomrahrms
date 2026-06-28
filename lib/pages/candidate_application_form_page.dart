@@ -90,6 +90,7 @@ class _CandidateApplicationFormPageState
   final Map<String, String?> _customFileNames = {};
   final Map<String, String?> _customFileUrls = {};
   final Map<String, bool> _customFileUploading = {};
+  final Map<String, DateTime?> _customDateValues = {};
 
   @override
   void initState() {
@@ -239,6 +240,35 @@ class _CandidateApplicationFormPageState
           fileName: _customFileNames[id],
           uploading: _customFileUploading[id] ?? false,
           onPick: () => _pickCustomFile(id),
+        ));
+      } else if (type == 'number') {
+        final ctrl = _customTextControllers.putIfAbsent(
+            id, () => TextEditingController());
+        widgets.add(_Field(
+          label: label,
+          controller: ctrl,
+          required: isRequired,
+          keyboard: TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+          ],
+        ));
+      } else if (type == 'date') {
+        final picked = _customDateValues[id];
+        widgets.add(_CustomDateField(
+          label: label,
+          isRequired: isRequired,
+          value: picked,
+          onPick: () async {
+            final now = DateTime.now();
+            final d = await showDatePicker(
+              context: context,
+              initialDate: picked ?? now,
+              firstDate: DateTime(1900),
+              lastDate: DateTime(2100),
+            );
+            if (d != null) setState(() => _customDateValues[id] = d);
+          },
         ));
       }
     }
@@ -393,12 +423,14 @@ class _CandidateApplicationFormPageState
         final fType = (field['type'] as String?) ?? 'short_answer';
         final fLabel = (field['label'] as String?) ?? 'field';
         bool missing = false;
-        if (fType == 'short_answer') {
+        if (fType == 'short_answer' || fType == 'number') {
           missing = (_customTextControllers[fId]?.text.trim() ?? '').isEmpty;
         } else if (fType == 'mcq') {
           missing = _customMcqValues[fId] == null;
         } else if (fType == 'file_upload') {
           missing = _customFileUrls[fId] == null;
+        } else if (fType == 'date') {
+          missing = _customDateValues[fId] == null;
         }
         if (missing) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -467,6 +499,9 @@ class _CandidateApplicationFormPageState
           e.key: e.value.text.trim(),
         for (final e in _customMcqValues.entries) e.key: e.value ?? '',
         for (final e in _customFileUrls.entries) e.key: e.value ?? '',
+        for (final e in _customDateValues.entries)
+          if (e.value != null)
+            e.key: '${e.value!.day.toString().padLeft(2, '0')}/${e.value!.month.toString().padLeft(2, '0')}/${e.value!.year}',
       },
     });
     } catch (e) {
@@ -555,6 +590,7 @@ class _CandidateApplicationFormPageState
       _customMcqValues.clear();
       _customFileNames.clear();
       _customFileUrls.clear();
+      _customDateValues.clear();
       _submitting = false;
     });
   }
@@ -1747,6 +1783,55 @@ class _CustomFileUploader extends StatelessWidget {
             ),
           ]),
         ],
+      ),
+    );
+  }
+}
+
+class _CustomDateField extends StatelessWidget {
+  final String label;
+  final bool isRequired;
+  final DateTime? value;
+  final VoidCallback onPick;
+  const _CustomDateField({
+    required this.label,
+    required this.isRequired,
+    required this.value,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formatted = value != null
+        ? '${value!.day.toString().padLeft(2, '0')}/${value!.month.toString().padLeft(2, '0')}/${value!.year}'
+        : null;
+    return GestureDetector(
+      onTap: onPick,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: value != null ? _blue : const Color(0xFFE0E0E0),
+          ),
+        ),
+        child: Row(children: [
+          Expanded(
+            child: Text(
+              formatted ?? (isRequired ? '$label *' : label),
+              style: TextStyle(
+                fontSize: 13,
+                color: formatted != null
+                    ? const Color(0xFF37474F)
+                    : const Color(0xFF78909C),
+              ),
+            ),
+          ),
+          Icon(Icons.calendar_today_rounded,
+              size: 18,
+              color: value != null ? _blue : const Color(0xFFBBBBBB)),
+        ]),
       ),
     );
   }

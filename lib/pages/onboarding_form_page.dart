@@ -103,6 +103,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   final _customMcqValues       = <String, String?>{};
   final _customFileNames       = <String, String>{};
   final _customFileUrls        = <String, String>{};
+  final _customDateValues      = <String, DateTime?>{};
 
   @override
   void initState() {
@@ -473,6 +474,95 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         );
       }
 
+      if (type == 'number') {
+        _customTextControllers.putIfAbsent(id, () => TextEditingController());
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            controller: _customTextControllers[id],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            validator: isRequired
+                ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+                : null,
+            decoration: InputDecoration(
+              labelText: '$label${isRequired ? ' *' : ''}',
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(9),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(9),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(9),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF0D47A1), width: 1.5)),
+              labelStyle:
+                  const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+            ),
+          ),
+        );
+      }
+
+      if (type == 'date') {
+        final picked = _customDateValues[id];
+        final formatted = picked != null
+            ? '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}'
+            : null;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () async {
+              final now = DateTime.now();
+              final d = await showDatePicker(
+                context: context,
+                initialDate: picked ?? now,
+                firstDate: DateTime(1900),
+                lastDate: DateTime(2100),
+              );
+              if (d != null) setState(() => _customDateValues[id] = d);
+            },
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: picked != null
+                      ? const Color(0xFF0D47A1)
+                      : const Color(0xFFE0E0E0),
+                ),
+              ),
+              child: Row(children: [
+                Expanded(
+                  child: Text(
+                    formatted ?? '$label${isRequired ? ' *' : ''}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: formatted != null
+                          ? const Color(0xFF37474F)
+                          : const Color(0xFF78909C),
+                    ),
+                  ),
+                ),
+                Icon(Icons.calendar_today_rounded,
+                    size: 18,
+                    color: picked != null
+                        ? const Color(0xFF0D47A1)
+                        : const Color(0xFFBBBBBB)),
+              ]),
+            ),
+          ),
+        );
+      }
+
       // Short answer (default)
       _customTextControllers.putIfAbsent(id, () => TextEditingController());
       return Padding(
@@ -597,6 +687,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             .map((k, v) => MapEntry(k, v.text.trim())),
         ..._customMcqValues.map((k, v) => MapEntry(k, v ?? '')),
         ..._customFileUrls,
+        ...Map.fromEntries(_customDateValues.entries
+            .where((e) => e.value != null)
+            .map((e) => MapEntry(
+                e.key,
+                '${e.value!.day.toString().padLeft(2, '0')}/${e.value!.month.toString().padLeft(2, '0')}/${e.value!.year}'))),
       },
     };
 

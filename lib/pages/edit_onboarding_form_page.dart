@@ -872,6 +872,14 @@ class _CustomFieldPreview extends StatelessWidget {
         typeIcon = Icons.upload_file_rounded;
         typeLabel = 'File Upload';
         typeColor = const Color(0xFF1565C0);
+      case 'number':
+        typeIcon = Icons.pin_rounded;
+        typeLabel = 'Numbers Only';
+        typeColor = const Color(0xFF0277BD);
+      case 'date':
+        typeIcon = Icons.calendar_today_rounded;
+        typeLabel = 'Date / Calendar';
+        typeColor = const Color(0xFF6A1B9A);
       default:
         typeIcon = Icons.short_text_rounded;
         typeLabel = 'Short Answer';
@@ -1057,6 +1065,20 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                   selected: _type,
                   onTap: () => setState(() => _type = 'file_upload'),
                 ),
+                _TypeChip(
+                  icon: Icons.pin_rounded,
+                  label: 'Numbers Only',
+                  value: 'number',
+                  selected: _type,
+                  onTap: () => setState(() => _type = 'number'),
+                ),
+                _TypeChip(
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Date / Calendar',
+                  value: 'date',
+                  selected: _type,
+                  onTap: () => setState(() => _type = 'date'),
+                ),
               ]),
               const SizedBox(height: 18),
               TextField(
@@ -1180,8 +1202,50 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                     Expanded(
                       child: Text(
                         'Employee can upload a PDF or image (JPG / PNG).',
-                        style: TextStyle(
-                            fontSize: 11, color: Color(0xFF2E7D32)),
+                        style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+              if (_type == 'number') ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF90CAF9)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.pin_rounded, size: 14, color: Color(0xFF1565C0)),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Only numeric input is accepted (digits and decimal point).',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+              if (_type == 'date') ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E5F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFCE93D8)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.calendar_today_rounded,
+                        size: 14, color: Color(0xFF6A1B9A)),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'A calendar date picker will be shown to the employee.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6A1B9A)),
                       ),
                     ),
                   ]),
