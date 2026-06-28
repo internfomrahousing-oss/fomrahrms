@@ -836,7 +836,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     };
 
     try {
-      await Supabase.instance.client.from('onboarding_forms').insert(payload);
+      // Store the entire payload as a single JSONB column so new fields
+      // added via the form editor never require a SQL migration.
+      await Supabase.instance.client.from('onboarding_forms').insert({
+        'name':        payload['name'],
+        'phone_number': payload['phone_number'],
+        'designation': payload['designation'],
+        'form_data':   payload,
+      });
       if (mounted) setState(() { _saving = false; _submitted = true; });
     } catch (e) {
       if (mounted) {

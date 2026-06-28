@@ -86,7 +86,14 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             .order('submitted_at', ascending: false),
         SupabaseService.fetchOnboardingFormVersions(),
       ]);
-      final rows = List<Map<String, dynamic>>.from(results[0] as List);
+      // Flatten form_data JSONB into the row so display code can read
+      // d['name'], d['attachments'] etc. without caring where they live.
+      final rows = (results[0] as List).map((r) {
+        final row = Map<String, dynamic>.from(r as Map);
+        final fd  = row['form_data'];
+        if (fd is Map) row.addAll(Map<String, dynamic>.from(fd));
+        return row;
+      }).toList();
       final allVersions = results[1] as List<Map<String, dynamic>>;
       final pending = allVersions
           .where((v) => (v['status'] as String?) == 'pending')
