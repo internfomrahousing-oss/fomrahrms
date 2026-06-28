@@ -6,18 +6,6 @@ import '../models/user_session.dart';
 const _blue = Color(0xFF0D47A1);
 
 // Built-in (non-editable) field names per onboarding section
-const _obBuiltInFields = <String, List<String>>{
-  'basic_info':        ['Name', 'Phone Number', 'Father Name', 'Mother Name', 'Designation', 'Date of Joining'],
-  'personal_data':     ['Full Name', 'Date of Birth', 'Postal Address', 'Permanent Address'],
-  'family_details':    ['Name', 'Age', 'Gender', 'Relation', 'Occupation', 'Aadhar Copy'],
-  'education':         ['Qualification', 'University / Institute', 'Year', '% Marks', 'Major Subject'],
-  'experience':        ['Organisation', 'Period From → To', 'Designation', 'Job Responsibility', 'Salary', 'Reason for Leaving'],
-  'last_position':     ['Last Reporting Person', 'Last Company', 'Reference 1', 'Reference 2'],
-  'additional_info':   ['ESI Number', 'PF Number', 'Languages', 'Hobbies', 'Interests', 'Other Info'],
-  'emergency_details': ['Blood Group', 'Allergic To', 'Major Illness', 'Emergency Contact', 'Emergency Number', 'Aadhar Copy'],
-  'attachments':       ['Educational Certificates', 'Aadhar Card', 'PAN Card', 'Experience Letters', 'Pay Slips', 'Passport Photo'],
-  'declaration':       ['Date', 'Place', 'I Agree checkbox'],
-};
 
 const _obSectionIcons = <String, IconData>{
   'basic_info':        Icons.person_rounded,
@@ -173,6 +161,19 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
 
   void _toggleSection(int idx, bool val) =>
       setState(() => _sections[idx]['enabled'] = val);
+
+  void _toggleBuiltInField(int idx, String fieldId) {
+    setState(() {
+      final hidden = List<String>.from(
+          (_sections[idx]['hidden_field_ids'] as List?)?.cast<String>() ?? []);
+      if (hidden.contains(fieldId)) {
+        hidden.remove(fieldId);
+      } else {
+        hidden.add(fieldId);
+      }
+      _sections[idx]['hidden_field_ids'] = hidden;
+    });
+  }
 
   void _onReorderSection(int oldIdx, int newIdx) {
     setState(() {
@@ -489,6 +490,8 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                                       _toggleSection(e.key, v),
                                   onRename: () => _editTitle(e.key),
                                   onDelete: () => _deleteSection(e.key),
+                                  onToggleBuiltInField: (fId) =>
+                                      _toggleBuiltInField(e.key, fId),
                                   onAddField: () =>
                                       _addOrEditCustomField(e.key),
                                   onEditField: (field, fieldIdx) =>
@@ -540,6 +543,7 @@ class _ObSectionTile extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final void Function(String fieldId) onToggleBuiltInField;
   final VoidCallback onAddField;
   final void Function(Map<String, dynamic> field, int fieldIdx) onEditField;
   final void Function(int fieldIdx) onDeleteField;
@@ -551,6 +555,7 @@ class _ObSectionTile extends StatelessWidget {
     required this.onToggle,
     required this.onRename,
     required this.onDelete,
+    required this.onToggleBuiltInField,
     required this.onAddField,
     required this.onEditField,
     required this.onDeleteField,
@@ -563,7 +568,8 @@ class _ObSectionTile extends StatelessWidget {
     final enabled = (section['enabled'] as bool?) ?? true;
     final icon = _obSectionIcons[id] ?? Icons.segment_rounded;
     final customFields = OnboardingFormConfig.getCustomFields(section);
-    final builtInFields = _obBuiltInFields[id] ?? [];
+    final builtInFieldDefs = OnboardingFormConfig.builtInFieldDefs[id] ?? [];
+    final hiddenFieldIds = OnboardingFormConfig.getHiddenFieldIds(section);
     final isCustomSection = !_obSectionIcons.containsKey(id);
 
     return Container(
@@ -637,40 +643,81 @@ class _ObSectionTile extends StatelessWidget {
           ]),
         ),
 
-        // Built-in fields preview
-        if (enabled && builtInFields.isNotEmpty) ...[
+        // Built-in fields — interactive: tap X to hide, tap restore to show again
+        if (enabled && builtInFieldDefs.isNotEmpty) ...[
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Built-in Fields',
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF90A4AE),
-                        letterSpacing: 0.3)),
+                Row(children: [
+                  const Text('Built-in Fields',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF90A4AE),
+                          letterSpacing: 0.3)),
+                  const SizedBox(width: 6),
+                  const Text('(tap × to hide a field)',
+                      style: TextStyle(fontSize: 9, color: Color(0xFFBBBBBB))),
+                ]),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
-                  runSpacing: 4,
-                  children: builtInFields
-                      .map((f) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(12),
-                              border:
-                                  Border.all(color: const Color(0xFFE0E0E0)),
-                            ),
-                            child: Text(f,
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFF546E7A))),
-                          ))
-                      .toList(),
+                  runSpacing: 5,
+                  children: builtInFieldDefs.map((f) {
+                    final fId    = f['id']!;
+                    final fLabel = f['label']!;
+                    final isHidden = hiddenFieldIds.contains(fId);
+                    return GestureDetector(
+                      onTap: () => onToggleBuiltInField(fId),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isHidden
+                              ? const Color(0xFFFFF3E0)
+                              : _blue.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isHidden
+                                ? const Color(0xFFFFCC80)
+                                : _blue.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          if (isHidden)
+                            const Icon(Icons.visibility_off_rounded,
+                                size: 10, color: Color(0xFFE65100)),
+                          if (!isHidden)
+                            const Icon(Icons.check_rounded,
+                                size: 10, color: _blue),
+                          const SizedBox(width: 4),
+                          Text(fLabel,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: isHidden
+                                      ? const Color(0xFFE65100)
+                                      : _blue,
+                                  decoration: isHidden
+                                      ? TextDecoration.lineThrough
+                                      : null)),
+                          const SizedBox(width: 4),
+                          Icon(
+                            isHidden
+                                ? Icons.restore_rounded
+                                : Icons.close_rounded,
+                            size: 10,
+                            color: isHidden
+                                ? const Color(0xFFE65100)
+                                : const Color(0xFF90A4AE),
+                          ),
+                        ]),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),

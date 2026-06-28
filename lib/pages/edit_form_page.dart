@@ -7,21 +7,6 @@ import '../models/user_session.dart';
 
 const _blue = Color(0xFF0D47A1);
 
-// Built-in (non-editable) field names shown per section
-const _sectionBuiltInFields = <String, List<String>>{
-  'personal_info':        ['Full Name', 'Date of Birth', 'Email', 'Mobile', 'Gender', 'Age', 'Marital Status', 'Nationality', 'Place'],
-  'interview_details':    ['Post Applied For', 'Interview Date', 'Interview Time'],
-  'experience_ctc':       ['Current Experience', 'Total Experience', 'Current CTC', 'Expected CTC', 'Notice Period', 'Reason for Change'],
-  'education':            ['Degree / Qualification', 'Institution', 'Year', '% Marks'],
-  'employment_history':   ['Organisation', 'Designation', 'Period From → To', 'Gross Salary'],
-  'source':               ['Source', 'Portal / Referral details'],
-  'referrals':            ['Name', 'Contact Number', 'Position'],
-  'previous_application': ['Applied before?', 'When?', 'Position?'],
-  'address':              ['Current Address', 'Permanent Address', 'City', 'State', 'PIN'],
-  'resume':               ['Resume upload (PDF / DOC)'],
-  'declaration':          ['Full Name', 'Date', 'I Agree checkbox'],
-};
-
 // Icons for each section id
 const _sectionIcons = <String, IconData>{
   'personal_info': Icons.person_rounded,
@@ -179,6 +164,19 @@ class _EditFormPageState extends State<EditFormPage> {
 
   void _toggleSection(int idx, bool val) =>
       setState(() => _sections[idx]['enabled'] = val);
+
+  void _toggleBuiltInField(int idx, String fieldId) {
+    setState(() {
+      final hidden = List<String>.from(
+          (_sections[idx]['hidden_field_ids'] as List?)?.cast<String>() ?? []);
+      if (hidden.contains(fieldId)) {
+        hidden.remove(fieldId);
+      } else {
+        hidden.add(fieldId);
+      }
+      _sections[idx]['hidden_field_ids'] = hidden;
+    });
+  }
 
   void _onReorderSection(int oldIdx, int newIdx) {
     setState(() {
@@ -638,6 +636,8 @@ class _EditFormPageState extends State<EditFormPage> {
                                       _toggleSection(e.key, v),
                                   onRename: () => _editTitle(e.key),
                                   onDelete: () => _deleteSection(e.key),
+                                  onToggleBuiltInField: (fId) =>
+                                      _toggleBuiltInField(e.key, fId),
                                   onEditOptions: (optKey, optLabel) =>
                                       _editOptions(e.key, optKey, optLabel),
                                   onAddField: () =>
@@ -691,6 +691,7 @@ class _SectionTile extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final void Function(String fieldId) onToggleBuiltInField;
   final void Function(String optKey, String optLabel) onEditOptions;
   final VoidCallback onAddField;
   final void Function(Map<String, dynamic> field, int fieldIdx) onEditField;
@@ -703,6 +704,7 @@ class _SectionTile extends StatelessWidget {
     required this.onToggle,
     required this.onRename,
     required this.onDelete,
+    required this.onToggleBuiltInField,
     required this.onEditOptions,
     required this.onAddField,
     required this.onEditField,
@@ -717,7 +719,8 @@ class _SectionTile extends StatelessWidget {
     final icon = _sectionIcons[id] ?? Icons.segment_rounded;
     final optionKeys = _sectionOptionKeys[id] ?? {};
     final customFields = FormConfig.getCustomFields(section);
-    final builtInFields = _sectionBuiltInFields[id] ?? [];
+    final builtInFieldDefs = FormConfig.builtInFieldDefs[id] ?? [];
+    final hiddenFieldIds = FormConfig.getHiddenFieldIds(section);
     final isCustomSection = !_sectionIcons.containsKey(id);
 
     return Container(
@@ -795,37 +798,83 @@ class _SectionTile extends StatelessWidget {
             ]),
           ),
 
-          // Built-in fields preview
-          if (enabled && builtInFields.isNotEmpty) ...[
+          // Built-in fields — interactive: tap X to hide, tap restore to show again
+          if (enabled && builtInFieldDefs.isNotEmpty) ...[
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Built-in Fields',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF90A4AE),
-                          letterSpacing: 0.3)),
+                  Row(children: [
+                    const Text('Built-in Fields',
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF90A4AE),
+                            letterSpacing: 0.3)),
+                    const SizedBox(width: 6),
+                    const Text('(tap × to hide a field)',
+                        style: TextStyle(
+                            fontSize: 9,
+                            color: Color(0xFFBBBBBB))),
+                  ]),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
-                    runSpacing: 4,
-                    children: builtInFields.map((f) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                      ),
-                      child: Text(f,
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF546E7A))),
-                    )).toList(),
+                    runSpacing: 5,
+                    children: builtInFieldDefs.map((f) {
+                      final fId    = f['id']!;
+                      final fLabel = f['label']!;
+                      final isHidden = hiddenFieldIds.contains(fId);
+                      return GestureDetector(
+                        onTap: () => onToggleBuiltInField(fId),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isHidden
+                                ? const Color(0xFFFFF3E0)
+                                : _blue.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isHidden
+                                  ? const Color(0xFFFFCC80)
+                                  : _blue.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            if (isHidden)
+                              const Icon(Icons.visibility_off_rounded,
+                                  size: 10, color: Color(0xFFE65100)),
+                            if (!isHidden)
+                              const Icon(Icons.check_rounded,
+                                  size: 10, color: _blue),
+                            const SizedBox(width: 4),
+                            Text(fLabel,
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: isHidden
+                                        ? const Color(0xFFE65100)
+                                        : _blue,
+                                    decoration: isHidden
+                                        ? TextDecoration.lineThrough
+                                        : null)),
+                            const SizedBox(width: 4),
+                            Icon(
+                              isHidden
+                                  ? Icons.restore_rounded
+                                  : Icons.close_rounded,
+                              size: 10,
+                              color: isHidden
+                                  ? const Color(0xFFE65100)
+                                  : const Color(0xFF90A4AE),
+                            ),
+                          ]),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),

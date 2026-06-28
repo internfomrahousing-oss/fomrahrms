@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
@@ -257,6 +256,13 @@ class _CandidateApplicationFormPageState
           ? fallback
           : FormConfig.getSectionOptions(_config, id, key, fallback);
 
+  bool _fHide(String sId, String fId) {
+    if (_config.isEmpty) return false;
+    final s = FormConfig.getSection(_config, sId);
+    if (s == null) return false;
+    return FormConfig.isFieldHidden(s, fId);
+  }
+
   @override
   void dispose() {
     for (final c in [
@@ -362,9 +368,13 @@ class _CandidateApplicationFormPageState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_interviewDate == null || _dob == null ||
-        _gender == null || _maritalStatus == null ||
-        _postApplied == null || _noticePeriod == null || _source == null) {
+    if ((!_fHide('interview_details', 'interview_date') && _interviewDate == null) ||
+        (!_fHide('personal_info', 'dob') && _dob == null) ||
+        (!_fHide('personal_info', 'gender') && _gender == null) ||
+        (!_fHide('personal_info', 'marital_status') && _maritalStatus == null) ||
+        (!_fHide('interview_details', 'post_applied') && _postApplied == null) ||
+        (!_fHide('experience_ctc', 'notice_period') && _noticePeriod == null) ||
+        (!_fHide('source', 'source') && _source == null)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please fill all required fields.'),
         backgroundColor: Colors.redAccent,
@@ -401,14 +411,14 @@ class _CandidateApplicationFormPageState
     }
 
     if (_secEnabled('declaration')) {
-      if (_declarationDate == null) {
+      if (!_fHide('declaration', 'declaration_date') && _declarationDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Please select a date in the Declaration section.'),
           backgroundColor: Colors.redAccent,
         ));
         return;
       }
-      if (!_declarationAgreed) {
+      if (!_fHide('declaration', 'declaration_agree') && !_declarationAgreed) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('You must agree to the declaration before submitting.'),
           backgroundColor: Colors.redAccent,
@@ -613,35 +623,45 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.person_rounded, title: _secTitle('personal_info', 'Personal Information')),
                       const SizedBox(height: 16),
                       _row(narrow, [
-                        _Field(label: 'Name', controller: _name, required: true),
-                        _Field(label: 'Mobile Number', controller: _mobile,
-                            keyboard: TextInputType.phone, required: true,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))]),
+                        if (!_fHide('personal_info', 'name'))
+                          _Field(label: 'Name', controller: _name, required: true),
+                        if (!_fHide('personal_info', 'mobile'))
+                          _Field(label: 'Mobile Number', controller: _mobile,
+                              keyboard: TextInputType.phone, required: true,
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))]),
                       ]),
-                      const SizedBox(height: 14),
                       _row(narrow, [
-                        _Field(label: 'Place', controller: _place, required: true),
-                        _Field(label: 'Nationality', controller: _nationality, required: true),
+                        if (!_fHide('personal_info', 'place'))
+                          _Field(label: 'Place', controller: _place, required: true),
+                        if (!_fHide('personal_info', 'nationality'))
+                          _Field(label: 'Nationality', controller: _nationality, required: true),
                       ]),
-                      const SizedBox(height: 14),
                       _row(narrow, [
-                        _Field(label: 'Email ID', controller: _email,
-                            keyboard: TextInputType.emailAddress, required: true),
-                        _Field(label: 'Age', controller: _age,
-                            keyboard: TextInputType.number, required: true,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+                        if (!_fHide('personal_info', 'email'))
+                          _Field(label: 'Email ID', controller: _email,
+                              keyboard: TextInputType.emailAddress, required: true),
+                        if (!_fHide('personal_info', 'age'))
+                          _Field(label: 'Age', controller: _age,
+                              keyboard: TextInputType.number, required: true,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
                       ]),
-                      const SizedBox(height: 14),
-                      _DateField(label: 'Date of Birth', value: _fmt(_dob),
-                          required: true, onTap: () => _pickDate(false)),
-                      const SizedBox(height: 14),
-                      _RadioGroup(label: 'Gender', required: true,
-                          options: const ['Male', 'Female'],
-                          value: _gender, onChanged: (v) => setState(() => _gender = v)),
-                      const SizedBox(height: 14),
-                      _RadioGroup(label: 'Marital Status', required: true,
-                          options: const ['Single', 'Married', 'Separated'],
-                          value: _maritalStatus, onChanged: (v) => setState(() => _maritalStatus = v)),
+                      if (!_fHide('personal_info', 'dob')) ...[
+                        const SizedBox(height: 14),
+                        _DateField(label: 'Date of Birth', value: _fmt(_dob),
+                            required: true, onTap: () => _pickDate(false)),
+                      ],
+                      if (!_fHide('personal_info', 'gender')) ...[
+                        const SizedBox(height: 14),
+                        _RadioGroup(label: 'Gender', required: true,
+                            options: const ['Male', 'Female'],
+                            value: _gender, onChanged: (v) => setState(() => _gender = v)),
+                      ],
+                      if (!_fHide('personal_info', 'marital_status')) ...[
+                        const SizedBox(height: 14),
+                        _RadioGroup(label: 'Marital Status', required: true,
+                            options: const ['Single', 'Married', 'Separated'],
+                            value: _maritalStatus, onChanged: (v) => setState(() => _maritalStatus = v)),
+                      ],
                       ..._renderCustomFields(_sectionCustomFields('personal_info'), narrow),
                       ], // end personal_info
 
@@ -651,15 +671,18 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.event_note_rounded,
                           title: _secTitle('interview_details', 'Interview Details')),
                       const SizedBox(height: 16),
-                      _DateField(label: 'Interview Attended Date', value: _fmt(_interviewDate),
-                          required: true, onTap: () => _pickDate(true)),
-                      const SizedBox(height: 14),
-                      _RadioGroup(label: 'Post Applied', required: true, wrap: true,
-                          options: _secOptions('interview_details', 'post_applied_options',
-                              const ['HR','ADMIN','OPERATION','CRM',
-                                  'PROJECTS','LAND ACQUISITION','ACCOUNTS',
-                                  'SALES','DIGITAL MARKETING']),
-                          value: _postApplied, onChanged: (v) => setState(() => _postApplied = v)),
+                      if (!_fHide('interview_details', 'interview_date'))
+                        _DateField(label: 'Interview Attended Date', value: _fmt(_interviewDate),
+                            required: true, onTap: () => _pickDate(true)),
+                      if (!_fHide('interview_details', 'post_applied')) ...[
+                        const SizedBox(height: 14),
+                        _RadioGroup(label: 'Post Applied', required: true, wrap: true,
+                            options: _secOptions('interview_details', 'post_applied_options',
+                                const ['HR','ADMIN','OPERATION','CRM',
+                                    'PROJECTS','LAND ACQUISITION','ACCOUNTS',
+                                    'SALES','DIGITAL MARKETING']),
+                            value: _postApplied, onChanged: (v) => setState(() => _postApplied = v)),
+                      ],
                       ..._renderCustomFields(_sectionCustomFields('interview_details'), narrow),
                       ], // end interview_details
 
@@ -670,28 +693,35 @@ class _CandidateApplicationFormPageState
                           title: _secTitle('experience_ctc', 'Experience & CTC')),
                       const SizedBox(height: 16),
                       _row(narrow, [
-                        _Field(label: 'Total Experience', controller: _totalExp,
-                            hint: 'e.g. 3 years 2 months', required: true),
-                        _Field(label: 'Relevant Experience', controller: _relevantExp,
-                            hint: 'e.g. 2 years', required: true),
+                        if (!_fHide('experience_ctc', 'total_exp'))
+                          _Field(label: 'Total Experience', controller: _totalExp,
+                              hint: 'e.g. 3 years 2 months', required: true),
+                        if (!_fHide('experience_ctc', 'relevant_exp'))
+                          _Field(label: 'Relevant Experience', controller: _relevantExp,
+                              hint: 'e.g. 2 years', required: true),
                       ]),
-                      const SizedBox(height: 14),
-                      _Field(label: 'Reason for Change in Job', controller: _reasonChange,
-                          maxLines: 2, required: true),
-                      const SizedBox(height: 14),
+                      if (!_fHide('experience_ctc', 'reason_change')) ...[
+                        const SizedBox(height: 14),
+                        _Field(label: 'Reason for Change in Job', controller: _reasonChange,
+                            maxLines: 2, required: true),
+                      ],
                       _row(narrow, [
-                        _Field(label: 'Current CTC per Month (INR)', controller: _currentCtc,
-                            keyboard: TextInputType.number, required: true,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
-                        _Field(label: 'Expected CTC per Month (INR)', controller: _expectedCtc,
-                            keyboard: TextInputType.number, required: true,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
+                        if (!_fHide('experience_ctc', 'current_ctc'))
+                          _Field(label: 'Current CTC per Month (INR)', controller: _currentCtc,
+                              keyboard: TextInputType.number, required: true,
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
+                        if (!_fHide('experience_ctc', 'expected_ctc'))
+                          _Field(label: 'Expected CTC per Month (INR)', controller: _expectedCtc,
+                              keyboard: TextInputType.number, required: true,
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
                       ]),
-                      const SizedBox(height: 14),
-                      _RadioGroup(label: 'Notice Period (to join if selected)', required: true,
-                          options: _secOptions('experience_ctc', 'notice_period_options',
-                              const ['Immediate','15 Days','30 Days','60 Days or more']),
-                          value: _noticePeriod, onChanged: (v) => setState(() => _noticePeriod = v)),
+                      if (!_fHide('experience_ctc', 'notice_period')) ...[
+                        const SizedBox(height: 14),
+                        _RadioGroup(label: 'Notice Period (to join if selected)', required: true,
+                            options: _secOptions('experience_ctc', 'notice_period_options',
+                                const ['Immediate','15 Days','30 Days','60 Days or more']),
+                            value: _noticePeriod, onChanged: (v) => setState(() => _noticePeriod = v)),
+                      ],
                       ..._renderCustomFields(_sectionCustomFields('experience_ctc'), narrow),
                       ], // end experience_ctc
 
@@ -701,11 +731,14 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.school_rounded,
                           title: _secTitle('education', 'Educational Qualifications')),
                       const SizedBox(height: 16),
-                      _EducationTable(
-                        rows: _education,
-                        standingArrears: _standingArrears,
-                        onArrearsChanged: (v) => setState(() => _standingArrears = v),
-                      ),
+                      if (!_fHide('education', 'education_table'))
+                        _EducationTable(
+                          rows: _education,
+                          standingArrears: _fHide('education', 'standing_arrears')
+                              ? null : _standingArrears,
+                          onArrearsChanged: _fHide('education', 'standing_arrears')
+                              ? (_) {} : (v) => setState(() => _standingArrears = v),
+                        ),
                       ..._renderCustomFields(_sectionCustomFields('education'), narrow),
                       ], // end education
 
@@ -716,7 +749,8 @@ class _CandidateApplicationFormPageState
                           title: _secTitle('employment_history',
                               'Employment History (Current & Previous, if any)')),
                       const SizedBox(height: 16),
-                      _EmpHistoryTable(rows: _empHistory),
+                      if (!_fHide('employment_history', 'employment_table'))
+                        _EmpHistoryTable(rows: _empHistory),
                       ..._renderCustomFields(_sectionCustomFields('employment_history'), narrow),
                       ], // end employment_history
 
@@ -726,20 +760,27 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.campaign_rounded,
                           title: _secTitle('source', 'Source')),
                       const SizedBox(height: 16),
-                      _RadioGroup(label: 'Source', required: true,
-                          options: _secOptions('source', 'source_options',
-                              const ['Walk In','Referred by Employee',
-                                  'Consultancy (Specify)','Job Portal / Other (Specify)','Other']),
-                          value: _source, onChanged: (v) => setState(() => _source = v)),
-                      const SizedBox(height: 14),
-                      _Field(label: 'Mention Job Portal (if applicable)',
-                          controller: _jobPortal, hint: 'e.g. Naukri, LinkedIn…'),
-                      const SizedBox(height: 14),
-                      _Field(label: 'If Referred by Employee — Name & Employee ID',
-                          controller: _referredBy, hint: 'Name and EMP ID', maxLines: 2),
-                      const SizedBox(height: 14),
-                      _Field(label: 'If Related to Any Employee — Name, EMP ID & Relationship',
-                          controller: _relatedEmp, hint: 'Name, EMP ID, Relationship', maxLines: 2),
+                      if (!_fHide('source', 'source'))
+                        _RadioGroup(label: 'Source', required: true,
+                            options: _secOptions('source', 'source_options',
+                                const ['Walk In','Referred by Employee',
+                                    'Consultancy (Specify)','Job Portal / Other (Specify)','Other']),
+                            value: _source, onChanged: (v) => setState(() => _source = v)),
+                      if (!_fHide('source', 'job_portal')) ...[
+                        const SizedBox(height: 14),
+                        _Field(label: 'Mention Job Portal (if applicable)',
+                            controller: _jobPortal, hint: 'e.g. Naukri, LinkedIn…'),
+                      ],
+                      if (!_fHide('source', 'referred_by')) ...[
+                        const SizedBox(height: 14),
+                        _Field(label: 'If Referred by Employee — Name & Employee ID',
+                            controller: _referredBy, hint: 'Name and EMP ID', maxLines: 2),
+                      ],
+                      if (!_fHide('source', 'related_emp')) ...[
+                        const SizedBox(height: 14),
+                        _Field(label: 'If Related to Any Employee — Name, EMP ID & Relationship',
+                            controller: _relatedEmp, hint: 'Name, EMP ID, Relationship', maxLines: 2),
+                      ],
                       ..._renderCustomFields(_sectionCustomFields('source'), narrow),
                       ], // end source
 
@@ -750,7 +791,8 @@ class _CandidateApplicationFormPageState
                           title: _secTitle('referrals',
                               'Refer Friends / Relatives Looking for a Job')),
                       const SizedBox(height: 16),
-                      _ReferralTable(rows: _referrals),
+                      if (!_fHide('referrals', 'referrals_table'))
+                        _ReferralTable(rows: _referrals),
                       ..._renderCustomFields(_sectionCustomFields('referrals'), narrow),
                       ], // end referrals
 
@@ -760,9 +802,10 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.history_rounded,
                           title: _secTitle('previous_application', 'Previous Application')),
                       const SizedBox(height: 16),
-                      _Field(label: 'Have you applied for a job with us earlier?',
-                          controller: _appliedBefore,
-                          hint: 'If yes, mention Job and Date', maxLines: 2),
+                      if (!_fHide('previous_application', 'applied_before'))
+                        _Field(label: 'Have you applied for a job with us earlier?',
+                            controller: _appliedBefore,
+                            hint: 'If yes, mention Job and Date', maxLines: 2),
                       ..._renderCustomFields(_sectionCustomFields('previous_application'), narrow),
                       ], // end previous_application
 
@@ -772,7 +815,8 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.location_on_rounded,
                           title: _secTitle('address', 'Address for Communication')),
                       const SizedBox(height: 16),
-                      _Field(label: 'Full Address', controller: _address, maxLines: 3),
+                      if (!_fHide('address', 'address'))
+                        _Field(label: 'Full Address', controller: _address, maxLines: 3),
                       ..._renderCustomFields(_sectionCustomFields('address'), narrow),
                       ], // end address
 
@@ -782,11 +826,12 @@ class _CandidateApplicationFormPageState
                       _SectionHeader(icon: Icons.attach_file_rounded,
                           title: _secTitle('resume', 'Resume')),
                       const SizedBox(height: 16),
-                      _ResumeUploader(
-                        fileName: _resumeFileName,
-                        uploading: _uploadingResume,
-                        onPick: _pickResume,
-                      ),
+                      if (!_fHide('resume', 'resume'))
+                        _ResumeUploader(
+                          fileName: _resumeFileName,
+                          uploading: _uploadingResume,
+                          onPick: _pickResume,
+                        ),
                       ..._renderCustomFields(_sectionCustomFields('resume'), narrow),
                       ], // end resume
 
@@ -823,16 +868,19 @@ class _CandidateApplicationFormPageState
                             const SizedBox(height: 16),
                             // Full Name (required) + Date (required)
                             _row(narrow, [
-                              _Field(label: 'Full Name', controller: _declarationName, required: true),
-                              _DateField(
-                                label: 'Date',
-                                value: _fmt(_declarationDate),
-                                required: true,
-                                onTap: _pickDeclarationDate,
-                              ),
+                              if (!_fHide('declaration', 'declaration_name'))
+                                _Field(label: 'Full Name', controller: _declarationName, required: true),
+                              if (!_fHide('declaration', 'declaration_date'))
+                                _DateField(
+                                  label: 'Date',
+                                  value: _fmt(_declarationDate),
+                                  required: true,
+                                  onTap: _pickDeclarationDate,
+                                ),
                             ]),
                             const SizedBox(height: 16),
                             // I AGREE checkbox (compulsory)
+                            if (!_fHide('declaration', 'declaration_agree'))
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
@@ -906,7 +954,8 @@ class _CandidateApplicationFormPageState
   }
 
   Widget _row(bool narrow, List<Widget> children) {
-    if (narrow) {
+    if (children.isEmpty) return const SizedBox.shrink();
+    if (narrow || children.length == 1) {
       return Column(
         children: children
             .expand((w) => [w, const SizedBox(height: 14)])
