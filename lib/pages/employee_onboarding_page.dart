@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
+import '../models/onboarding_form_config.dart';
+import '../models/user_session.dart';
+import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 
 Future<List<AppUser>> _loadAllUsers() async {
@@ -54,6 +57,7 @@ class EmployeeOnboardingPage extends StatefulWidget {
 class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   List<Map<String, dynamic>> _all      = [];
   List<Map<String, dynamic>> _filtered = [];
+  List<Map<String, dynamic>> _pendingVersions = [];
   bool _loading = false;
   final _searchCtrl = TextEditingController();
 
@@ -73,15 +77,63 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   Future<void> _fetch() async {
     setState(() => _loading = true);
     try {
-      final data = await Supabase.instance.client
-          .from('onboarding_forms')
-          .select()
-          .order('submitted_at', ascending: false);
-      final rows = List<Map<String, dynamic>>.from(data);
-      setState(() { _all = rows; _filtered = rows; _loading = false; });
+      final results = await Future.wait([
+        Supabase.instance.client
+            .from('onboarding_forms')
+            .select()
+            .order('submitted_at', ascending: false),
+        SupabaseService.fetchOnboardingFormVersions(),
+      ]);
+      final rows = List<Map<String, dynamic>>.from(results[0] as List);
+      final versions = (results[1] as List<Map<String, dynamic>>)
+          .where((v) => (v['status'] as String?) == 'pending')
+          .toList();
+      setState(() {
+        _all = rows;
+        _filtered = rows;
+        _pendingVersions = versions;
+        _loading = false;
+      });
     } catch (_) {
       setState(() => _loading = false);
     }
+  }
+
+  Future<void> _approveVersion(Map<String, dynamic> version) async {
+    final id = version['id'].toString();
+    try {
+      await SupabaseService.updateOnboardingFormVersionStatus(
+        id, 'approved',
+        decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Onboarding form v${version['version_number']} approved and published!'),
+        backgroundColor: const Color(0xFF2E7D32),
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
+    _fetch();
+  }
+
+  Future<void> _rejectVersion(Map<String, dynamic> version) async {
+    final id = version['id'].toString();
+    try {
+      await SupabaseService.updateOnboardingFormVersionStatus(id, 'rejected');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Onboarding form v${version['version_number']} rejected.'),
+        backgroundColor: Colors.orange,
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
+    _fetch();
   }
 
   void _applyFilter() {
@@ -214,6 +266,36 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             ],
           ]),
         ),
+
+        // ── Form Approval section ─────────────────────────────────────
+        if (_pendingVersions.isNotEmpty)
+          Container(
+            color: const Color(0xFFFFF8E1),
+            padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.pending_actions_rounded,
+                      size: 16, color: Color(0xFFE65100)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Form Approval Required (${_pendingVersions.length})',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFE65100)),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                ..._pendingVersions.map((v) => _PendingVersionCard(
+                      version: v,
+                      onApprove: () => _approveVersion(v),
+                      onReject: () => _rejectVersion(v),
+                    )),
+              ],
+            ),
+          ),
 
         // ── Body ──────────────────────────────────────────────────────
         Expanded(
@@ -783,6 +865,216 @@ class _LinkedInterviewBanner extends StatelessWidget {
           _chip('Manager', mgrS),
           _chip('Management', mgmtS),
         ]),
+      ]),
+    );
+  }
+}
+
+// ── Pending onboarding form version card ───────────────────────────────────────
+class _PendingVersionCard extends StatefulWidget {
+  final Map<String, dynamic> version;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+  const _PendingVersionCard({
+    required this.version,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  State<_PendingVersionCard> createState() => _PendingVersionCardState();
+}
+
+class _PendingVersionCardState extends State<_PendingVersionCard> {
+  bool _acting = false;
+  bool _showPreview = false;
+
+  Future<void> _act(Future<void> Function() fn) async {
+    setState(() => _acting = true);
+    await fn();
+    if (mounted) setState(() => _acting = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = widget.version;
+    final vNum = v['version_number'] as int? ?? 0;
+    final createdBy = (v['created_by'] as String?) ?? 'HR';
+    final rawDate = v['created_at'] as String?;
+    String dateStr = '';
+    if (rawDate != null) {
+      try {
+        final d = DateTime.parse(rawDate).toLocal();
+        dateStr = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+      } catch (_) {}
+    }
+    final config = v['form_config'] as Map? ?? {};
+    final sections = OnboardingFormConfig.getSections(
+        Map<String, dynamic>.from(config));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFFCC02)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE65100),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('v$vNum',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Submitted by $createdBy',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF37474F))),
+                if (dateStr.isNotEmpty)
+                  Text(dateStr,
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+              ]),
+            ),
+            TextButton.icon(
+              onPressed: () => setState(() => _showPreview = !_showPreview),
+              icon: Icon(
+                  _showPreview ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 16),
+              label: Text(_showPreview ? 'Hide' : 'Preview',
+                  style: const TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(foregroundColor: _blue),
+            ),
+          ]),
+        ),
+
+        if (_showPreview) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Sections in this version:',
+                  style: TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF546E7A))),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: sections.map((s) {
+                  final enabled = (s['enabled'] as bool?) ?? true;
+                  final title = (s['title'] as String?) ?? (s['id'] as String? ?? '');
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? const Color(0xFFE3F2FD)
+                          : const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: enabled
+                            ? const Color(0xFF90CAF9)
+                            : const Color(0xFFE0E0E0),
+                      ),
+                    ),
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: enabled ? _blue : const Color(0xFFBBBBBB),
+                        decoration: enabled ? null : TextDecoration.lineThrough,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ]),
+          ),
+        ],
+
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(children: [
+            const Spacer(),
+            OutlinedButton.icon(
+              onPressed: _acting ? null : () => _act(() async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Reject Form',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
+                    content: Text('Reject onboarding form v$vNum submitted by $createdBy?',
+                        style: const TextStyle(fontSize: 13)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red, foregroundColor: Colors.white),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Reject'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) widget.onReject();
+              }),
+              icon: const Icon(Icons.close_rounded, size: 16),
+              label: const Text('Reject', style: TextStyle(fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _acting ? null : () => _act(() async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Approve & Publish',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                    content: Text(
+                        'Approve and publish onboarding form v$vNum? This will become the live form.',
+                        style: const TextStyle(fontSize: 13)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Approve & Publish'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) widget.onApprove();
+              }),
+              icon: _acting
+                  ? const SizedBox(width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.check_rounded, size: 16),
+              label: const Text('Approve', style: TextStyle(fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+            ),
+          ]),
+        ),
       ]),
     );
   }

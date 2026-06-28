@@ -25,7 +25,6 @@ const _navItems = [
   _NavItem('Interview Process',      Icons.record_voice_over_rounded,      '/management/interview-process'),
   _NavItem('Interview Review',       Icons.admin_panel_settings_rounded,   '/management/interview-review'),
   _NavItem('Employee Onboarding',    Icons.how_to_reg_rounded,             '/management/employee-onboarding'),
-  _NavItem('Edit Onboarding Form',   Icons.edit_note_rounded,              '/management/edit-onboarding-form'),
   _NavItem('Lead Management',        Icons.leaderboard_rounded,            '/management/lead-management'),
   _NavItem('Maintenance Management', Icons.build_rounded,                  '/management/maintenance-management'),
   _NavItem('Approvals',              Icons.approval_rounded,               '/management/approvals'),
