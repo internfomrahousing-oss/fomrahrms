@@ -499,11 +499,11 @@ class SupabaseService {
       Uint8List bytes, String fileName, String mimeType) async {
     try {
       final path = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      await _db?.storage.from('resumes').uploadBinary(
+      await _db?.storage.from('RESUME').uploadBinary(
         path, bytes,
         fileOptions: FileOptions(contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
       );
-      return _db?.storage.from('resumes').getPublicUrl(path);
+      return _db?.storage.from('RESUME').getPublicUrl(path);
     } catch (_) {
       return null;
     }
@@ -516,14 +516,14 @@ class SupabaseService {
     try {
       final path =
           'custom_uploads/${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      await _db?.storage.from('resumes').uploadBinary(
+      await _db?.storage.from('RESUME').uploadBinary(
         path, bytes,
         fileOptions: FileOptions(
             contentType: mimeType.isNotEmpty
                 ? mimeType
                 : 'application/octet-stream'),
       );
-      return _db?.storage.from('resumes').getPublicUrl(path);
+      return _db?.storage.from('RESUME').getPublicUrl(path);
     } catch (_) {
       return null;
     }
