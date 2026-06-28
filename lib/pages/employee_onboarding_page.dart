@@ -58,6 +58,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   List<Map<String, dynamic>> _all      = [];
   List<Map<String, dynamic>> _filtered = [];
   List<Map<String, dynamic>> _pendingVersions = [];
+  List<Map<String, dynamic>> _activeSections  = [];
+  int _tab = 0;
   bool _loading = false;
   final _searchCtrl = TextEditingController();
 
@@ -85,14 +87,33 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         SupabaseService.fetchOnboardingFormVersions(),
       ]);
       final rows = List<Map<String, dynamic>>.from(results[0] as List);
-      final versions = (results[1] as List<Map<String, dynamic>>)
+      final allVersions = results[1] as List<Map<String, dynamic>>;
+      final pending = allVersions
           .where((v) => (v['status'] as String?) == 'pending')
           .toList();
+
+      // Extract active (approved) sections for diff comparison
+      final approved = allVersions
+          .where((v) => (v['status'] as String?) == 'approved')
+          .toList()
+        ..sort((a, b) => ((b['version_number'] as int?) ?? 0)
+            .compareTo((a['version_number'] as int?) ?? 0));
+      List<Map<String, dynamic>> activeSects = [];
+      if (approved.isNotEmpty) {
+        final cfg = approved.first['form_config'] as Map?;
+        if (cfg != null) {
+          activeSects = OnboardingFormConfig.getSections(Map<String, dynamic>.from(cfg));
+        }
+      }
+
       setState(() {
         _all = rows;
         _filtered = rows;
-        _pendingVersions = versions;
+        _pendingVersions = pending;
+        _activeSections  = activeSects;
         _loading = false;
+        // Auto-switch to Form Approvals tab when there are pending versions
+        if (pending.isNotEmpty && _tab == 0) _tab = 1;
       });
     } catch (_) {
       setState(() => _loading = false);
@@ -134,6 +155,93 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
       ));
     }
     _fetch();
+  }
+
+  Widget _buildSubmissionsTab(double pad) {
+    if (_filtered.isEmpty) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+          Text(
+            _all.isEmpty ? 'No submissions yet' : 'No results found',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+          ),
+          if (_all.isEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Click "Joining Form" to open the form and share it',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+          ],
+        ]),
+      );
+    }
+    return ListView.separated(
+      padding: EdgeInsets.all(pad),
+      itemCount: _filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, i) => _SubmissionCard(data: _filtered[i], onRefresh: _fetch),
+    );
+  }
+
+  Widget _buildFormApprovalsTab(double pad) {
+    return CustomScrollView(slivers: [
+      SliverPadding(
+        padding: EdgeInsets.all(pad),
+        sliver: SliverList(delegate: SliverChildListDelegate([
+          // Active form info banner
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF81C784)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.link_rounded, color: Color(0xFF2E7D32), size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Onboarding form link is always live',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1B5E20))),
+                  const SizedBox(height: 2),
+                  Text(
+                    _activeSections.isEmpty
+                        ? 'No approved version yet — form will use defaults.'
+                        : 'Currently serving ${_activeSections.where((s) => (s["enabled"] as bool?) ?? true).length} active sections. Approving a new version instantly updates the form.',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF388E3C)),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+
+          if (_pendingVersions.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              alignment: Alignment.center,
+              child: Column(children: [
+                Icon(Icons.check_circle_outline_rounded, size: 52, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+                Text('No pending form versions', style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+                const SizedBox(height: 4),
+                Text('When HR submits an edited form, it will appear here for approval.',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+              ]),
+            )
+          else
+            ..._pendingVersions.map((v) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _PendingVersionCard(
+                    version: v,
+                    activeSections: _activeSections,
+                    onApprove: () => _approveVersion(v),
+                    onReject: () => _rejectVersion(v),
+                  ),
+                )),
+        ])),
+      ),
+    ]);
   }
 
   void _applyFilter() {
@@ -267,64 +375,98 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
           ]),
         ),
 
-        // ── Form Approval section (management only) ───────────────────
-        if (_pendingVersions.isNotEmpty && UserSession.role == UserRole.management)
+        // ── Tab bar ───────────────────────────────────────────────────
+        if (UserSession.role == UserRole.management)
           Container(
-            color: const Color(0xFFFFF8E1),
-            padding: EdgeInsets.symmetric(horizontal: pad, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  const Icon(Icons.pending_actions_rounded,
-                      size: 16, color: Color(0xFFE65100)),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Form Approval Required (${_pendingVersions.length})',
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE65100)),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-                ..._pendingVersions.map((v) => _PendingVersionCard(
-                      version: v,
-                      onApprove: () => _approveVersion(v),
-                      onReject: () => _rejectVersion(v),
-                    )),
-              ],
-            ),
+            color: Colors.white,
+            padding: EdgeInsets.fromLTRB(pad, 0, pad, 12),
+            child: Row(children: [
+              _TabBtn(
+                label: 'Submissions',
+                count: _all.length,
+                selected: _tab == 0,
+                onTap: () => setState(() => _tab = 0),
+              ),
+              const SizedBox(width: 8),
+              _TabBtn(
+                label: 'Form Approvals',
+                count: _pendingVersions.length,
+                selected: _tab == 1,
+                badge: _pendingVersions.isNotEmpty,
+                onTap: () => setState(() => _tab = 1),
+              ),
+            ]),
           ),
 
         // ── Body ──────────────────────────────────────────────────────
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: _blue))
-              : _filtered.isEmpty
-                  ? Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
-                        const SizedBox(height: 12),
-                        Text(
-                          _all.isEmpty ? 'No submissions yet' : 'No results found',
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
-                        ),
-                        if (_all.isEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text('Click "Joining Form" to open the form and share it',
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-                        ],
-                      ]),
-                    )
-                  : ListView.separated(
-                      padding: EdgeInsets.all(pad),
-                      itemCount: _filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _SubmissionCard(data: _filtered[i], onRefresh: _fetch),
-                    ),
+              : (_tab == 1 && UserSession.role == UserRole.management)
+                  ? _buildFormApprovalsTab(pad)
+                  : _buildSubmissionsTab(pad),
         ),
       ]),
+    );
+  }
+}
+
+// ── Tab button ────────────────────────────────────────────────────────────────
+class _TabBtn extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final bool badge;
+  final VoidCallback onTap;
+  const _TabBtn({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    this.badge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? _blue : const Color(0xFFF0F4FF),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? _blue : const Color(0xFFD0D7F0),
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : _blue,
+              )),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: badge
+                  ? Colors.red
+                  : (selected ? Colors.white24 : const Color(0xFFD0D7F0)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: badge ? Colors.white : (selected ? Colors.white : _blue),
+              ),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }
@@ -870,13 +1012,82 @@ class _LinkedInterviewBanner extends StatelessWidget {
   }
 }
 
+// ── Form diff helpers ──────────────────────────────────────────────────────────
+enum _DS { added, removed, modified, disabled, unchanged }
+
+class _SectionDiff {
+  final Map<String, dynamic> section;
+  final _DS status;
+  final List<String> addedFields;
+  final List<String> removedFields;
+  final List<String> hiddenChanged; // field ids whose visibility changed
+  const _SectionDiff({
+    required this.section,
+    required this.status,
+    this.addedFields = const [],
+    this.removedFields = const [],
+    this.hiddenChanged = const [],
+  });
+}
+
+List<_SectionDiff> _computeDiff(
+    List<Map<String, dynamic>> pending,
+    List<Map<String, dynamic>> active) {
+  final result = <_SectionDiff>[];
+  for (final s in pending) {
+    final id = (s['id'] as String?) ?? '';
+    final enabled = (s['enabled'] as bool?) ?? true;
+    final aIdx = active.indexWhere((a) => a['id'] == id);
+    if (aIdx == -1) {
+      result.add(_SectionDiff(section: s, status: _DS.added));
+      continue;
+    }
+    if (!enabled) {
+      result.add(_SectionDiff(section: s, status: _DS.disabled));
+      continue;
+    }
+    final a = active[aIdx];
+    final pCustom = OnboardingFormConfig.getCustomFields(s);
+    final aCustom = OnboardingFormConfig.getCustomFields(a);
+    final pHidden = OnboardingFormConfig.getHiddenFieldIds(s).toSet();
+    final aHidden = OnboardingFormConfig.getHiddenFieldIds(a).toSet();
+    final pIds = pCustom.map((f) => f['id'] as String? ?? '').toSet();
+    final aIds = aCustom.map((f) => f['id'] as String? ?? '').toSet();
+    final added   = pIds.difference(aIds).toList();
+    final removed = aIds.difference(pIds).toList();
+    final hidChg  = [...pHidden.difference(aHidden), ...aHidden.difference(pHidden)];
+    final policyChg = id == 'hr_policy' &&
+        ((s['policy_text'] as String?) ?? '') != ((a['policy_text'] as String?) ?? '');
+    final titleChg = (s['title'] as String?) != (a['title'] as String?);
+    final isModified = added.isNotEmpty || removed.isNotEmpty ||
+        hidChg.isNotEmpty || policyChg || titleChg;
+    result.add(_SectionDiff(
+      section: s,
+      status: isModified ? _DS.modified : _DS.unchanged,
+      addedFields: added,
+      removedFields: removed,
+      hiddenChanged: hidChg,
+    ));
+  }
+  // Sections removed from pending (exist in active but not in pending)
+  for (final a in active) {
+    final id = (a['id'] as String?) ?? '';
+    if (!pending.any((p) => p['id'] == id)) {
+      result.add(_SectionDiff(section: a, status: _DS.removed));
+    }
+  }
+  return result;
+}
+
 // ── Pending onboarding form version card ───────────────────────────────────────
 class _PendingVersionCard extends StatefulWidget {
   final Map<String, dynamic> version;
+  final List<Map<String, dynamic>> activeSections;
   final VoidCallback onApprove;
   final VoidCallback onReject;
   const _PendingVersionCard({
     required this.version,
+    required this.activeSections,
     required this.onApprove,
     required this.onReject,
   });
@@ -887,7 +1098,7 @@ class _PendingVersionCard extends StatefulWidget {
 
 class _PendingVersionCardState extends State<_PendingVersionCard> {
   bool _acting = false;
-  bool _showPreview = false;
+  final Set<String> _expandedSections = {};
 
   Future<void> _act(Future<void> Function() fn) async {
     setState(() => _acting = true);
@@ -909,172 +1120,432 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
       } catch (_) {}
     }
     final config = v['form_config'] as Map? ?? {};
-    final sections = OnboardingFormConfig.getSections(
-        Map<String, dynamic>.from(config));
+    final pendingSections = OnboardingFormConfig.getSections(Map<String, dynamic>.from(config));
+    final diffs = _computeDiff(pendingSections, widget.activeSections);
+
+    final addedCount   = diffs.where((d) => d.status == _DS.added).length;
+    final modifiedCount = diffs.where((d) => d.status == _DS.modified).length;
+    final removedCount  = diffs.where((d) => d.status == _DS.removed || d.status == _DS.disabled).length;
+    final hasChanges    = addedCount + modifiedCount + removedCount > 0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFFCC02)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFCC02), width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0,2))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.all(14),
+
+        // ── Card header ──────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFFDE7),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+          ),
           child: Row(children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: const Color(0xFFE65100),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text('v$vNum',
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Submitted by $createdBy',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF37474F))),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
                 if (dateStr.isNotEmpty)
-                  Text(dateStr,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
               ]),
             ),
-            TextButton.icon(
-              onPressed: () => setState(() => _showPreview = !_showPreview),
-              icon: Icon(
-                  _showPreview ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                  size: 16),
-              label: Text(_showPreview ? 'Hide' : 'Preview',
-                  style: const TextStyle(fontSize: 12)),
-              style: TextButton.styleFrom(foregroundColor: _blue),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFFF9800)),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.pending_actions_rounded, size: 12, color: Color(0xFFE65100)),
+                SizedBox(width: 4),
+                Text('Pending Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFE65100))),
+              ]),
             ),
           ]),
         ),
 
-        if (_showPreview) ...[
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Sections in this version:',
-                  style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF546E7A))),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: sections.map((s) {
-                  final enabled = (s['enabled'] as bool?) ?? true;
-                  final title = (s['title'] as String?) ?? (s['id'] as String? ?? '');
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: enabled
-                          ? const Color(0xFFE3F2FD)
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: enabled
-                            ? const Color(0xFF90CAF9)
-                            : const Color(0xFFE0E0E0),
-                      ),
-                    ),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: enabled ? _blue : const Color(0xFFBBBBBB),
-                        decoration: enabled ? null : TextDecoration.lineThrough,
-                      ),
+        // ── Changes summary ──────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(children: [
+            const Text('Changes vs current live form:',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+            const SizedBox(width: 8),
+            if (!hasChanges)
+              _DiffPill('No Changes', const Color(0xFF546E7A), const Color(0xFFF5F5F5))
+            else ...[
+              if (addedCount > 0) ...[
+                _DiffPill('+$addedCount New', const Color(0xFF2E7D32), const Color(0xFFE8F5E9)),
+                const SizedBox(width: 4),
+              ],
+              if (modifiedCount > 0) ...[
+                _DiffPill('~$modifiedCount Changed', const Color(0xFFE65100), const Color(0xFFFFF3E0)),
+                const SizedBox(width: 4),
+              ],
+              if (removedCount > 0)
+                _DiffPill('-$removedCount Removed', const Color(0xFFC62828), const Color(0xFFFFEBEE)),
+            ],
+          ]),
+        ),
+
+        const Divider(height: 20, indent: 16, endIndent: 16),
+
+        // ── Full form preview with diff ───────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Form Structure Preview',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+            const SizedBox(height: 10),
+            ...diffs.map((diff) => _SectionDiffTile(
+                  diff: diff,
+                  expanded: _expandedSections.contains((diff.section['id'] as String?) ?? ''),
+                  onToggle: () {
+                    final id = (diff.section['id'] as String?) ?? '';
+                    setState(() {
+                      if (_expandedSections.contains(id)) {
+                        _expandedSections.remove(id);
+                      } else {
+                        _expandedSections.add(id);
+                      }
+                    });
+                  },
+                )),
+          ]),
+        ),
+
+        // ── Action buttons ───────────────────────────────────────────
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _acting ? null : () => _act(() async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Reject Form Version',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
+                      content: Text('Reject onboarding form v$vNum submitted by $createdBy?\n\nThe current live form will remain unchanged.',
+                          style: const TextStyle(fontSize: 13, height: 1.5)),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Reject'),
+                        ),
+                      ],
                     ),
                   );
-                }).toList(),
+                  if (confirm == true) widget.onReject();
+                }),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Reject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
               ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: _acting ? null : () => _act(() async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Approve & Publish',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                      content: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text('Publish onboarding form v$vNum?',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF2E7D32)),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'This version will immediately become the live form. The onboarding link is always the same — candidates using it will automatically receive this updated form.',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32), height: 1.5),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ]),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Approve & Publish'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) widget.onApprove();
+                }),
+                icon: _acting
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check_circle_rounded, size: 16),
+                label: const Text('Approve & Publish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Diff pill badge ────────────────────────────────────────────────────────────
+class _DiffPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color bg;
+  const _DiffPill(this.label, this.color, this.bg);
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4))),
+    child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+  );
+}
+
+// ── Section diff tile ──────────────────────────────────────────────────────────
+class _SectionDiffTile extends StatelessWidget {
+  final _SectionDiff diff;
+  final bool expanded;
+  final VoidCallback onToggle;
+  const _SectionDiffTile({required this.diff, required this.expanded, required this.onToggle});
+
+  static const _icons = <String, IconData>{
+    'basic_info':        Icons.person_rounded,
+    'personal_data':     Icons.assignment_ind_rounded,
+    'family_details':    Icons.family_restroom_rounded,
+    'education':         Icons.school_rounded,
+    'experience':        Icons.work_history_rounded,
+    'last_position':     Icons.business_center_rounded,
+    'additional_info':   Icons.info_outline_rounded,
+    'emergency_details': Icons.emergency_rounded,
+    'attachments':       Icons.attach_file_rounded,
+    'hr_policy':         Icons.policy_rounded,
+    'declaration':       Icons.verified_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final s     = diff.section;
+    final id    = (s['id'] as String?) ?? '';
+    final title = (s['title'] as String?) ?? id;
+    final icon  = _icons[id] ?? Icons.segment_rounded;
+
+    Color borderColor;
+    Color bgColor;
+    Color textColor;
+    String? badge;
+    Color badgeColor;
+    Color badgeBg;
+    bool strikethrough = false;
+
+    switch (diff.status) {
+      case _DS.added:
+        borderColor = const Color(0xFF66BB6A);
+        bgColor     = const Color(0xFFE8F5E9);
+        textColor   = const Color(0xFF1B5E20);
+        badge       = 'NEW';
+        badgeColor  = const Color(0xFF1B5E20);
+        badgeBg     = const Color(0xFFA5D6A7);
+      case _DS.removed:
+        borderColor  = const Color(0xFFEF9A9A);
+        bgColor      = const Color(0xFFFFEBEE);
+        textColor    = const Color(0xFFB71C1C);
+        badge        = 'REMOVED';
+        badgeColor   = const Color(0xFFB71C1C);
+        badgeBg      = const Color(0xFFFFCDD2);
+        strikethrough = true;
+      case _DS.disabled:
+        borderColor  = const Color(0xFFE0E0E0);
+        bgColor      = const Color(0xFFF5F5F5);
+        textColor    = const Color(0xFF9E9E9E);
+        badge        = 'DISABLED';
+        badgeColor   = const Color(0xFF757575);
+        badgeBg      = const Color(0xFFEEEEEE);
+        strikethrough = true;
+      case _DS.modified:
+        borderColor = const Color(0xFFFFB74D);
+        bgColor     = const Color(0xFFFFF8E1);
+        textColor   = const Color(0xFFE65100);
+        badge       = 'CHANGED';
+        badgeColor  = const Color(0xFFE65100);
+        badgeBg     = const Color(0xFFFFE0B2);
+      case _DS.unchanged:
+        borderColor = const Color(0xFFBBDEFB);
+        bgColor     = const Color(0xFFE3F2FD);
+        textColor   = _blue;
+        badge       = null;
+        badgeColor  = _blue;
+        badgeBg     = const Color(0xFFBBDEFB);
+    }
+
+    final builtInDefs = OnboardingFormConfig.builtInFieldDefs[id] ?? [];
+    final customFields = OnboardingFormConfig.getCustomFields(s);
+    final hiddenIds    = OnboardingFormConfig.getHiddenFieldIds(s);
+    final totalFields  = builtInDefs.length + customFields.length;
+    final visibleFields = builtInDefs.where((f) => !hiddenIds.contains(f['id'])).length + customFields.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(children: [
+              Icon(icon, size: 16, color: textColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                      decoration: strikethrough ? TextDecoration.lineThrough : null,
+                    )),
+              ),
+              if (badge != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(10)),
+                  child: Text(badge, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: badgeColor, letterSpacing: 0.4)),
+                ),
+                const SizedBox(width: 4),
+              ],
+              // Field count summary
+              if (diff.status != _DS.removed)
+                Text('$visibleFields/$totalFields fields',
+                    style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.7))),
+              const SizedBox(width: 4),
+              Icon(expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 16, color: textColor),
+            ]),
+          ),
+        ),
+        if (expanded) ...[
+          Divider(height: 1, color: borderColor),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Built-in fields
+              if (builtInDefs.isNotEmpty) ...[
+                Text('Built-in Fields:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: textColor.withValues(alpha: 0.8))),
+                const SizedBox(height: 4),
+                Wrap(spacing: 4, runSpacing: 3,
+                    children: builtInDefs.map((f) {
+                      final fId     = f['id'] as String? ?? '';
+                      final fLabel  = f['label'] as String? ?? fId;
+                      final isHidden = hiddenIds.contains(fId);
+                      final isHiddenChanged = diff.hiddenChanged.contains(fId);
+                      Color fc = isHidden ? Colors.grey : textColor;
+                      Color fb = isHidden ? const Color(0xFFEEEEEE) : bgColor;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isHiddenChanged ? const Color(0xFFFFF9C4) : fb,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: isHiddenChanged ? const Color(0xFFFFEB3B) : borderColor),
+                        ),
+                        child: Text(
+                          isHidden ? '$fLabel (hidden)' : fLabel,
+                          style: TextStyle(
+                              fontSize: 10, color: fc,
+                              decoration: isHidden ? TextDecoration.lineThrough : null),
+                        ),
+                      );
+                    }).toList()),
+                const SizedBox(height: 6),
+              ],
+              // Custom fields
+              if (customFields.isNotEmpty || diff.addedFields.isNotEmpty || diff.removedFields.isNotEmpty) ...[
+                Text('Custom Fields:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: textColor.withValues(alpha: 0.8))),
+                const SizedBox(height: 4),
+                Wrap(spacing: 4, runSpacing: 3,
+                    children: [
+                      ...customFields.map((f) {
+                        final fId     = f['id'] as String? ?? '';
+                        final fLabel  = (f['label'] as String?) ?? fId;
+                        final isNew   = diff.addedFields.contains(fId);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isNew ? const Color(0xFFE8F5E9) : bgColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isNew ? const Color(0xFF66BB6A) : borderColor),
+                          ),
+                          child: Text(isNew ? '$fLabel ✦' : fLabel,
+                              style: TextStyle(fontSize: 10,
+                                  color: isNew ? const Color(0xFF1B5E20) : textColor,
+                                  fontWeight: isNew ? FontWeight.w700 : FontWeight.normal)),
+                        );
+                      }),
+                      ...diff.removedFields.map((fId) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBEE),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFEF9A9A)),
+                        ),
+                        child: Text('$fId (removed)',
+                            style: const TextStyle(fontSize: 10, color: Color(0xFFB71C1C),
+                                decoration: TextDecoration.lineThrough)),
+                      )),
+                    ]),
+              ],
+              if (diff.status == _DS.unchanged && builtInDefs.isEmpty && customFields.isEmpty)
+                Text('No fields configured', style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.6))),
             ]),
           ),
         ],
-
-        const Divider(height: 1),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(children: [
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: _acting ? null : () => _act(() async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Reject Form',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
-                    content: Text('Reject onboarding form v$vNum submitted by $createdBy?',
-                        style: const TextStyle(fontSize: 13)),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red, foregroundColor: Colors.white),
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Reject'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) widget.onReject();
-              }),
-              icon: const Icon(Icons.close_rounded, size: 16),
-              label: const Text('Reject', style: TextStyle(fontSize: 13)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: _acting ? null : () => _act(() async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Approve & Publish',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                    content: Text(
-                        'Approve and publish onboarding form v$vNum? This will become the live form.',
-                        style: const TextStyle(fontSize: 13)),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Approve & Publish'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) widget.onApprove();
-              }),
-              icon: _acting
-                  ? const SizedBox(width: 14, height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.check_rounded, size: 16),
-              label: const Text('Approve', style: TextStyle(fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              ),
-            ),
-          ]),
-        ),
       ]),
     );
   }
