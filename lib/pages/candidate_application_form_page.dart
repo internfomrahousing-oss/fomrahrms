@@ -155,9 +155,22 @@ class _CandidateApplicationFormPageState
 
       final input = html.FileUploadInputElement()
         ..accept = '.pdf,.jpg,.jpeg,.png'
-        ..click();
+        ..style.display = 'none';
+      html.document.body?.append(input);
+      input.click();
+
+      // Detect dialog cancellation: window regains focus without onChange firing
+      html.window.onFocus.first.then((_) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!nameCompleter.isCompleted)  nameCompleter.complete(null);
+          if (!bytesCompleter.isCompleted) bytesCompleter.complete(null);
+          if (!mimeCompleter.isCompleted)  mimeCompleter.complete(null);
+          input.remove();
+        });
+      });
 
       input.onChange.listen((_) {
+        input.remove();
         final file = input.files?.first;
         if (file == null) {
           nameCompleter.complete(null);
@@ -387,9 +400,22 @@ class _CandidateApplicationFormPageState
 
       final input = html.FileUploadInputElement()
         ..accept = '.pdf,.doc,.docx'
-        ..click();
+        ..style.display = 'none';
+      html.document.body?.append(input);
+      input.click();
+
+      // Detect dialog cancellation: window regains focus without onChange firing
+      html.window.onFocus.first.then((_) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!nameCompleter.isCompleted)  nameCompleter.complete(null);
+          if (!bytesCompleter.isCompleted) bytesCompleter.complete(null);
+          if (!mimeCompleter.isCompleted)  mimeCompleter.complete(null);
+          input.remove();
+        });
+      });
 
       input.onChange.listen((_) {
+        input.remove();
         final file = input.files?.first;
         if (file == null) {
           nameCompleter.complete(null);

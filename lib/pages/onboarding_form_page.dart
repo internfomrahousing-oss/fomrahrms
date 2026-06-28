@@ -256,9 +256,18 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // Pick a single file (for aadhar uploads). Auto-compresses images > 1 MB.
   Future<_AttachFile?> _pickSingleFile(
       {String accept = 'image/*,.pdf'}) async {
-    final input = html.FileUploadInputElement()..accept = accept;
+    final input = html.FileUploadInputElement()
+      ..accept = accept
+      ..style.display = 'none';
+    html.document.body?.append(input);
     input.click();
-    await input.onChange.first;
+    // Wait for selection or cancellation (window refocus after dialog closes)
+    await Future.any([
+      input.onChange.first,
+      html.window.onFocus.first
+          .then((_) => Future.delayed(const Duration(milliseconds: 300))),
+    ]);
+    input.remove();
     final fileList = input.files;
     if (fileList == null || fileList.isEmpty) return null;
     final file = fileList[0];
@@ -281,9 +290,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   void _pickFiles(int docIndex) {
     final input = html.FileUploadInputElement()
       ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
-      ..multiple = true;
+      ..multiple = true
+      ..style.display = 'none';
+    html.document.body?.append(input);
     input.click();
     input.onChange.listen((_) async {
+      input.remove();
       final fileList = input.files;
       if (fileList == null || fileList.isEmpty) return;
       for (int fi = 0; fi < fileList.length; fi++) {

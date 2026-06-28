@@ -6,6 +6,16 @@ import '../models/candidate_store.dart';
 
 const _blue = Color(0xFF0D47A1);
 
+void _openUrl(String url) {
+  if (url.isEmpty) return;
+  final a = html.AnchorElement(href: url)
+    ..target = '_blank'
+    ..rel = 'noopener noreferrer';
+  html.document.body?.append(a);
+  a.click();
+  a.remove();
+}
+
 class CandidateDetailPage extends StatelessWidget {
   const CandidateDetailPage({super.key});
 
@@ -58,7 +68,7 @@ class CandidateDetailPage extends StatelessWidget {
             // Resume button
             if (_val(d, 'resume_url').isNotEmpty)
               ElevatedButton.icon(
-                onPressed: () => html.window.open(_val(d, 'resume_url'), '_blank'),
+                onPressed: () => _openUrl(_val(d, 'resume_url')),
                 icon: const Icon(Icons.download_rounded, size: 16),
                 label: const Text('Resume', style: TextStyle(fontSize: 13)),
                 style: ElevatedButton.styleFrom(

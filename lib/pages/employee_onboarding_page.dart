@@ -925,7 +925,14 @@ class _SubmissionCardState extends State<_SubmissionCard> {
             ])),
             if (url.isNotEmpty)
               TextButton(
-                onPressed: () => html.window.open(url, '_blank'),
+                onPressed: () {
+                  final a = html.AnchorElement(href: url)
+                    ..target = '_blank'
+                    ..rel = 'noopener noreferrer';
+                  html.document.body?.append(a);
+                  a.click();
+                  a.remove();
+                },
                 child: const Text('View', style: TextStyle(fontSize: 12)),
               ),
           ]),
