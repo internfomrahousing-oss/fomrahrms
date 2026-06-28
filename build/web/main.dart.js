@@ -112999,10 +112999,10 @@ m===$&&A.b()
 m=m.at
 m===$&&A.b()
 s=7
-return A.k(m.bq("onboarding-attachments").vu(b,a.b,A.b8f(a.c)),$async$q5)
+return A.k(m.bq("onboarding attachments").vu(b,a.b,A.b8f(a.c)),$async$q5)
 case 7:n=n.b.at
 n===$&&A.b()
-n=n.bq("onboarding-attachments").HQ(b)
+n=n.bq("onboarding attachments").HQ(b)
 q=n
 s=1
 break

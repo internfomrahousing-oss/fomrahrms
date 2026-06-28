@@ -365,11 +365,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Future<String?> _uploadSingleFile(_AttachFile file, String path) async {
     try {
       await Supabase.instance.client.storage
-          .from('onboarding-attachments')
+          .from('onboarding attachments')
           .uploadBinary(path, file.bytes,
               fileOptions: FileOptions(contentType: file.mime));
       return Supabase.instance.client.storage
-          .from('onboarding-attachments')
+          .from('onboarding attachments')
           .getPublicUrl(path);
     } catch (_) {
       return null;
