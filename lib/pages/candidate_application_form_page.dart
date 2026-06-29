@@ -372,32 +372,6 @@ class _CandidateApplicationFormPageState
     if (picked != null) setState(() => _declarationDate = picked);
   }
 
-  Future<void> _handleResume(html.File rawFile) async {
-    if (mounted) setState(() => _resumeError = null);
-    try {
-      final reader = html.FileReader();
-      reader.readAsDataUrl(rawFile);
-      await Future.any([
-        reader.onLoad.first,
-        reader.onError.first.then((_) => throw Exception('Could not read file')),
-      ]);
-      final dataUrl = reader.result as String;
-      final comma = dataUrl.indexOf(',');
-      if (comma < 0) throw 'Malformed data URL';
-      var bytes = base64Decode(dataUrl.substring(comma + 1));
-      var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
-      var name  = rawFile.name;
-      if (mime.startsWith('image/')) {
-        final compressed = await _compressImage(bytes, mime);
-        if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg'; }
-      }
-      final url = await SupabaseService.uploadResume(bytes, name, mime);
-      if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
-    } catch (e) {
-      if (mounted) setState(() => _resumeError = e.toString());
-    }
-  }
-
   // Compress image via Canvas API to ≤200 KB.
   Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
     try {
@@ -901,17 +875,113 @@ class _CandidateApplicationFormPageState
                           title: _secTitle('resume', 'Resume')),
                       const SizedBox(height: 16),
                       if (!_fHide('resume', 'resume'))
-                        _ResumeUploader(
-                          fileName: _resumeFileName,
-                          error: _resumeError,
-                          onRawFile: _handleResume,
-                          onClear: _resumeFileName != null
-                              ? () => setState(() {
-                                    _resumeFileName = null;
-                                    _resumeUrl = null;
-                                    _resumeError = null;
-                                  })
-                              : null,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _resumeFileName != null ? _blue : const Color(0xFFE0E0E0),
+                              width: _resumeFileName != null ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                              child: Row(children: [
+                                Container(
+                                  width: 22, height: 22,
+                                  decoration: BoxDecoration(
+                                    color: _blue, borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: const Center(child: Icon(Icons.attach_file_rounded, color: Colors.white, size: 13)),
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(child: Text('Resume',
+                                  style: TextStyle(fontSize: 13, color: Color(0xFF37474F), fontWeight: FontWeight.w500))),
+                              ]),
+                            ),
+                            if (_resumeFileName != null) ...[
+                              const Divider(height: 1, color: Color(0xFFE8EAF6)),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                  decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(7)),
+                                  child: Row(children: [
+                                    const Icon(Icons.insert_drive_file_rounded, size: 16, color: Color(0xFF2E7D32)),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(_resumeFileName!,
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFF1B5E20), fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis)),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () => setState(() { _resumeFileName = null; _resumeUrl = null; _resumeError = null; }),
+                                      child: Container(
+                                        width: 20, height: 20,
+                                        decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(10)),
+                                        child: const Icon(Icons.close_rounded, size: 13, color: Colors.red),
+                                      ),
+                                    ),
+                                  ]),
+                                ),
+                              ),
+                            ],
+                            if (_resumeError != null)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                                child: Row(children: [
+                                  const Icon(Icons.error_outline, size: 13, color: Colors.red),
+                                  const SizedBox(width: 4),
+                                  Expanded(child: Text(_resumeError!, style: const TextStyle(fontSize: 11, color: Colors.red))),
+                                ]),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                              child: WebFilePicker(
+                                accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
+                                onRawFiles: (rawFiles) async {
+                                  final rawFile = rawFiles.first;
+                                  if (mounted) setState(() => _resumeError = null);
+                                  try {
+                                    final reader = html.FileReader();
+                                    reader.readAsDataUrl(rawFile);
+                                    await Future.any([
+                                      reader.onLoad.first,
+                                      reader.onError.first.then((_) => throw Exception('Could not read file')),
+                                    ]);
+                                    final dataUrl = reader.result as String;
+                                    final comma  = dataUrl.indexOf(',');
+                                    if (comma < 0) throw 'Malformed data URL';
+                                    var bytes = base64Decode(dataUrl.substring(comma + 1));
+                                    var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+                                    var name  = rawFile.name;
+                                    if (mime.startsWith('image/')) {
+                                      final c = await _compressImage(bytes, mime);
+                                      if (c != null) { bytes = c; mime = 'image/jpeg'; name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg'; }
+                                    }
+                                    final url = await SupabaseService.uploadResume(bytes, name, mime);
+                                    if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
+                                  } catch (e) {
+                                    if (mounted) setState(() => _resumeError = e.toString());
+                                  }
+                                },
+                                builder: (trigger) => OutlinedButton.icon(
+                                  icon: const Icon(Icons.upload_file_rounded, size: 15),
+                                  label: Text(_resumeFileName != null ? 'Change' : 'Add File',
+                                      style: const TextStyle(fontSize: 12)),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: _blue,
+                                    side: const BorderSide(color: _blue),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                                  ),
+                                  onPressed: trigger,
+                                ),
+                              ),
+                            ),
+                          ]),
                         ),
                       ..._renderCustomFields(_sectionCustomFields('resume'), narrow),
                       ], // end resume
@@ -1530,133 +1600,6 @@ class _ReferralTable extends StatelessWidget {
           fillColor: const Color(0xFFFAFAFA),
         ),
       ),
-    );
-  }
-}
-
-// ── Resume Uploader ─────────────────────────────────────────────────────────────
-// Mirrors the onboarding form attachment card style.
-// WebFilePicker is always enabled — never removed mid-upload — so onChange fires.
-class _ResumeUploader extends StatelessWidget {
-  final String? fileName;
-  final String? error;
-  final void Function(html.File) onRawFile;
-  final VoidCallback? onClear;
-  const _ResumeUploader({
-    required this.fileName,
-    required this.onRawFile,
-    this.onClear,
-    this.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: fileName != null ? _blue : const Color(0xFFE0E0E0),
-          width: fileName != null ? 1.5 : 1,
-        ),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header row
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 22, height: 22,
-              decoration: BoxDecoration(
-                color: _blue, borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Center(
-                child: Icon(Icons.attach_file_rounded, color: Colors.white, size: 13),
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text('Resume',
-                style: TextStyle(fontSize: 13, color: Color(0xFF37474F),
-                    fontWeight: FontWeight.w500)),
-            ),
-          ]),
-        ),
-
-        // File chip
-        if (fileName != null) ...[
-          const Divider(height: 1, color: Color(0xFFE8EAF6)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: Row(children: [
-                const Icon(Icons.insert_drive_file_rounded,
-                    size: 16, color: Color(0xFF2E7D32)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(fileName!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF1B5E20),
-                          fontWeight: FontWeight.w500),
-                      overflow: TextOverflow.ellipsis),
-                ),
-                if (onClear != null) ...[
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: onClear,
-                    child: Container(
-                      width: 20, height: 20,
-                      decoration: BoxDecoration(
-                          color: Colors.red.shade100,
-                          borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.close_rounded, size: 13, color: Colors.red),
-                    ),
-                  ),
-                ],
-              ]),
-            ),
-          ),
-        ],
-
-        // Error text
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-            child: Row(children: [
-              const Icon(Icons.error_outline, size: 13, color: Colors.red),
-              const SizedBox(width: 4),
-              Expanded(child: Text(error!,
-                  style: const TextStyle(fontSize: 11, color: Colors.red))),
-            ]),
-          ),
-
-        // Upload button — WebFilePicker always enabled, never removed from tree
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-          child: WebFilePicker(
-            accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
-            onRawFiles: (files) => onRawFile(files.first),
-            builder: (trigger) => OutlinedButton.icon(
-              icon: const Icon(Icons.upload_file_rounded, size: 15),
-              label: Text(fileName != null ? 'Change' : 'Add File',
-                  style: const TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _blue,
-                side: const BorderSide(color: _blue),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
-              ),
-              onPressed: trigger,
-            ),
-          ),
-        ),
-      ]),
     );
   }
 }
