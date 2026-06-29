@@ -7,25 +7,27 @@ int _wfpCounter = 0;
 
 /// File-picker widget for Flutter web.
 ///
-/// Primary path: a transparent HTML <label> (with a hidden <input type="file">)
-///   is overlaid via HtmlElementView. The user's tap goes directly to the
-///   native label → no programmatic .click() needed → user-activation satisfied.
+/// Architecture:
+///   A persistent <input type="file"> is appended to document.body in initState
+///   and removed in dispose(). Because it lives outside Flutter's widget tree it
+///   is never inadvertently removed from the DOM while a file-chooser dialog is
+///   open, which would silently swallow the 'change' event.
 ///
-/// Fallback path: the [builder] callback receives a [trigger] function.
-///   Pass it as [onPressed] on the child button. If the HtmlElementView label
-///   did NOT catch the click (pointer fell through to Flutter), Flutter calls
-///   onPressed → trigger() → programmatic .click() with off-screen positioning,
-///   which works in every desktop browser from a Flutter button tap.
+///   A transparent <label for="id"> is rendered via HtmlElementView and overlays
+///   the Flutter button. Clicking the label activates the body-level input via
+///   the native browser for-attribute link — no programmatic .click() is needed,
+///   so user-activation is always satisfied.
 ///
-/// Together these two paths ensure the file dialog opens on all browsers.
+///   Fallback: [builder] receives a [trigger] function. Pass it as onPressed on
+///   the child button. If the HtmlElementView label did NOT intercept the pointer
+///   (e.g. platform-view hit-testing not active), Flutter calls onPressed →
+///   trigger() → _input.click(). Because _input is held in state it is never
+///   GC-collected, and the programmatic click runs within the user-gesture window.
 class WebFilePicker extends StatefulWidget {
   final String accept;
   final bool multiple;
   final bool enabled;
-  /// Called with the selected [html.File] objects.
   final void Function(List<html.File>) onRawFiles;
-  /// Build the child button. [trigger] is the programmatic fallback — pass it
-  /// as the button's onPressed.
   final Widget Function(VoidCallback trigger) builder;
 
   const WebFilePicker({
@@ -44,66 +46,68 @@ class WebFilePicker extends StatefulWidget {
 class _WebFilePickerState extends State<WebFilePicker> {
   late final String _viewId;
   late void Function(List<html.File>) _callback;
+  late final html.FileUploadInputElement _input;
 
   @override
   void initState() {
     super.initState();
-    _viewId = 'wfp-${_wfpCounter++}';
+    _viewId   = 'wfp-${_wfpCounter++}';
     _callback = widget.onRawFiles;
 
+    // Persistent body-level input — lives in the DOM until dispose().
+    // Using _viewId as the element id links it to the HtmlElementView label.
+    _input = html.FileUploadInputElement()
+      ..id       = _viewId
+      ..accept   = widget.accept
+      ..multiple = widget.multiple
+      ..style.position = 'fixed'
+      ..style.top      = '-9999px'
+      ..style.left     = '-9999px'
+      ..style.opacity  = '0';
+    html.document.body!.append(_input);
+
+    _input.onChange.listen((_) {
+      final fl = _input.files;
+      if (fl == null || fl.isEmpty) return;
+      _callback(List.generate(fl.length, (i) => fl[i]));
+      _input.value = ''; // allow re-selecting the same file
+    });
+
+    // HtmlElementView: transparent <label for="_viewId"> that activates _input
+    // via native browser for-attribute — direct user gesture, no .click() needed.
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (int _) {
-      // The input itself covers the Flutter button area (opacity:0, pointer-events:auto).
-      // A direct tap on the transparent input is always a trusted user gesture in
-      // every browser, so the file dialog opens reliably without programmatic .click().
-      final input = html.FileUploadInputElement()
-        ..accept = widget.accept
-        ..multiple = widget.multiple
+      return html.LabelElement()
+        ..htmlFor        = _viewId
+        ..style.display  = 'block'
         ..style.position = 'absolute'
-        ..style.top = '0'
-        ..style.left = '0'
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.opacity = '0'
-        ..style.cursor = 'pointer'
-        ..style.margin = '0'
-        ..style.padding = '0';
-
-      input.onChange.listen((_) {
-        final fl = input.files;
-        if (fl == null || fl.isEmpty) return;
-        _callback(List.generate(fl.length, (i) => fl[i]));
-        // Reset so the same file can be re-selected later.
-        input.value = '';
-      });
-
-      return input;
+        ..style.top      = '0'
+        ..style.left     = '0'
+        ..style.width    = '100%'
+        ..style.height   = '100%'
+        ..style.cursor   = 'pointer'
+        ..style.margin   = '0'
+        ..style.padding  = '0';
     });
   }
 
   @override
   void didUpdateWidget(covariant WebFilePicker old) {
     super.didUpdateWidget(old);
-    _callback = widget.onRawFiles;
+    _callback      = widget.onRawFiles;
+    _input.accept  = widget.accept;
+    _input.multiple = widget.multiple;
   }
 
-  /// Programmatic fallback: called from the button's onPressed when the
-  /// HtmlElementView label did not intercept the pointer event.
+  @override
+  void dispose() {
+    _input.remove();
+    super.dispose();
+  }
+
+  /// Fallback: called from the button's onPressed when the HtmlElementView
+  /// label did not intercept the pointer event.
   void _triggerFallback() {
-    final input = html.FileUploadInputElement()
-      ..accept = widget.accept
-      ..multiple = widget.multiple
-      ..style.position = 'fixed'
-      ..style.top = '-9999px'
-      ..style.left = '-9999px'
-      ..style.opacity = '0';
-    html.document.body!.append(input);
-    input.onChange.listen((_) {
-      final fl = input.files;
-      input.remove();
-      if (fl == null || fl.isEmpty) return;
-      _callback(List.generate(fl.length, (i) => fl[i]));
-    });
-    input.click();
+    _input.click(); // _input is a field — strong reference, never GC-collected
   }
 
   @override
