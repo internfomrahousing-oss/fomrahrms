@@ -5,11 +5,12 @@ import 'package:flutter/widgets.dart';
 
 int _wfpCounter = 0;
 
-/// Overlays a transparent HTML <input type="file"> on top of [child].
+/// Overlays a transparent HTML <label> (containing a hidden <input type="file">)
+/// on top of [child].
 ///
-/// The user's tap goes directly to the native HTML element, so the browser's
-/// user-activation requirement is satisfied on every browser — Chrome, Safari,
-/// Firefox, Edge, iOS, and Android — without any programmatic .click().
+/// The browser treats a click on a <label> that owns a <input type="file"> as
+/// a direct user gesture, satisfying the user-activation requirement on Chrome,
+/// Safari, Firefox, Edge, iOS and Android — no programmatic .click() needed.
 class WebFilePicker extends StatefulWidget {
   final String accept;
   final bool multiple;
@@ -32,7 +33,6 @@ class WebFilePicker extends StatefulWidget {
 
 class _WebFilePickerState extends State<WebFilePicker> {
   late final String _viewId;
-  // Mutable so didUpdateWidget keeps the callback fresh without re-registering.
   late void Function(List<html.File>) _callback;
 
   @override
@@ -42,18 +42,32 @@ class _WebFilePickerState extends State<WebFilePicker> {
     _callback = widget.onRawFiles;
 
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (int _) {
-      final el = html.FileUploadInputElement()
+      // Hidden file input — the label click triggers it without any .click() call.
+      final input = html.FileUploadInputElement()
         ..accept = widget.accept
         ..multiple = widget.multiple
-        ..style.cssText =
-            'position:absolute;inset:0;width:100%;height:100%;'
-            'opacity:0;cursor:pointer;margin:0;padding:0;border:0;';
-      el.onChange.listen((_) {
-        final fl = el.files;
+        ..style.display = 'none';
+
+      // Label fills the entire platform-view slot and acts as the click target.
+      final label = html.LabelElement()
+        ..style.display = 'block'
+        ..style.position = 'absolute'
+        ..style.top = '0'
+        ..style.left = '0'
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..style.cursor = 'pointer'
+        ..style.margin = '0'
+        ..style.padding = '0';
+      label.append(input);
+
+      input.onChange.listen((_) {
+        final fl = input.files;
         if (fl == null || fl.isEmpty) return;
         _callback(List.generate(fl.length, (i) => fl[i]));
       });
-      return el;
+
+      return label;
     });
   }
 
