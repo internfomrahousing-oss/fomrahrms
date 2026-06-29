@@ -161,7 +161,9 @@ class _CandidateApplicationFormPageState
         _customFileNames[fieldId] = rawFile.name;
         _customFileUrls[fieldId]  = url;
       });
-    } catch (_) {
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _customFileUploading[fieldId] = false);
     }
@@ -364,7 +366,9 @@ class _CandidateApplicationFormPageState
       }
       final url = await SupabaseService.uploadResume(bytes, name, mime);
       if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
-    } catch (_) {
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume upload failed: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _uploadingResume = false);
     }

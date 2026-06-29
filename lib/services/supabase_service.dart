@@ -495,38 +495,31 @@ class SupabaseService {
 
   // ── Resume Upload ─────────────────────────────────────────────────────
 
-  static Future<String?> uploadResume(
+  // Throws on failure so callers can surface the error to the user.
+  static Future<String> uploadResume(
       Uint8List bytes, String fileName, String mimeType) async {
-    try {
-      final path = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      await _db?.storage.from('RESUME').uploadBinary(
-        path, bytes,
-        fileOptions: FileOptions(contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
-      );
-      return _db?.storage.from('RESUME').getPublicUrl(path);
-    } catch (_) {
-      return null;
-    }
+    final safe = fileName.replaceAll(RegExp(r'[^\w.\-]'), '_');
+    final path = '${DateTime.now().millisecondsSinceEpoch}_$safe';
+    await _db!.storage.from('RESUME').uploadBinary(
+      path, bytes,
+      fileOptions: FileOptions(
+          contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
+    );
+    return _db!.storage.from('RESUME').getPublicUrl(path);
   }
 
-  // Custom field file uploads (PDF / image) — stored in the same bucket under custom_uploads/
-  // SQL: alter table candidate_applications add column if not exists custom_field_values jsonb default '{}';
-  static Future<String?> uploadFile(
+  // Custom field file uploads (PDF / image) — stored in the RESUME bucket under custom_uploads/.
+  // Throws on failure so callers can surface the error to the user.
+  static Future<String> uploadFile(
       Uint8List bytes, String fileName, String mimeType) async {
-    try {
-      final path =
-          'custom_uploads/${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      await _db?.storage.from('RESUME').uploadBinary(
-        path, bytes,
-        fileOptions: FileOptions(
-            contentType: mimeType.isNotEmpty
-                ? mimeType
-                : 'application/octet-stream'),
-      );
-      return _db?.storage.from('RESUME').getPublicUrl(path);
-    } catch (_) {
-      return null;
-    }
+    final safe = fileName.replaceAll(RegExp(r'[^\w.\-]'), '_');
+    final path = 'custom_uploads/${DateTime.now().millisecondsSinceEpoch}_$safe';
+    await _db!.storage.from('RESUME').uploadBinary(
+      path, bytes,
+      fileOptions: FileOptions(
+          contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
+    );
+    return _db!.storage.from('RESUME').getPublicUrl(path);
   }
 
   // ── Candidate Applications ────────────────────────────────────────────
