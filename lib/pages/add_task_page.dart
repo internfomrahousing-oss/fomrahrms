@@ -28,8 +28,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
   TaskPriority _priority = TaskPriority.medium;
   DateTime? _startDate;
   DateTime? _dueDate;
-  final _weightageCtrl = TextEditingController();
-  String _attachment = '';
 
   // Users loaded from UserStore for assignment
   List<AppUser> _users = [];
@@ -101,7 +99,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
   void dispose() {
     _nameCtrl.dispose();
     _descCtrl.dispose();
-    _weightageCtrl.dispose();
     super.dispose();
   }
 
@@ -228,12 +225,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
       priority: _priority,
       startDate: _startDate!,
       dueDate: _dueDate!,
-      weightage: int.tryParse(_weightageCtrl.text.trim()) ?? 0,
+      weightage: 0,
       assignedEmployee: _assignedEmployee?.name ?? '',
       teamMembers: teamNames,
       teamMemberStatuses: memberStatuses,
       department: dept,
-      attachment: _attachment,
     );
 
     // Add to in-memory store and persist to Supabase
@@ -366,21 +362,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
               ]),
               const SizedBox(height: 14),
 
-              // Weightage
-              _Field(
-                controller: _weightageCtrl,
-                label: 'Weightage (points)',
-                icon: Icons.star_rounded,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-              const SizedBox(height: 14),
-
-              // Attachment
-              _AttachmentField(
-                value: _attachment,
-                onTap: () => setState(() => _attachment = 'file_attached.pdf'),
-              ),
               const SizedBox(height: 32),
 
               // ── Section 2: Assign Task ─────────────────────────────

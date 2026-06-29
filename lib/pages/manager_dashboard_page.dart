@@ -237,15 +237,13 @@ class _TeamTasksSectionState extends State<_TeamTasksSection> {
     }
 
     final pending = _teamTasks
-        .where((t) =>
-            t.status != TaskStatus.completed && t.status != TaskStatus.rejected)
+        .where((t) => t.status != TaskStatus.completed)
         .length;
     final completed =
         _teamTasks.where((t) => t.status == TaskStatus.completed).length;
     final overdue = _teamTasks
         .where((t) =>
             t.status != TaskStatus.completed &&
-            t.status != TaskStatus.rejected &&
             t.dueDate.isBefore(DateTime.now()))
         .length;
 
@@ -317,7 +315,6 @@ class _TeamTaskTile extends StatelessWidget {
         TaskStatus.inProgress => const Color(0xFF6A1B9A),
         TaskStatus.completed => Colors.green.shade700,
         TaskStatus.delayed => Colors.red.shade700,
-        TaskStatus.rejected => Colors.grey.shade700,
       };
 
   String _statusLabel(TaskStatus s) => switch (s) {
@@ -326,14 +323,12 @@ class _TeamTaskTile extends StatelessWidget {
         TaskStatus.inProgress => 'In Progress',
         TaskStatus.completed => 'Completed',
         TaskStatus.delayed => 'Delayed',
-        TaskStatus.rejected => 'Rejected',
       };
 
   @override
   Widget build(BuildContext context) {
     final sc = _statusColor(task.status);
     final isOverdue = task.status != TaskStatus.completed &&
-        task.status != TaskStatus.rejected &&
         task.dueDate.isBefore(DateTime.now());
 
     return Card(

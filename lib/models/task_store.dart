@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum TaskStatus { assigned, pending, inProgress, completed, delayed, rejected }
+enum TaskStatus { assigned, pending, inProgress, completed, delayed }
 enum TaskPriority { low, medium, high, critical }
 
 class Task {
@@ -19,6 +19,7 @@ class Task {
   Map<String, String> teamMemberStatuses;
   String department;
   String attachment;
+  DateTime? receivedAt;
 
   Task({
     required this.id,
@@ -34,6 +35,7 @@ class Task {
     Map<String, String>? teamMemberStatuses,
     this.department = '',
     this.attachment = '',
+    this.receivedAt,
   }) : teamMemberStatuses = teamMemberStatuses ?? {};
 
   Map<String, dynamic> toJson() => {
@@ -50,6 +52,7 @@ class Task {
     'team_member_statuses':  jsonEncode(teamMemberStatuses),
     'department':            department,
     'attachment':            attachment,
+    'received_at':           receivedAt?.toIso8601String(),
   };
 
   factory Task.fromJson(Map<String, dynamic> j) {
@@ -90,6 +93,9 @@ class Task {
       teamMemberStatuses:   parseStatuses(j['team_member_statuses']),
       department:           (j['department'] as String?) ?? '',
       attachment:           (j['attachment'] as String?) ?? '',
+      receivedAt:           j['received_at'] != null
+          ? DateTime.tryParse(j['received_at'] as String)
+          : null,
     );
   }
 }

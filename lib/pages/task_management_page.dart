@@ -24,7 +24,6 @@ class _TaskManagementPageState extends State<TaskManagementPage>
     (TaskStatus.inProgress, 'In Progress'),
     (TaskStatus.completed, 'Completed'),
     (TaskStatus.delayed, 'Delayed'),
-    (TaskStatus.rejected, 'Rejected'),
   ];
 
   @override
@@ -360,7 +359,6 @@ String _filterLabel(TaskStatus s) => switch (s) {
       TaskStatus.inProgress => 'In Progress',
       TaskStatus.completed => 'Completed',
       TaskStatus.delayed => 'Delayed',
-      TaskStatus.rejected => 'Rejected',
     };
 
 // ── Task card ────────────────────────────────────────────────────────────────
@@ -399,7 +397,6 @@ class _TaskCardState extends State<_TaskCard> {
         TaskStatus.inProgress => const Color(0xFF6A1B9A),
         TaskStatus.completed => Colors.green.shade700,
         TaskStatus.delayed => Colors.red.shade700,
-        TaskStatus.rejected => Colors.grey.shade700,
       };
 
   @override
@@ -491,6 +488,7 @@ class _TaskCardState extends State<_TaskCard> {
                 ]),
                 const SizedBox(height: 14),
 
+                if (t.status != TaskStatus.completed)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(children: [

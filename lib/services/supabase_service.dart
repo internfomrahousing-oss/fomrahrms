@@ -637,6 +637,15 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  static Future<void> updateTaskReceived(String id, DateTime receivedAt) async {
+    try {
+      await _db?.from('tasks').update({
+        'status': TaskStatus.inProgress.name,
+        'received_at': receivedAt.toIso8601String(),
+      }).eq('id', id);
+    } catch (_) {}
+  }
+
   // Updates one team member's status; if allCompleted, also flips overall status.
   static Future<void> updateTeamMemberStatus(
       String taskId, Map<String, String> statuses, bool allCompleted) async {

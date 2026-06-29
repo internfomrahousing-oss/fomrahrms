@@ -24,7 +24,6 @@ class _MyTasksPageState extends State<MyTasksPage> {
     (TaskStatus.inProgress, 'In Progress'),
     (TaskStatus.completed,  'Completed'),
     (TaskStatus.delayed,    'Delayed'),
-    (TaskStatus.rejected,   'Rejected'),
   ];
 
   @override
@@ -47,6 +46,25 @@ class _MyTasksPageState extends State<MyTasksPage> {
     if (mounted) setState(() => _loading = true);
     final allTasks = await SupabaseService.fetchTasks();
     final name = UserSession.name.trim();
+    final now = DateTime.now();
+
+    // Auto-transitions: check each task for 2h overdue and due date crossed
+    for (final t in allTasks) {
+      if (t.status == TaskStatus.completed) continue;
+      // If due date passed → delayed (takes priority)
+      if (t.dueDate.isBefore(now) && t.status != TaskStatus.delayed) {
+        t.status = TaskStatus.delayed;
+        SupabaseService.updateTaskStatus(t.id, TaskStatus.delayed);
+      }
+      // If received > 2 hours ago and still inProgress → pending
+      else if (t.status == TaskStatus.inProgress &&
+          t.receivedAt != null &&
+          now.difference(t.receivedAt!).inHours >= 2) {
+        t.status = TaskStatus.pending;
+        SupabaseService.updateTaskStatus(t.id, TaskStatus.pending);
+      }
+    }
+
     if (!mounted) return;
     setState(() {
       _tasks = name.isEmpty
@@ -78,17 +96,27 @@ class _MyTasksPageState extends State<MyTasksPage> {
     return _tasks.where((t) => _effectiveStatus(t) == _filter).toList();
   }
 
-  // Single-assigned task: update overall status
-  void _onStatusChanged(Task t, TaskStatus s) {
-    setState(() => t.status = s);
-    SupabaseService.updateTaskStatus(t.id, s);
+  // Employee clicks "Mark as Received" → inProgress + save receivedAt
+  void _onReceived(Task t) {
+    final now = DateTime.now();
+    setState(() {
+      t.status = TaskStatus.inProgress;
+      t.receivedAt = now;
+    });
+    SupabaseService.updateTaskReceived(t.id, now);
   }
 
-  // Group task: update this member's status; flip overall to completed if all done
-  void _onGroupStatusChanged(Task t, TaskStatus s) {
+  // Employee clicks "Mark as Done" → completed (irreversible)
+  void _onDone(Task t) {
+    setState(() => t.status = TaskStatus.completed);
+    SupabaseService.updateTaskStatus(t.id, TaskStatus.completed);
+  }
+
+  // Group task done: mark member complete; flip overall if all done
+  void _onGroupDone(Task t) {
     final name = UserSession.name.trim();
     final updated = Map<String, String>.from(t.teamMemberStatuses);
-    updated[name] = s.name;
+    updated[name] = TaskStatus.completed.name;
     final allCompleted =
         t.teamMembers.every((m) => (updated[m.trim()] ?? 'assigned') == 'completed');
     setState(() {
@@ -268,9 +296,8 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     task: t,
                     displayStatus: _effectiveStatus(t),
                     isGroupTask: isGroup,
-                    onStatusChanged: isGroup
-                        ? (s) => _onGroupStatusChanged(t, s)
-                        : (s) => _onStatusChanged(t, s),
+                    onReceived: () => _onReceived(t),
+                    onDone: isGroup ? () => _onGroupDone(t) : () => _onDone(t),
                   ),
                 );
               }),
@@ -285,14 +312,16 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
 class _MyTaskCard extends StatefulWidget {
   final Task task;
-  final TaskStatus displayStatus; // individual status for this user
+  final TaskStatus displayStatus;
   final bool isGroupTask;
-  final ValueChanged<TaskStatus> onStatusChanged;
+  final VoidCallback onReceived;
+  final VoidCallback onDone;
   const _MyTaskCard({
     required this.task,
     required this.displayStatus,
     this.isGroupTask = false,
-    required this.onStatusChanged,
+    required this.onReceived,
+    required this.onDone,
   });
 
   @override
@@ -324,7 +353,6 @@ class _MyTaskCardState extends State<_MyTaskCard> {
         TaskStatus.inProgress => const Color(0xFF6A1B9A),
         TaskStatus.completed  => Colors.green.shade700,
         TaskStatus.delayed    => Colors.red.shade700,
-        TaskStatus.rejected   => Colors.grey.shade700,
       };
 
   String _statusLabel(TaskStatus s) => switch (s) {
@@ -333,15 +361,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
         TaskStatus.inProgress => 'In Progress',
         TaskStatus.completed  => 'Completed',
         TaskStatus.delayed    => 'Delayed',
-        TaskStatus.rejected   => 'Rejected',
       };
-
-  // Employee can only move to these statuses
-  static const _allowedTransitions = [
-    TaskStatus.inProgress,
-    TaskStatus.completed,
-    TaskStatus.pending,
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +373,6 @@ class _MyTaskCardState extends State<_MyTaskCard> {
     final pl = _priorityLabel(t.priority);
 
     final isOverdue = ds != TaskStatus.completed &&
-        ds != TaskStatus.rejected &&
         t.dueDate.isBefore(DateTime.now());
 
     return Card(
@@ -470,37 +489,48 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                 ]),
                 const SizedBox(height: 16),
 
-                // Update status (limited options for employee)
-                const Text('Update Status:',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF78909C))),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  ..._allowedTransitions
-                      .where((s) => s != ds)
-                      .map((s) {
-                    final c = _statusColor(s);
-                    return ElevatedButton(
-                      onPressed: () => widget.onStatusChanged(s),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: c,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        elevation: 0,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(_statusLabel(s),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600)),
-                    );
-                  }),
-                ]),
+                // Action buttons based on current status
+                if (ds == TaskStatus.assigned)
+                  ElevatedButton.icon(
+                    onPressed: widget.onReceived,
+                    icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                    label: const Text('Mark as Received',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1565C0),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 0,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                else if (ds == TaskStatus.inProgress ||
+                    ds == TaskStatus.pending ||
+                    ds == TaskStatus.delayed)
+                  ElevatedButton.icon(
+                    onPressed: widget.onDone,
+                    icon: const Icon(Icons.task_alt_rounded, size: 16),
+                    label: const Text('Mark as Done',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 0,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                else if (ds == TaskStatus.completed)
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.lock_rounded, size: 13, color: Colors.grey.shade400),
+                    const SizedBox(width: 4),
+                    Text('Completed — no further changes',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                  ]),
               ],
             ],
           ),
