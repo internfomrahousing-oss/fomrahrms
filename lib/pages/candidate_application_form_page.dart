@@ -79,6 +79,7 @@ class _CandidateApplicationFormPageState
   String? _resumeFileName;
   String? _resumeUrl;
   bool _uploadingResume = false;
+  String? _resumeError;
 
   bool _submitting = false;
 
@@ -373,7 +374,7 @@ class _CandidateApplicationFormPageState
   }
 
   Future<void> _handleResume(html.File rawFile) async {
-    setState(() => _uploadingResume = true);
+    setState(() { _uploadingResume = true; _resumeError = null; });
     try {
       final reader = html.FileReader();
       reader.readAsDataUrl(rawFile);
@@ -398,19 +399,10 @@ class _CandidateApplicationFormPageState
       }
       final url = await SupabaseService.uploadResume(bytes, name, mime);
       if (mounted) {
-        setState(() { _resumeFileName = name; _resumeUrl = url; });
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(
-            content: Text('Resume uploaded: $name'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ));
+        setState(() { _resumeFileName = name; _resumeUrl = url; _resumeError = null; });
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume upload failed: $e'), backgroundColor: Colors.red,
-            duration: const Duration(seconds: 6)));
+      if (mounted) setState(() => _resumeError = e.toString());
     } finally {
       if (mounted) setState(() => _uploadingResume = false);
     }
@@ -922,6 +914,7 @@ class _CandidateApplicationFormPageState
                         _ResumeUploader(
                           fileName: _resumeFileName,
                           uploading: _uploadingResume,
+                          error: _resumeError,
                           onRawFile: _handleResume,
                         ),
                       ..._renderCustomFields(_sectionCustomFields('resume'), narrow),
@@ -1549,9 +1542,11 @@ class _ReferralTable extends StatelessWidget {
 class _ResumeUploader extends StatelessWidget {
   final String? fileName;
   final bool uploading;
+  final String? error;
   final void Function(html.File) onRawFile;
   const _ResumeUploader(
-      {required this.fileName, required this.uploading, required this.onRawFile});
+      {required this.fileName, required this.uploading, required this.onRawFile,
+       this.error});
 
   @override
   Widget build(BuildContext context) {
@@ -1571,57 +1566,74 @@ class _ResumeUploader extends StatelessWidget {
       ),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: fileName != null ? _blue : const Color(0xFFE0E0E0),
-        ),
-      ),
-      child: Row(children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Container(
-          width: 44, height: 44,
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _blue.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: error != null
+                  ? Colors.red
+                  : fileName != null ? _blue : const Color(0xFFE0E0E0),
+            ),
           ),
-          child: Icon(
-            fileName != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
-            color: _blue, size: 24,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              fileName ?? 'Upload Resume',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: fileName != null ? _blue : const Color(0xFF37474F),
+          child: Row(children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
               ),
-              overflow: TextOverflow.ellipsis,
+              child: Icon(
+                fileName != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                color: _blue, size: 24,
+              ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              fileName != null
-                  ? 'Resume uploaded successfully'
-                  : 'PDF, DOC, DOCX accepted — images auto-compressed to ≤200 KB',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                  fileName ?? 'Upload Resume',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: fileName != null ? _blue : const Color(0xFF37474F),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  fileName != null
+                      ? 'Resume uploaded successfully'
+                      : 'PDF, DOC, DOCX accepted — images auto-compressed to ≤200 KB',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+                ),
+              ]),
             ),
+            const SizedBox(width: 12),
+            uploading
+                ? uploadBtn(null)
+                : WebFilePicker(
+                    accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
+                    onRawFiles: (files) => onRawFile(files.first),
+                    builder: (trigger) => uploadBtn(trigger),
+                  ),
           ]),
         ),
-        const SizedBox(width: 12),
-        uploading
-            ? uploadBtn(null)
-            : WebFilePicker(
-                accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
-                onRawFiles: (files) => onRawFile(files.first),
-                builder: (trigger) => uploadBtn(trigger),
-              ),
-      ]),
+        if (error != null) ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            const Icon(Icons.error_outline, size: 14, color: Colors.red),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(error!, style: const TextStyle(fontSize: 11, color: Colors.red)),
+            ),
+          ]),
+        ],
+      ],
     );
   }
 }
