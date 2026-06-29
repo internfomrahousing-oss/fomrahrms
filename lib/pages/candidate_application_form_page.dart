@@ -916,6 +916,13 @@ class _CandidateApplicationFormPageState
                           uploading: _uploadingResume,
                           error: _resumeError,
                           onRawFile: _handleResume,
+                          onClear: _resumeFileName != null
+                              ? () => setState(() {
+                                    _resumeFileName = null;
+                                    _resumeUrl = null;
+                                    _resumeError = null;
+                                  })
+                              : null,
                         ),
                       ..._renderCustomFields(_sectionCustomFields('resume'), narrow),
                       ], // end resume
@@ -1544,96 +1551,116 @@ class _ResumeUploader extends StatelessWidget {
   final bool uploading;
   final String? error;
   final void Function(html.File) onRawFile;
-  const _ResumeUploader(
-      {required this.fileName, required this.uploading, required this.onRawFile,
-       this.error});
+  final VoidCallback? onClear;
+  const _ResumeUploader({
+    required this.fileName,
+    required this.uploading,
+    required this.onRawFile,
+    this.onClear,
+    this.error,
+  });
 
   @override
   Widget build(BuildContext context) {
-    Widget uploadBtn(VoidCallback? onPressed) => ElevatedButton.icon(
+    Widget addBtn(VoidCallback? onPressed) => OutlinedButton.icon(
       onPressed: onPressed,
       icon: uploading
-          ? const SizedBox(width: 14, height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : Icon(fileName != null ? Icons.swap_horiz_rounded : Icons.attach_file_rounded,
-              size: 16),
-      label: Text(uploading ? 'Uploading…' : fileName != null ? 'Change' : 'Choose File',
-          style: const TextStyle(fontSize: 12)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: _blue, foregroundColor: Colors.white,
-        elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ? const SizedBox(width: 13, height: 13,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+          : const Icon(Icons.attach_file_rounded, size: 15, color: _blue),
+      label: Text(
+        uploading ? 'Uploading…' : fileName != null ? 'Change' : 'Add File',
+        style: const TextStyle(fontSize: 12, color: _blue),
+      ),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: _blue),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: error != null
-                  ? Colors.red
-                  : fileName != null ? _blue : const Color(0xFFE0E0E0),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: error != null ? Colors.red : const Color(0xFFE0E0E0),
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Container(
+            width: 22, height: 22,
+            decoration: BoxDecoration(
+              color: _blue, borderRadius: BorderRadius.circular(11),
+            ),
+            child: const Center(
+              child: Icon(Icons.attach_file_rounded, color: Colors.white, size: 13),
             ),
           ),
-          child: Row(children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                fileName != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
-                color: _blue, size: 24,
-              ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text('Resume',
+              style: TextStyle(fontSize: 13, color: Color(0xFF37474F),
+                  fontWeight: FontWeight.w500)),
+          ),
+        ]),
+        if (fileName != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(7),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  fileName ?? 'Upload Resume',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: fileName != null ? _blue : const Color(0xFF37474F),
+            child: Row(children: [
+              const Icon(Icons.insert_drive_file_rounded,
+                  size: 16, color: Color(0xFF2E7D32)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(fileName!,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF1B5E20),
+                        fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              if (onClear != null) ...[
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: onClear,
+                  child: Container(
+                    width: 20, height: 20,
+                    decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.close_rounded,
+                        size: 13, color: Colors.red),
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  fileName != null
-                      ? 'Resume uploaded successfully'
-                      : 'PDF, DOC, DOCX accepted — images auto-compressed to ≤200 KB',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
-                ),
-              ]),
-            ),
-            const SizedBox(width: 12),
-            uploading
-                ? uploadBtn(null)
-                : WebFilePicker(
-                    accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
-                    onRawFiles: (files) => onRawFile(files.first),
-                    builder: (trigger) => uploadBtn(trigger),
-                  ),
-          ]),
+              ],
+            ]),
+          ),
+        ],
+        const SizedBox(height: 8),
+        // WebFilePicker is ALWAYS in the tree (enabled:false while uploading).
+        // Never removing it prevents _WebFilePickerState.dispose() from being
+        // called mid-upload, which would kill the onChange listener.
+        WebFilePicker(
+          accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
+          enabled: !uploading,
+          onRawFiles: (files) => onRawFile(files.first),
+          builder: (trigger) => addBtn(uploading ? null : trigger),
         ),
         if (error != null) ...[
           const SizedBox(height: 6),
           Row(children: [
-            const Icon(Icons.error_outline, size: 14, color: Colors.red),
+            const Icon(Icons.error_outline, size: 13, color: Colors.red),
             const SizedBox(width: 4),
-            Expanded(
-              child: Text(error!, style: const TextStyle(fontSize: 11, color: Colors.red)),
-            ),
+            Expanded(child: Text(error!,
+                style: const TextStyle(fontSize: 11, color: Colors.red))),
           ]),
         ],
-      ],
+      ]),
     );
   }
 }
