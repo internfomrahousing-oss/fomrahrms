@@ -11,8 +11,10 @@ class TaskManagementPage extends StatefulWidget {
   State<TaskManagementPage> createState() => _TaskManagementPageState();
 }
 
-class _TaskManagementPageState extends State<TaskManagementPage> {
-  TaskStatus? _filter; // null = All
+class _TaskManagementPageState extends State<TaskManagementPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  TaskStatus? _filter;
   bool _loading = true;
 
   static const _filters = [
@@ -28,7 +30,15 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -43,10 +53,11 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
       ? TaskStore.tasks
       : TaskStore.tasks.where((t) => t.status == _filter).toList();
 
-  // Determine add-task route based on current path prefix
   String get _addRoute {
     final loc = GoRouterState.of(context).uri.path;
-    return loc.startsWith('/manager') ? '/manager/task-management/add' : '/task-management/add';
+    return loc.startsWith('/manager')
+        ? '/manager/task-management/add'
+        : '/task-management/add';
   }
 
   void _onStatusChanged(Task t, TaskStatus s) {
@@ -61,21 +72,20 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = _filtered;
+    final onTab0 = _tabController.index == 0;
 
     return Scaffold(
       backgroundColor: null,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(children: [
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: Row(children: [
               Container(
-                width: 44, height: 44,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -87,157 +97,280 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
               Text('Task Management',
                   style: Theme.of(context).textTheme.headlineMedium),
               const Spacer(),
-              IconButton(
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6A1B9A)),
-                onPressed: _load,
-              ),
-              const SizedBox(width: 4),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await context.push(_addRoute);
-                  if (mounted) _load();
-                },
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add Task'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-              ),
-            ]),
-            const SizedBox(height: 20),
-
-            // Filter chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters.map((f) {
-                  final active = _filter == f.$1;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(f.$2),
-                      selected: active,
-                      onSelected: (_) =>
-                          setState(() => _filter = f.$1),
-                      selectedColor: const Color(0xFF6A1B9A),
-                      checkmarkColor: Colors.white,
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: active
-                            ? Colors.white
-                            : const Color(0xFF546E7A),
-                      ),
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: active
-                              ? const Color(0xFF6A1B9A)
-                              : const Color(0xFFE0E0E0),
-                        ),
-                      ),
-                      showCheckmark: false,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 0),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Count badge
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${tasks.length} task${tasks.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+              if (onTab0) ...[
+                IconButton(
+                  tooltip: 'Refresh',
+                  icon: const Icon(Icons.refresh_rounded,
                       color: Color(0xFF6A1B9A)),
+                  onPressed: _load,
                 ),
-              ),
-            ]),
-            const SizedBox(height: 16),
-
-            // Task list
-            if (tasks.isEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 48, horizontal: 24),
-                  child: Center(
-                    child: Column(children: [
-                      Icon(Icons.task_alt_rounded,
-                          size: 52,
-                          color: Colors.grey.shade300),
-                      const SizedBox(height: 12),
-                      Text(
-                        _filter == null
-                            ? 'No tasks yet'
-                            : 'No ${_filterLabel(_filter!).toLowerCase()} tasks',
-                        style: TextStyle(
-                            color: Colors.grey.shade400, fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Tap "Add Task" to create one',
-                          style: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 12)),
-                    ]),
+                const SizedBox(width: 4),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await context.push(_addRoute);
+                    if (mounted) _load();
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Task'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6A1B9A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
                   ),
                 ),
-              )
-            else
-              ...tasks.map((t) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _TaskCard(
-                      task: t,
-                      onStatusChanged: (s) => _onStatusChanged(t, s),
-                      // Only HR and Management can delete tasks
-                      onDelete: (UserSession.role == UserRole.hr ||
-                              UserSession.role == UserRole.management)
-                          ? () => _onDelete(t)
-                          : null,
+              ],
+            ]),
+          ),
+          const SizedBox(height: 12),
+
+          // Tab bar
+          TabBar(
+            controller: _tabController,
+            labelColor: const Color(0xFF6A1B9A),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: const Color(0xFF6A1B9A),
+            labelStyle: const TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600),
+            unselectedLabelStyle:
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+            tabs: const [
+              Tab(text: 'Tasks'),
+              Tab(text: 'Performance Management'),
+              Tab(text: 'Salary Hike Engine'),
+            ],
+          ),
+
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _TasksTab(
+                  loading: _loading,
+                  filters: _filters,
+                  currentFilter: _filter,
+                  filtered: _filtered,
+                  onFilterChanged: (f) => setState(() => _filter = f),
+                  onStatusChanged: _onStatusChanged,
+                  onDelete: _onDelete,
+                ),
+                const _PlaceholderTab(
+                  icon: Icons.trending_up_rounded,
+                  title: 'Performance Management',
+                  subtitle: 'Coming soon',
+                ),
+                const _PlaceholderTab(
+                  icon: Icons.monetization_on_rounded,
+                  title: 'Salary Hike Engine',
+                  subtitle: 'Coming soon',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tasks tab ────────────────────────────────────────────────────────────────
+
+class _TasksTab extends StatelessWidget {
+  final bool loading;
+  final List<(TaskStatus?, String)> filters;
+  final TaskStatus? currentFilter;
+  final List<Task> filtered;
+  final ValueChanged<TaskStatus?> onFilterChanged;
+  final void Function(Task, TaskStatus) onStatusChanged;
+  final void Function(Task) onDelete;
+
+  const _TasksTab({
+    required this.loading,
+    required this.filters,
+    required this.currentFilter,
+    required this.filtered,
+    required this.onFilterChanged,
+    required this.onStatusChanged,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Filter chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: filters.map((f) {
+                final active = currentFilter == f.$1;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(f.$2),
+                    selected: active,
+                    onSelected: (_) => onFilterChanged(f.$1),
+                    selectedColor: const Color(0xFF6A1B9A),
+                    checkmarkColor: Colors.white,
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          active ? Colors.white : const Color(0xFF546E7A),
                     ),
-                  )),
-          ],
-        ),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: active
+                            ? const Color(0xFF6A1B9A)
+                            : const Color(0xFFE0E0E0),
+                      ),
+                    ),
+                    showCheckmark: false,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 0),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Count badge
+          Row(children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${filtered.length} task${filtered.length == 1 ? '' : 's'}',
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6A1B9A)),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+
+          // Task list
+          if (filtered.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 48, horizontal: 24),
+                child: Center(
+                  child: Column(children: [
+                    Icon(Icons.task_alt_rounded,
+                        size: 52, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      currentFilter == null
+                          ? 'No tasks yet'
+                          : 'No ${_filterLabel(currentFilter!).toLowerCase()} tasks',
+                      style: TextStyle(
+                          color: Colors.grey.shade400, fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Tap "Add Task" to create one',
+                        style: TextStyle(
+                            color: Colors.grey.shade400, fontSize: 12)),
+                  ]),
+                ),
+              ),
+            )
+          else
+            ...filtered.map((t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _TaskCard(
+                    task: t,
+                    onStatusChanged: (s) => onStatusChanged(t, s),
+                    onDelete: (UserSession.role == UserRole.hr ||
+                            UserSession.role == UserRole.management)
+                        ? () => onDelete(t)
+                        : null,
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Placeholder tab ──────────────────────────────────────────────────────────
+
+class _PlaceholderTab extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _PlaceholderTab({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: const Color(0xFF6A1B9A), size: 40),
+          ),
+          const SizedBox(height: 20),
+          Text(title,
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text(subtitle,
+              style:
+                  TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+        ],
       ),
     );
   }
 }
 
 String _filterLabel(TaskStatus s) => switch (s) {
-      TaskStatus.assigned   => 'Assigned',
-      TaskStatus.pending    => 'Pending',
+      TaskStatus.assigned => 'Assigned',
+      TaskStatus.pending => 'Pending',
       TaskStatus.inProgress => 'In Progress',
-      TaskStatus.completed  => 'Completed',
-      TaskStatus.delayed    => 'Delayed',
-      TaskStatus.rejected   => 'Rejected',
+      TaskStatus.completed => 'Completed',
+      TaskStatus.delayed => 'Delayed',
+      TaskStatus.rejected => 'Rejected',
     };
 
-// ── Task card ──────────────────────────────────────────────────────────────
+// ── Task card ────────────────────────────────────────────────────────────────
 
 class _TaskCard extends StatefulWidget {
   final Task task;
   final ValueChanged<TaskStatus> onStatusChanged;
   final VoidCallback? onDelete;
-  const _TaskCard({required this.task, required this.onStatusChanged, this.onDelete});
+  const _TaskCard(
+      {required this.task, required this.onStatusChanged, this.onDelete});
 
   @override
   State<_TaskCard> createState() => _TaskCardState();
@@ -247,26 +380,26 @@ class _TaskCardState extends State<_TaskCard> {
   bool _expanded = false;
 
   Color _priorityColor(TaskPriority p) => switch (p) {
-        TaskPriority.low      => Colors.green.shade600,
-        TaskPriority.medium   => Colors.orange.shade700,
-        TaskPriority.high     => Colors.deepOrange.shade700,
+        TaskPriority.low => Colors.green.shade600,
+        TaskPriority.medium => Colors.orange.shade700,
+        TaskPriority.high => Colors.deepOrange.shade700,
         TaskPriority.critical => Colors.red.shade800,
       };
 
   String _priorityLabel(TaskPriority p) => switch (p) {
-        TaskPriority.low      => 'Low',
-        TaskPriority.medium   => 'Medium',
-        TaskPriority.high     => 'High',
+        TaskPriority.low => 'Low',
+        TaskPriority.medium => 'Medium',
+        TaskPriority.high => 'High',
         TaskPriority.critical => 'Critical',
       };
 
   Color _statusColor(TaskStatus s) => switch (s) {
-        TaskStatus.assigned   => const Color(0xFF1565C0),
-        TaskStatus.pending    => Colors.orange.shade700,
+        TaskStatus.assigned => const Color(0xFF1565C0),
+        TaskStatus.pending => Colors.orange.shade700,
         TaskStatus.inProgress => const Color(0xFF6A1B9A),
-        TaskStatus.completed  => Colors.green.shade700,
-        TaskStatus.delayed    => Colors.red.shade700,
-        TaskStatus.rejected   => Colors.grey.shade700,
+        TaskStatus.completed => Colors.green.shade700,
+        TaskStatus.delayed => Colors.red.shade700,
+        TaskStatus.rejected => Colors.grey.shade700,
       };
 
   @override
@@ -286,7 +419,6 @@ class _TaskCardState extends State<_TaskCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row
               Row(children: [
                 Expanded(
                   child: Column(
@@ -306,10 +438,8 @@ class _TaskCardState extends State<_TaskCard> {
                       ]),
                 ),
                 const SizedBox(width: 12),
-                // Priority pill
                 _Pill(pl, pc),
                 const SizedBox(width: 8),
-                // Status pill
                 _Pill(sl, sc),
                 const SizedBox(width: 8),
                 Icon(
@@ -320,21 +450,18 @@ class _TaskCardState extends State<_TaskCard> {
                 ),
               ]),
 
-              // Summary chips always visible
               const SizedBox(height: 10),
               Wrap(spacing: 12, runSpacing: 6, children: [
                 _InfoChip(Icons.calendar_today_rounded,
                     'Due: ${_fmt(t.dueDate)}'),
                 if (t.weightage > 0)
-                  _InfoChip(Icons.star_rounded,
-                      '${t.weightage} pts'),
+                  _InfoChip(Icons.star_rounded, '${t.weightage} pts'),
                 if (t.assignedEmployee.isNotEmpty)
                   _InfoChip(Icons.person_rounded, t.assignedEmployee),
                 if (t.department.isNotEmpty)
                   _InfoChip(Icons.business_rounded, t.department),
               ]),
 
-              // Expanded details
               if (_expanded) ...[
                 const SizedBox(height: 14),
                 const Divider(),
@@ -364,7 +491,6 @@ class _TaskCardState extends State<_TaskCard> {
                 ]),
                 const SizedBox(height: 14),
 
-                // Change status row
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(children: [
@@ -380,8 +506,8 @@ class _TaskCardState extends State<_TaskCard> {
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: _statusColor(s))),
-                                backgroundColor:
-                                    _statusColor(s).withValues(alpha: 0.08),
+                                backgroundColor: _statusColor(s)
+                                    .withValues(alpha: 0.08),
                                 side: BorderSide(
                                     color: _statusColor(s)
                                         .withValues(alpha: 0.3)),
@@ -430,7 +556,8 @@ class _TaskCardState extends State<_TaskCard> {
                           size: 16, color: Colors.red.shade700),
                       label: Text('Delete Task',
                           style: TextStyle(
-                              fontSize: 12, color: Colors.red.shade700)),
+                              fontSize: 12,
+                              color: Colors.red.shade700)),
                     ),
                   ),
                 ],
@@ -443,7 +570,7 @@ class _TaskCardState extends State<_TaskCard> {
   }
 }
 
-// ── Helper widgets ─────────────────────────────────────────────────────────
+// ── Helper widgets ───────────────────────────────────────────────────────────
 
 class _Pill extends StatelessWidget {
   final String label;
@@ -461,9 +588,7 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: color)),
+              fontSize: 10, fontWeight: FontWeight.w700, color: color)),
     );
   }
 }
@@ -479,8 +604,7 @@ class _InfoChip extends StatelessWidget {
       Icon(icon, size: 12, color: const Color(0xFF78909C)),
       const SizedBox(width: 4),
       Text(label,
-          style: const TextStyle(
-              fontSize: 11, color: Color(0xFF546E7A))),
+          style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A))),
     ]);
   }
 }

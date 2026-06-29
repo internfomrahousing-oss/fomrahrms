@@ -17,8 +17,6 @@ const _navItems = [
   _NavItem('Attendance Management', Icons.access_time_rounded, '/attendance-management'),
   _NavItem('Leave Management', Icons.event_available_rounded, '/leave-management'),
   _NavItem('Task Management', Icons.task_alt_rounded, '/task-management'),
-  _NavItem('Performance Management', Icons.trending_up_rounded, '/performance-management'),
-  _NavItem('Salary Hike Engine', Icons.monetization_on_rounded, '/salary-hike-engine'),
   _NavItem('Payroll Management', Icons.account_balance_wallet_rounded, '/payroll-management'),
   _NavItem('Interview Process', Icons.record_voice_over_rounded, '/interview-process'),
   _NavItem('Employee Onboarding', Icons.how_to_reg_rounded, '/employee-onboarding'),

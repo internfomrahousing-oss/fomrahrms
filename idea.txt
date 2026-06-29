@@ -1,2 +1,0 @@
-in employee/manager dahsboard i want this to be the issue dropdown :
-Attendance Issues,Salary & Payroll Issues,Leave Issues,Manager-Related Issues,Team Issues,Workplace Behavior Issues,IT Issues
