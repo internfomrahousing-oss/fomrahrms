@@ -74,8 +74,11 @@ import '../models/user_session.dart';
     issue_type text not null,
     description text not null,
     status text default 'open',
+    sent_to_management boolean default false,
     created_at timestamptz default now()
   );
+  -- If table already exists without sent_to_management:
+  alter table maintenance_tickets add column if not exists sent_to_management boolean default false;
 
   create table if not exists employee_profiles (
     employee_id text primary key,
@@ -348,17 +351,29 @@ class SupabaseService {
 
   // ── Maintenance Tickets ───────────────────────────────────────────────
 
-  static Future<void> saveMaintenanceTicket(MaintenanceTicket ticket) async {
+  static Future<String?> saveMaintenanceTicket(MaintenanceTicket ticket) async {
     try {
       await _db?.from('maintenance_tickets').upsert({
-        'id':               ticket.id,
-        'reported_by_role': ticket.reportedByRole.name,
-        'reported_by':      ticket.reportedBy,
-        'issue_type':       ticket.issueType,
-        'description':      ticket.description,
-        'status':           ticket.status.name,
-        'created_at':       ticket.createdAt.toIso8601String(),
+        'id':                   ticket.id,
+        'reported_by_role':     ticket.reportedByRole.name,
+        'reported_by':          ticket.reportedBy,
+        'issue_type':           ticket.issueType,
+        'description':          ticket.description,
+        'status':               ticket.status.name,
+        'sent_to_management':   ticket.sentToManagement,
+        'created_at':           ticket.createdAt.toIso8601String(),
       });
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  static Future<void> updateTicketSentToManagement(String id, bool sent) async {
+    try {
+      await _db?.from('maintenance_tickets')
+          .update({'sent_to_management': sent})
+          .eq('id', id);
     } catch (_) {}
   }
 
@@ -391,13 +406,14 @@ class SupabaseService {
           orElse: () => MaintenanceStatus.open,
         );
         return MaintenanceTicket(
-          id:             row['id'] as String,
-          reportedByRole: role,
-          reportedBy:     row['reported_by'] as String,
-          issueType:      row['issue_type'] as String,
-          description:    row['description'] as String,
-          status:         status,
-          createdAt:      DateTime.parse(row['created_at'] as String),
+          id:                 row['id'] as String,
+          reportedByRole:     role,
+          reportedBy:         row['reported_by'] as String,
+          issueType:          row['issue_type'] as String,
+          description:        row['description'] as String,
+          status:             status,
+          sentToManagement:   (row['sent_to_management'] as bool?) ?? false,
+          createdAt:          DateTime.parse(row['created_at'] as String),
         );
       }).toList();
     } catch (_) {

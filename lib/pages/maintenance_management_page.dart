@@ -50,7 +50,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     } catch (_) {}
   }
 
-  void _submitTicket() {
+  Future<void> _submitTicket() async {
     final issueType = _selectedIssueType;
     final desc      = _descController.text.trim();
     if (issueType == null || desc.isEmpty) return;
@@ -71,7 +71,21 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       _selectedIssueType = null;
       _descController.clear();
     });
-    SupabaseService.saveMaintenanceTicket(ticket);
+    final error = await SupabaseService.saveMaintenanceTicket(ticket);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Save failed: $error'),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 8),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Issue submitted successfully.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+      ));
+    }
   }
 
   Future<void> _addressed(MaintenanceTicket t) async {
