@@ -162,10 +162,13 @@ class _CandidateApplicationFormPageState
       if (comma < 0) throw 'Malformed data URL';
       var bytes = base64Decode(dataUrl.substring(comma + 1));
       var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
-      // Images → compress to ≤200 KB
       if (mime.startsWith('image/')) {
+        // Photos: auto-compress to ≤200 KB
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
+      } else {
+        // Documents: reject if > 1 MB
+        if (bytes.length > 1024 * 1024) throw 'File too large (max 1 MB). Please choose a smaller file.';
       }
       final url = await SupabaseService.uploadFile(bytes, rawFile.name, mime);
       if (mounted) {
@@ -956,8 +959,12 @@ class _CandidateApplicationFormPageState
                                     var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
                                     var name  = rawFile.name;
                                     if (mime.startsWith('image/')) {
+                                      // Photos: auto-compress to ≤200 KB
                                       final c = await _compressImage(bytes, mime);
                                       if (c != null) { bytes = c; mime = 'image/jpeg'; name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg'; }
+                                    } else {
+                                      // Documents: reject if > 1 MB
+                                      if (bytes.length > 1024 * 1024) throw 'File too large (max 1 MB). Please choose a smaller file.';
                                     }
                                     final url = await SupabaseService.uploadResume(bytes, name, mime);
                                     if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });

@@ -256,7 +256,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // ── File helpers ──────────────────────────────────────────────────────────
 
   // Reads bytes from a raw html.File via data-URL.
-  // Photos → compressed to ≤200 KB. Non-image files are uploaded as-is.
+  // Photos → auto-compressed to ≤200 KB. Documents → rejected if > 1 MB.
   Future<_AttachFile?> _processRawFile(html.File file) async {
     try {
       final reader = html.FileReader();
@@ -270,10 +270,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       if (comma < 0) throw 'Malformed data URL';
       var bytes = base64Decode(dataUrl.substring(comma + 1));
       var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
-      // Always compress images to ≤200 KB
       if (mime.startsWith('image/')) {
+        // Photos: auto-compress to ≤200 KB
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
+      } else {
+        // Documents: reject if > 1 MB
+        if (bytes.length > 1024 * 1024) throw 'File too large (max 1 MB). Please choose a smaller file.';
       }
       return _AttachFile(name: file.name, bytes: bytes, mime: mime);
     } catch (e) {
