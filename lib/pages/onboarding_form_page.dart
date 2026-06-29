@@ -255,8 +255,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   // ── File helpers ──────────────────────────────────────────────────────────
 
-  // Reads bytes from a raw html.File via data-URL (avoids ByteBuffer cast issues).
-  // Auto-compresses images > 1 MB.
+  // Reads bytes from a raw html.File via data-URL.
+  // Photos → compressed to ≤200 KB. Non-image files are uploaded as-is.
   Future<_AttachFile?> _processRawFile(html.File file) async {
     try {
       final reader = html.FileReader();
@@ -267,7 +267,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       if (comma < 0) throw 'Malformed data URL';
       var bytes = base64Decode(dataUrl.substring(comma + 1));
       var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
-      if (bytes.length > 1024 * 1024 && mime.startsWith('image/')) {
+      // Always compress images to ≤200 KB
+      if (mime.startsWith('image/')) {
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       }
@@ -284,7 +285,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     }
   }
 
-  // Compress image using Canvas API until it's under 1 MB.
+  // Compress image via Canvas API to ≤200 KB.
+  // Scales to max 1200 px on the long edge, then tries descending quality.
   Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
     try {
       final blob = html.Blob([bytes], mime);
@@ -295,31 +297,26 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
       int w = img.naturalWidth;
       int h = img.naturalHeight;
-      const maxDim = 1920;
+      const maxDim = 1200;
       if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = (h * maxDim / w).round();
-          w = maxDim;
-        } else {
-          w = (w * maxDim / h).round();
-          h = maxDim;
-        }
+        if (w > h) { h = (h * maxDim / w).round(); w = maxDim; }
+        else        { w = (w * maxDim / h).round(); h = maxDim; }
       }
 
-      for (final quality in [0.7, 0.5, 0.3, 0.15]) {
+      const target = 200 * 1024; // 200 KB
+      for (final quality in [0.8, 0.6, 0.4, 0.2, 0.1, 0.05]) {
         final canvas = html.CanvasElement(width: w, height: h);
-        canvas.context2D
-            .drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-        final dataUrl = canvas.toDataUrl('image/jpeg', quality);
+        canvas.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
         final compressed =
-            Uint8List.fromList(base64Decode(dataUrl.split(',').last));
-        if (compressed.length <= 1024 * 1024) return compressed;
+            Uint8List.fromList(base64Decode(canvas.toDataUrl('image/jpeg', quality).split(',').last));
+        if (compressed.length <= target) return compressed;
       }
-      // Last resort at minimum quality
+      // Last resort: halve dimensions and use lowest quality
+      w = (w * 0.6).round(); h = (h * 0.6).round();
       final canvas = html.CanvasElement(width: w, height: h);
       canvas.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
       return Uint8List.fromList(
-          base64Decode(canvas.toDataUrl('image/jpeg', 0.1).split(',').last));
+          base64Decode(canvas.toDataUrl('image/jpeg', 0.05).split(',').last));
     } catch (_) {
       return null;
     }

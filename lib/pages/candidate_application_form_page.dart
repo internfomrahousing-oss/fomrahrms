@@ -157,8 +157,13 @@ class _CandidateApplicationFormPageState
       final dataUrl = reader.result as String;
       final comma = dataUrl.indexOf(',');
       if (comma < 0) throw 'Malformed data URL';
-      final bytes = base64Decode(dataUrl.substring(comma + 1));
-      final mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+      var bytes = base64Decode(dataUrl.substring(comma + 1));
+      var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+      // Images → compress to ≤200 KB
+      if (mime.startsWith('image/')) {
+        final compressed = await _compressImage(bytes, mime);
+        if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
+      }
       final url   = await SupabaseService.uploadFile(bytes, rawFile.name, mime);
       if (mounted) setState(() {
         _customFileNames[fieldId] = rawFile.name;
@@ -363,7 +368,8 @@ class _CandidateApplicationFormPageState
       var bytes = base64Decode(dataUrl.substring(comma + 1));
       var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
       var name  = rawFile.name;
-      if (mime.startsWith('image/') && bytes.length > 1024 * 1024) {
+      // Images → compress to ≤200 KB
+      if (mime.startsWith('image/')) {
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) {
           bytes = compressed;
@@ -391,7 +397,7 @@ class _CandidateApplicationFormPageState
     }
   }
 
-  // Compress image using Canvas API until under 1 MB
+  // Compress image via Canvas API to ≤200 KB.
   Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
     try {
       final blob = html.Blob([bytes], mime);
@@ -400,21 +406,23 @@ class _CandidateApplicationFormPageState
       await img.onLoad.first;
       html.Url.revokeObjectUrl(url);
       int w = img.naturalWidth, h = img.naturalHeight;
-      const maxDim = 1920;
+      const maxDim = 1200;
       if (w > maxDim || h > maxDim) {
         if (w > h) { h = (h * maxDim / w).round(); w = maxDim; }
         else       { w = (w * maxDim / h).round(); h = maxDim; }
       }
-      for (final q in [0.7, 0.5, 0.3, 0.15]) {
+      const target = 200 * 1024; // 200 KB
+      for (final q in [0.8, 0.6, 0.4, 0.2, 0.1, 0.05]) {
         final c = html.CanvasElement(width: w, height: h);
         c.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-        final data = c.toDataUrl('image/jpeg', q);
-        final out  = Uint8List.fromList(base64Decode(data.split(',').last));
-        if (out.length <= 1024 * 1024) return out;
+        final out = Uint8List.fromList(base64Decode(c.toDataUrl('image/jpeg', q).split(',').last));
+        if (out.length <= target) return out;
       }
+      // Last resort: halve dimensions
+      w = (w * 0.6).round(); h = (h * 0.6).round();
       final c = html.CanvasElement(width: w, height: h);
       c.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-      return Uint8List.fromList(base64Decode(c.toDataUrl('image/jpeg', 0.1).split(',').last));
+      return Uint8List.fromList(base64Decode(c.toDataUrl('image/jpeg', 0.05).split(',').last));
     } catch (_) { return null; }
   }
 
