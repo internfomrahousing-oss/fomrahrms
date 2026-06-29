@@ -378,123 +378,213 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   }
 
   void _showSendEmailDialog(BuildContext context, Map<String, dynamic> row) {
-    final name  = (row['name']         ?? '').toString().trim();
-    final post  = (row['post_applied'] ?? '').toString().trim();
-    final email = (row['email']        ?? '').toString().trim();
+    final name  = (row['name']  ?? '').toString().trim();
+    final email = (row['email'] ?? '').toString().trim();
+
+    const _positions = [
+      'HR', 'ADMIN', 'OPERATION', 'CRM', 'PROJECTS',
+      'LAND ACQUISITION', 'ACCOUNTS', 'SALES', 'DIGITAL MARKETING',
+    ];
 
     const formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form';
 
-    final subject = Uri.encodeComponent(
-      'Congratulations — Next Steps for Joining FOMRA Housing & Infrastructure',
-    );
+    String? selectedPosition = (row['post_applied'] ?? '').toString().trim();
+    if (!_positions.contains(selectedPosition)) selectedPosition = null;
 
-    final bodyText = '''Dear $name,
+    DateTime joiningDate = DateTime.now().add(const Duration(days: 7));
 
-Congratulations! We are pleased to inform you that your interview for the position of ${post.isNotEmpty ? post : 'the applied role'} at FOMRA Housing & Infrastructure has been successfully completed and approved by our team.
+    String _fmt(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-As the next step, please fill in your Joining / Onboarding Form using the link below:
+    String _buildBody(String? position, DateTime date) {
+      final pos = (position ?? 'the applied role');
+      return '''Dear $name,
+Congratulations!
+We are pleased to offer you the position of Manager- $pos at Fomra Housing & Infrastructure Pvt Ltd, based on the terms and conditions mutually discussed and agreed upon. You are requested to join us on ${_fmt(date)} at 9:30 AM at our corporate office.
 
+Corporate Office Address:
+Fomra Housing & Infrastructure Pvt Ltd,
+Old No. F76, Chintamani, 1st Floor,
+Agathiyar Nagar Extension, 2nd Street,
+Anna Nagar East,
+Chennai, Tamil Nadu – 600102
+
+If you are unable to report on the specified date, kindly inform us in advance by email.
+Please note that this pre-employment offer is subject to successful verification of the information and documents provided by you. You are required to submit Xerox copies of the following documents at the time of joining:
+
+Required Documents
+1. Proof of Academic Qualifications:
+   o  10th & 12th Mark Sheets
+   o  UG & PG Mark Sheets and Degree Certificates
+2. Experience Certificates & Relieving Letters (if applicable)
+3. Last 3 Months' Salary Slips from previous employment(s) (if applicable)
+4. Bank Account Details
+5. Proof of Identity (Aadhar Card, PAN Card)
+6. Passport Size Photographs – 2 copies
+
+Kindly complete your onboarding form at the link below before joining:
 $formLink
 
-Kindly complete the form at the earliest so we can proceed with your joining formalities.
+This offer is valid for 3 days from the date of this email. Please confirm your acceptance within 2 days of receiving this communication. If we do not receive your confirmation within the stipulated time, the offer will be considered withdrawn and the position may be offered to another candidate.
 
-Should you have any questions, feel free to reach out to us.
+This offer is subject to the standard terms and conditions of employment at Fomra Housing & Infrastructure Pvt Ltd. Your employment will be governed by the company's policies, rules, and guidelines.
+
+We look forward to welcoming you to our team and hope for a long, productive, and mutually rewarding association.
 
 Warm regards,
 HR Team
-FOMRA Housing & Infrastructure''';
-
-    final mailtoUrl = 'mailto:$email?subject=$subject&body=${Uri.encodeComponent(bodyText)}';
+Fomra Housing & Infrastructure Pvt Ltd''';
+    }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1565C0).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.mail_outline_rounded, color: Color(0xFF1565C0), size: 18),
-          ),
-          const SizedBox(width: 10),
-          const Text('Send Invitation Email',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
-        ]),
-        content: SizedBox(
-          width: 480,
-          child: SingleChildScrollView(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // To field
-              _EmailField(label: 'To', value: email.isNotEmpty ? email : '(email not on file)'),
-              const SizedBox(height: 8),
-              _EmailField(label: 'Subject',
-                  value: 'Congratulations — Next Steps for Joining FOMRA Housing & Infrastructure'),
-              const SizedBox(height: 12),
-              // Body preview
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final bodyText  = _buildBody(selectedPosition, joiningDate);
+          final subject   = Uri.encodeComponent('Offer Letter – Fomra Housing & Infrastructure Pvt Ltd');
+          final mailtoUrl = 'mailto:$email?subject=$subject&body=${Uri.encodeComponent(bodyText)}';
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(children: [
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FF),
+                  color: const Color(0xFF1565C0).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
-                child: Text(bodyText,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF37474F), height: 1.6)),
+                child: const Icon(Icons.mail_outline_rounded, color: Color(0xFF1565C0), size: 18),
               ),
-              if (email.isEmpty) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(children: [
-                    Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFE65100)),
-                    SizedBox(width: 6),
-                    Expanded(child: Text(
-                        'No email address on file for this candidate. Add it in their application first.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFFE65100)))),
-                  ]),
-                ),
-              ],
+              const SizedBox(width: 10),
+              const Text('Send Offer Letter',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
             ]),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.open_in_new_rounded, size: 15),
-            label: const Text('Open in Mail App'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1565C0),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _EmailField(label: 'To', value: email.isNotEmpty ? email : '(email not on file)'),
+                  const SizedBox(height: 8),
+                  _EmailField(label: 'Subject', value: 'Offer Letter – Fomra Housing & Infrastructure Pvt Ltd'),
+                  const SizedBox(height: 12),
+
+                  // Position dropdown
+                  const Text('Position',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                  const SizedBox(height: 4),
+                  DropdownButtonFormField<String>(
+                    value: selectedPosition,
+                    hint: const Text('Select position', style: TextStyle(fontSize: 13)),
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                    ),
+                    items: _positions.map((p) => DropdownMenuItem(
+                      value: p,
+                      child: Text(p, style: const TextStyle(fontSize: 13)),
+                    )).toList(),
+                    onChanged: (v) => setDlgState(() => selectedPosition = v),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Joining date picker
+                  const Text('Joining Date',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: joiningDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) setDlgState(() => joiningDate = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF1565C0)),
+                        const SizedBox(width: 8),
+                        Text(_fmt(joiningDate),
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E))),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Letter preview
+                  const Text('Letter Preview',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    child: Text(bodyText,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF37474F), height: 1.6)),
+                  ),
+
+                  if (email.isEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(children: [
+                        Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFE65100)),
+                        SizedBox(width: 6),
+                        Expanded(child: Text(
+                            'No email address on file for this candidate.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFFE65100)))),
+                      ]),
+                    ),
+                  ],
+                ]),
+              ),
             ),
-            onPressed: email.isEmpty ? null : () async {
-              Navigator.pop(ctx);
-              html.window.open(mailtoUrl, '_self');
-              // Auto-mark as Pre Offer & Onboarding Sent once email is opened
-              final id = (row['id'] ?? '').toString();
-              if (id.isNotEmpty) {
-                try {
-                  await SupabaseService.updateCandidateStatus(id, {
-                    'pre_offer_sent': true,
-                    'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
-                  });
-                } catch (_) {}
-                _fetch();
-              }
-            },
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                label: const Text('Send Offer Letter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1565C0),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: email.isEmpty ? null : () async {
+                  Navigator.pop(ctx);
+                  html.window.open(mailtoUrl, '_self');
+                  final id = (row['id'] ?? '').toString();
+                  if (id.isNotEmpty) {
+                    try {
+                      await SupabaseService.updateCandidateStatus(id, {
+                        'pre_offer_sent': true,
+                        'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
+                      });
+                    } catch (_) {}
+                    _fetch();
+                  }
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
