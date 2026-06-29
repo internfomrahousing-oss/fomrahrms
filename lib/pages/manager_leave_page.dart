@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,6 +21,7 @@ class _LeaveRequest {
   final int days;
   final String reason;
   _Status managerStatus = _Status.pending;
+  DateTime? decidedAt;
 
   _LeaveRequest({
     required this.employee,
@@ -46,8 +48,10 @@ class _ManagerLeavePageState extends State<ManagerLeavePage> {
   // Empty — populated from backend when connected
   final List<_LeaveRequest> _requests = [];
 
-  void _setStatus(int i, _Status s) =>
-      setState(() => _requests[i].managerStatus = s);
+  void _setStatus(int i, _Status s) => setState(() {
+    _requests[i].managerStatus = s;
+    _requests[i].decidedAt = s == _Status.pending ? null : DateTime.now();
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +314,7 @@ class _TopicCard extends StatelessWidget {
 
 // ── Team leave request card ────────────────────────────────────────────────
 
-class _RequestCard extends StatelessWidget {
+class _RequestCard extends StatefulWidget {
   final _LeaveRequest request;
   final VoidCallback onApprove;
   final VoidCallback onDeny;
@@ -321,21 +325,72 @@ class _RequestCard extends StatelessWidget {
     required this.onApprove,
     required this.onDeny,
     required this.onReset,
+    super.key,
   });
 
-  Color _statusColor(_Status s) => switch (s) {
+  @override
+  State<_RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends State<_RequestCard> {
+  static const _undoWindow = Duration(minutes: 10);
+  Timer? _timer;
+
+  bool get _canUndo {
+    final da = widget.request.decidedAt;
+    if (da == null || widget.request.managerStatus == _Status.pending) return false;
+    return DateTime.now().difference(da) < _undoWindow;
+  }
+
+  String get _countdown {
+    final da = widget.request.decidedAt;
+    if (da == null) return '';
+    final remaining = _undoWindow - DateTime.now().difference(da);
+    if (remaining.isNegative) return '';
+    final m = remaining.inMinutes;
+    final s = remaining.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeStartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RequestCard old) {
+    super.didUpdateWidget(old);
+    _timer?.cancel();
+    _maybeStartTimer();
+  }
+
+  void _maybeStartTimer() {
+    if (!_canUndo) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+      if (!_canUndo) _timer?.cancel();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Color _sc(_Status s) => switch (s) {
         _Status.approved => Colors.green.shade700,
         _Status.denied   => Colors.red.shade700,
         _Status.pending  => Colors.orange.shade700,
       };
-
-  IconData _statusIcon(_Status s) => switch (s) {
+  IconData _si(_Status s) => switch (s) {
         _Status.approved => Icons.check_circle_rounded,
         _Status.denied   => Icons.cancel_rounded,
         _Status.pending  => Icons.hourglass_empty_rounded,
       };
-
-  String _statusLabel(_Status s) => switch (s) {
+  String _sl(_Status s) => switch (s) {
         _Status.approved => 'Approved',
         _Status.denied   => 'Denied',
         _Status.pending  => 'Pending',
@@ -343,21 +398,20 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sc = _statusColor(request.managerStatus);
-    final si = _statusIcon(request.managerStatus);
-    final sl = _statusLabel(request.managerStatus);
+    final req = widget.request;
+    final sc = _sc(req.managerStatus);
+    final si = _si(req.managerStatus);
+    final sl = _sl(req.managerStatus);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Employee + overall status
           Row(children: [
-            const Icon(Icons.person_rounded,
-                color: Color(0xFF1A237E), size: 20),
+            const Icon(Icons.person_rounded, color: Color(0xFF1A237E), size: 20),
             const SizedBox(width: 8),
-            Text(request.employee,
+            Text(req.employee,
                 style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -369,12 +423,12 @@ class _RequestCard extends StatelessWidget {
 
           // Leave details chips
           Wrap(spacing: 16, runSpacing: 6, children: [
-            _InfoChip(Icons.label_rounded, request.leaveType),
+            _InfoChip(Icons.label_rounded, req.leaveType),
             _InfoChip(Icons.calendar_today_rounded,
-                '${request.from} → ${request.to}'),
+                '${req.from} → ${req.to}'),
             _InfoChip(Icons.numbers_rounded,
-                '${request.days} day${request.days == 1 ? '' : 's'}'),
-            _InfoChip(Icons.notes_rounded, request.reason),
+                '${req.days} day${req.days == 1 ? '' : 's'}'),
+            _InfoChip(Icons.notes_rounded, req.reason),
           ]),
           const SizedBox(height: 14),
           const Divider(),
@@ -386,23 +440,22 @@ class _RequestCard extends StatelessWidget {
                 size: 16, color: Color(0xFF78909C)),
             const SizedBox(width: 6),
             const Text('Your Decision:',
-                style:
-                    TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
             const SizedBox(width: 8),
             _StatusPill(sl, sc, si),
             const Spacer(),
-            if (request.managerStatus == _Status.pending) ...[
+            if (req.managerStatus == _Status.pending) ...[
               _ActionBtn('Approve', Colors.green.shade700,
-                  Icons.check_rounded, onApprove),
+                  Icons.check_rounded, widget.onApprove),
               const SizedBox(width: 8),
               _ActionBtn('Deny', Colors.red.shade700,
-                  Icons.close_rounded, onDeny),
-            ] else
+                  Icons.close_rounded, widget.onDeny),
+            ] else if (_canUndo)
               TextButton.icon(
-                onPressed: onReset,
+                onPressed: widget.onReset,
                 icon: const Icon(Icons.undo_rounded, size: 14),
-                label:
-                    const Text('Reset', style: TextStyle(fontSize: 12)),
+                label: Text('Undo ($_countdown)',
+                    style: const TextStyle(fontSize: 12)),
               ),
           ]),
         ]),

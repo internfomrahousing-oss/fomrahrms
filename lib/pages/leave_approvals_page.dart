@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/back_button.dart';
 
@@ -14,6 +15,7 @@ class _Application {
   final String reason;
   final String appliedOn;
   _Status status = _Status.pending;
+  DateTime? decidedAt;
   _Application({
     required this.employeeId,
     required this.employeeName,
@@ -100,10 +102,9 @@ class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _ApplicationCard(
                         application: app,
-                        onApprove: () =>
-                            setState(() => app.status = _Status.approved),
-                        onDeny: () =>
-                            setState(() => app.status = _Status.denied),
+                        onApprove: () => setState(() { app.status = _Status.approved; app.decidedAt = DateTime.now(); }),
+                        onDeny:    () => setState(() { app.status = _Status.denied;   app.decidedAt = DateTime.now(); }),
+                        onReset:   () => setState(() { app.status = _Status.pending;  app.decidedAt = null; }),
                       ),
                     )),
                 const SizedBox(height: 8),
@@ -115,10 +116,9 @@ class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _ApplicationCard(
                         application: app,
-                        onApprove: () =>
-                            setState(() => app.status = _Status.approved),
-                        onDeny: () =>
-                            setState(() => app.status = _Status.denied),
+                        onApprove: () => setState(() { app.status = _Status.approved; app.decidedAt = DateTime.now(); }),
+                        onDeny:    () => setState(() { app.status = _Status.denied;   app.decidedAt = DateTime.now(); }),
+                        onReset:   () => setState(() { app.status = _Status.pending;  app.decidedAt = null; }),
                       ),
                     )),
               ],
@@ -182,29 +182,82 @@ class _CountChip extends StatelessWidget {
   }
 }
 
-class _ApplicationCard extends StatelessWidget {
+class _ApplicationCard extends StatefulWidget {
   final _Application application;
   final VoidCallback onApprove;
   final VoidCallback onDeny;
+  final VoidCallback onReset;
   const _ApplicationCard({
     required this.application,
     required this.onApprove,
     required this.onDeny,
+    required this.onReset,
+    super.key,
   });
 
-  Color get _statusColor => switch (application.status) {
+  @override
+  State<_ApplicationCard> createState() => _ApplicationCardState();
+}
+
+class _ApplicationCardState extends State<_ApplicationCard> {
+  static const _undoWindow = Duration(minutes: 10);
+  Timer? _timer;
+
+  bool get _canUndo {
+    final da = widget.application.decidedAt;
+    if (da == null || widget.application.status == _Status.pending) return false;
+    return DateTime.now().difference(da) < _undoWindow;
+  }
+
+  String get _countdown {
+    final da = widget.application.decidedAt;
+    if (da == null) return '';
+    final remaining = _undoWindow - DateTime.now().difference(da);
+    if (remaining.isNegative) return '';
+    final m = remaining.inMinutes;
+    final s = remaining.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeStartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ApplicationCard old) {
+    super.didUpdateWidget(old);
+    _timer?.cancel();
+    _maybeStartTimer();
+  }
+
+  void _maybeStartTimer() {
+    if (!_canUndo) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+      if (!_canUndo) _timer?.cancel();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Color get _statusColor => switch (widget.application.status) {
         _Status.approved => Colors.green.shade700,
         _Status.denied   => Colors.red.shade700,
         _Status.pending  => Colors.orange.shade700,
       };
-
-  String get _statusLabel => switch (application.status) {
+  String get _statusLabel => switch (widget.application.status) {
         _Status.approved => 'Approved',
         _Status.denied   => 'Denied',
         _Status.pending  => 'Pending',
       };
-
-  IconData get _statusIcon => switch (application.status) {
+  IconData get _statusIcon => switch (widget.application.status) {
         _Status.approved => Icons.check_circle_rounded,
         _Status.denied   => Icons.cancel_rounded,
         _Status.pending  => Icons.hourglass_empty_rounded,
@@ -212,7 +265,8 @@ class _ApplicationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPending = application.status == _Status.pending;
+    final app = widget.application;
+    final isPending = app.status == _Status.pending;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -230,30 +284,28 @@ class _ApplicationCard extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Row(children: [
-                  Text(application.employeeName,
+                  Text(app.employeeName,
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w700,
                           color: Color(0xFF1A237E))),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: const Color(0xFF0D47A1).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    child: Text(application.employeeId,
+                    child: Text(app.employeeId,
                         style: const TextStyle(
                             fontSize: 10, fontWeight: FontWeight.w600,
                             color: Color(0xFF0D47A1))),
                   ),
                 ]),
-                Text(application.department,
+                Text(app.department,
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFF78909C))),
               ]),
             ),
-            // Status badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -276,11 +328,11 @@ class _ApplicationCard extends StatelessWidget {
 
           // Leave details grid
           Wrap(spacing: 24, runSpacing: 8, children: [
-            _Detail(Icons.category_rounded,     'Leave Type', application.leaveType),
-            _Detail(Icons.calendar_today_rounded,'From',       application.from),
-            _Detail(Icons.event_rounded,         'To',         application.to),
-            _Detail(Icons.today_rounded,         'Days',       '${application.days} day${application.days == 1 ? '' : 's'}'),
-            _Detail(Icons.schedule_rounded,      'Applied On', application.appliedOn),
+            _Detail(Icons.category_rounded,      'Leave Type', app.leaveType),
+            _Detail(Icons.calendar_today_rounded, 'From',      app.from),
+            _Detail(Icons.event_rounded,          'To',        app.to),
+            _Detail(Icons.today_rounded,          'Days',      '${app.days} day${app.days == 1 ? '' : 's'}'),
+            _Detail(Icons.schedule_rounded,       'Applied On', app.appliedOn),
           ]),
           const SizedBox(height: 10),
 
@@ -296,7 +348,7 @@ class _ApplicationCard extends StatelessWidget {
               const Icon(Icons.notes_rounded, size: 14, color: Color(0xFF78909C)),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(application.reason,
+                child: Text(app.reason,
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFF546E7A))),
               ),
@@ -309,7 +361,7 @@ class _ApplicationCard extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: onApprove,
+                  onPressed: widget.onApprove,
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: const Text('Approve'),
                   style: ElevatedButton.styleFrom(
@@ -324,7 +376,7 @@ class _ApplicationCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: onDeny,
+                  onPressed: widget.onDeny,
                   icon: const Icon(Icons.close_rounded, size: 16),
                   label: const Text('Deny'),
                   style: ElevatedButton.styleFrom(
@@ -339,35 +391,30 @@ class _ApplicationCard extends StatelessWidget {
             ])
           else
             Row(children: [
-              if (application.status == _Status.denied)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check_rounded, size: 14),
-                    label: const Text('Approve Instead'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.green.shade700,
-                      side: BorderSide(color: Colors.green.shade700),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              if (application.status == _Status.approved)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onDeny,
-                    icon: const Icon(Icons.close_rounded, size: 14),
-                    label: const Text('Deny Instead'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade700,
-                      side: BorderSide(color: Colors.red.shade700),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_statusIcon, size: 14, color: _statusColor),
+                  const SizedBox(width: 6),
+                  Text(_statusLabel,
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: _statusColor)),
+                ]),
+              ),
+              const Spacer(),
+              if (_canUndo)
+                TextButton.icon(
+                  onPressed: widget.onReset,
+                  icon: const Icon(Icons.undo_rounded, size: 14),
+                  label: Text('Undo ($_countdown)',
+                      style: const TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF78909C)),
                 ),
             ]),
         ]),

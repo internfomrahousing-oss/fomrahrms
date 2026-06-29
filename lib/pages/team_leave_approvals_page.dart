@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
@@ -101,6 +102,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       app.managerStatus    = LeaveApprovalStatus.approved;
       app.decidedBy        = by;
       app.rejectionComment = '';
+      app.decidedAt        = DateTime.now();
       if (_isMgmt) app.managementDecided = true;
     });
     if (_isMgmt) {
@@ -159,6 +161,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       app.managerStatus    = LeaveApprovalStatus.denied;
       app.decidedBy        = by;
       app.rejectionComment = comment;
+      app.decidedAt        = DateTime.now();
       if (_isMgmt) app.managementDecided = true;
     });
     if (_isMgmt) {
@@ -177,6 +180,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       app.managerStatus    = LeaveApprovalStatus.pending;
       app.decidedBy        = '';
       app.rejectionComment = '';
+      app.decidedAt        = null;
       if (_isMgmt) app.managementDecided = false;
     });
     if (_isMgmt) {
@@ -401,7 +405,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
 String _fmtDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-class _RequestCard extends StatelessWidget {
+class _RequestCard extends StatefulWidget {
   final LeaveApplication request;
   final bool isManagement;
   final VoidCallback onApprove;
@@ -414,7 +418,60 @@ class _RequestCard extends StatelessWidget {
     required this.onApprove,
     required this.onDeny,
     required this.onReset,
+    super.key,
   });
+
+  @override
+  State<_RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends State<_RequestCard> {
+  static const _undoWindow = Duration(minutes: 10);
+  Timer? _timer;
+
+  bool get _canUndo {
+    final da = widget.request.decidedAt;
+    if (da == null || widget.request.managerStatus == LeaveApprovalStatus.pending) return false;
+    return DateTime.now().difference(da) < _undoWindow;
+  }
+
+  String get _countdown {
+    final da = widget.request.decidedAt;
+    if (da == null) return '';
+    final remaining = _undoWindow - DateTime.now().difference(da);
+    if (remaining.isNegative) return '';
+    final m = remaining.inMinutes;
+    final s = remaining.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeStartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RequestCard old) {
+    super.didUpdateWidget(old);
+    _timer?.cancel();
+    _maybeStartTimer();
+  }
+
+  void _maybeStartTimer() {
+    if (!_canUndo) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+      if (!_canUndo) _timer?.cancel();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   static Color _sc(LeaveApprovalStatus s) => switch (s) {
         LeaveApprovalStatus.approved => Colors.green.shade700,
@@ -434,11 +491,12 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = request.managerStatus;
+    final status = widget.request.managerStatus;
     final sc     = _sc(status);
     final si     = _si(status);
     final sl     = _sl(status);
 
+    final req = widget.request;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -449,8 +507,8 @@ class _RequestCard extends StatelessWidget {
               radius: 20,
               backgroundColor: const Color(0xFF283593).withValues(alpha: 0.1),
               child: Text(
-                request.employeeName.isNotEmpty
-                    ? request.employeeName[0].toUpperCase()
+                req.employeeName.isNotEmpty
+                    ? req.employeeName[0].toUpperCase()
                     : '?',
                 style: const TextStyle(
                     color: Color(0xFF283593),
@@ -463,12 +521,12 @@ class _RequestCard extends StatelessWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.employeeName,
+                    Text(req.employeeName,
                         style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1A237E))),
-                    Text(request.department,
+                    Text(req.department,
                         style: const TextStyle(
                             fontSize: 12, color: Color(0xFF78909C))),
                   ]),
@@ -487,25 +545,25 @@ class _RequestCard extends StatelessWidget {
                   color: const Color(0xFF283593).withValues(alpha: 0.08)),
             ),
             child: Column(children: [
-              _DetailRow(Icons.label_rounded,      'Leave Type', request.leaveType),
+              _DetailRow(Icons.label_rounded,      'Leave Type', req.leaveType),
               const SizedBox(height: 8),
               _DetailRow(Icons.date_range_rounded, 'Duration',
-                  '${_fmtDate(request.from)}  →  ${_fmtDate(request.to)}'),
+                  '${_fmtDate(req.from)}  →  ${_fmtDate(req.to)}'),
               const SizedBox(height: 8),
               _DetailRow(Icons.numbers_rounded,    'Days',
-                  request.isHalfDay
+                  req.isHalfDay
                       ? '½ day'
-                      : '${request.days} day${request.days == 1 ? '' : 's'}'),
-              if (request.reason.isNotEmpty) ...[
+                      : '${req.days} day${req.days == 1 ? '' : 's'}'),
+              if (req.reason.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                _DetailRow(Icons.notes_rounded, 'Reason', request.reason),
+                _DetailRow(Icons.notes_rounded, 'Reason', req.reason),
               ],
             ]),
           ),
           const SizedBox(height: 14),
 
           // Action row — locked for managers when management has already decided
-          if (!isManagement && request.managementDecided)
+          if (!widget.isManagement && req.managementDecided)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -520,7 +578,7 @@ class _RequestCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Decision locked by Management: $sl'
-                    '${request.decidedBy.isNotEmpty ? ' (${request.decidedBy})' : ''}',
+                    '${req.decidedBy.isNotEmpty ? ' (${req.decidedBy})' : ''}',
                     style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade600,
@@ -533,7 +591,7 @@ class _RequestCard extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: onDeny,
+                  onPressed: widget.onDeny,
                   icon: const Icon(Icons.close_rounded, size: 16),
                   label: const Text('Deny'),
                   style: OutlinedButton.styleFrom(
@@ -548,7 +606,7 @@ class _RequestCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: onApprove,
+                  onPressed: widget.onApprove,
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: const Text('Approve'),
                   style: ElevatedButton.styleFrom(
@@ -574,7 +632,7 @@ class _RequestCard extends StatelessWidget {
                   Icon(si, size: 16, color: sc),
                   const SizedBox(width: 6),
                   Text(
-                    '$sl by ${request.decidedBy.isEmpty ? 'Manager' : request.decidedBy}',
+                    '$sl by ${req.decidedBy.isEmpty ? 'Manager' : req.decidedBy}',
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -583,18 +641,21 @@ class _RequestCard extends StatelessWidget {
                 ]),
               ),
               const Spacer(),
-              TextButton.icon(
-                onPressed: onReset,
-                icon: const Icon(Icons.undo_rounded, size: 15),
-                label: const Text('Undo'),
-                style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF78909C)),
-              ),
+              // Undo button visible only within 10-minute window
+              if (_canUndo)
+                TextButton.icon(
+                  onPressed: widget.onReset,
+                  icon: const Icon(Icons.undo_rounded, size: 15),
+                  label: Text('Undo ($_countdown)',
+                      style: const TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF78909C)),
+                ),
             ]),
 
           // Denial reason
           if (status == LeaveApprovalStatus.denied &&
-              request.rejectionComment.isNotEmpty) ...[
+              req.rejectionComment.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
@@ -604,7 +665,7 @@ class _RequestCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Colors.red.shade200),
               ),
-              child: Text(request.rejectionComment,
+              child: Text(req.rejectionComment,
                   style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
             ),
           ],

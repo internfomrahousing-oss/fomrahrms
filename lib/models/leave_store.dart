@@ -20,6 +20,9 @@ class LeaveApplication {
   // True once management (HR/admin) has made a decision — locks manager's controls
   bool managementDecided = false;
 
+  // Set when a decision is made; cleared on undo. Used for the 10-min undo window.
+  DateTime? decidedAt;
+
   /// Actual deduction: 0.5 for half day, full days otherwise.
   double get effectiveDays => isHalfDay ? 0.5 : days.toDouble();
 
