@@ -9,7 +9,8 @@ import '../services/user_store.dart';
 import '../services/supabase_service.dart';
 
 class AddTaskPage extends StatefulWidget {
-  const AddTaskPage({super.key});
+  final bool selfAssign;
+  const AddTaskPage({super.key, this.selfAssign = false});
 
   @override
   State<AddTaskPage> createState() => _AddTaskPageState();
@@ -57,6 +58,22 @@ class _AddTaskPageState extends State<AddTaskPage> {
   }
 
   Future<void> _init() async {
+    if (widget.selfAssign) {
+      // Pre-assign to the logged-in user; skip user loading
+      if (mounted) {
+        setState(() {
+          _assignedEmployee = Employee(
+            id:          UserSession.employeeId,
+            name:        UserSession.name,
+            department:  '',
+            designation: '',
+            mobile:      '',
+            email:       UserSession.email,
+          );
+        });
+      }
+      return;
+    }
     final users = await UserStore.load();
     if (mounted) {
       setState(() {
@@ -258,7 +275,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       color: _accent, size: 22),
                 ),
                 const SizedBox(width: 14),
-                Text('Add Task',
+                Text(widget.selfAssign ? 'Add My Task' : 'Add Task',
                     style:
                         Theme.of(context).textTheme.headlineMedium),
               ]),
@@ -367,6 +384,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
               const SizedBox(height: 32),
 
               // ── Section 2: Assign Task ─────────────────────────────
+              if (!widget.selfAssign) ...[
               _SectionHeader(
                   icon: Icons.group_add_rounded,
                   label: '2. Assign Task'),
@@ -474,6 +492,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
                   )).toList(),
                 ),
               ],
+              ], // end if (!widget.selfAssign)
               const SizedBox(height: 32),
 
               // Submit button

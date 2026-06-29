@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -130,6 +131,30 @@ class _MyTasksPageState extends State<MyTasksPage> {
                 icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0288D1)),
                 onPressed: _load,
               ),
+              if (UserSession.role == UserRole.employee ||
+                  UserSession.role == UserRole.reportingManager) ...[
+                const SizedBox(width: 4),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final route = UserSession.role == UserRole.employee
+                        ? '/employee/tasks/add'
+                        : '/manager/my-tasks/add';
+                    await context.push(route);
+                    if (mounted) _load();
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Task'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0288D1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                ),
+              ],
             ]),
             const SizedBox(height: 20),
 
