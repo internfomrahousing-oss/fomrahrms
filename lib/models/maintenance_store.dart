@@ -21,6 +21,7 @@ class MaintenanceTicket {
   final String issueType;
   final String description;
   MaintenanceStatus status;
+  bool sentToManagement;
   final DateTime createdAt;
 
   MaintenanceTicket({
@@ -30,6 +31,7 @@ class MaintenanceTicket {
     required this.issueType,
     required this.description,
     this.status = MaintenanceStatus.open,
+    this.sentToManagement = false,
     required this.createdAt,
   });
 }
