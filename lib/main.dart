@@ -3,10 +3,14 @@ import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'services/supabase_service.dart';
+import 'services/session_storage.dart';
 
 void main() async {
   setUrlStrategy(HashUrlStrategy());
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Restore persisted login before the router guard runs.
+  SessionStorage.restore();
 
   // Start the app immediately so the splash screen clears.
   runApp(const FomraHrmsApp());

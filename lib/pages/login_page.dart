@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
+import '../services/session_storage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -117,6 +118,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.name       = name;
     UserSession.employeeId = employeeId;
     UserSession.email      = email;
+    SessionStorage.save();
     setState(() => _loading = false);
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');
