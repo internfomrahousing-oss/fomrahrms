@@ -313,26 +313,24 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     }
   }
 
-  Future<String?> _uploadSingleFile(_AttachFile file, String path) async {
-    try {
-      await Supabase.instance.client.storage
-          .from('onboarding attachments')
-          .uploadBinary(path, file.bytes,
-              fileOptions: FileOptions(contentType: file.mime));
-      return Supabase.instance.client.storage
-          .from('onboarding attachments')
-          .getPublicUrl(path);
-    } catch (_) {
-      return null;
-    }
+  // Returns the public URL, or rethrows so callers can surface the error.
+  Future<String> _uploadSingleFile(_AttachFile file, String path) async {
+    await Supabase.instance.client.storage
+        .from('onboarding attachments')
+        .uploadBinary(path, file.bytes,
+            fileOptions: FileOptions(contentType: file.mime));
+    return Supabase.instance.client.storage
+        .from('onboarding attachments')
+        .getPublicUrl(path);
   }
 
   Future<List<Map<String, dynamic>>> _uploadAttachments(String ts) async {
     final result = <Map<String, dynamic>>[];
     for (int i = 0; i < _attachments.length; i++) {
       for (final file in _attachments[i]) {
-        final path = '$ts/doc${i + 1}_${file.name}';
-        final url = await _uploadSingleFile(file, path) ?? '';
+        final safeName = file.name.replaceAll(RegExp(r'[^\w.\-]'), '_');
+        final path = '$ts/doc${i + 1}_$safeName';
+        final url = await _uploadSingleFile(file, path);
         result.add({'doc_type': _docLabels[i], 'name': file.name, 'url': url});
       }
     }
@@ -437,12 +435,19 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 onRawFiles: (rawFiles) async {
                   final f = await _processRawFile(rawFiles.first);
                   if (f == null || !mounted) return;
-                  final url = await _uploadSingleFile(
-                      f, '${DateTime.now().millisecondsSinceEpoch}_custom_${f.name}');
-                  if (mounted) setState(() {
-                    _customFileNames[id] = f.name;
-                    _customFileUrls[id] = url ?? '';
-                  });
+                  try {
+                    final safeName = f.name.replaceAll(RegExp(r'[^\w.\-]'), '_');
+                    final url = await _uploadSingleFile(
+                        f, '${DateTime.now().millisecondsSinceEpoch}_custom_$safeName');
+                    if (mounted) setState(() {
+                      _customFileNames[id] = f.name;
+                      _customFileUrls[id] = url;
+                    });
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Upload failed: $e'),
+                          backgroundColor: Colors.red));
+                  }
                 },
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.upload_file_rounded, size: 15),
