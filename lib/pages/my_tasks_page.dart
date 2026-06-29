@@ -490,7 +490,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                 const SizedBox(height: 16),
 
                 // Action buttons based on current status
-                if (ds == TaskStatus.assigned)
+                if (ds == TaskStatus.assigned && !t.isSelfAssigned)
                   ElevatedButton.icon(
                     onPressed: widget.onReceived,
                     icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
@@ -506,7 +506,8 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   )
-                else if (ds == TaskStatus.inProgress ||
+                else if (ds == TaskStatus.assigned && t.isSelfAssigned ||
+                    ds == TaskStatus.inProgress ||
                     ds == TaskStatus.pending ||
                     ds == TaskStatus.delayed)
                   ElevatedButton.icon(

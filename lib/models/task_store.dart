@@ -20,6 +20,7 @@ class Task {
   String department;
   String attachment;
   DateTime? receivedAt;
+  bool isSelfAssigned;
 
   Task({
     required this.id,
@@ -36,6 +37,7 @@ class Task {
     this.department = '',
     this.attachment = '',
     this.receivedAt,
+    this.isSelfAssigned = false,
   }) : teamMemberStatuses = teamMemberStatuses ?? {};
 
   Map<String, dynamic> toJson() => {
@@ -53,6 +55,7 @@ class Task {
     'department':            department,
     'attachment':            attachment,
     'received_at':           receivedAt?.toIso8601String(),
+    'is_self_assigned':      isSelfAssigned,
   };
 
   factory Task.fromJson(Map<String, dynamic> j) {
@@ -96,6 +99,7 @@ class Task {
       receivedAt:           j['received_at'] != null
           ? DateTime.tryParse(j['received_at'] as String)
           : null,
+      isSelfAssigned:       (j['is_self_assigned'] as bool?) ?? false,
     );
   }
 }

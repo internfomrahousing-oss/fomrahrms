@@ -230,6 +230,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       teamMembers: teamNames,
       teamMemberStatuses: memberStatuses,
       department: dept,
+      isSelfAssigned: widget.selfAssign,
     );
 
     // Add to in-memory store and persist to Supabase
