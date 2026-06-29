@@ -372,7 +372,16 @@ class _CandidateApplicationFormPageState
         }
       }
       final url = await SupabaseService.uploadResume(bytes, name, mime);
-      if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
+      if (mounted) {
+        setState(() { _resumeFileName = name; _resumeUrl = url; });
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            content: Text('Resume uploaded: $name'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ));
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Resume upload failed: $e'), backgroundColor: Colors.red,
