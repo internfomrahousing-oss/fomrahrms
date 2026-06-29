@@ -288,44 +288,6 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                       _guideStep('3', 'Paste the script code',
                           'Delete everything in the editor. Paste the code below, then click Save (Ctrl+S).'),
                       const _GasCodeBlock(),
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF8E1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFFFCC02)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(children: [
-                              Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFF57F17)),
-                              SizedBox(width: 6),
-                              Text('This script handles any sheet layout:',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFF57F17))),
-                            ]),
-                            const SizedBox(height: 8),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E1E1E),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const SelectableText(
-                                'function getVisibleSheet(ss) {\n  var sheets = ss.getSheets();\n  for (var i = 0; i < sheets.length; i++) {\n    if (!sheets[i].isSheetHidden()) return sheets[i];\n  }\n  return sheets[0];\n}\n\nfunction findHeaderRow(data) {\n  var best = 0, bestCount = 0;\n  for (var i = 0; i < Math.min(data.length, 5); i++) {\n    var count = data[i].filter(function(c) { return c !== \'\'; }).length;\n    if (count > bestCount) { bestCount = count; best = i; }\n  }\n  return best;\n}',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF80CBC4), fontFamily: 'monospace'),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              '• Works even if row 1 is a title row (e.g. "Fomra Hiring Details") — picks the row with the most columns as the real header\n• Blank rows in the middle of data are skipped\n• Skips hidden tabs — always uses the first visible sheet',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF795548), height: 1.5),
-                            ),
-                          ],
-                        ),
-                      ),
                       _guideStep('4', 'Deploy as Web App',
                           'First time: Click Deploy → New deployment → Type: Web app → Execute as: Me → Who has access: Anyone → Deploy → Authorise when prompted.\n\nUpdating existing script: Click Deploy → Manage deployments → pencil icon → change Version to "New version" → Deploy.'),
                       _guideStep('5', 'Copy the /exec URL',
