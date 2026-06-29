@@ -152,9 +152,12 @@ class _CandidateApplicationFormPageState
     setState(() => _customFileUploading[fieldId] = true);
     try {
       final reader = html.FileReader();
-      reader.readAsArrayBuffer(rawFile);
+      reader.readAsDataUrl(rawFile);
       await reader.onLoad.first;
-      final bytes = (reader.result as ByteBuffer).asUint8List();
+      final dataUrl = reader.result as String;
+      final comma = dataUrl.indexOf(',');
+      if (comma < 0) throw 'Malformed data URL';
+      final bytes = base64Decode(dataUrl.substring(comma + 1));
       final mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
       final url   = await SupabaseService.uploadFile(bytes, rawFile.name, mime);
       if (mounted) setState(() {
@@ -163,7 +166,8 @@ class _CandidateApplicationFormPageState
       });
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red));
+        SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6)));
     } finally {
       if (mounted) setState(() => _customFileUploading[fieldId] = false);
     }
@@ -351,9 +355,12 @@ class _CandidateApplicationFormPageState
     setState(() => _uploadingResume = true);
     try {
       final reader = html.FileReader();
-      reader.readAsArrayBuffer(rawFile);
+      reader.readAsDataUrl(rawFile);
       await reader.onLoad.first;
-      var bytes = (reader.result as ByteBuffer).asUint8List();
+      final dataUrl = reader.result as String;
+      final comma = dataUrl.indexOf(',');
+      if (comma < 0) throw 'Malformed data URL';
+      var bytes = base64Decode(dataUrl.substring(comma + 1));
       var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
       var name  = rawFile.name;
       if (mime.startsWith('image/') && bytes.length > 1024 * 1024) {
@@ -368,7 +375,8 @@ class _CandidateApplicationFormPageState
       if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume upload failed: $e'), backgroundColor: Colors.red));
+        SnackBar(content: Text('Resume upload failed: $e'), backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6)));
     } finally {
       if (mounted) setState(() => _uploadingResume = false);
     }

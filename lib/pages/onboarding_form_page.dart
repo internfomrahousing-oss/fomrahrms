@@ -255,21 +255,33 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   // ── File helpers ──────────────────────────────────────────────────────────
 
-  // Pick a single file (for aadhar uploads). Auto-compresses images > 1 MB.
-  // Reads bytes from a raw html.File, auto-compresses images > 1 MB.
+  // Reads bytes from a raw html.File via data-URL (avoids ByteBuffer cast issues).
+  // Auto-compresses images > 1 MB.
   Future<_AttachFile?> _processRawFile(html.File file) async {
     try {
       final reader = html.FileReader();
-      reader.readAsArrayBuffer(file);
+      reader.readAsDataUrl(file);
       await reader.onLoad.first;
-      var bytes = (reader.result as ByteBuffer).asUint8List();
+      final dataUrl = reader.result as String;
+      final comma = dataUrl.indexOf(',');
+      if (comma < 0) throw 'Malformed data URL';
+      var bytes = base64Decode(dataUrl.substring(comma + 1));
       var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
       if (bytes.length > 1024 * 1024 && mime.startsWith('image/')) {
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       }
       return _AttachFile(name: file.name, bytes: bytes, mime: mime);
-    } catch (_) { return null; }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text('Could not read "${file.name}": $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+        ));
+      return null;
+    }
   }
 
   // Compress image using Canvas API until it's under 1 MB.
@@ -1421,10 +1433,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     final f = await _processRawFile(rf);
                     if (f != null && mounted) {
                       setState(() => _attachments[i].add(f));
-                    } else if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not read file. Please try again.'),
-                            backgroundColor: Colors.orange));
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(SnackBar(
+                          content: Text('File added: ${f.name}'),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 3),
+                        ));
                     }
                   }
                 },
@@ -1446,6 +1461,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   onPressed: trigger,
                 ),
               ),
+
             ),
           ]),
         );
