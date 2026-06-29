@@ -434,7 +434,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 accept: '.pdf,.jpg,.jpeg,.png,image/*',
                 onRawFiles: (rawFiles) async {
                   final f = await _processRawFile(rawFiles.first);
-                  if (f == null || !mounted) return;
+                  if (f == null || !mounted) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not read file. Please try again.'),
+                          backgroundColor: Colors.orange));
+                    return;
+                  }
                   try {
                     final safeName = f.name.replaceAll(RegExp(r'[^\w.\-]'), '_');
                     final url = await _uploadSingleFile(
@@ -449,7 +454,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                           backgroundColor: Colors.red));
                   }
                 },
-                child: OutlinedButton.icon(
+                builder: (trigger) => OutlinedButton.icon(
                   icon: const Icon(Icons.upload_file_rounded, size: 15),
                   label: Text(
                     fileName != null ? 'Change File' : 'Add File',
@@ -464,7 +469,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(7)),
                   ),
-                  onPressed: () {},
+                  onPressed: trigger,
                 ),
               ),
             ),
@@ -1416,10 +1421,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     final f = await _processRawFile(rf);
                     if (f != null && mounted) {
                       setState(() => _attachments[i].add(f));
+                    } else if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not read file. Please try again.'),
+                            backgroundColor: Colors.orange));
                     }
                   }
                 },
-                child: OutlinedButton.icon(
+                builder: (trigger) => OutlinedButton.icon(
                   icon: const Icon(Icons.upload_file_rounded, size: 15),
                   label: Text(
                       files.isEmpty ? 'Add File' : 'Add More',
@@ -1434,7 +1443,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(7)),
                   ),
-                  onPressed: () {},
+                  onPressed: trigger,
                 ),
               ),
             ),
@@ -1840,7 +1849,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     return WebFilePicker(
       accept: accept,
       onRawFiles: (files) => onRawFile(files.first),
-      child: OutlinedButton.icon(
+      builder: (trigger) => OutlinedButton.icon(
         icon: const Icon(Icons.upload_file_rounded, size: 14),
         label: Text(label,
             style: const TextStyle(fontSize: 11),
@@ -1855,7 +1864,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
           alignment: Alignment.centerLeft,
         ),
-        onPressed: () {},
+        onPressed: trigger,
       ),
     );
   }

@@ -1508,8 +1508,8 @@ class _ResumeUploader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final btn = ElevatedButton.icon(
-      onPressed: uploading ? null : () {},
+    Widget uploadBtn(VoidCallback? onPressed) => ElevatedButton.icon(
+      onPressed: onPressed,
       icon: uploading
           ? const SizedBox(width: 14, height: 14,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -1568,11 +1568,11 @@ class _ResumeUploader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         uploading
-            ? btn
+            ? uploadBtn(null)
             : WebFilePicker(
                 accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
                 onRawFiles: (files) => onRawFile(files.first),
-                child: btn,
+                builder: (trigger) => uploadBtn(trigger),
               ),
       ]),
     );
@@ -1715,8 +1715,8 @@ class _CustomFileUploader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final btn = ElevatedButton.icon(
-      onPressed: uploading ? null : () {},
+    Widget uploadBtn(VoidCallback? onPressed) => ElevatedButton.icon(
+      onPressed: onPressed,
       icon: uploading
           ? const SizedBox(
               width: 14, height: 14,
@@ -1798,11 +1798,11 @@ class _CustomFileUploader extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             uploading
-                ? btn
+                ? uploadBtn(null)
                 : WebFilePicker(
                     accept: '.pdf,.jpg,.jpeg,.png,image/*',
                     onRawFiles: (files) => onRawFile(files.first),
-                    child: btn,
+                    builder: (trigger) => uploadBtn(trigger),
                   ),
           ]),
         ],
