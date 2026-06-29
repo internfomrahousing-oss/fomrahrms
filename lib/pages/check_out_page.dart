@@ -1,3 +1,6 @@
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/attendance_store.dart';
@@ -12,17 +15,19 @@ class CheckOutPage extends StatefulWidget {
 
 class _CheckOutPageState extends State<CheckOutPage> {
   static const _color = Color(0xFF1565C0);
+  static final _registeredViews = <String>{};
 
-  final _timeController     = TextEditingController();
-  final _locationController = TextEditingController();
+  final _timeController = TextEditingController();
 
   bool _detectingLocation = false;
   String? _locationError;
+  double? _lat;
+  double? _lng;
+  String? _mapViewId;
 
   @override
   void dispose() {
     _timeController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -46,9 +51,30 @@ class _CheckOutPageState extends State<CheckOutPage> {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
-      _locationController.text =
-          'Lat: ${position.latitude.toStringAsFixed(6)}, '
-          'Lng: ${position.longitude.toStringAsFixed(6)}';
+      final lat = position.latitude;
+      final lng = position.longitude;
+      final viewId = 'checkout_map_${lat.toStringAsFixed(5)}_${lng.toStringAsFixed(5)}';
+      if (!_registeredViews.contains(viewId)) {
+        _registeredViews.add(viewId);
+        final l1 = lng - 0.005;
+        final la1 = lat - 0.005;
+        final l2 = lng + 0.005;
+        final la2 = lat + 0.005;
+        ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
+          return html.IFrameElement()
+            ..src = 'https://www.openstreetmap.org/export/embed.html'
+                '?bbox=$l1,$la1,$l2,$la2&layer=mapnik&marker=$lat,$lng'
+            ..style.border = 'none'
+            ..style.width = '100%'
+            ..style.height = '100%'
+            ..allowFullscreen = true;
+        });
+      }
+      setState(() {
+        _lat = lat;
+        _lng = lng;
+        _mapViewId = viewId;
+      });
     } catch (e) {
       setState(() => _locationError = 'Unable to detect location.');
     } finally {
@@ -62,6 +88,11 @@ class _CheckOutPageState extends State<CheckOutPage> {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
+  String get _locationText {
+    if (_lat == null || _lng == null) return '—';
+    return 'Lat: ${_lat!.toStringAsFixed(6)}, Lng: ${_lng!.toStringAsFixed(6)}';
+  }
+
   void _onSave() {
     if (_timeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -73,12 +104,12 @@ class _CheckOutPageState extends State<CheckOutPage> {
       return;
     }
     final now = DateTime.now();
-    final date = '${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year}';
+    final date = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     AttendanceStore.checkOuts.add(CheckOutRecord(
       employee: 'Employee',
       date: date,
       time: _timeController.text,
-      location: _locationController.text.isEmpty ? '—' : _locationController.text,
+      location: _locationText,
     ));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Check-Out saved successfully'),
@@ -91,8 +122,12 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
   void _onClear() {
     _timeController.clear();
-    _locationController.clear();
-    setState(() => _locationError = null);
+    setState(() {
+      _lat = null;
+      _lng = null;
+      _mapViewId = null;
+      _locationError = null;
+    });
   }
 
   @override
@@ -151,44 +186,92 @@ class _CheckOutPageState extends State<CheckOutPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // GPS Location with auto-detect
-                  TextField(
-                    controller: _locationController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'GPS Location',
-                      prefixIcon: const Icon(Icons.location_on_rounded, color: _color, size: 20),
-                      suffixIcon: _detectingLocation
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 20, height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: _color),
-                              ),
+                  // GPS Location section
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      const Icon(Icons.location_on_rounded, color: _color, size: 18),
+                      const SizedBox(width: 6),
+                      const Text('GPS Location',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF37474F))),
+                      const Spacer(),
+                      _detectingLocation
+                          ? const SizedBox(
+                              width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: _color),
                             )
-                          : IconButton(
-                              tooltip: 'Detect my location',
-                              icon: const Icon(Icons.my_location_rounded, color: _color),
+                          : TextButton.icon(
                               onPressed: _detectLocation,
+                              icon: const Icon(Icons.my_location_rounded, size: 16),
+                              label: Text(_lat == null ? 'Detect Location' : 'Re-detect',
+                                  style: const TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(foregroundColor: _color),
                             ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      enabledBorder: OutlineInputBorder(
+                    ]),
+                    const SizedBox(height: 8),
+
+                    if (_locationError != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.error_outline_rounded, size: 14, color: Colors.red.shade700),
+                          const SizedBox(width: 6),
+                          Text(_locationError!,
+                              style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+                        ]),
+                      )
+                    else if (_lat == null)
+                      Container(
+                        width: double.infinity,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                        ),
+                        child: const Center(
+                          child: Text('Tap "Detect Location" to capture GPS',
+                              style: TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
+                        ),
+                      )
+                    else ...[
+                      // Coordinates badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _color.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: _color.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.gps_fixed_rounded, size: 12, color: _color),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Lat: ${_lat!.toStringAsFixed(6)},  Lng: ${_lng!.toStringAsFixed(6)}',
+                            style: const TextStyle(fontSize: 12, color: _color, fontFamily: 'monospace'),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 8),
+                      // Map view
+                      ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: _locationError != null ? Colors.red : const Color(0xFFE0E0E0),
+                        child: Container(
+                          height: 220,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFDDE3EA)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: HtmlElementView(viewType: _mapViewId!),
                         ),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: _color, width: 2),
-                      ),
-                      filled: true, fillColor: Colors.white,
-                      labelStyle: const TextStyle(color: Color(0xFF78909C)),
-                      errorText: _locationError,
-                      hintText: 'Tap  to auto-detect location',
-                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5)),
-                    ),
-                  ),
+                    ],
+                  ]),
                 ]),
               ),
             ),
