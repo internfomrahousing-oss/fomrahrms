@@ -261,7 +261,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     try {
       final reader = html.FileReader();
       reader.readAsDataUrl(file);
-      await reader.onLoad.first;
+      await Future.any([
+        reader.onLoad.first,
+        reader.onError.first.then((_) => throw Exception('Could not read file')),
+      ]);
       final dataUrl = reader.result as String;
       final comma = dataUrl.indexOf(',');
       if (comma < 0) throw 'Malformed data URL';
@@ -292,7 +295,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       final blob = html.Blob([bytes], mime);
       final url = html.Url.createObjectUrlFromBlob(blob);
       final img = html.ImageElement(src: url);
-      await img.onLoad.first;
+      await Future.any([
+        img.onLoad.first,
+        img.onError.first.then((_) => throw Exception('Image load failed')),
+      ]);
       html.Url.revokeObjectUrl(url);
 
       int w = img.naturalWidth;
@@ -355,7 +361,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       final label = (field['label'] as String?) ?? '';
       final isRequired = (field['required'] as bool?) ?? false;
 
-      if (type == 'file_upload') {
+      if (type == 'photo_upload' || type == 'file_upload') {
+        final isPhoto = type == 'photo_upload';
+        final fileAccept = isPhoto ? 'image/*' : '.pdf,.doc,.docx,.xls,.xlsx';
         final fileName = _customFileNames[id];
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
@@ -440,7 +448,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: WebFilePicker(
-                accept: '.pdf,.jpg,.jpeg,.png,image/*',
+                accept: fileAccept,
                 onRawFiles: (rawFiles) async {
                   final f = await _processRawFile(rawFiles.first);
                   if (f == null || !mounted) {
@@ -453,20 +461,36 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     final safeName = f.name.replaceAll(RegExp(r'[^\w.\-]'), '_');
                     final url = await _uploadSingleFile(
                         f, '${DateTime.now().millisecondsSinceEpoch}_custom_$safeName');
-                    if (mounted) setState(() {
-                      _customFileNames[id] = f.name;
-                      _customFileUrls[id] = url;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _customFileNames[id] = f.name;
+                        _customFileUrls[id] = url;
+                      });
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(SnackBar(
+                          content: Text('File added: ${f.name}'),
+                          backgroundColor: const Color(0xFF2E7D32),
+                          duration: const Duration(seconds: 3),
+                        ));
+                    }
                   } catch (e) {
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Upload failed: $e'),
-                          backgroundColor: Colors.red));
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 6)));
                   }
                 },
                 builder: (trigger) => OutlinedButton.icon(
-                  icon: const Icon(Icons.upload_file_rounded, size: 15),
+                  icon: Icon(
+                    isPhoto
+                        ? Icons.photo_camera_rounded
+                        : Icons.upload_file_rounded,
+                    size: 15),
                   label: Text(
-                    fileName != null ? 'Change File' : 'Add File',
+                    isPhoto
+                        ? (fileName != null ? 'Change Photo' : 'Add Photo')
+                        : (fileName != null ? 'Change File' : 'Add File'),
                     style: const TextStyle(fontSize: 12),
                   ),
                   style: OutlinedButton.styleFrom(

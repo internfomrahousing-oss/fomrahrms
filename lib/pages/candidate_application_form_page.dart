@@ -153,7 +153,10 @@ class _CandidateApplicationFormPageState
     try {
       final reader = html.FileReader();
       reader.readAsDataUrl(rawFile);
-      await reader.onLoad.first;
+      await Future.any([
+        reader.onLoad.first,
+        reader.onError.first.then((_) => throw Exception('Could not read file')),
+      ]);
       final dataUrl = reader.result as String;
       final comma = dataUrl.indexOf(',');
       if (comma < 0) throw 'Malformed data URL';
@@ -164,11 +167,20 @@ class _CandidateApplicationFormPageState
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       }
-      final url   = await SupabaseService.uploadFile(bytes, rawFile.name, mime);
-      if (mounted) setState(() {
-        _customFileNames[fieldId] = rawFile.name;
-        _customFileUrls[fieldId]  = url;
-      });
+      final url = await SupabaseService.uploadFile(bytes, rawFile.name, mime);
+      if (mounted) {
+        setState(() {
+          _customFileNames[fieldId] = rawFile.name;
+          _customFileUrls[fieldId]  = url;
+        });
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            content: Text('File added: ${rawFile.name}'),
+            backgroundColor: const Color(0xFF2E7D32),
+            duration: const Duration(seconds: 3),
+          ));
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red,
@@ -212,13 +224,17 @@ class _CandidateApplicationFormPageState
           required: isRequired,
           wrap: opts.length > 3,
         ));
-      } else if (type == 'file_upload') {
+      } else if (type == 'photo_upload' || type == 'file_upload') {
         widgets.add(_CustomFileUploader(
           label: label,
           isRequired: isRequired,
           fileName: _customFileNames[id],
           uploading: _customFileUploading[id] ?? false,
           onRawFile: (f) => _handleCustomFile(id, f),
+          accept: type == 'photo_upload'
+              ? 'image/*'
+              : '.pdf,.doc,.docx,.xls,.xlsx',
+          isPhoto: type == 'photo_upload',
         ));
       } else if (type == 'number') {
         final ctrl = _customTextControllers.putIfAbsent(
@@ -361,7 +377,10 @@ class _CandidateApplicationFormPageState
     try {
       final reader = html.FileReader();
       reader.readAsDataUrl(rawFile);
-      await reader.onLoad.first;
+      await Future.any([
+        reader.onLoad.first,
+        reader.onError.first.then((_) => throw Exception('Could not read file')),
+      ]);
       final dataUrl = reader.result as String;
       final comma = dataUrl.indexOf(',');
       if (comma < 0) throw 'Malformed data URL';
@@ -403,7 +422,10 @@ class _CandidateApplicationFormPageState
       final blob = html.Blob([bytes], mime);
       final url  = html.Url.createObjectUrlFromBlob(blob);
       final img  = html.ImageElement(src: url);
-      await img.onLoad.first;
+      await Future.any([
+        img.onLoad.first,
+        img.onError.first.then((_) => throw Exception('Image load failed')),
+      ]);
       html.Url.revokeObjectUrl(url);
       int w = img.naturalWidth, h = img.naturalHeight;
       const maxDim = 1200;
@@ -457,7 +479,7 @@ class _CandidateApplicationFormPageState
           missing = (_customTextControllers[fId]?.text.trim() ?? '').isEmpty;
         } else if (fType == 'mcq') {
           missing = _customMcqValues[fId] == null;
-        } else if (fType == 'file_upload') {
+        } else if (fType == 'file_upload' || fType == 'photo_upload') {
           missing = _customFileUrls[fId] == null;
         } else if (fType == 'date') {
           missing = _customDateValues[fId] == null;
@@ -1586,7 +1608,7 @@ class _ResumeUploader extends StatelessWidget {
             Text(
               fileName != null
                   ? 'Resume uploaded successfully'
-                  : 'PDF, DOC, DOCX or image — images > 1 MB auto-compressed',
+                  : 'PDF, DOC, DOCX accepted — images auto-compressed to ≤200 KB',
               style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
             ),
           ]),
@@ -1730,12 +1752,16 @@ class _CustomFileUploader extends StatelessWidget {
   final String? fileName;
   final bool uploading;
   final void Function(html.File) onRawFile;
+  final String accept;
+  final bool isPhoto;
   const _CustomFileUploader({
     required this.label,
     required this.isRequired,
     required this.fileName,
     required this.uploading,
     required this.onRawFile,
+    this.accept = '.pdf,.doc,.docx,.xls,.xlsx',
+    this.isPhoto = false,
   });
 
   @override
@@ -1816,16 +1842,19 @@ class _CustomFileUploader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    const Text('PDF, JPG or PNG accepted',
-                        style: TextStyle(
-                            fontSize: 11, color: Color(0xFFBBBBBB))),
+                    Text(
+                      isPhoto
+                          ? 'JPG / PNG — auto-compressed to ≤200 KB'
+                          : 'PDF, DOC, DOCX, XLS, XLSX accepted',
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFFBBBBBB))),
                   ]),
             ),
             const SizedBox(width: 12),
             uploading
                 ? uploadBtn(null)
                 : WebFilePicker(
-                    accept: '.pdf,.jpg,.jpeg,.png,image/*',
+                    accept: accept,
                     onRawFiles: (files) => onRawFile(files.first),
                     builder: (trigger) => uploadBtn(trigger),
                   ),

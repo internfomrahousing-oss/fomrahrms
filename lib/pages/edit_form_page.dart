@@ -1097,6 +1097,10 @@ class _CustomFieldPreview extends StatelessWidget {
         typeIcon = Icons.radio_button_checked_rounded;
         typeLabel = 'MCQ';
         typeColor = const Color(0xFF6A1B9A);
+      case 'photo_upload':
+        typeIcon = Icons.photo_camera_rounded;
+        typeLabel = 'Photo Upload';
+        typeColor = const Color(0xFFE65100);
       case 'file_upload':
         typeIcon = Icons.upload_file_rounded;
         typeLabel = 'File Upload';
@@ -1294,6 +1298,13 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                   onTap: () => setState(() => _type = 'mcq'),
                 ),
                 _TypeChip(
+                  icon: Icons.photo_camera_rounded,
+                  label: 'Photo Upload',
+                  value: 'photo_upload',
+                  selected: _type,
+                  onTap: () => setState(() => _type = 'photo_upload'),
+                ),
+                _TypeChip(
                   icon: Icons.upload_file_rounded,
                   label: 'File Upload',
                   value: 'file_upload',
@@ -1428,23 +1439,45 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
               ],
 
               // ── Type-specific info panels ──────────────────────
+              if (_type == 'photo_upload') ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFFCC80)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.photo_camera_rounded,
+                        size: 14, color: Color(0xFFE65100)),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Candidates upload a photo (JPG / PNG). It will be auto-compressed to ≤200 KB.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFFE65100)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
               if (_type == 'file_upload') ...[
                 const SizedBox(height: 14),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                    border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
                   child: const Row(children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 14, color: Color(0xFF2E7D32)),
+                    Icon(Icons.upload_file_rounded,
+                        size: 14, color: Color(0xFF1565C0)),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Candidates can upload a PDF document or a photo (JPG / PNG).',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
+                        'Candidates upload a document (PDF, DOC, DOCX, XLS, XLSX). Uploaded as-is.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)),
                       ),
                     ),
                   ]),
