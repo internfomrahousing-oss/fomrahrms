@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'models/user_session.dart';
+import 'models/theme_notifier.dart';
+import 'pages/settings_page.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/employee_shell.dart';
 import 'pages/login_page.dart';
@@ -202,6 +204,7 @@ final _router = GoRouter(
         GoRoute(path: '/hr/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/hr/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/hr/maintenance-management', builder: (_, __) => const MaintenanceManagementPage()),
+        GoRoute(path: '/settings',                  builder: (_, __) => const SettingsPage()),
       ],
     ),
 
@@ -229,6 +232,7 @@ final _router = GoRouter(
         GoRoute(path: '/employee/maintenance-management',   builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/employee/employee-onboarding',      builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/employee/notifications',            builder: (_, __) => const NotificationsPage()),
+        GoRoute(path: '/employee/settings',                 builder: (_, __) => const SettingsPage()),
       ],
     ),
 
@@ -270,6 +274,7 @@ final _router = GoRouter(
         GoRoute(path: '/manager/my-tasks',                builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/manager/my-payslips',             builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/manager/my-profile',              builder: (_, __) => const MyProfilePage()),
+        GoRoute(path: '/manager/settings',                builder: (_, __) => const SettingsPage()),
       ],
     ),
     // ── Management Shell ──────────────────────────────────────────────────────
@@ -322,6 +327,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/management/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/management/my-maintenance',         builder: (_, __) => const MaintenanceManagementPage()),
+        GoRoute(path: '/management/settings',               builder: (_, __) => const SettingsPage()),
       ],
     ),
   ],
@@ -332,11 +338,16 @@ class FomraHrmsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'FOMRA HRMS',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      routerConfig: _router,
+    return ListenableBuilder(
+      listenable: themeNotifier,
+      builder: (_, __) => MaterialApp.router(
+        title: 'FOMRA HRMS',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeNotifier.value,
+        routerConfig: _router,
+      ),
     );
   }
 }

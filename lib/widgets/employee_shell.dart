@@ -21,6 +21,7 @@ const _empNavItems = [
   _NavItem('Maintenance',          Icons.build_rounded,                   '/employee/maintenance-management'),
   _NavItem('Onboarding',           Icons.how_to_reg_rounded,              '/employee/employee-onboarding'),
   _NavItem('My Notifications',     Icons.notifications_rounded,           '/employee/notifications'),
+  _NavItem('Settings',             Icons.settings_rounded,                '/employee/settings'),
 ];
 
 class EmployeeShell extends StatelessWidget {
