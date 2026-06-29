@@ -657,15 +657,15 @@ class _CandidateApplicationFormPageState
     final pad    = narrow ? 16.0 : 24.0;
 
     if (_configLoading) {
-      return const Material(
-        color: Color(0xFFF5F7FA),
-        child: Center(child: CircularProgressIndicator(color: _blue)),
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FA),
+        body: Center(child: CircularProgressIndicator(color: _blue)),
       );
     }
 
-    return Material(
-      color: const Color(0xFFF5F7FA),
-      child: Column(children: [
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: Column(children: [
         // Header
         Container(
           color: Colors.white,
