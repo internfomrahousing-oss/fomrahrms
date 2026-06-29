@@ -52,22 +52,21 @@ class _WebFilePickerState extends State<WebFilePicker> {
     _callback = widget.onRawFiles;
 
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (int _) {
+      // The input itself covers the Flutter button area (opacity:0, pointer-events:auto).
+      // A direct tap on the transparent input is always a trusted user gesture in
+      // every browser, so the file dialog opens reliably without programmatic .click().
       final input = html.FileUploadInputElement()
         ..accept = widget.accept
         ..multiple = widget.multiple
-        ..style.display = 'none';
-
-      final label = html.LabelElement()
-        ..style.display = 'block'
         ..style.position = 'absolute'
         ..style.top = '0'
         ..style.left = '0'
         ..style.width = '100%'
         ..style.height = '100%'
+        ..style.opacity = '0'
         ..style.cursor = 'pointer'
         ..style.margin = '0'
         ..style.padding = '0';
-      label.append(input);
 
       input.onChange.listen((_) {
         final fl = input.files;
@@ -77,7 +76,7 @@ class _WebFilePickerState extends State<WebFilePicker> {
         input.value = '';
       });
 
-      return label;
+      return input;
     });
   }
 
