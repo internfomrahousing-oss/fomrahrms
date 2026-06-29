@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
 import '../models/form_config.dart';
+import '../widgets/web_file_picker.dart';
 
 const _blue  = Color(0xFF0D47A1);
 
@@ -147,71 +148,19 @@ class _CandidateApplicationFormPageState
     }
   }
 
-  Future<void> _pickCustomFile(String fieldId) async {
+  Future<void> _handleCustomFile(String fieldId, html.File rawFile) async {
     setState(() => _customFileUploading[fieldId] = true);
     try {
-      final nameCompleter = Completer<String?>();
-      final bytesCompleter = Completer<Uint8List?>();
-      final mimeCompleter = Completer<String?>();
-
-      final input = html.FileUploadInputElement()
-        ..accept = '.pdf,.jpg,.jpeg,.png'
-        ..style.position = 'fixed'
-        ..style.top = '-9999px'
-        ..style.left = '-9999px'
-        ..style.opacity = '0';
-      html.document.body?.append(input);
-
-      // Detect dialog cancellation: window regains focus without onChange firing
-      html.window.onFocus.first.then((_) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (!nameCompleter.isCompleted)  nameCompleter.complete(null);
-          if (!bytesCompleter.isCompleted) bytesCompleter.complete(null);
-          if (!mimeCompleter.isCompleted)  mimeCompleter.complete(null);
-          input.remove();
-        });
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(rawFile);
+      await reader.onLoad.first;
+      final bytes = (reader.result as ByteBuffer).asUint8List();
+      final mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+      final url   = await SupabaseService.uploadFile(bytes, rawFile.name, mime);
+      if (mounted) setState(() {
+        _customFileNames[fieldId] = rawFile.name;
+        _customFileUrls[fieldId]  = url;
       });
-
-      input.onChange.listen((_) {
-        final file = input.files?.first;  // read BEFORE remove
-        input.remove();
-        if (file == null) {
-          nameCompleter.complete(null);
-          bytesCompleter.complete(null);
-          mimeCompleter.complete(null);
-          return;
-        }
-        nameCompleter.complete(file.name);
-        mimeCompleter.complete(file.type);
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onLoad.listen((_) {
-          final result = reader.result;
-          if (result is ByteBuffer) {
-            bytesCompleter.complete(result.asUint8List());
-          } else {
-            bytesCompleter.complete(null);
-          }
-        });
-        reader.onError.listen((_) => bytesCompleter.complete(null));
-      });
-
-      input.click();  // click AFTER listeners
-
-      final name  = await nameCompleter.future;
-      final bytes = await bytesCompleter.future;
-      final mime  = await mimeCompleter.future;
-
-      if (name != null && bytes != null) {
-        final url =
-            await SupabaseService.uploadFile(bytes, name, mime ?? '');
-        if (mounted) {
-          setState(() {
-            _customFileNames[fieldId] = name;
-            _customFileUrls[fieldId] = url;
-          });
-        }
-      }
     } catch (_) {
     } finally {
       if (mounted) setState(() => _customFileUploading[fieldId] = false);
@@ -258,7 +207,7 @@ class _CandidateApplicationFormPageState
           isRequired: isRequired,
           fileName: _customFileNames[id],
           uploading: _customFileUploading[id] ?? false,
-          onPick: () => _pickCustomFile(id),
+          onRawFile: (f) => _handleCustomFile(id, f),
         ));
       } else if (type == 'number') {
         final ctrl = _customTextControllers.putIfAbsent(
@@ -396,80 +345,25 @@ class _CandidateApplicationFormPageState
     if (picked != null) setState(() => _declarationDate = picked);
   }
 
-  Future<void> _pickResume() async {
+  Future<void> _handleResume(html.File rawFile) async {
     setState(() => _uploadingResume = true);
     try {
-      final nameCompleter   = Completer<String?>();
-      final bytesCompleter  = Completer<Uint8List?>();
-      final mimeCompleter   = Completer<String?>();
-
-      final input = html.FileUploadInputElement()
-        ..accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*'
-        ..style.position = 'fixed'
-        ..style.top = '-9999px'
-        ..style.left = '-9999px'
-        ..style.opacity = '0';
-      html.document.body?.append(input);
-
-      // Detect dialog cancellation: window regains focus without onChange firing
-      html.window.onFocus.first.then((_) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (!nameCompleter.isCompleted)  nameCompleter.complete(null);
-          if (!bytesCompleter.isCompleted) bytesCompleter.complete(null);
-          if (!mimeCompleter.isCompleted)  mimeCompleter.complete(null);
-          input.remove();
-        });
-      });
-
-      input.onChange.listen((_) {
-        final file = input.files?.first;  // read BEFORE remove
-        input.remove();
-        if (file == null) {
-          nameCompleter.complete(null);
-          bytesCompleter.complete(null);
-          mimeCompleter.complete(null);
-          return;
-        }
-        nameCompleter.complete(file.name);
-        mimeCompleter.complete(file.type);
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onLoad.listen((_) {
-          final result = reader.result;
-          if (result is ByteBuffer) {
-            bytesCompleter.complete(result.asUint8List());
-          } else {
-            bytesCompleter.complete(null);
-          }
-        });
-        reader.onError.listen((_) => bytesCompleter.complete(null));
-      });
-
-      input.click();
-
-      var name  = await nameCompleter.future;
-      var bytes = await bytesCompleter.future;
-      var mime  = await mimeCompleter.future;
-
-      // Auto-compress images > 1 MB
-      if (name != null && bytes != null && (mime ?? '').startsWith('image/') && bytes.length > 1024 * 1024) {
-        final compressed = await _compressImage(bytes, mime!);
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(rawFile);
+      await reader.onLoad.first;
+      var bytes = (reader.result as ByteBuffer).asUint8List();
+      var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+      var name  = rawFile.name;
+      if (mime.startsWith('image/') && bytes.length > 1024 * 1024) {
+        final compressed = await _compressImage(bytes, mime);
         if (compressed != null) {
           bytes = compressed;
-          mime = 'image/jpeg';
-          name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg';
+          mime  = 'image/jpeg';
+          name  = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg';
         }
       }
-
-      if (name != null && bytes != null) {
-        final url = await SupabaseService.uploadResume(bytes, name, mime ?? '');
-        if (mounted) {
-          setState(() {
-            _resumeFileName = name;
-            _resumeUrl      = url;
-          });
-        }
-      }
+      final url = await SupabaseService.uploadResume(bytes, name, mime);
+      if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
     } catch (_) {
     } finally {
       if (mounted) setState(() => _uploadingResume = false);
@@ -977,7 +871,7 @@ class _CandidateApplicationFormPageState
                         _ResumeUploader(
                           fileName: _resumeFileName,
                           uploading: _uploadingResume,
-                          onPick: _pickResume,
+                          onRawFile: _handleResume,
                         ),
                       ..._renderCustomFields(_sectionCustomFields('resume'), narrow),
                       ], // end resume
@@ -1604,12 +1498,28 @@ class _ReferralTable extends StatelessWidget {
 class _ResumeUploader extends StatelessWidget {
   final String? fileName;
   final bool uploading;
-  final VoidCallback onPick;
+  final void Function(html.File) onRawFile;
   const _ResumeUploader(
-      {required this.fileName, required this.uploading, required this.onPick});
+      {required this.fileName, required this.uploading, required this.onRawFile});
 
   @override
   Widget build(BuildContext context) {
+    final btn = ElevatedButton.icon(
+      onPressed: uploading ? null : () {},
+      icon: uploading
+          ? const SizedBox(width: 14, height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : Icon(fileName != null ? Icons.swap_horiz_rounded : Icons.attach_file_rounded,
+              size: 16),
+      label: Text(uploading ? 'Uploading…' : fileName != null ? 'Change' : 'Choose File',
+          style: const TextStyle(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _blue, foregroundColor: Colors.white,
+        elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1653,21 +1563,13 @@ class _ResumeUploader extends StatelessWidget {
           ]),
         ),
         const SizedBox(width: 12),
-        ElevatedButton.icon(
-          onPressed: uploading ? null : onPick,
-          icon: uploading
-              ? const SizedBox(width: 14, height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Icon(fileName != null ? Icons.swap_horiz_rounded : Icons.attach_file_rounded,
-                  size: 16),
-          label: Text(uploading ? 'Uploading…' : fileName != null ? 'Change' : 'Choose File',
-              style: const TextStyle(fontSize: 12)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _blue, foregroundColor: Colors.white,
-            elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
+        uploading
+            ? btn
+            : WebFilePicker(
+                accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
+                onRawFiles: (files) => onRawFile(files.first),
+                child: btn,
+              ),
       ]),
     );
   }
@@ -1798,17 +1700,43 @@ class _CustomFileUploader extends StatelessWidget {
   final bool isRequired;
   final String? fileName;
   final bool uploading;
-  final VoidCallback onPick;
+  final void Function(html.File) onRawFile;
   const _CustomFileUploader({
     required this.label,
     required this.isRequired,
     required this.fileName,
     required this.uploading,
-    required this.onPick,
+    required this.onRawFile,
   });
 
   @override
   Widget build(BuildContext context) {
+    final btn = ElevatedButton.icon(
+      onPressed: uploading ? null : () {},
+      icon: uploading
+          ? const SizedBox(
+              width: 14, height: 14,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white))
+          : Icon(
+              fileName != null
+                  ? Icons.swap_horiz_rounded
+                  : Icons.attach_file_rounded,
+              size: 16),
+      label: Text(
+          uploading
+              ? 'Uploading…'
+              : fileName != null ? 'Change' : 'Choose File',
+          style: const TextStyle(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _blue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1865,33 +1793,13 @@ class _CustomFileUploader extends StatelessWidget {
                   ]),
             ),
             const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: uploading ? null : onPick,
-              icon: uploading
-                  ? const SizedBox(
-                      width: 14, height: 14,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : Icon(
-                      fileName != null
-                          ? Icons.swap_horiz_rounded
-                          : Icons.attach_file_rounded,
-                      size: 16),
-              label: Text(
-                  uploading
-                      ? 'Uploading…'
-                      : fileName != null ? 'Change' : 'Choose File',
-                  style: const TextStyle(fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
+            uploading
+                ? btn
+                : WebFilePicker(
+                    accept: '.pdf,.jpg,.jpeg,.png,image/*',
+                    onRawFiles: (files) => onRawFile(files.first),
+                    child: btn,
+                  ),
           ]),
         ],
       ),

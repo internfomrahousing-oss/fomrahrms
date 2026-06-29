@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/onboarding_form_config.dart';
 import '../services/supabase_service.dart';
+import '../widgets/web_file_picker.dart';
 
 class _AttachFile {
   final String name;
@@ -255,90 +256,20 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   // ── File helpers ──────────────────────────────────────────────────────────
 
   // Pick a single file (for aadhar uploads). Auto-compresses images > 1 MB.
-  Future<_AttachFile?> _pickSingleFile(
-      {String accept = 'image/*,.pdf'}) async {
-    final completer = Completer<List<html.File>?>();
-    final input = html.FileUploadInputElement()
-      ..accept = accept
-      ..style.position = 'fixed'
-      ..style.top = '-9999px'
-      ..style.left = '-9999px'
-      ..style.opacity = '0';
-    html.document.body?.append(input);
-
-    input.onChange.listen((_) {
-      if (!completer.isCompleted) {
-        final fl = input.files;  // read BEFORE remove
-        input.remove();
-        completer.complete(fl);
+  // Reads bytes from a raw html.File, auto-compresses images > 1 MB.
+  Future<_AttachFile?> _processRawFile(html.File file) async {
+    try {
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+      var bytes = (reader.result as ByteBuffer).asUint8List();
+      var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
+      if (bytes.length > 1024 * 1024 && mime.startsWith('image/')) {
+        final compressed = await _compressImage(bytes, mime);
+        if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       }
-    });
-    // Detect cancel: window regains focus after dialog closes
-    html.window.onFocus.first.then((_) {
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (!completer.isCompleted) {
-          input.remove();
-          completer.complete(null);
-        }
-      });
-    });
-
-    input.click();
-
-    final fileList = await completer.future;
-    if (fileList == null || fileList.isEmpty) return null;
-    final file = fileList[0];
-    final reader = html.FileReader();
-    reader.readAsArrayBuffer(file);
-    await reader.onLoad.first;
-    var bytes = (reader.result as ByteBuffer).asUint8List();
-    var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
-    if (bytes.length > 1024 * 1024 && mime.startsWith('image/')) {
-      final compressed = await _compressImage(bytes, mime);
-      if (compressed != null) {
-        bytes = compressed;
-        mime = 'image/jpeg';
-      }
-    }
-    return _AttachFile(name: file.name, bytes: bytes, mime: mime);
-  }
-
-  // Pick multiple files (for attachment section). Auto-compresses images > 1 MB.
-  void _pickFiles(int docIndex) {
-    final input = html.FileUploadInputElement()
-      ..accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
-      ..multiple = true
-      ..style.position = 'fixed'
-      ..style.top = '-9999px'
-      ..style.left = '-9999px'
-      ..style.opacity = '0';
-    html.document.body?.append(input);
-    input.onChange.listen((_) async {
-      final fileList = input.files;  // read BEFORE remove
-      input.remove();
-      if (fileList == null || fileList.isEmpty) return;
-      for (int fi = 0; fi < fileList.length; fi++) {
-        final file = fileList[fi];
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        await reader.onLoad.first;
-        var bytes = (reader.result as ByteBuffer).asUint8List();
-        var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
-        // Auto-compress images > 1 MB
-        if (bytes.length > 1024 * 1024 && file.type.startsWith('image/')) {
-          final compressed = await _compressImage(bytes, file.type);
-          if (compressed != null) {
-            bytes = compressed;
-            mime = 'image/jpeg';
-          }
-        }
-        if (mounted) {
-          setState(() => _attachments[docIndex]
-              .add(_AttachFile(name: file.name, bytes: bytes, mime: mime)));
-        }
-      }
-    });
-    input.click();  // click AFTER listener is set up
+      return _AttachFile(name: file.name, bytes: bytes, mime: mime);
+    } catch (_) { return null; }
   }
 
   // Compress image using Canvas API until it's under 1 MB.
@@ -409,19 +340,6 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   }
 
   // ── Custom field rendering ────────────────────────────────────────────────
-
-  Future<void> _pickCustomFile(String fieldId) async {
-    final f = await _pickSingleFile(accept: '.pdf,.jpg,.jpeg,.png,image/*');
-    if (f == null) return;
-    final url = await _uploadSingleFile(
-        f, '${DateTime.now().millisecondsSinceEpoch}_custom_${f.name}');
-    if (mounted) {
-      setState(() {
-        _customFileNames[fieldId] = f.name;
-        _customFileUrls[fieldId] = url ?? '';
-      });
-    }
-  }
 
   List<Widget> _renderCustomFields(List<Map<String, dynamic>> fields) {
     return fields.map((field) {
@@ -514,22 +432,35 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             ],
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.upload_file_rounded, size: 15),
-                label: Text(
-                  fileName != null ? 'Change File' : 'Add File',
-                  style: const TextStyle(fontSize: 12),
+              child: WebFilePicker(
+                accept: '.pdf,.jpg,.jpeg,.png,image/*',
+                onRawFiles: (rawFiles) async {
+                  final f = await _processRawFile(rawFiles.first);
+                  if (f == null || !mounted) return;
+                  final url = await _uploadSingleFile(
+                      f, '${DateTime.now().millisecondsSinceEpoch}_custom_${f.name}');
+                  if (mounted) setState(() {
+                    _customFileNames[id] = f.name;
+                    _customFileUrls[id] = url ?? '';
+                  });
+                },
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.upload_file_rounded, size: 15),
+                  label: Text(
+                    fileName != null ? 'Change File' : 'Add File',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0D47A1),
+                    side: const BorderSide(color: Color(0xFF0D47A1)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(7)),
+                  ),
+                  onPressed: () {},
                 ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF0D47A1),
-                  side: const BorderSide(color: Color(0xFF0D47A1)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(7)),
-                ),
-                onPressed: () => _pickCustomFile(id),
               ),
             ),
           ]),
@@ -1141,9 +1072,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           child: _fileUploadTile(
             label: 'Aadhar Copy',
             file: _familyAadhars[i],
-            onPick: () async {
-              final f = await _pickSingleFile();
-              if (f != null) setState(() => _familyAadhars[i] = f);
+            onRawFile: (rawFile) async {
+              final f = await _processRawFile(rawFile);
+              if (f != null && mounted) setState(() => _familyAadhars[i] = f);
             },
             onRemove: () => setState(() => _familyAadhars[i] = null),
           ),
@@ -1359,9 +1290,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           _fileUploadTile(
             label: 'Upload Aadhar Copy (PDF / image · max 1 MB)',
             file: _emergencyAadharFile,
-            onPick: () async {
-              final f = await _pickSingleFile();
-              if (f != null) setState(() => _emergencyAadharFile = f);
+            onRawFile: (rawFile) async {
+              final f = await _processRawFile(rawFile);
+              if (f != null && mounted) setState(() => _emergencyAadharFile = f);
             },
             onRemove: () => setState(() => _emergencyAadharFile = null),
             fullWidth: true,
@@ -1472,22 +1403,34 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             // Upload button
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.upload_file_rounded, size: 15),
-                label: Text(
-                    files.isEmpty ? 'Add File' : 'Add More',
-                    style: const TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF0D47A1),
-                  side: const BorderSide(color: Color(0xFF0D47A1)),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(7)),
+              child: WebFilePicker(
+                accept: 'image/*,.pdf,.doc,.docx,.xls,.xlsx',
+                multiple: true,
+                onRawFiles: (rawFiles) async {
+                  for (final rf in rawFiles) {
+                    final f = await _processRawFile(rf);
+                    if (f != null && mounted) {
+                      setState(() => _attachments[i].add(f));
+                    }
+                  }
+                },
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.upload_file_rounded, size: 15),
+                  label: Text(
+                      files.isEmpty ? 'Add File' : 'Add More',
+                      style: const TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0D47A1),
+                    side: const BorderSide(color: Color(0xFF0D47A1)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(7)),
+                  ),
+                  onPressed: () {},
                 ),
-                onPressed: () => _pickFiles(i),
               ),
             ),
           ]),
@@ -1856,9 +1799,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Widget _fileUploadTile({
     required String label,
     required _AttachFile? file,
-    required VoidCallback onPick,
+    required void Function(html.File) onRawFile,
     required VoidCallback onRemove,
     bool fullWidth = false,
+    String accept = 'image/*,.pdf',
   }) {
     if (file != null) {
       return Container(
@@ -1888,22 +1832,26 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         ]),
       );
     }
-    return OutlinedButton.icon(
-      icon: const Icon(Icons.upload_file_rounded, size: 14),
-      label: Text(label,
-          style: const TextStyle(fontSize: 11),
-          overflow: TextOverflow.ellipsis),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: _primary,
-        side: const BorderSide(color: _primary),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        minimumSize:
-            fullWidth ? const Size(double.infinity, 42) : const Size(0, 38),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
-        alignment: Alignment.centerLeft,
+    return WebFilePicker(
+      accept: accept,
+      onRawFiles: (files) => onRawFile(files.first),
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.upload_file_rounded, size: 14),
+        label: Text(label,
+            style: const TextStyle(fontSize: 11),
+            overflow: TextOverflow.ellipsis),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _primary,
+          side: const BorderSide(color: _primary),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          minimumSize:
+              fullWidth ? const Size(double.infinity, 42) : const Size(0, 38),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+          alignment: Alignment.centerLeft,
+        ),
+        onPressed: () {},
       ),
-      onPressed: onPick,
     );
   }
 
