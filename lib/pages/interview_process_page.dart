@@ -381,7 +381,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     final name  = (row['name']  ?? '').toString().trim();
     final email = (row['email'] ?? '').toString().trim();
 
-    const _positions = [
+    const positions = [
       'HR', 'ADMIN', 'OPERATION', 'CRM', 'PROJECTS',
       'LAND ACQUISITION', 'ACCOUNTS', 'SALES', 'DIGITAL MARKETING',
     ];
@@ -389,18 +389,31 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     const formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form';
 
     String? selectedPosition = (row['post_applied'] ?? '').toString().trim();
-    if (!_positions.contains(selectedPosition)) selectedPosition = null;
+    if (!positions.contains(selectedPosition)) selectedPosition = null;
 
     DateTime joiningDate = DateTime.now().add(const Duration(days: 7));
+    TimeOfDay joiningTime = const TimeOfDay(hour: 9, minute: 30);
 
-    String _fmt(DateTime d) =>
+    final titleCtrl  = TextEditingController(text: 'Manager');
+    final letterCtrl = TextEditingController();
+
+    String _fmtDate(DateTime d) =>
         '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-    String _buildBody(String? position, DateTime date) {
-      final pos = (position ?? 'the applied role');
-      return '''Dear $name,
+    String _fmtTime(TimeOfDay t) {
+      final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+      final m = t.minute.toString().padLeft(2, '0');
+      final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+      return '$h:$m $period';
+    }
+
+    void _refreshLetter(setDlgState) {
+      final title = titleCtrl.text.trim();
+      final pos   = selectedPosition ?? 'the applied role';
+      final designation = title.isNotEmpty ? '$title- $pos' : pos;
+      final body = '''Dear $name,
 Congratulations!
-We are pleased to offer you the position of Manager- $pos at Fomra Housing & Infrastructure Pvt Ltd, based on the terms and conditions mutually discussed and agreed upon. You are requested to join us on ${_fmt(date)} at 9:30 AM at our corporate office.
+We are pleased to offer you the position of $designation at Fomra Housing & Infrastructure Pvt Ltd, based on the terms and conditions mutually discussed and agreed upon. You are requested to join us on ${_fmtDate(joiningDate)} at ${_fmtTime(joiningTime)} at our corporate office.
 
 Corporate Office Address:
 Fomra Housing & Infrastructure Pvt Ltd,
@@ -434,15 +447,21 @@ We look forward to welcoming you to our team and hope for a long, productive, an
 Warm regards,
 HR Team
 Fomra Housing & Infrastructure Pvt Ltd''';
+      setDlgState(() => letterCtrl.text = body);
     }
+
+    // Init letter text once
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) {
-          final bodyText  = _buildBody(selectedPosition, joiningDate);
+          // Initialise on first build
+          if (letterCtrl.text.isEmpty) _refreshLetter(setDlgState);
+
           final subject   = Uri.encodeComponent('Offer Letter – Fomra Housing & Infrastructure Pvt Ltd');
-          final mailtoUrl = 'mailto:$email?subject=$subject&body=${Uri.encodeComponent(bodyText)}';
+          final mailtoUrl = 'mailto:$email?subject=$subject&body=${Uri.encodeComponent(letterCtrl.text)}';
 
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -460,78 +479,169 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
             ]),
             content: SizedBox(
-              width: 520,
+              width: 560,
               child: SingleChildScrollView(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _EmailField(label: 'To', value: email.isNotEmpty ? email : '(email not on file)'),
                   const SizedBox(height: 8),
                   _EmailField(label: 'Subject', value: 'Offer Letter – Fomra Housing & Infrastructure Pvt Ltd'),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
-                  // Position dropdown
-                  const Text('Position',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
-                  const SizedBox(height: 4),
-                  DropdownButtonFormField<String>(
-                    value: selectedPosition,
-                    hint: const Text('Select position', style: TextStyle(fontSize: 13)),
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                    ),
-                    items: _positions.map((p) => DropdownMenuItem(
-                      value: p,
-                      child: Text(p, style: const TextStyle(fontSize: 13)),
-                    )).toList(),
-                    onChanged: (v) => setDlgState(() => selectedPosition = v),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Joining date picker
-                  const Text('Joining Date',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
-                  const SizedBox(height: 4),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: ctx,
-                        initialDate: joiningDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2030),
-                      );
-                      if (picked != null) setDlgState(() => joiningDate = picked);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(children: [
-                        const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF1565C0)),
-                        const SizedBox(width: 8),
-                        Text(_fmt(joiningDate),
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E))),
+                  // ── Row 1: Title field + Position dropdown ──────────────
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // Title / designation prefix
+                    Expanded(
+                      flex: 2,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Title / Designation',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: titleCtrl,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Manager, Executive',
+                            hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            isDense: true,
+                          ),
+                          style: const TextStyle(fontSize: 13),
+                          onChanged: (_) => _refreshLetter(setDlgState),
+                        ),
                       ]),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    // Position dropdown
+                    Expanded(
+                      flex: 3,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Position',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                        const SizedBox(height: 4),
+                        DropdownButtonFormField<String>(
+                          value: selectedPosition,
+                          hint: const Text('Select position', style: TextStyle(fontSize: 13)),
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            isDense: true,
+                          ),
+                          items: positions.map((p) => DropdownMenuItem(
+                            value: p,
+                            child: Text(p, style: const TextStyle(fontSize: 13)),
+                          )).toList(),
+                          onChanged: (v) {
+                            setDlgState(() => selectedPosition = v);
+                            _refreshLetter(setDlgState);
+                          },
+                        ),
+                      ]),
+                    ),
+                  ]),
                   const SizedBox(height: 12),
 
-                  // Letter preview
-                  const Text('Letter Preview',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FF),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                  // ── Row 2: Joining Date + Joining Time ─────────────────
+                  Row(children: [
+                    // Date picker
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Joining Date',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                        const SizedBox(height: 4),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: joiningDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2030),
+                            );
+                            if (picked != null) {
+                              joiningDate = picked;
+                              _refreshLetter(setDlgState);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade400),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF1565C0)),
+                              const SizedBox(width: 8),
+                              Text(_fmtDate(joiningDate),
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E))),
+                            ]),
+                          ),
+                        ),
+                      ]),
                     ),
-                    child: Text(bodyText,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF37474F), height: 1.6)),
+                    const SizedBox(width: 10),
+                    // Time picker
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Joining Time',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                        const SizedBox(height: 4),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showTimePicker(
+                              context: ctx,
+                              initialTime: joiningTime,
+                            );
+                            if (picked != null) {
+                              joiningTime = picked;
+                              _refreshLetter(setDlgState);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade400),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF1565C0)),
+                              const SizedBox(width: 8),
+                              Text(_fmtTime(joiningTime),
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E))),
+                            ]),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                  const SizedBox(height: 14),
+
+                  // ── Edit Letter ────────────────────────────────────────
+                  Row(children: [
+                    const Text('Edit Letter',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => _refreshLetter(setDlgState),
+                      icon: const Icon(Icons.refresh_rounded, size: 13),
+                      label: const Text('Reset to template', style: TextStyle(fontSize: 11)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF78909C),
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: letterCtrl,
+                    maxLines: 18,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF37474F), height: 1.6),
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.all(12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      fillColor: const Color(0xFFF8F9FF),
+                      filled: true,
+                    ),
                   ),
 
                   if (email.isEmpty) ...[
@@ -556,7 +666,11 @@ Fomra Housing & Infrastructure Pvt Ltd''';
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx),
+                onPressed: () {
+                  titleCtrl.dispose();
+                  letterCtrl.dispose();
+                  Navigator.pop(ctx);
+                },
                 child: const Text('Close'),
               ),
               ElevatedButton.icon(
