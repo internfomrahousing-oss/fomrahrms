@@ -20,13 +20,35 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   late final TabController _tabs;
   bool _loading = true;
 
+  // Month shown in the All Applications tab — always starts on the current month.
+  // Resets to current month each time the page is (re)opened.
+  late DateTime _selectedMonth;
+
   List<AppUser> _employees = [];
   List<LeaveApplication> get _applications => LeaveStore.applications;
+
+  List<LeaveApplication> get _monthApps {
+    return _applications.where((a) =>
+        a.from.year == _selectedMonth.year &&
+        a.from.month == _selectedMonth.month).toList();
+  }
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+  }
+
+  static const _monthNames = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December',
+  ];
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
+    final now = DateTime.now();
+    _selectedMonth = DateTime(now.year, now.month);
     _reload();
   }
 
@@ -242,28 +264,71 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     );
   }
 
-  // ── Tab 2: All leave applications (read-only) ─────────────────────────────
+  // ── Tab 2: All leave applications (read-only, filtered by month) ─────────
 
   Widget _buildApplicationsTab() {
-    // Summary counts
-    final pending  = _applications.where((a) => a.managerStatus == LeaveApprovalStatus.pending).length;
-    final approved = _applications.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
-    final denied   = _applications.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length;
+    final apps     = _monthApps;
+    final pending  = apps.where((a) => a.managerStatus == LeaveApprovalStatus.pending).length;
+    final approved = apps.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
+    final denied   = apps.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length;
 
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        // Summary row
+        // Month navigator
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded),
+                color: _color,
+                onPressed: () => setState(() {
+                  _selectedMonth = DateTime(
+                    _selectedMonth.month == 1 ? _selectedMonth.year - 1 : _selectedMonth.year,
+                    _selectedMonth.month == 1 ? 12 : _selectedMonth.month - 1,
+                  );
+                }),
+              ),
+              Expanded(
+                child: Column(children: [
+                  Text(
+                    '${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700, color: _color),
+                  ),
+                  if (_isCurrentMonth)
+                    const Text('Current month',
+                        style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                ]),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded),
+                color: _isCurrentMonth ? Colors.grey.shade300 : _color,
+                onPressed: _isCurrentMonth ? null : () => setState(() {
+                  _selectedMonth = DateTime(
+                    _selectedMonth.month == 12 ? _selectedMonth.year + 1 : _selectedMonth.year,
+                    _selectedMonth.month == 12 ? 1 : _selectedMonth.month + 1,
+                  );
+                }),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Summary badges
         Row(children: [
-          _StatusBadge('Pending',  Icons.hourglass_empty_rounded, Colors.orange.shade700,  pending),
+          _StatusBadge('Pending',  Icons.hourglass_empty_rounded, Colors.orange.shade700, pending),
           const SizedBox(width: 10),
-          _StatusBadge('Approved', Icons.check_circle_rounded,    Colors.green.shade700,   approved),
+          _StatusBadge('Approved', Icons.check_circle_rounded,    Colors.green.shade700,  approved),
           const SizedBox(width: 10),
-          _StatusBadge('Denied',   Icons.cancel_rounded,          Colors.red.shade700,     denied),
+          _StatusBadge('Denied',   Icons.cancel_rounded,          Colors.red.shade700,    denied),
         ]),
         const SizedBox(height: 16),
 
-        if (_applications.isEmpty)
+        if (apps.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(40),
@@ -271,14 +336,17 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
                 child: Column(children: [
                   Icon(Icons.inbox_rounded, size: 48, color: Colors.grey.shade300),
                   const SizedBox(height: 10),
-                  Text('No leave applications yet',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+                  Text(
+                    _isCurrentMonth
+                        ? 'No applications this month'
+                        : 'No applications in ${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
                 ]),
               ),
             ),
           )
         else
-          ..._applications.map((app) => Padding(
+          ...apps.map((app) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _AppCard(app: app, fmt: _fmt),
               )),
