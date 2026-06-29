@@ -35,7 +35,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF5F7FA),
+      color: null,
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

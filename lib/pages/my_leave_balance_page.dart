@@ -92,7 +92,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
     final available = (_totalAllocated - used).clamp(0.0, _totalAllocated.toDouble());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

@@ -48,7 +48,7 @@ class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
     final reviewed = _applications.where((a) => a.status != _Status.pending).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -341,7 +341,7 @@ class _ApplicationCardState extends State<_ApplicationCard> {
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
+              color: null,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

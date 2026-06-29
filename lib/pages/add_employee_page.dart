@@ -93,7 +93,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(

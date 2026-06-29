@@ -496,7 +496,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     final pad = narrow ? 16.0 : 24.0;
 
     return Material(
-      color: const Color(0xFFF5F7FA),
+      color: null,
       child: Column(children: [
         // ── Header ──────────────────────────────────────────────────
         Container(

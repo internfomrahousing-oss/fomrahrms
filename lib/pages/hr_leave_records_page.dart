@@ -120,7 +120,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: Column(
         children: [
           // Header

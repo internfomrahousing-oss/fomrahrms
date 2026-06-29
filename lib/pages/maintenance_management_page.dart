@@ -125,7 +125,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: null,
         body: Column(children: [
           _Header(
             onRefresh: _reload,
@@ -199,7 +199,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: null,
         body: Column(children: [
           _Header(
             onRefresh: _reload,
@@ -256,7 +256,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

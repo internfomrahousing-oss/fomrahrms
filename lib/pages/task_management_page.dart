@@ -64,7 +64,7 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
     final tasks = _filtered;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

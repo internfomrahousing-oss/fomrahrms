@@ -90,7 +90,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -958,7 +958,7 @@ class _EditDialogState extends State<_EditDialog> {
 
             // Active toggle
             Card(
-              color: const Color(0xFFF5F7FA),
+              color: null,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

@@ -229,7 +229,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -940,7 +940,7 @@ class _ReadOnlyField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: const Color(0xFFF5F7FA),
+      color: null,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(children: [

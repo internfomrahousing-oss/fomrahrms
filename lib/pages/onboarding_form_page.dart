@@ -861,7 +861,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Widget build(BuildContext context) {
     if (_submitted) return _buildSuccess();
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Center(
@@ -947,7 +947,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   }
 
   Widget _buildSuccess() => Scaffold(
-    backgroundColor: const Color(0xFFF5F7FA),
+    backgroundColor: null,
     body: Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(

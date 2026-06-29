@@ -17,7 +17,7 @@ class SectionDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -103,7 +103,7 @@ class _ItemRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
+              color: null,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: const Color(0xFFE0E0E0)),
             ),

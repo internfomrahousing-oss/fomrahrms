@@ -196,7 +196,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   Widget build(BuildContext context) {
     final filtered = _filtered;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child:

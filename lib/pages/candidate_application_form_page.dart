@@ -623,7 +623,7 @@ class _CandidateApplicationFormPageState
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: Column(children: [
         // Header
         Container(

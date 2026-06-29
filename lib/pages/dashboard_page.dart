@@ -82,7 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final pad    = narrow ? 16.0 : 24.0;
 
     return Material(
-      color: const Color(0xFFF5F7FA),
+      color: null,
       child: SingleChildScrollView(
         padding: EdgeInsets.all(pad),
         child: Column(

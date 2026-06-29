@@ -102,7 +102,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
     final tasks = _filtered;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
