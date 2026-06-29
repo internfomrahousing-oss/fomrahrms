@@ -42,6 +42,19 @@ class _TaskManagementPageState extends State<TaskManagementPage>
 
   Future<void> _load() async {
     final tasks = await SupabaseService.fetchTasks();
+    final now = DateTime.now();
+    for (final t in tasks) {
+      if (t.status == TaskStatus.completed) continue;
+      if (t.dueDate.isBefore(now) && t.status != TaskStatus.delayed) {
+        t.status = TaskStatus.delayed;
+        SupabaseService.updateTaskStatus(t.id, TaskStatus.delayed);
+      } else if (t.status == TaskStatus.inProgress &&
+          t.receivedAt != null &&
+          now.difference(t.receivedAt!).inHours >= 2) {
+        t.status = TaskStatus.pending;
+        SupabaseService.updateTaskStatus(t.id, TaskStatus.pending);
+      }
+    }
     TaskStore.tasks
       ..clear()
       ..addAll(tasks);
@@ -57,11 +70,6 @@ class _TaskManagementPageState extends State<TaskManagementPage>
     return loc.startsWith('/manager')
         ? '/manager/task-management/add'
         : '/task-management/add';
-  }
-
-  void _onStatusChanged(Task t, TaskStatus s) {
-    setState(() => t.status = s);
-    SupabaseService.updateTaskStatus(t.id, s);
   }
 
   void _onDelete(Task t) {
@@ -154,7 +162,6 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   currentFilter: _filter,
                   filtered: _filtered,
                   onFilterChanged: (f) => setState(() => _filter = f),
-                  onStatusChanged: _onStatusChanged,
                   onDelete: _onDelete,
                 ),
                 const _PlaceholderTab(
@@ -184,7 +191,6 @@ class _TasksTab extends StatelessWidget {
   final TaskStatus? currentFilter;
   final List<Task> filtered;
   final ValueChanged<TaskStatus?> onFilterChanged;
-  final void Function(Task, TaskStatus) onStatusChanged;
   final void Function(Task) onDelete;
 
   const _TasksTab({
@@ -193,7 +199,6 @@ class _TasksTab extends StatelessWidget {
     required this.currentFilter,
     required this.filtered,
     required this.onFilterChanged,
-    required this.onStatusChanged,
     required this.onDelete,
   });
 
@@ -296,7 +301,6 @@ class _TasksTab extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _TaskCard(
                     task: t,
-                    onStatusChanged: (s) => onStatusChanged(t, s),
                     onDelete: (UserSession.role == UserRole.hr ||
                             UserSession.role == UserRole.management)
                         ? () => onDelete(t)
@@ -365,10 +369,8 @@ String _filterLabel(TaskStatus s) => switch (s) {
 
 class _TaskCard extends StatefulWidget {
   final Task task;
-  final ValueChanged<TaskStatus> onStatusChanged;
   final VoidCallback? onDelete;
-  const _TaskCard(
-      {required this.task, required this.onStatusChanged, this.onDelete});
+  const _TaskCard({required this.task, this.onDelete});
 
   @override
   State<_TaskCard> createState() => _TaskCardState();
@@ -488,37 +490,7 @@ class _TaskCardState extends State<_TaskCard> {
                 ]),
                 const SizedBox(height: 14),
 
-                if (t.status != TaskStatus.completed)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    const Text('Move to: ',
-                        style: TextStyle(
-                            fontSize: 12, color: Color(0xFF78909C))),
-                    ...TaskStatus.values
-                        .where((s) => s != t.status)
-                        .map((s) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: ActionChip(
-                                label: Text(_filterLabel(s),
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: _statusColor(s))),
-                                backgroundColor: _statusColor(s)
-                                    .withValues(alpha: 0.08),
-                                side: BorderSide(
-                                    color: _statusColor(s)
-                                        .withValues(alpha: 0.3)),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(20)),
-                                onPressed: () =>
-                                    widget.onStatusChanged(s),
-                                padding: EdgeInsets.zero,
-                              ),
-                            )),
-                  ]),
-                ),
+                // Status is managed automatically — no manual move-to for managers
                 if (widget.onDelete != null) ...[
                   const SizedBox(height: 12),
                   Align(
