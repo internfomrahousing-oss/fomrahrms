@@ -5,6 +5,8 @@ import '../models/user_session.dart';
 
 class GpsTrackingService {
   static StreamSubscription<Position>? _subscription;
+  static double? latestLat;
+  static double? latestLng;
 
   static bool get isTracking => _subscription != null;
 
@@ -28,6 +30,8 @@ class GpsTrackingService {
         distanceFilter: 10,
       ),
     ).listen((pos) {
+      latestLat = pos.latitude;
+      latestLng = pos.longitude;
       final now = DateTime.now();
       AttendanceStore.gpsRecords.add(GpsRecord(
         employee: employee,
@@ -43,5 +47,7 @@ class GpsTrackingService {
   static Future<void> stop() async {
     await _subscription?.cancel();
     _subscription = null;
+    latestLat = null;
+    latestLng = null;
   }
 }

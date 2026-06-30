@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
+
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
@@ -13,17 +17,22 @@ class CheckInPage extends StatefulWidget {
 
 class _CheckInPageState extends State<CheckInPage> {
   static const _color = Color(0xFF0D47A1);
+  static final _registeredViews = <String>{};
 
   final _timeController = TextEditingController();
+  Timer? _mapTimer;
 
   @override
   void initState() {
     super.initState();
     _autoFillTime();
+    // If already checked in, start refreshing the map display
+    if (AttendanceStore.isCheckedIn) _startMapTimer();
   }
 
   @override
   void dispose() {
+    _mapTimer?.cancel();
     _timeController.dispose();
     super.dispose();
   }
@@ -32,6 +41,14 @@ class _CheckInPageState extends State<CheckInPage> {
     final now = DateTime.now();
     _timeController.text =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _startMapTimer() {
+    _mapTimer?.cancel();
+    // Refresh map every 30 seconds to show updated position
+    _mapTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _onSave() {
@@ -55,6 +72,7 @@ class _CheckInPageState extends State<CheckInPage> {
     ));
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
+    _startMapTimer();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Checked in — GPS tracking started'),
       backgroundColor: _color,
@@ -64,8 +82,85 @@ class _CheckInPageState extends State<CheckInPage> {
     setState(() {});
   }
 
+  Widget _buildMap(double lat, double lng) {
+    final viewId =
+        'checkin_live_${lat.toStringAsFixed(4)}_${lng.toStringAsFixed(4)}';
+    if (!_registeredViews.contains(viewId)) {
+      _registeredViews.add(viewId);
+      final l1 = lng - 0.005;
+      final la1 = lat - 0.005;
+      final l2 = lng + 0.005;
+      final la2 = lat + 0.005;
+      ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
+        return html.IFrameElement()
+          ..src = 'https://www.openstreetmap.org/export/embed.html'
+              '?bbox=$l1,$la1,$l2,$la2&layer=mapnik&marker=$lat,$lng'
+          ..style.border = 'none'
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..allowFullscreen = true;
+      });
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.location_on_rounded, color: _color, size: 16),
+        const SizedBox(width: 6),
+        const Text('Live Location',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF37474F))),
+        const Spacer(),
+        TextButton.icon(
+          onPressed: () => setState(() {}),
+          icon: const Icon(Icons.refresh_rounded, size: 15),
+          label: const Text('Refresh', style: TextStyle(fontSize: 12)),
+          style: TextButton.styleFrom(
+            foregroundColor: _color,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      ]),
+      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: _color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: _color.withValues(alpha: 0.2)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.gps_fixed_rounded, size: 12, color: _color),
+          const SizedBox(width: 6),
+          Text(
+            'Lat: ${lat.toStringAsFixed(6)},  Lng: ${lng.toStringAsFixed(6)}',
+            style: const TextStyle(
+                fontSize: 12, color: _color, fontFamily: 'monospace'),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 220,
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFDDE3EA)),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: HtmlElementView(viewType: viewId),
+        ),
+      ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final lat = GpsTrackingService.latestLat;
+    final lng = GpsTrackingService.latestLng;
+
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -94,7 +189,9 @@ class _CheckInPageState extends State<CheckInPage> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: Column(children: [
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   TextField(
                     controller: _timeController,
                     decoration: InputDecoration(
@@ -103,7 +200,8 @@ class _CheckInPageState extends State<CheckInPage> {
                           color: _color, size: 20),
                       suffixIcon: IconButton(
                         tooltip: 'Refresh time',
-                        icon: const Icon(Icons.schedule_rounded, color: _color),
+                        icon:
+                            const Icon(Icons.schedule_rounded, color: _color),
                         onPressed: _autoFillTime,
                       ),
                       border: OutlineInputBorder(
@@ -115,22 +213,21 @@ class _CheckInPageState extends State<CheckInPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: _color, width: 2),
+                        borderSide: const BorderSide(color: _color, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      labelStyle:
-                          const TextStyle(color: Color(0xFF78909C)),
+                      labelStyle: const TextStyle(color: Color(0xFF78909C)),
                     ),
                   ),
 
                   if (AttendanceStore.isCheckedIn) ...[
                     const SizedBox(height: 16),
+                    // GPS active banner
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(8),
@@ -154,6 +251,39 @@ class _CheckInPageState extends State<CheckInPage> {
                         ),
                       ]),
                     ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    // Live map — shown once GPS has a fix
+                    if (lat != null && lng != null)
+                      _buildMap(lat, lng)
+                    else
+                      Container(
+                        width: double.infinity,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                        ),
+                        child: const Center(
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: _color),
+                                ),
+                                SizedBox(width: 8),
+                                Text('Acquiring GPS location…',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFFB0BEC5))),
+                              ]),
+                        ),
+                      ),
                   ],
                 ]),
               ),
