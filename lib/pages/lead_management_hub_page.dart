@@ -13,7 +13,6 @@ class LeadManagementHubPage extends StatefulWidget {
 
 class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
   static const _blue   = Color(0xFF0D47A1);
-  static const _fbBlue = Color(0xFF1877F2);
 
   List<LeadSource> _sources = [];
   bool _loading = true;
@@ -524,7 +523,6 @@ class _SourceCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  static const _fbBlue = Color(0xFF1877F2);
 
   @override
   Widget build(BuildContext context) {

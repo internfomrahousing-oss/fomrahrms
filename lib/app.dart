@@ -41,7 +41,6 @@ import 'pages/my_attendance_page.dart';
 import 'pages/my_tasks_page.dart';
 import 'pages/my_payslips_page.dart';
 import 'pages/my_profile_page.dart';
-import 'pages/my_details_page.dart';
 import 'pages/employee_attendance_page.dart';
 import 'pages/hr_attendance_records_page.dart';
 import 'pages/hr_attendance_detail_page.dart';

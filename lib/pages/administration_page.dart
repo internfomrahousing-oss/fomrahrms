@@ -1261,13 +1261,11 @@ class _DialogField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final IconData icon;
-  final TextInputType? keyboard;
   final int maxLines;
   const _DialogField({
     required this.controller,
     required this.label,
     required this.icon,
-    this.keyboard,
     this.maxLines = 1,
   });
 
@@ -1275,7 +1273,6 @@ class _DialogField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      keyboardType: keyboard,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,

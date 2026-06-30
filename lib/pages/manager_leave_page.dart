@@ -325,7 +325,6 @@ class _RequestCard extends StatefulWidget {
     required this.onApprove,
     required this.onDeny,
     required this.onReset,
-    super.key,
   });
 
   @override

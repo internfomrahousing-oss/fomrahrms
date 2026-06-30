@@ -200,24 +200,6 @@ class _ApplicationCard extends StatelessWidget {
   final LeaveApplication app;
   const _ApplicationCard({required this.app});
 
-  Color _statusColor(LeaveApprovalStatus s) => switch (s) {
-        LeaveApprovalStatus.approved => Colors.green.shade700,
-        LeaveApprovalStatus.denied   => Colors.red.shade700,
-        LeaveApprovalStatus.pending  => Colors.orange.shade700,
-      };
-
-  IconData _statusIcon(LeaveApprovalStatus s) => switch (s) {
-        LeaveApprovalStatus.approved => Icons.check_circle_rounded,
-        LeaveApprovalStatus.denied   => Icons.cancel_rounded,
-        LeaveApprovalStatus.pending  => Icons.hourglass_empty_rounded,
-      };
-
-  String _statusLabel(LeaveApprovalStatus s) => switch (s) {
-        LeaveApprovalStatus.approved => 'Approved',
-        LeaveApprovalStatus.denied   => 'Denied',
-        LeaveApprovalStatus.pending  => 'Pending',
-      };
-
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -258,31 +240,6 @@ class _ApplicationCard extends StatelessWidget {
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  final String label;
-  final Color color;
-  final IconData icon;
-  const _StatusPill(this.label, this.color, this.icon);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: color),
-        const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600, color: color)),
-      ]),
-    );
-  }
-}
-
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -297,33 +254,6 @@ class _InfoChip extends StatelessWidget {
           style:
               const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
     ]);
-  }
-}
-
-class _ActionBtn extends StatelessWidget {
-  final String label;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _ActionBtn(this.label, this.color, this.icon, this.onTap);
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 14),
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8)),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    );
   }
 }
 

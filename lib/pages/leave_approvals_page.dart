@@ -192,7 +192,6 @@ class _ApplicationCard extends StatefulWidget {
     required this.onApprove,
     required this.onDeny,
     required this.onReset,
-    super.key,
   });
 
   @override

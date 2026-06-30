@@ -946,46 +946,6 @@ class _SmallIconBtn extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: color,
-                  fontWeight: FontWeight.w600)),
-        ]),
-      ),
-    );
-  }
-}
-
 // ── Empty / Error states ─────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
@@ -1069,34 +1029,3 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-class _SetupStep extends StatelessWidget {
-  final String n;
-  final String text;
-  const _SetupStep({required this.n, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          width: 18,
-          height: 18,
-          margin: const EdgeInsets.only(top: 1, right: 8),
-          decoration: const BoxDecoration(color: _blue, shape: BoxShape.circle),
-          child: Center(
-            child: Text(n,
-                style: const TextStyle(
-                    fontSize: 10,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold)),
-          ),
-        ),
-        Expanded(
-          child: Text(text,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
-        ),
-      ]),
-    );
-  }
-}

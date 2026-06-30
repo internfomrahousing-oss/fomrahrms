@@ -94,7 +94,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         if (fd is Map) row.addAll(Map<String, dynamic>.from(fd));
         return row;
       }).toList();
-      final allVersions = results[1] as List<Map<String, dynamic>>;
+      final allVersions = results[1];
       final pending = allVersions
           .where((v) => (v['status'] as String?) == 'pending')
           .toList();
@@ -1496,8 +1496,8 @@ class _SectionDiffTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Wrap(spacing: 4, runSpacing: 3,
                     children: builtInDefs.map((f) {
-                      final fId     = f['id'] as String? ?? '';
-                      final fLabel  = f['label'] as String? ?? fId;
+                      final fId     = f['id'] ?? '';
+                      final fLabel  = f['label'] ?? fId;
                       final isHidden = hiddenIds.contains(fId);
                       final isHiddenChanged = diff.hiddenChanged.contains(fId);
                       Color fc = isHidden ? Colors.grey : textColor;

@@ -893,8 +893,6 @@ class _Field extends StatelessWidget {
   final String label;
   final IconData icon;
   final int maxLines;
-  final TextInputType? keyboardType;
-  final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
 
   const _Field({
@@ -902,8 +900,6 @@ class _Field extends StatelessWidget {
     required this.label,
     required this.icon,
     this.maxLines = 1,
-    this.keyboardType,
-    this.inputFormatters,
     this.validator,
   });
 
@@ -915,8 +911,6 @@ class _Field extends StatelessWidget {
         child: TextFormField(
           controller: controller,
           maxLines: maxLines,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
           validator: validator,
           decoration: InputDecoration(
             labelText: label,
@@ -1017,66 +1011,6 @@ class _DateField extends StatelessWidget {
                 ),
               ),
             ]),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _AttachmentField extends StatelessWidget {
-  final String value;
-  final VoidCallback onTap;
-  const _AttachmentField({required this.value, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            const Icon(Icons.attach_file_rounded,
-                size: 18, color: Color(0xFF6A1B9A)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                const Text('Attachment',
-                    style: TextStyle(
-                        fontSize: 11, color: Color(0xFF78909C))),
-                const SizedBox(height: 2),
-                Text(
-                  value.isEmpty ? 'Tap to attach file' : value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: value.isEmpty
-                        ? const Color(0xFFBDBDBD)
-                        : const Color(0xFF1A237E),
-                  ),
-                ),
-              ]),
-            ),
-            if (value.isEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text('Browse',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6A1B9A),
-                        fontWeight: FontWeight.w600)),
-              )
-            else
-              const Icon(Icons.check_circle_rounded,
-                  color: Colors.green, size: 18),
           ]),
         ),
       ),

@@ -490,8 +490,8 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
       final ob = await db.from('onboarding_forms').select().or('name.ilike.%$name%,phone_number.eq.$email').limit(1);
       final ca = await db.from('candidate_applications').select().or('name.ilike.%$name%,email.eq.$email').limit(1);
       setState(() {
-        _onboarding = (ob as List).isNotEmpty ? ob.first as Map<String, dynamic> : null;
-        _interview  = (ca as List).isNotEmpty ? ca.first as Map<String, dynamic> : null;
+        _onboarding = (ob as List).isNotEmpty ? ob.first : null;
+        _interview  = (ca as List).isNotEmpty ? ca.first : null;
         _loading = false;
       });
     } catch (_) {

@@ -77,8 +77,6 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
           (type == null || a.leaveType == type))
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
-  static String _fmtDays(double d) =>
-      d % 1 == 0 ? '${d.toInt()}' : d.toStringAsFixed(1);
 
   static String _monthName(int m) => const [
     '', 'January', 'February', 'March', 'April', 'May', 'June',
