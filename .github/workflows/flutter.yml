@@ -1,35 +1,56 @@
-name: Flutter CI
+name: Flutter CI/CD
 
 on:
   push:
     branches:
       - main
-
   pull_request:
     branches:
       - main
 
 jobs:
+  # ── Run tests on every push / PR ────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Project
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
 
-      - name: Show Flutter Version
-        run: flutter --version
-
-      - name: Install Dependencies
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze Project
+      - name: Analyze
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
-      - name: Run Tests
+      - name: Test
         run: flutter test
+
+  # ── Build & deploy to GitHub Pages (main branch only) ───────────────────────
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release --base-href /fomrahrms/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
