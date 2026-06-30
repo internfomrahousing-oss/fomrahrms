@@ -49,6 +49,11 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
         return matchSearch && matchStatus;
       }).toList();
 
+  List<LeaveApplication> get _longTermLeaves =>
+      _filtered.where((a) => a.effectiveDays > 2).toList();
+  List<LeaveApplication> get _regularLeaves =>
+      _filtered.where((a) => a.effectiveDays <= 2).toList();
+
   int get _pendingCount =>
       _requests.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
   int get _approvedCount =>
@@ -358,7 +363,57 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               title: 'No results match your search',
               subtitle: '',
             )
-          else if (!_loading)
+          else if (!_loading && _isMgmt && !_showAll) ...[
+            _SectionHeader(
+              label: 'Long Term Leaves',
+              count: _longTermLeaves.length,
+              color: const Color(0xFFB71C1C),
+              icon: Icons.date_range_rounded,
+            ),
+            const SizedBox(height: 8),
+            if (_longTermLeaves.isEmpty)
+              _emptyCard(
+                icon: Icons.event_available_rounded,
+                title: 'No long term leave requests',
+                subtitle: 'Leave requests exceeding 2 days will appear here.',
+              )
+            else
+              ..._longTermLeaves.map((app) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RequestCard(
+                      request:      app,
+                      isManagement: _isMgmt,
+                      onApprove:    () => _approve(app),
+                      onDeny:       () => _deny(app),
+                      onReset:      () => _reset(app),
+                    ),
+                  )),
+            const SizedBox(height: 16),
+            _SectionHeader(
+              label: 'Regular Leaves',
+              count: _regularLeaves.length,
+              color: const Color(0xFF283593),
+              icon: Icons.event_note_rounded,
+            ),
+            const SizedBox(height: 8),
+            if (_regularLeaves.isEmpty)
+              _emptyCard(
+                icon: Icons.inbox_rounded,
+                title: 'No regular leave requests',
+                subtitle: '',
+              )
+            else
+              ..._regularLeaves.map((app) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RequestCard(
+                      request:      app,
+                      isManagement: _isMgmt,
+                      onApprove:    () => _approve(app),
+                      onDeny:       () => _deny(app),
+                      onReset:      () => _reset(app),
+                    ),
+                  )),
+          ] else if (!_loading)
             ...filtered.map((app) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _RequestCard(
@@ -727,6 +782,57 @@ class _StatusPill extends StatelessWidget {
                 fontSize: 11, fontWeight: FontWeight.w700, color: color)),
       ]),
     );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  final IconData icon;
+  const _SectionHeader({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: color)),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text('$count',
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white)),
+          ),
+        ]),
+      ),
+      Expanded(
+          child: Divider(color: color.withValues(alpha: 0.2), indent: 10)),
+    ]);
   }
 }
 
