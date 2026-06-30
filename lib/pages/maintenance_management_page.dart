@@ -130,9 +130,9 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
           _Header(
             onRefresh: _reload,
             bottom: TabBar(
-              labelColor: AppTheme.primaryBlue,
-              unselectedLabelColor: const Color(0xFF78909C),
-              indicatorColor: AppTheme.primaryBlue,
+              labelColor: Theme.of(context).colorScheme.primary,
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              indicatorColor: Theme.of(context).colorScheme.primary,
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               tabs: [
                 Tab(text: 'Pending (${pending.length})'),
@@ -204,9 +204,9 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
           _Header(
             onRefresh: _reload,
             bottom: TabBar(
-              labelColor: AppTheme.primaryBlue,
-              unselectedLabelColor: const Color(0xFF78909C),
-              indicatorColor: AppTheme.primaryBlue,
+              labelColor: Theme.of(context).colorScheme.primary,
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              indicatorColor: Theme.of(context).colorScheme.primary,
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               tabs: [
                 Tab(text: 'Issues from HR (${hrSent.length})'),
@@ -272,8 +272,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                 const SizedBox(height: 16),
                 Text('Issue Type',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF37474F))),
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedIssueType,
@@ -294,8 +293,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                 const SizedBox(height: 16),
                 Text('Description',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF37474F))),
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _descController,
@@ -341,15 +339,16 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       Container(
         width: 44, height: 44,
         decoration: BoxDecoration(
-          color: AppTheme.lightBlue, borderRadius: BorderRadius.circular(10)),
-        child: const Icon(Icons.build_rounded,
-            color: AppTheme.primaryBlue, size: 22),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10)),
+        child: Icon(Icons.build_rounded,
+            color: Theme.of(context).colorScheme.primary, size: 22),
       ),
       const SizedBox(width: 14),
       Expanded(child: Text('Maintenance Management',
           style: Theme.of(context).textTheme.headlineMedium)),
       IconButton(
-        icon: const Icon(Icons.refresh_rounded, color: AppTheme.primaryBlue),
+        icon: Icon(Icons.refresh_rounded, color: Theme.of(context).colorScheme.primary),
         tooltip: 'Refresh',
         onPressed: _reload,
       ),
@@ -367,24 +366,24 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: AppTheme.lightBlue,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.build_rounded,
-                color: AppTheme.primaryBlue, size: 22),
+            child: Icon(Icons.build_rounded,
+                color: Theme.of(context).colorScheme.primary, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(child: Text('Maintenance Management',
               style: Theme.of(context).textTheme.headlineMedium)),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppTheme.primaryBlue),
+            icon: Icon(Icons.refresh_rounded, color: Theme.of(context).colorScheme.primary),
             tooltip: 'Refresh',
             onPressed: onRefresh,
           ),
@@ -443,6 +442,7 @@ class _TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sc = _statusColor(ticket.status);
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -452,14 +452,14 @@ class _TicketCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.lightBlue,
+                color: cs.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(ticket.issueType,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryBlue)),
+                      color: cs.primary)),
             ),
             const Spacer(),
             if (ticket.sentToManagement)
@@ -493,26 +493,26 @@ class _TicketCard extends StatelessWidget {
 
           // Description
           Text(ticket.description,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF37474F))),
+              style: TextStyle(fontSize: 13, color: cs.onSurface)),
           const SizedBox(height: 8),
 
           // Footer: reporter · date · ticket ID
           Row(children: [
-            const Icon(Icons.person_rounded, size: 13, color: Color(0xFF90A4AE)),
+            Icon(Icons.person_rounded, size: 13, color: cs.onSurface.withValues(alpha: 0.55)),
             const SizedBox(width: 4),
             Text(ticket.reportedBy,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
+                style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
             const SizedBox(width: 12),
-            const Icon(Icons.access_time_rounded,
-                size: 13, color: Color(0xFF90A4AE)),
+            Icon(Icons.access_time_rounded,
+                size: 13, color: cs.onSurface.withValues(alpha: 0.55)),
             const SizedBox(width: 4),
             Text(_fmt(ticket.createdAt),
-                style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
+                style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
             const Spacer(),
             Text(ticket.id,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF90A4AE),
+                    color: cs.onSurface.withValues(alpha: 0.55),
                     fontWeight: FontWeight.w500)),
           ]),
 
@@ -574,12 +574,12 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.check_circle_outline_rounded,
-            color: Color(0xFF90A4AE), size: 52),
+        Icon(Icons.check_circle_outline_rounded,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4), size: 52),
         const SizedBox(height: 12),
         Text(message,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF90A4AE))),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
       ]),
     );
   }
@@ -596,21 +596,21 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext _) {
+    final cs = Theme.of(context).colorScheme;
     return Row(children: [
       Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-            color: AppTheme.lightBlue,
+            color: cs.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, color: AppTheme.primaryBlue, size: 18),
+        child: Icon(icon, color: cs.primary, size: 18),
       ),
       const SizedBox(width: 10),
       Text(label,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: const Color(0xFF1A237E),
               fontWeight: FontWeight.w700)),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      Expanded(child: Divider(color: cs.outlineVariant)),
     ]);
   }
 }

@@ -201,23 +201,24 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(children: [
       Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: _mgmtColor.withValues(alpha: 0.1),
+          color: cs.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: _mgmtColor, size: 18),
+        child: Icon(icon, color: cs.primary, size: 18),
       ),
       const SizedBox(width: 10),
       Text(label,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: _mgmtColor)),
+              color: cs.onSurface)),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      Expanded(child: Divider(color: cs.outlineVariant)),
     ]);
   }
 }
@@ -295,10 +296,10 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(stat.label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF546E7A))),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
         ]),
       ),
     );
@@ -363,10 +364,10 @@ class _SectionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(section.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: _mgmtColor)),
+                            color: Theme.of(context).colorScheme.onSurface)),
                     const SizedBox(height: 2),
                     Text('View details',
                         style: TextStyle(

@@ -234,23 +234,24 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(children: [
       Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: _blue.withValues(alpha: 0.1),
+          color: cs.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: _blue, size: 18),
+        child: Icon(icon, color: cs.primary, size: 18),
       ),
       const SizedBox(width: 10),
       Text(label,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: _blue)),
+              color: cs.onSurface)),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      Expanded(child: Divider(color: cs.outlineVariant)),
     ]);
   }
 }
@@ -319,7 +320,7 @@ class _InterviewCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-            color: allApproved ? const Color(0xFF2E7D32) : const Color(0xFFE0E0E0),
+            color: allApproved ? const Color(0xFF2E7D32) : Theme.of(context).colorScheme.outlineVariant,
             width: allApproved ? 1.5 : 1),
       ),
       child: Padding(
@@ -336,10 +337,10 @@ class _InterviewCard extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Interview Application',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+              Text('Interview Application',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface)),
               if (post.isNotEmpty)
-                Text(post, style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                Text(post, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
             ])),
             if (allApproved)
               Container(
@@ -406,7 +407,7 @@ class _OnboardingCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-            color: status == 'access_granted' ? const Color(0xFF6A1B9A) : const Color(0xFFE0E0E0),
+            color: status == 'access_granted' ? const Color(0xFF6A1B9A) : Theme.of(context).colorScheme.outlineVariant,
             width: status == 'access_granted' ? 1.5 : 1),
       ),
       child: Padding(
@@ -422,10 +423,10 @@ class _OnboardingCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Onboarding Form',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+            Text('Onboarding Form',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface)),
             if (desig.isNotEmpty)
-              Text(desig, style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+              Text(desig, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
           ])),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

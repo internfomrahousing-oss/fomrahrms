@@ -430,10 +430,10 @@ class _TaskCardState extends State<_TaskCard> {
                                 fontWeight: FontWeight.w500)),
                         const SizedBox(height: 2),
                         Text(t.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A237E))),
+                                color: Theme.of(context).colorScheme.onSurface)),
                       ]),
                 ),
                 const SizedBox(width: 12),
@@ -473,8 +473,8 @@ class _TaskCardState extends State<_TaskCard> {
                           color: Color(0xFF78909C))),
                   const SizedBox(height: 4),
                   Text(t.description,
-                      style: const TextStyle(
-                          fontSize: 13, color: Color(0xFF1A237E))),
+                      style: TextStyle(
+                          fontSize: 13, color: Theme.of(context).colorScheme.onSurface)),
                   const SizedBox(height: 12),
                 ],
                 Wrap(spacing: 24, runSpacing: 8, children: [
@@ -571,10 +571,10 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: const Color(0xFF78909C)),
+      Icon(icon, size: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)),
       const SizedBox(width: 4),
       Text(label,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A))),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
     ]);
   }
 }
@@ -588,15 +588,15 @@ class _DetailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 10,
-              color: Color(0xFF78909C),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
               fontWeight: FontWeight.w500)),
       const SizedBox(height: 2),
       Text(value,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF1A237E),
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w600)),
     ]);
   }

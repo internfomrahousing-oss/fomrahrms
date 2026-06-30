@@ -52,11 +52,11 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: AppTheme.lightBlue,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.beach_access_rounded,
-                    color: AppTheme.primaryBlue, size: 22),
+                child: Icon(Icons.beach_access_rounded,
+                    color: Theme.of(context).colorScheme.primary, size: 22),
               ),
               const SizedBox(width: 14),
               Text('Leave Management',
@@ -78,7 +78,6 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
               const SizedBox(width: 12),
               Text('Employee Leave Records',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: const Color(0xFF1A237E),
                         fontWeight: FontWeight.w700,
                       )),
             ]),
@@ -97,18 +96,11 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                             color: _accentColor, size: 20),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10)),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide:
                               const BorderSide(color: _accentColor, width: 2),
                         ),
-                        filled: true,
-                        fillColor: Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),
                       ),
@@ -212,10 +204,10 @@ class _ApplicationCard extends StatelessWidget {
                 color: Color(0xFF0D47A1), size: 20),
             const SizedBox(width: 8),
             Text(app.employeeName,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E))),
+                    color: Theme.of(context).colorScheme.onSurface)),
           ]),
           const SizedBox(height: 10),
           Wrap(spacing: 16, runSpacing: 6, children: [
@@ -248,11 +240,10 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 13, color: const Color(0xFF78909C)),
+      Icon(icon, size: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)),
       const SizedBox(width: 4),
       Text(label,
-          style:
-              const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
     ]);
   }
 }

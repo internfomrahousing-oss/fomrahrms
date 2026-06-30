@@ -26,11 +26,11 @@ class NavBackButton extends StatelessWidget {
       icon: const Icon(Icons.arrow_back_rounded),
       tooltip: 'Back',
       style: IconButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A237E),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: Color(0xFFE0E0E0)),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
     );
