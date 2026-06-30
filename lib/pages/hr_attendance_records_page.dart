@@ -98,10 +98,6 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     final lateComing = AttendanceStore.lateComing
         .where((r) => _matches(r.employee) && _matchesDay(r.date))
         .toList();
-    final gps = AttendanceStore.gpsRecords
-        .where((r) => _matches(r.employee) && _matchesDay(r.date))
-        .toList();
-
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -262,27 +258,6 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                             [r.employee, r.date, r.time, r.location])
                         .toList(),
                     color: const Color(0xFF1565C0),
-                  ),
-          ),
-          const SizedBox(height: 16),
-
-          // GPS Tracking Records
-          _Section(
-            title: 'GPS Tracking Records',
-            icon: Icons.location_on_rounded,
-            color: const Color(0xFF0288D1),
-            count: gps.length,
-            child: gps.isEmpty
-                ? _Empty()
-                : _Table(
-                    columns: const [
-                      'Employee', 'Date', 'Location', 'Time'
-                    ],
-                    rows: gps
-                        .map((r) =>
-                            [r.employee, r.date, r.location, r.time])
-                        .toList(),
-                    color: const Color(0xFF0288D1),
                   ),
           ),
           const SizedBox(height: 16),
