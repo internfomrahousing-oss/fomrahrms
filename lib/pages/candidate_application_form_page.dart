@@ -616,14 +616,19 @@ class _CandidateApplicationFormPageState
     final pad    = narrow ? 16.0 : 24.0;
 
     if (_configLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F7FA),
-        body: Center(child: CircularProgressIndicator(color: _blue)),
+      return Theme(
+        data: ThemeData.light(),
+        child: const Scaffold(
+          backgroundColor: Color(0xFFF5F7FA),
+          body: Center(child: CircularProgressIndicator(color: _blue)),
+        ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: null,
+    return Theme(
+      data: ThemeData.light(),
+      child: Scaffold(
+      backgroundColor: Colors.white,
       body: Column(children: [
         // Header
         Container(
@@ -1051,7 +1056,8 @@ class _CandidateApplicationFormPageState
           ),
         ),
       ]),
-    );
+    ),   // Scaffold
+    );   // Theme
   }
 
   Widget _row(bool narrow, List<Widget> children) {

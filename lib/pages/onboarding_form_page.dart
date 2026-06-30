@@ -860,8 +860,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   @override
   Widget build(BuildContext context) {
     if (_submitted) return _buildSuccess();
-    return Scaffold(
-      backgroundColor: null,
+    return Theme(
+      data: ThemeData.light(),
+      child: Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Center(
@@ -881,7 +883,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           ),
         ),
       ),
-    );
+    ),   // Scaffold
+    );   // Theme
   }
 
   // Returns section widgets in config order, skipping disabled sections.
@@ -946,8 +949,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     );
   }
 
-  Widget _buildSuccess() => Scaffold(
-    backgroundColor: null,
+  Widget _buildSuccess() => Theme(
+    data: ThemeData.light(),
+    child: Scaffold(
+    backgroundColor: Colors.white,
     body: Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
@@ -970,7 +975,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         ),
       ]),
     ),
-  );
+    ),   // Scaffold
+  );    // Theme
 
   Widget _buildHeader() => Container(
     width: double.infinity,
