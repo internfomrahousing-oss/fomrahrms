@@ -6,9 +6,8 @@ class AttendanceManagementPage extends StatelessWidget {
   const AttendanceManagementPage({super.key});
 
   static const _topics = [
-    _Topic('Check In',         Icons.login_rounded,       Color(0xFF0D47A1), '/attendance/hr/check-in'),
-    _Topic('Check Out',        Icons.logout_rounded,      Color(0xFF1565C0), '/attendance/hr/check-out'),
-    _Topic('GPS Tracking',     Icons.location_on_rounded, Color(0xFF0288D1), '/attendance/hr/gps-tracking'),
+    _Topic('Check In',         Icons.login_rounded,      Color(0xFF0D47A1), '/attendance/hr/check-in'),
+    _Topic('Check Out',        Icons.logout_rounded,     Color(0xFF1565C0), '/attendance/hr/check-out'),
     _Topic('Late Coming',      Icons.watch_later_rounded, Color(0xFF283593), '/attendance/hr/late-coming'),
     _Topic('Employee Records', Icons.people_alt_rounded,  Color(0xFF1E88E5), '/attendance/employee-records'),
   ];
