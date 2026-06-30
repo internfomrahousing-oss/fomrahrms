@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
 import '../models/app_user.dart';
+import '../models/theme_notifier.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
 
@@ -119,6 +120,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.employeeId = employeeId;
     UserSession.email      = email;
     SessionStorage.save();
+    themeNotifier.loadForUser(employeeId);
     setState(() => _loading = false);
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');

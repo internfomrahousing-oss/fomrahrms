@@ -3,21 +3,35 @@ import 'package:flutter/material.dart';
 import 'dart:html' as html;
 
 class ThemeNotifier extends ValueNotifier<ThemeMode> {
-  static const _kKey = 'fomra_theme';
+  static const _kPrefix = 'fomra_theme';
+  static String _userId  = '';
 
-  ThemeNotifier() : super(_load());
+  ThemeNotifier() : super(ThemeMode.light);
 
-  static ThemeMode _load() {
+  static String get _key =>
+      _userId.isNotEmpty ? '${_kPrefix}_$_userId' : _kPrefix;
+
+  /// Call after login with the employee's ID.
+  void loadForUser(String userId) {
+    _userId = userId;
     try {
-      if (html.window.localStorage[_kKey] == 'dark') return ThemeMode.dark;
-    } catch (_) {}
-    return ThemeMode.light;
+      final saved = html.window.localStorage[_key];
+      value = saved == 'dark' ? ThemeMode.dark : ThemeMode.light;
+    } catch (_) {
+      value = ThemeMode.light;
+    }
+  }
+
+  /// Call on logout — resets to light until next user's prefs are loaded.
+  void reset() {
+    _userId = '';
+    value   = ThemeMode.light;
   }
 
   void setMode(ThemeMode mode) {
     value = mode;
     try {
-      html.window.localStorage[_kKey] = mode == ThemeMode.dark ? 'dark' : 'light';
+      html.window.localStorage[_key] = mode == ThemeMode.dark ? 'dark' : 'light';
     } catch (_) {}
   }
 }

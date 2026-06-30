@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
+import '../models/theme_notifier.dart';
 
 class _NavItem {
   final String label;
@@ -251,7 +252,7 @@ class _SidebarFooter extends StatelessWidget {
           border: Border(top: BorderSide(color: Colors.white12))),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () { SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
+        onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [

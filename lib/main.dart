@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
+import 'models/theme_notifier.dart';
+import 'models/user_session.dart';
 import 'services/supabase_service.dart';
 import 'services/session_storage.dart';
 
@@ -10,7 +12,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Restore persisted login before the router guard runs.
-  SessionStorage.restore();
+  final restored = SessionStorage.restore();
+  // Load theme preference for the restored user so dark/light persists after refresh.
+  if (restored) themeNotifier.loadForUser(UserSession.employeeId);
 
   // Start the app immediately so the splash screen clears.
   runApp(const FomraHrmsApp());
