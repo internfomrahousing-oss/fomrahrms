@@ -35,4 +35,6 @@ class AttendanceStore {
   static final List<CheckOutRecord>   checkOuts  = [];
   static final List<LateComingRecord> lateComing = [];
   static final List<GpsRecord>        gpsRecords = [];
+
+  static bool isCheckedIn = false;
 }

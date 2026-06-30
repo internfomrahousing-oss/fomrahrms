@@ -3,6 +3,7 @@ import '../models/maintenance_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/month_picker.dart';
 
 class MaintenanceManagementPage extends StatefulWidget {
   const MaintenanceManagementPage({super.key});
@@ -24,6 +25,7 @@ const _kIssueTypes = [
 
 class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   String? _selectedIssueType;
+  DateTime? _selectedMonth;
   final _descController = TextEditingController();
 
   @override
@@ -102,6 +104,49 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       t.status == MaintenanceStatus.resolved ||
       t.status == MaintenanceStatus.closed;
 
+  bool _matchesMonth(MaintenanceTicket t) =>
+      _selectedMonth == null ||
+      (t.createdAt.year == _selectedMonth!.year &&
+          t.createdAt.month == _selectedMonth!.month);
+
+  Future<void> _pickMonth() async {
+    final picked = await showMonthPicker(context, _selectedMonth);
+    if (picked != null && mounted) setState(() => _selectedMonth = picked);
+  }
+
+  Widget _buildMonthFilterRow() {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Row(children: [
+      OutlinedButton.icon(
+        onPressed: _pickMonth,
+        icon: Icon(
+          _selectedMonth != null
+              ? Icons.calendar_today_rounded
+              : Icons.calendar_month_rounded,
+          size: 16,
+        ),
+        label: Text(
+            _selectedMonth != null ? monthLabel(_selectedMonth!) : 'Filter by Month'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _selectedMonth != null ? primary : null,
+          side: _selectedMonth != null ? BorderSide(color: primary) : null,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      if (_selectedMonth != null) ...[
+        const SizedBox(width: 6),
+        IconButton(
+          icon: const Icon(Icons.close_rounded, size: 18),
+          onPressed: () => setState(() => _selectedMonth = null),
+          tooltip: 'Clear',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        ),
+      ],
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (UserSession.role) {
@@ -117,7 +162,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   // ── HR Page: 3 tabs ──────────────────────────────────────────────────────
 
   Widget _buildHrPage(BuildContext context) {
-    final tickets  = MaintenanceStore.tickets;
+    final tickets  = MaintenanceStore.tickets.where(_matchesMonth).toList();
     final pending  = tickets.where((t) => !_isResolved(t) && !t.sentToManagement).toList();
     final resolved = tickets.where(_isResolved).toList();
     final sentMgmt = tickets.where((t) => t.sentToManagement && !_isResolved(t)).toList();
@@ -129,6 +174,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         body: Column(children: [
           _Header(
             onRefresh: _reload,
+            monthFilter: _buildMonthFilterRow(),
             bottom: TabBar(
               labelColor: Theme.of(context).colorScheme.primary,
               unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
@@ -192,7 +238,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   // ── Management Page: 2 tabs ──────────────────────────────────────────────
 
   Widget _buildManagementPage(BuildContext context) {
-    final tickets = MaintenanceStore.tickets;
+    final tickets = MaintenanceStore.tickets.where(_matchesMonth).toList();
     final hrSent  = tickets.where((t) => t.sentToManagement).toList();
     final all     = tickets.toList();
 
@@ -203,6 +249,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         body: Column(children: [
           _Header(
             onRefresh: _reload,
+            monthFilter: _buildMonthFilterRow(),
             bottom: TabBar(
               labelColor: Theme.of(context).colorScheme.primary,
               unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
@@ -252,7 +299,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   Widget _buildReporterPage(BuildContext context) {
     final myRole    = UserSession.role;
     final myTickets = MaintenanceStore.tickets
-        .where((t) => t.reportedByRole == myRole)
+        .where((t) => t.reportedByRole == myRole && _matchesMonth(t))
         .toList();
 
     return Scaffold(
@@ -261,7 +308,9 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _buildHeaderRow(context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          _buildMonthFilterRow(),
+          const SizedBox(height: 12),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -361,7 +410,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 class _Header extends StatelessWidget {
   final VoidCallback onRefresh;
   final PreferredSizeWidget bottom;
-  const _Header({required this.onRefresh, required this.bottom});
+  final Widget? monthFilter;
+  const _Header({required this.onRefresh, required this.bottom, this.monthFilter});
 
   @override
   Widget build(BuildContext context) {
@@ -388,6 +438,10 @@ class _Header extends StatelessWidget {
             onPressed: onRefresh,
           ),
         ]),
+        if (monthFilter != null) ...[
+          const SizedBox(height: 8),
+          monthFilter!,
+        ],
         const SizedBox(height: 12),
         bottom,
       ]),

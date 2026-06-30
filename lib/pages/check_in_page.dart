@@ -4,6 +4,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/attendance_store.dart';
+import '../models/user_session.dart';
 import '../widgets/back_button.dart';
 
 class CheckInPage extends StatefulWidget {
@@ -19,11 +20,18 @@ class _CheckInPageState extends State<CheckInPage> {
 
   final _timeController = TextEditingController();
 
-  bool _detectingLocation = false;
+  bool _detectingLocation = true; // auto-detecting on open
   String? _locationError;
   double? _lat;
   double? _lng;
   String? _mapViewId;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoFillTime();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _detectLocation());
+  }
 
   @override
   void dispose() {
@@ -32,11 +40,11 @@ class _CheckInPageState extends State<CheckInPage> {
   }
 
   Future<void> _detectLocation() async {
-    setState(() { _detectingLocation = true; _locationError = null; });
+    if (mounted) setState(() { _detectingLocation = true; _locationError = null; });
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        setState(() => _locationError = 'Location services are disabled.');
+        if (mounted) setState(() => _locationError = 'Location services are disabled.');
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
@@ -45,7 +53,7 @@ class _CheckInPageState extends State<CheckInPage> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        setState(() => _locationError = 'Location permission denied.');
+        if (mounted) setState(() => _locationError = 'Location permission denied.');
         return;
       }
       final position = await Geolocator.getCurrentPosition(
@@ -70,15 +78,17 @@ class _CheckInPageState extends State<CheckInPage> {
             ..allowFullscreen = true;
         });
       }
-      setState(() {
-        _lat = lat;
-        _lng = lng;
-        _mapViewId = viewId;
-      });
-    } catch (e) {
-      setState(() => _locationError = 'Unable to detect location.');
+      if (mounted) {
+        setState(() {
+          _lat = lat;
+          _lng = lng;
+          _mapViewId = viewId;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _locationError = 'Unable to detect location.');
     } finally {
-      setState(() => _detectingLocation = false);
+      if (mounted) setState(() => _detectingLocation = false);
     }
   }
 
@@ -106,11 +116,12 @@ class _CheckInPageState extends State<CheckInPage> {
     final now = DateTime.now();
     final date = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     AttendanceStore.checkIns.add(CheckInRecord(
-      employee: 'Employee',
+      employee: UserSession.name.isNotEmpty ? UserSession.name : 'Employee',
       date: date,
       time: _timeController.text,
       location: _locationText,
     ));
+    AttendanceStore.isCheckedIn = true;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Check-In saved successfully'),
       backgroundColor: _color,
@@ -121,13 +132,14 @@ class _CheckInPageState extends State<CheckInPage> {
   }
 
   void _onClear() {
-    _timeController.clear();
+    _autoFillTime();
     setState(() {
       _lat = null;
       _lng = null;
       _mapViewId = null;
       _locationError = null;
     });
+    _detectLocation();
   }
 
   @override
@@ -160,20 +172,20 @@ class _CheckInPageState extends State<CheckInPage> {
                 padding: const EdgeInsets.all(20),
                 child: Column(children: [
 
-                  // Check-In Time
+                  // Check-In Time (auto-filled)
                   _buildField(
                     controller: _timeController,
                     label: 'Check-In Time',
                     icon: Icons.access_time_rounded,
                     suffix: IconButton(
-                      tooltip: 'Use current time',
+                      tooltip: 'Refresh time',
                       icon: const Icon(Icons.schedule_rounded, color: _color),
                       onPressed: _autoFillTime,
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // GPS Location section
+                  // GPS Location section (auto-detected)
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       const Icon(Icons.location_on_rounded, color: _color, size: 18),
@@ -189,8 +201,7 @@ class _CheckInPageState extends State<CheckInPage> {
                           : TextButton.icon(
                               onPressed: _detectLocation,
                               icon: const Icon(Icons.my_location_rounded, size: 16),
-                              label: Text(_lat == null ? 'Detect Location' : 'Re-detect',
-                                  style: const TextStyle(fontSize: 12)),
+                              label: const Text('Re-detect', style: TextStyle(fontSize: 12)),
                               style: TextButton.styleFrom(foregroundColor: _color),
                             ),
                     ]),
@@ -215,15 +226,22 @@ class _CheckInPageState extends State<CheckInPage> {
                     else if (_lat == null)
                       Container(
                         width: double.infinity,
-                        height: 48,
+                        height: 60,
                         decoration: BoxDecoration(
                           color: const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFE0E0E0)),
                         ),
                         child: const Center(
-                          child: Text('Tap "Detect Location" to capture GPS',
-                              style: TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            SizedBox(
+                              width: 14, height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: _color),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Detecting your location…',
+                                style: TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
+                          ]),
                         ),
                       )
                     else ...[
@@ -264,34 +282,20 @@ class _CheckInPageState extends State<CheckInPage> {
             ),
             const SizedBox(height: 16),
 
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _onClear,
-                  icon: const Icon(Icons.clear_rounded),
-                  label: const Text('Clear'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _onSave,
+                icon: const Icon(Icons.login_rounded),
+                label: const Text('Check In'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _color,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: _onSave,
-                  icon: const Icon(Icons.login_rounded),
-                  label: const Text('Check In'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _color,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-            ]),
+            ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/attendance_store.dart';
 import '../services/user_store.dart';
 
 class _Section {
@@ -164,6 +165,9 @@ class _DashboardPageState extends State<DashboardPage> {
             SizedBox(height: narrow ? 16 : 24),
 
             _StatStrip(totalEmployees: _totalEmployees),
+            SizedBox(height: narrow ? 20 : 28),
+
+            const _TodayCheckIns(),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(
@@ -417,6 +421,89 @@ class _PersonalGrid extends StatelessWidget {
       }
       return Column(children: rows);
     });
+  }
+}
+
+// ── Today's Check-Ins ─────────────────────────────────────────────────────────
+class _TodayCheckIns extends StatelessWidget {
+  static const _color = Color(0xFF2E7D32);
+
+  const _TodayCheckIns();
+
+  @override
+  Widget build(BuildContext context) {
+    final today    = DateTime.now();
+    final todayStr = '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+    final checkIns = AttendanceStore.checkIns
+        .where((r) => r.date == todayStr)
+        .toList();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _SectionLabel(icon: Icons.login_rounded, label: "Today's Check-Ins"),
+      const SizedBox(height: 12),
+      if (checkIns.isEmpty)
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.person_off_rounded, size: 36, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                Text('No check-ins recorded today',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+              ]),
+            ),
+          ),
+        )
+      else
+        ...checkIns.map((r) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: _color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person_rounded, color: _color, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(r.employee,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(r.location,
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5)),
+                          overflow: TextOverflow.ellipsis),
+                    ]),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(r.time,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _color)),
+                  ),
+                ]),
+              ),
+            )),
+    ]);
   }
 }
 

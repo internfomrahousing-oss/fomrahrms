@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
+import '../utils/month_picker.dart';
 
 class LeaveManagementPage extends StatefulWidget {
   const LeaveManagementPage({super.key});
@@ -13,12 +13,22 @@ class LeaveManagementPage extends StatefulWidget {
 class _LeaveManagementPageState extends State<LeaveManagementPage> {
   static const _accentColor = Color(0xFF0D47A1);
 
+  DateTime? _selectedMonth;
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
+
   List<LeaveApplication> get _applications => LeaveStore.applications;
 
   @override
   void initState() {
     super.initState();
     _reload();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _reload() async {
@@ -38,146 +48,203 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
     }
   }
 
+  List<LeaveApplication> get _filtered {
+    return _applications.where((a) {
+      final matchesSearch = _searchQuery.isEmpty ||
+          a.employeeName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          a.leaveType.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesMonth = _selectedMonth == null ||
+          (a.from.year == _selectedMonth!.year &&
+              a.from.month == _selectedMonth!.month);
+      return matchesSearch && matchesMonth;
+    }).toList();
+  }
+
+  List<LeaveApplication> get _active =>
+      _filtered.where((a) => a.managerStatus == LeaveApprovalStatus.pending).toList();
+
+  List<LeaveApplication> get _history =>
+      _filtered.where((a) => a.managerStatus != LeaveApprovalStatus.pending).toList();
+
+  Future<void> _pickMonth() async {
+    final picked = await showMonthPicker(context, _selectedMonth);
+    if (picked != null && mounted) setState(() => _selectedMonth = picked);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Page header
-            Row(children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.beach_access_rounded,
-                    color: Theme.of(context).colorScheme.primary, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Text('Leave Management',
-                  style: Theme.of(context).textTheme.headlineMedium),
-            ]),
-            const SizedBox(height: 20),
+    final active   = _active;
+    final history  = _history;
+    final filtered = _filtered;
 
-            // Employee Leave Records section
-            Row(children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: _accentColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: null,
+        body: Column(children: [
+          // Fixed top area
+          Container(
+            color: Theme.of(context).colorScheme.surface,
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Header row
+              Row(children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.beach_access_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 22),
                 ),
-                child: const Icon(Icons.folder_shared_rounded,
-                    color: _accentColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text('Employee Leave Records',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      )),
-            ]),
-            const SizedBox(height: 16),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text('Leave Management',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh_rounded,
+                      color: Theme.of(context).colorScheme.primary),
+                  tooltip: 'Refresh',
+                  onPressed: _reload,
+                ),
+              ]),
+              const SizedBox(height: 16),
 
-            // Search + filter bar
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search employee or leave type...',
-                        prefixIcon: const Icon(Icons.search_rounded,
-                            color: _accentColor, size: 20),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: _accentColor, width: 2),
+              // Search + month filter
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (v) => setState(() => _searchQuery = v),
+                        decoration: InputDecoration(
+                          hintText: 'Search employee or leave type...',
+                          prefixIcon: const Icon(Icons.search_rounded,
+                              color: _accentColor, size: 20),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: _accentColor, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.filter_list_rounded, size: 16),
-                    label: const Text('Filter'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      onPressed: _pickMonth,
+                      icon: Icon(
+                        _selectedMonth != null
+                            ? Icons.calendar_today_rounded
+                            : Icons.calendar_month_rounded,
+                        size: 16,
+                      ),
+                      label: Text(_selectedMonth != null
+                          ? monthLabel(_selectedMonth!)
+                          : 'Month'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            _selectedMonth != null ? _accentColor : null,
+                        side: _selectedMonth != null
+                            ? const BorderSide(color: _accentColor)
+                            : null,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
                     ),
-                  ),
-                ]),
+                    if (_selectedMonth != null) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        onPressed: () => setState(() => _selectedMonth = null),
+                        tooltip: 'Clear',
+                        color: _accentColor,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
+                      ),
+                    ],
+                  ]),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Status summary badges
-            Row(children: [
-              _StatusBadge(
+              // Status badges (reflect current filter)
+              Row(children: [
+                _StatusBadge(
                   'Pending',
                   Icons.hourglass_empty_rounded,
                   Colors.orange.shade700,
-                  _applications
-                      .where((a) => a.managerStatus == LeaveApprovalStatus.pending)
-                      .length),
-              const SizedBox(width: 10),
-              _StatusBadge(
+                  filtered
+                      .where((a) =>
+                          a.managerStatus == LeaveApprovalStatus.pending)
+                      .length,
+                ),
+                const SizedBox(width: 10),
+                _StatusBadge(
                   'Approved',
                   Icons.check_circle_rounded,
                   Colors.green.shade700,
-                  _applications
-                      .where((a) => a.managerStatus == LeaveApprovalStatus.approved)
-                      .length),
-              const SizedBox(width: 10),
-              _StatusBadge(
+                  filtered
+                      .where((a) =>
+                          a.managerStatus == LeaveApprovalStatus.approved)
+                      .length,
+                ),
+                const SizedBox(width: 10),
+                _StatusBadge(
                   'Denied',
                   Icons.cancel_rounded,
                   Colors.red.shade700,
-                  _applications
-                      .where((a) => a.managerStatus == LeaveApprovalStatus.denied)
-                      .length),
-            ]),
-            const SizedBox(height: 16),
-
-            // Applications list
-            if (_applications.isEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Center(
-                    child: Column(children: [
-                      Icon(Icons.inbox_rounded,
-                          size: 48, color: Colors.grey.shade300),
-                      const SizedBox(height: 10),
-                      Text('No leave applications yet',
-                          style: TextStyle(
-                              color: Colors.grey.shade400, fontSize: 14)),
-                    ]),
-                  ),
+                  filtered
+                      .where((a) =>
+                          a.managerStatus == LeaveApprovalStatus.denied)
+                      .length,
                 ),
-              )
-            else
-              ...List.generate(_applications.length, (i) {
-                final app = _applications[i];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _ApplicationCard(app: app),
-                );
-              }),
-          ],
-        ),
+              ]),
+              const SizedBox(height: 12),
+
+              // Tab bar
+              TabBar(
+                labelColor: Theme.of(context).colorScheme.primary,
+                unselectedLabelColor: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
+                indicatorColor: Theme.of(context).colorScheme.primary,
+                labelStyle: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(text: 'Active (${active.length})'),
+                  Tab(text: 'History (${history.length})'),
+                ],
+              ),
+            ]),
+          ),
+
+          // Scrollable tab content
+          Expanded(
+            child: TabBarView(children: [
+              _AppList(
+                apps: active,
+                emptyMessage: 'No pending leave applications.',
+              ),
+              _AppList(
+                apps: history,
+                emptyMessage: 'No leave history yet.',
+              ),
+            ]),
+          ),
+        ]),
       ),
     );
   }
@@ -186,7 +253,37 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
 String _fmt(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-// ── Leave records widgets ──────────────────────────────────────────────────
+// ── Scrollable list of applications ──────────────────────────────────────────
+
+class _AppList extends StatelessWidget {
+  final List<LeaveApplication> apps;
+  final String emptyMessage;
+  const _AppList({required this.apps, required this.emptyMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    if (apps.isEmpty) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.inbox_rounded, size: 52, color: Colors.grey.shade300),
+          const SizedBox(height: 10),
+          Text(emptyMessage,
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+        ]),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: apps.length,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _ApplicationCard(app: apps[i]),
+      ),
+    );
+  }
+}
+
+// ── Leave card ────────────────────────────────────────────────────────────────
 
 class _ApplicationCard extends StatelessWidget {
   final LeaveApplication app;
@@ -213,8 +310,11 @@ class _ApplicationCard extends StatelessWidget {
           Wrap(spacing: 16, runSpacing: 6, children: [
             _InfoChip(Icons.calendar_today_rounded,
                 '${_fmt(app.from)} → ${_fmt(app.to)}'),
-            _InfoChip(Icons.numbers_rounded,
-                app.isHalfDay ? '½ day' : '${app.days} day${app.days == 1 ? '' : 's'}'),
+            _InfoChip(
+                Icons.numbers_rounded,
+                app.isHalfDay
+                    ? '½ day'
+                    : '${app.days} day${app.days == 1 ? '' : 's'}'),
             if (app.reason.isNotEmpty)
               _InfoChip(Icons.notes_rounded, app.reason),
           ]),
@@ -240,10 +340,20 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)),
+      Icon(icon,
+          size: 13,
+          color: Theme.of(context)
+              .colorScheme
+              .onSurface
+              .withValues(alpha: 0.55)),
       const SizedBox(width: 4),
       Text(label,
-          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+          style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6))),
     ]);
   }
 }
@@ -276,8 +386,6 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 }
-
-// ── HR audit row showing one level's decision with name ────────────────────
 
 class _DecisionRow extends StatelessWidget {
   final LeaveApprovalStatus status;

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../models/attendance_store.dart';
+import '../models/user_session.dart';
 import '../widgets/back_button.dart';
 
 class GpsTrackingPage extends StatefulWidget {
@@ -15,7 +17,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
 
   // Live location
   Position? _livePosition;
-  bool _fetchingLive = false;
+  bool _fetchingLive = true;
   String? _liveError;
 
   // Route tracking
@@ -26,6 +28,21 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
   // Last known location
   Position? _lastKnown;
   String? _lastKnownTime;
+
+  bool get _isEmployee => UserSession.role == UserRole.employee ||
+      UserSession.role == UserRole.reportingManager;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _fetchLiveLocation();
+      // Auto-start route tracking if employee is checked in
+      if (AttendanceStore.isCheckedIn && _isEmployee) {
+        _startRouteTracking();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -44,31 +61,33 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
   }
 
   Future<void> _fetchLiveLocation() async {
-    setState(() { _fetchingLive = true; _liveError = null; });
+    if (mounted) setState(() { _fetchingLive = true; _liveError = null; });
     try {
       if (!await _ensurePermission()) {
-        setState(() => _liveError = 'Location permission denied.');
+        if (mounted) setState(() => _liveError = 'Location permission denied.');
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       final now = _timeNow();
-      setState(() {
-        _livePosition = pos;
-        _lastKnown = pos;
-        _lastKnownTime = now;
-      });
+      if (mounted) {
+        setState(() {
+          _livePosition = pos;
+          _lastKnown = pos;
+          _lastKnownTime = now;
+        });
+      }
     } catch (_) {
-      setState(() => _liveError = 'Unable to fetch live location.');
+      if (mounted) setState(() => _liveError = 'Unable to fetch live location.');
     } finally {
-      setState(() => _fetchingLive = false);
+      if (mounted) setState(() => _fetchingLive = false);
     }
   }
 
   void _startRouteTracking() async {
     if (!await _ensurePermission()) return;
-    setState(() { _isTracking = true; _routePoints.clear(); });
+    if (mounted) setState(() { _isTracking = true; _routePoints.clear(); });
     _routeSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -76,13 +95,15 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
       ),
     ).listen((pos) {
       final now = _timeNow();
-      setState(() {
-        _routePoints.insert(0, _TrackedPoint(pos, now));
-        _lastKnown = pos;
-        _lastKnownTime = now;
-      });
+      if (mounted) {
+        setState(() {
+          _routePoints.insert(0, _TrackedPoint(pos, now));
+          _lastKnown = pos;
+          _lastKnownTime = now;
+        });
+      }
     }, onError: (_) {
-      setState(() => _isTracking = false);
+      if (mounted) setState(() => _isTracking = false);
     });
   }
 
@@ -104,6 +125,9 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final checkedIn     = AttendanceStore.isCheckedIn;
+    final employeeMode  = _isEmployee && checkedIn;
+
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -128,6 +152,40 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
             ]),
             const SizedBox(height: 24),
 
+            // GPS sharing active banner (employee view while checked in)
+            if (employeeMode) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.green.shade300),
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade600,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'GPS sharing is active. Your location is being tracked until you check out.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // ── Live Location ──
             _SectionCard(
               title: 'Live Location',
@@ -150,7 +208,9 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                       '${_livePosition!.accuracy.toStringAsFixed(1)} m'),
                 ] else
                   Text(
-                    'Tap "Detect" to fetch your current location.',
+                    _fetchingLive
+                        ? 'Detecting your location…'
+                        : 'Location not available.',
                     style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                   ),
                 const SizedBox(height: 14),
@@ -163,7 +223,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.my_location_rounded),
-                    label: Text(_fetchingLive ? 'Detecting...' : 'Detect Live Location'),
+                    label: Text(_fetchingLive ? 'Detecting…' : 'Refresh Location'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _color,
                       foregroundColor: Colors.white,
@@ -202,35 +262,67 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                   ),
                 ]),
                 const SizedBox(height: 14),
-                Row(children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isTracking ? null : _startRouteTracking,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Start'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+
+                // Employee who is checked in: cannot stop tracking
+                if (employeeMode)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D47A1).withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: const Color(0xFF0D47A1).withValues(alpha: 0.2)),
+                    ),
+                    child: const Row(children: [
+                      Icon(Icons.lock_outline_rounded,
+                          size: 16, color: Color(0xFF0D47A1)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'GPS tracking runs until you check out.',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF0D47A1),
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ]),
+                  )
+                else
+                  // HR / Management or not checked in: show Start/Stop buttons
+                  Row(children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isTracking ? null : _startRouteTracking,
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Start'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isTracking ? _stopRouteTracking : null,
-                      icon: const Icon(Icons.stop_rounded),
-                      label: const Text('Stop'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isTracking ? _stopRouteTracking : null,
+                        icon: const Icon(Icons.stop_rounded),
+                        label: const Text('Stop'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
                     ),
-                  ),
-                ]),
+                  ]),
+
                 if (_routePoints.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   const Divider(),
@@ -250,14 +342,16 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF0D47A1).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF0D47A1).withValues(alpha: 0.15)),
+                          border: Border.all(
+                              color: const Color(0xFF0D47A1).withValues(alpha: 0.15)),
                         ),
                         child: Row(children: [
                           Icon(Icons.location_pin, size: 14, color: Colors.grey.shade500),
                           const SizedBox(width: 6),
                           Expanded(child: Text(_formatPos(p.position),
                               style: const TextStyle(fontSize: 12))),
-                          Text(p.time, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                          Text(p.time,
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                         ]),
                       );
                     },
@@ -280,7 +374,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
               color: const Color(0xFF1565C0),
               child: _lastKnown == null
                   ? Text(
-                      'No location recorded yet. Use Live Location or Route Tracking.',
+                      'No location recorded yet.',
                       style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                     )
                   : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -290,7 +384,8 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                       _CoordRow(Icons.straighten, 'Longitude',
                           _lastKnown!.longitude.toStringAsFixed(6)),
                       const SizedBox(height: 8),
-                      _CoordRow(Icons.access_time_rounded, 'Recorded At', _lastKnownTime ?? '—'),
+                      _CoordRow(Icons.access_time_rounded, 'Recorded At',
+                          _lastKnownTime ?? '—'),
                     ]),
             ),
           ],
