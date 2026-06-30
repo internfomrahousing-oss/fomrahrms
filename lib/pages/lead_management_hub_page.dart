@@ -511,6 +511,7 @@ class _Grid extends StatelessWidget {
 // ── Source card ───────────────────────────────────────────────────────────────
 
 class _SourceCard extends StatelessWidget {
+  static const _fbBlue = Color(0xFF1877F2);
   final LeadSource source;
   final String basePath;
   final VoidCallback onRename;
