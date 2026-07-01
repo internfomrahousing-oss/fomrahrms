@@ -359,7 +359,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Leaves longer than 2 days go directly to Management for approval.',
+                        'Holidays (leaves > 2 days) go directly to Management for approval.',
                         style: TextStyle(
                             fontSize: 11,
                             color: isDark ? Colors.amber.shade300 : const Color(0xFFF57F17),
@@ -420,16 +420,16 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             )
           else if (!_loading && _isMgmt && !_showAll) ...[
             _SectionHeader(
-              label: 'Long Term Leaves  (> 2 days — all employees)',
+              label: 'Holidays  (> 2 days — all employees)',
               count: _longTermLeaves.length,
               color: const Color(0xFFB71C1C),
-              icon: Icons.date_range_rounded,
+              icon: Icons.beach_access_rounded,
             ),
             const SizedBox(height: 8),
             if (_longTermLeaves.isEmpty)
               _emptyCard(
                 icon: Icons.event_available_rounded,
-                title: 'No long term leave requests',
+                title: 'No holiday requests',
                 subtitle: 'Leave requests exceeding 2 days appear here — managers are bypassed.',
               )
             else
@@ -445,7 +445,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   )),
             const SizedBox(height: 16),
             _SectionHeader(
-              label: 'Regular Leaves',
+              label: 'Regular Leaves  (≤ 2 days)',
               count: _regularLeaves.length,
               color: const Color(0xFF283593),
               icon: Icons.event_note_rounded,
@@ -653,6 +653,35 @@ class _RequestCardState extends State<_RequestCard> {
               _StatusPill(sl, sc, si),
             ]),
             const SizedBox(height: 14),
+
+            // Holiday badge
+            if (req.effectiveDays > 2) ...[
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.red.withValues(alpha: 0.15)
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: isDark ? Colors.red.shade700 : Colors.red.shade200),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.beach_access_rounded,
+                        size: 13,
+                        color: isDark ? Colors.red.shade300 : Colors.red.shade700),
+                    const SizedBox(width: 5),
+                    Text('Holiday',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.red.shade300 : Colors.red.shade700)),
+                  ]),
+                ),
+              ]),
+              const SizedBox(height: 10),
+            ],
 
             // Leave details
             Container(
