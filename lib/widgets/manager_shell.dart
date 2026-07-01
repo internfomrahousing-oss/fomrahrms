@@ -50,25 +50,53 @@ class ManagerShell extends StatelessWidget {
 
 // ── Wide layout ────────────────────────────────────────────────────────────
 
-class _WideLayout extends StatelessWidget {
+class _WideLayout extends StatefulWidget {
   final Widget child;
   final String location;
   const _WideLayout({required this.child, required this.location});
 
   @override
+  State<_WideLayout> createState() => _WideLayoutState();
+}
+
+class _WideLayoutState extends State<_WideLayout> {
+  bool _sidebarOpen = true;
+
+  @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Row(children: [
-        _Sidebar(location: location),
-        Expanded(
-          child: Stack(
-            children: [
-              child,
-              const Positioned(top: 12, right: 16, child: ThemeToggle()),
-            ],
+      body: Column(
+        children: [
+          Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4))),
+            ),
+            child: Row(children: [
+              IconButton(
+                icon: Icon(
+                  _sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
+                  size: 22,
+                  color: cs.onSurface.withValues(alpha: 0.65),
+                ),
+                tooltip: _sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar',
+                onPressed: () => setState(() => _sidebarOpen = !_sidebarOpen),
+              ),
+              const Spacer(),
+              const ThemeToggle(),
+              const SizedBox(width: 8),
+            ]),
           ),
-        ),
-      ]),
+          Expanded(
+            child: Row(children: [
+              if (_sidebarOpen) _Sidebar(location: widget.location),
+              Expanded(child: widget.child),
+            ]),
+          ),
+        ],
+      ),
     );
   }
 }
