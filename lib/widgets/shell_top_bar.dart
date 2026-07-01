@@ -35,12 +35,19 @@ class ShellTopBar extends StatelessWidget {
         InkWell(
           onTap: onToggle,
           borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF90CAF9).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                  color: const Color(0xFF90CAF9).withValues(alpha: 0.25),
+                  width: 0.8),
+            ),
             child: Icon(
               sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
               size: 22,
-              color: Colors.white,
+              color: const Color(0xFF90CAF9),
             ),
           ),
         ),

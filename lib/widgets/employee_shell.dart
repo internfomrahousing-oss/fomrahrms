@@ -50,11 +50,18 @@ class _WideLayout extends StatefulWidget {
 }
 
 class _WideLayoutState extends State<_WideLayout> {
-  bool _sidebarOpen = true;
+  bool _sidebarOpen = false;
+
+  @override
+  void didUpdateWidget(_WideLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location && _sidebarOpen) {
+      setState(() => _sidebarOpen = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Column(
         children: [
@@ -63,10 +70,34 @@ class _WideLayoutState extends State<_WideLayout> {
             onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
           ),
           Expanded(
-            child: Row(children: [
-              if (_sidebarOpen) _Sidebar(location: widget.location),
-              Expanded(child: widget.child),
-            ]),
+            child: Stack(
+              children: [
+                Positioned.fill(child: widget.child),
+                IgnorePointer(
+                  ignoring: !_sidebarOpen,
+                  child: AnimatedOpacity(
+                    opacity: _sidebarOpen ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _sidebarOpen = false),
+                      child: Container(color: Colors.black54),
+                    ),
+                  ),
+                ),
+                AnimatedSlide(
+                  offset: _sidebarOpen ? Offset.zero : const Offset(-1, 0),
+                  duration: const Duration(milliseconds: 280),
+                  curve: _sidebarOpen ? Curves.easeOut : Curves.easeIn,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 260,
+                      child: _Sidebar(location: widget.location),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
