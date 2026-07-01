@@ -329,13 +329,13 @@ class _LoginPageState extends State<LoginPage> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        borderSide: const BorderSide(color: Color(0xFFB0BEC5), width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: _color, width: 2),
       ),
-      filled: true, fillColor: Colors.white,
+      filled: true, fillColor: const Color(0xFFF5F8FF),
       labelStyle: const TextStyle(color: Color(0xFF78909C)),
     );
   }
