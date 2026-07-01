@@ -288,7 +288,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
       child: Column(children: [
         // ── Header ────────────────────────────────────────────────────
         Container(
-          color: Colors.white,
+          color: Theme.of(context).scaffoldBackgroundColor,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
@@ -371,7 +371,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                           onPressed: _searchCtrl.clear)
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFFF5F7FA),
+                  fillColor: Theme.of(context).colorScheme.surface,
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -385,7 +385,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         // ── Tab bar ───────────────────────────────────────────────────
         if (UserSession.role == UserRole.management)
           Container(
-            color: Colors.white,
+            color: Theme.of(context).scaffoldBackgroundColor,
             padding: EdgeInsets.fromLTRB(pad, 0, pad, 12),
             child: Row(children: [
               _TabBtn(

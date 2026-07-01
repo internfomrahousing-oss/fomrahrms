@@ -117,6 +117,86 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
+  Future<void> _pickMonth() async {
+    int pickYear = _selectedMonth.year;
+    int? pickedMonth;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final now = DateTime.now();
+          return AlertDialog(
+            contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            title: Row(children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded, color: _color),
+                onPressed: () => setLocal(() => pickYear--),
+              ),
+              Expanded(
+                child: Text('$pickYear',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _color)),
+              ),
+              IconButton(
+                icon: Icon(Icons.chevron_right_rounded,
+                    color: pickYear >= now.year ? Colors.grey.shade300 : _color),
+                onPressed: pickYear >= now.year ? null : () => setLocal(() => pickYear++),
+              ),
+            ]),
+            content: SizedBox(
+              width: 260,
+              child: GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                childAspectRatio: 1.6,
+                children: List.generate(12, (i) {
+                  final isFuture = DateTime(pickYear, i + 1)
+                      .isAfter(DateTime(now.year, now.month));
+                  final isSelected = pickYear == _selectedMonth.year &&
+                      i + 1 == _selectedMonth.month;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: isFuture ? null : () {
+                      pickedMonth = i + 1;
+                      Navigator.of(ctx).pop();
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: isSelected ? _color : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: isSelected ? null : Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _monthNames[i].substring(0, 3),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected
+                                ? Colors.white
+                                : isFuture
+                                    ? Colors.grey.shade300
+                                    : _color,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (pickedMonth != null && mounted) {
+      setState(() => _selectedMonth = DateTime(pickYear, pickedMonth!));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +205,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
         children: [
           // Header
           Container(
-            color: Colors.white,
+            color: Theme.of(context).scaffoldBackgroundColor,
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,17 +374,25 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
                     }),
                   ),
                   Expanded(
-                    child: Column(children: [
-                      Text(
-                        '${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700, color: _color),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: _pickMonth,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(children: [
+                          Text(
+                            '${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w700, color: _color),
+                          ),
+                          Text(
+                            _isCurrentMonth ? 'Current month' : 'Tap to pick month',
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF78909C)),
+                          ),
+                        ]),
                       ),
-                      if (_isCurrentMonth)
-                        const Text('Current month',
-                            style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
-                    ]),
+                    ),
                   ),
                   IconButton(
                     icon: Icon(Icons.chevron_right_rounded, size: 28,

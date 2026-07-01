@@ -639,7 +639,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.all(12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      fillColor: const Color(0xFFF8F9FF),
+                      fillColor: Theme.of(context).colorScheme.surface,
                       filled: true,
                     ),
                   ),
@@ -714,7 +714,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
         children: [
           // ── Header ──────────────────────────────────────────────────
           Container(
-            color: Colors.white,
+            color: Theme.of(context).scaffoldBackgroundColor,
             padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -883,7 +883,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                             )
                           : null,
                       filled: true,
-                      fillColor: const Color(0xFFF5F7FA),
+                      fillColor: Theme.of(context).colorScheme.surface,
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),

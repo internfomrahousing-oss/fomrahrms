@@ -162,7 +162,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                           const BorderSide(color: _color, width: 2),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).colorScheme.surface,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 10),
                   ),
@@ -805,20 +805,20 @@ class _EditDialogState extends State<_EditDialog> {
     );
   }
 
-  InputDecoration _dropDeco(String label, IconData icon) => InputDecoration(
+  InputDecoration _dropDeco(BuildContext context, String label, IconData icon) => InputDecoration(
     labelText: label,
     prefixIcon: Icon(icon, color: _color, size: 20),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+      borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
       borderSide: const BorderSide(color: _color, width: 2),
     ),
     filled: true,
-    fillColor: Colors.white,
+    fillColor: Theme.of(context).colorScheme.surface,
     labelStyle: const TextStyle(color: Color(0xFF78909C)),
   );
 
@@ -923,7 +923,7 @@ class _EditDialogState extends State<_EditDialog> {
               padding: const EdgeInsets.only(bottom: 14),
               child: DropdownButtonFormField<String>(
                 value: _role,
-                decoration: _dropDeco('Role', Icons.shield_rounded),
+                decoration: _dropDeco(context, 'Role', Icons.shield_rounded),
                 items: ['Employee', 'Manager', 'HR', 'Management']
                     .map((r) =>
                         DropdownMenuItem(value: r, child: Text(r)))
@@ -942,7 +942,7 @@ class _EditDialogState extends State<_EditDialog> {
                 child: DropdownButtonFormField<String>(
                   value: mgrs.contains(_manager) ? _manager : null,
                   decoration: _dropDeco(
-                      'Reporting Manager',
+                      context, 'Reporting Manager',
                       Icons.manage_accounts_rounded),
                   hint: const Text('None assigned'),
                   items: [

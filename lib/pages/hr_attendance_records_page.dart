@@ -65,6 +65,17 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     );
   }
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate.isAfter(now) ? now : _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: now,
+    );
+    if (picked != null && mounted) setState(() => _selectedDate = picked);
+  }
+
   Widget _buildDateNav() {
     final now = DateTime.now();
     final isToday = _selectedDate.year == now.year &&
@@ -84,17 +95,27 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                     _selectedDate = _selectedDate.subtract(const Duration(days: 1))),
               ),
               Expanded(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(
-                    _fmtDate(_selectedDate),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700, color: _color),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: _pickDate,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                        _fmtDate(_selectedDate),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700, color: _color),
+                      ),
+                      if (isToday)
+                        const Text('Today',
+                            style: TextStyle(fontSize: 11, color: Colors.grey))
+                      else
+                        const Text('Tap to pick date',
+                            style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    ]),
                   ),
-                  if (isToday)
-                    const Text('Today',
-                        style: TextStyle(fontSize: 11, color: Colors.grey)),
-                ]),
+                ),
               ),
               IconButton(
                 icon: Icon(Icons.chevron_right_rounded,
@@ -168,7 +189,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                     borderSide: const BorderSide(color: _color, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).colorScheme.surface,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                 ),
