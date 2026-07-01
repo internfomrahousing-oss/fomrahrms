@@ -4,6 +4,7 @@ import '../models/user_session.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
 import '../models/theme_notifier.dart';
+import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 
 class _NavItem {
@@ -68,26 +69,9 @@ class _WideLayoutState extends State<_WideLayout> {
     return Scaffold(
       body: Column(
         children: [
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4))),
-            ),
-            child: Row(children: [
-              IconButton(
-                icon: Icon(
-                  _sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
-                  size: 22,
-                  color: cs.onSurface.withValues(alpha: 0.65),
-                ),
-                tooltip: _sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar',
-                onPressed: () => setState(() => _sidebarOpen = !_sidebarOpen),
-              ),
-              const Spacer(),
-              const ThemeToggle(),
-              const SizedBox(width: 8),
-            ]),
+          ShellTopBar(
+            sidebarOpen: _sidebarOpen,
+            onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
           ),
           Expanded(
             child: Row(children: [

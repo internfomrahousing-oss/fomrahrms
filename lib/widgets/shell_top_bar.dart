@@ -1,0 +1,98 @@
+import 'package:flutter/material.dart';
+import '../models/user_session.dart';
+import 'live_clock.dart';
+import 'theme_toggle.dart';
+
+class ShellTopBar extends StatelessWidget {
+  final bool sidebarOpen;
+  final VoidCallback onToggle;
+
+  const ShellTopBar({
+    super.key,
+    required this.sidebarOpen,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = UserSession.name.isNotEmpty
+        ? UserSession.name[0].toUpperCase()
+        : 'A';
+
+    return Container(
+      height: 60,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF060F1E), Color(0xFF0A2472), Color(0xFF0E52AE)],
+          stops: [0.0, 0.55, 1.0],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(children: [
+        // Sidebar toggle
+        InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Icon(
+              sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
+              size: 22,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        // App logo tile
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25), width: 0.8),
+          ),
+          child:
+              const Icon(Icons.apartment_rounded, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 10),
+        // App name + tagline
+        const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('FOMRA HRMS',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5)),
+            Text('Human Resource Management',
+                style: TextStyle(color: Colors.white54, fontSize: 9)),
+          ],
+        ),
+        const Spacer(),
+        // Live clock
+        const LiveClock(),
+        const SizedBox(width: 16),
+        // Theme toggle
+        const ThemeToggle(),
+        const SizedBox(width: 12),
+        // Profile avatar with initial
+        CircleAvatar(
+          radius: 15,
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
+          child: Text(initial,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 16),
+      ]),
+    );
+  }
+}

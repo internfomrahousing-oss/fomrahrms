@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
 import '../services/user_store.dart';
+import '../widgets/welcome_banner.dart';
 
 class _Section {
   final String title;
@@ -85,85 +86,21 @@ class _DashboardPageState extends State<DashboardPage> {
     return Material(
       color: null,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(pad),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              if (!narrow)
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Dashboard',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 4),
-                  Text('FOMRA Housing & Infrastructure HRMS',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ]),
-              if (narrow) const SizedBox.shrink(),
-              IconButton(
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded),
-                onPressed: _loadCount,
-              ),
-            ]),
-            const SizedBox(height: 24),
-
-            // Welcome card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0D47A1), Color(0xFF1565C0)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0D47A1).withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.admin_panel_settings_rounded,
-                      color: Colors.white, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    const Text('Welcome back!',
-                        style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const Text('HR Admin',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('Human Resources',
-                          style:
-                              TextStyle(color: Colors.white, fontSize: 11)),
-                    ),
-                  ]),
-                ),
-              ]),
+            // Full-width welcome banner
+            WelcomeBanner(
+              subtitle: 'Fomra Housing & Infrastructure',
+              avatarIcon: Icons.admin_panel_settings_rounded,
+              onRefresh: _loadCount,
             ),
-            SizedBox(height: narrow ? 16 : 24),
 
+            Padding(
+              padding: EdgeInsets.all(pad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             _StatStrip(totalEmployees: _totalEmployees),
             SizedBox(height: narrow ? 20 : 28),
 
@@ -185,6 +122,9 @@ class _DashboardPageState extends State<DashboardPage> {
             const SizedBox(height: 12),
             _PersonalGrid(items: _personalItems),
             const SizedBox(height: 16),
+                ],
+              ),
+            ),
           ],
         ),
       ),
