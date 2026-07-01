@@ -55,12 +55,15 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
   Widget build(BuildContext context) {
     final name = UserSession.name.isNotEmpty ? UserSession.name : 'Admin';
     final wide = MediaQuery.of(context).size.width > 500;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF060F1E), Color(0xFF0A2472), Color(0xFF0E52AE)],
-          stops: [0.0, 0.55, 1.0],
+          colors: isDark
+              ? [const Color(0xFF060F1E), const Color(0xFF0A2472), const Color(0xFF0E52AE)]
+              : [const Color(0xFF0A3D8F), const Color(0xFF1565C0), const Color(0xFF1E88E5)],
+          stops: const [0.0, 0.55, 1.0],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
