@@ -66,6 +66,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -111,18 +114,15 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           borderRadius: BorderRadius.circular(10)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: Color(0xFFE0E0E0)),
+                        borderSide: BorderSide(color: cs.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: _color, width: 2),
+                        borderSide: const BorderSide(color: _color, width: 2),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
-                      labelStyle:
-                          const TextStyle(color: Color(0xFF78909C)),
+                      fillColor: cs.surface,
+                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
                     ),
                   ),
 
@@ -133,16 +133,21 @@ class _CheckOutPageState extends State<CheckOutPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
+                        color: isDark
+                            ? Colors.orange.withValues(alpha: 0.12)
+                            : Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade300),
+                        border: Border.all(
+                            color: isDark
+                                ? Colors.orange.shade700
+                                : Colors.orange.shade300),
                       ),
                       child: Row(children: [
                         Container(
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                              color: Colors.orange.shade600,
+                              color: Colors.orange.shade500,
                               shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 10),
@@ -150,7 +155,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           'GPS tracking is active — will stop on check-out',
                           style: TextStyle(
                               fontSize: 13,
-                              color: Colors.orange.shade800,
+                              color: isDark
+                                  ? Colors.orange.shade300
+                                  : Colors.orange.shade800,
                               fontWeight: FontWeight.w500),
                         ),
                       ]),

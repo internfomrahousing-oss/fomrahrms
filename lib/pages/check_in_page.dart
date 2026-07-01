@@ -101,15 +101,16 @@ class _CheckInPageState extends State<CheckInPage> {
           ..allowFullscreen = true;
       });
     }
+    final cs = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         const Icon(Icons.location_on_rounded, color: _color, size: 16),
         const SizedBox(width: 6),
-        const Text('Live Location',
+        Text('Live Location',
             style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF37474F))),
+                color: cs.onSurface)),
         const Spacer(),
         TextButton.icon(
           onPressed: () => setState(() {}),
@@ -147,7 +148,7 @@ class _CheckInPageState extends State<CheckInPage> {
         child: Container(
           height: 220,
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFDDE3EA)),
+            border: Border.all(color: cs.outlineVariant),
             borderRadius: BorderRadius.circular(10),
           ),
           child: HtmlElementView(viewType: viewId),
@@ -160,6 +161,8 @@ class _CheckInPageState extends State<CheckInPage> {
   Widget build(BuildContext context) {
     final lat = GpsTrackingService.latestLat;
     final lng = GpsTrackingService.latestLng;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: null,
@@ -208,16 +211,15 @@ class _CheckInPageState extends State<CheckInPage> {
                           borderRadius: BorderRadius.circular(10)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: Color(0xFFE0E0E0)),
+                        borderSide: BorderSide(color: cs.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: _color, width: 2),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
-                      labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                      fillColor: cs.surface,
+                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
                     ),
                   ),
 
@@ -229,16 +231,21 @@ class _CheckInPageState extends State<CheckInPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: isDark
+                            ? Colors.green.withValues(alpha: 0.12)
+                            : Colors.green.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.shade300),
+                        border: Border.all(
+                            color: isDark
+                                ? Colors.green.shade700
+                                : Colors.green.shade300),
                       ),
                       child: Row(children: [
                         Container(
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                              color: Colors.green.shade600,
+                              color: Colors.green.shade500,
                               shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 10),
@@ -246,7 +253,9 @@ class _CheckInPageState extends State<CheckInPage> {
                           'GPS tracking active until check-out',
                           style: TextStyle(
                               fontSize: 13,
-                              color: Colors.green.shade800,
+                              color: isDark
+                                  ? Colors.green.shade300
+                                  : Colors.green.shade800,
                               fontWeight: FontWeight.w500),
                         ),
                       ]),
@@ -262,11 +271,11 @@ class _CheckInPageState extends State<CheckInPage> {
                         width: double.infinity,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
+                          color: cs.surface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                          border: Border.all(color: cs.outlineVariant),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -274,13 +283,13 @@ class _CheckInPageState extends State<CheckInPage> {
                                   width: 14,
                                   height: 14,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: _color),
+                                      strokeWidth: 2, color: cs.primary),
                                 ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text('Acquiring GPS location…',
                                     style: TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFFB0BEC5))),
+                                        color: cs.onSurface.withValues(alpha: 0.5))),
                               ]),
                         ),
                       ),
