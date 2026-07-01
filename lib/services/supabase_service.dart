@@ -875,6 +875,7 @@ class SupabaseService {
     required String employeeId,
     required String date,
     required String time,
+    String location = '',
   }) async {
     try {
       if (_db == null) return 'Database not connected';
@@ -885,11 +886,25 @@ class SupabaseService {
         'date':           date,
         'check_in_time':  time,
         'check_out_time': '',
+        'location':       location,
       });
       return null;
     } catch (e) {
       return e.toString();
     }
+  }
+
+  static Future<void> updateLocation({
+    required String employeeId,
+    required String date,
+    required String location,
+  }) async {
+    try {
+      await _db
+          ?.from('attendance_records')
+          .update({'location': location})
+          .eq('id', _attendanceId(employeeId, date));
+    } catch (_) {}
   }
 
   static Future<void> saveCheckOut({
@@ -920,6 +935,7 @@ class SupabaseService {
         date:         row['date'] as String,
         checkInTime:  (row['check_in_time']  as String?) ?? '',
         checkOutTime: (row['check_out_time'] as String?) ?? '',
+        location:     (row['location']        as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];

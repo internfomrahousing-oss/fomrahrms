@@ -77,11 +77,16 @@ class _CheckInPageState extends State<CheckInPage> {
     _startMapTimer();
     setState(() {});
 
+    final lat = GpsTrackingService.latestLat;
+    final lng = GpsTrackingService.latestLng;
+    final loc = (lat != null && lng != null) ? '$lat,$lng' : '';
+
     final err = await SupabaseService.saveCheckIn(
       employeeName: empName,
       employeeId: UserSession.employeeId,
       date: date,
       time: _timeController.text,
+      location: loc,
     );
 
     if (!mounted) return;

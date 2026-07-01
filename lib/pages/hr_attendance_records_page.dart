@@ -1,3 +1,5 @@
+import 'dart:html' as html_lib;
+import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
@@ -291,7 +293,7 @@ class _AttendanceTable extends StatelessWidget {
       child: DataTable(
         headingRowColor: WidgetStateProperty.all(color.withValues(alpha: 0.06)),
         border: TableBorder.all(
-            color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+            color: Theme.of(context).dividerColor, borderRadius: BorderRadius.circular(8)),
         columns: [
           DataColumn(label: Text('Employee',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
@@ -313,11 +315,11 @@ class _AttendanceTable extends StatelessWidget {
           }),
           cells: [
             DataCell(Text(r.employeeName,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF37474F)))),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
             DataCell(Text(r.date,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF37474F)))),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
             DataCell(Text(showCheckOut ? r.checkOutTime : r.checkInTime,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF37474F)))),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
             DataCell(Row(children: [
               Text(r.checkInTime.isNotEmpty && r.checkOutTime.isNotEmpty
                   ? 'In & Out recorded'
@@ -392,6 +394,10 @@ class _AttendanceDetailDialog extends StatelessWidget {
               _InfoRow(Icons.login_rounded, 'Check-In', r.checkInTime.isNotEmpty ? r.checkInTime : '—'),
               const SizedBox(height: 10),
               _InfoRow(Icons.logout_rounded, 'Check-Out', hasCheckOut ? r.checkOutTime : '—'),
+              if (r.location.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _LocationMap(location: r.location),
+              ],
               if (r.checkInTime.isNotEmpty && hasCheckOut) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -459,6 +465,86 @@ class _InfoRow extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1A237E))),
+    ]);
+  }
+}
+
+// ── Location map widget ───────────────────────────────────────────────────────
+
+class _LocationMap extends StatefulWidget {
+  final String location; // "lat,lng"
+  const _LocationMap({required this.location});
+
+  @override
+  State<_LocationMap> createState() => _LocationMapState();
+}
+
+class _LocationMapState extends State<_LocationMap> {
+  static final _registered = <String>{};
+
+  String get _viewId => 'hr_loc_${widget.location.replaceAll(RegExp(r'[^0-9.]'), '_')}';
+
+  @override
+  void initState() {
+    super.initState();
+    final parts = widget.location.split(',');
+    if (parts.length == 2) {
+      final lat = double.tryParse(parts[0].trim());
+      final lng = double.tryParse(parts[1].trim());
+      if (lat != null && lng != null && !_registered.contains(_viewId)) {
+        _registered.add(_viewId);
+        final html = '''
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+          <div id="map" style="width:100%;height:100%;border-radius:10px;overflow:hidden;"></div>
+          <script>
+            var map = L.map('map', {zoomControl:false, dragging:false, scrollWheelZoom:false})
+              .setView([$lat,$lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            L.marker([$lat,$lng]).addTo(map);
+          </script>
+        ''';
+        final blob = html_lib.Blob([html], 'text/html');
+        final url  = html_lib.Url.createObjectUrl(blob);
+        ui_web.platformViewRegistry.registerViewFactory(
+          _viewId, (_) => html_lib.IFrameElement()
+            ..src = url
+            ..style.border = 'none'
+            ..style.width  = '100%'
+            ..style.height = '100%',
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = widget.location.split(',');
+    if (parts.length != 2) return const SizedBox.shrink();
+    final lat = double.tryParse(parts[0].trim());
+    final lng = double.tryParse(parts[1].trim());
+    if (lat == null || lng == null) return const SizedBox.shrink();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.location_on_rounded, size: 15, color: Color(0xFF0D47A1)),
+        const SizedBox(width: 6),
+        Text('Last Known Location',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
+      ]),
+      const SizedBox(height: 8),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          height: 180,
+          child: HtmlElementView(viewType: _viewId),
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text('Lat: ${lat.toStringAsFixed(6)}, Lng: ${lng.toStringAsFixed(6)}',
+          style: TextStyle(fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
     ]);
   }
 }

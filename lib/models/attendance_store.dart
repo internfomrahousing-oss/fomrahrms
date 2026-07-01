@@ -47,6 +47,7 @@ class AttendanceRecord {
   final String date;
   final String checkInTime;
   final String checkOutTime;
+  final String location; // "lat,lng" or empty
 
   const AttendanceRecord({
     required this.id,
@@ -55,5 +56,6 @@ class AttendanceRecord {
     required this.date,
     this.checkInTime = '',
     this.checkOutTime = '',
+    this.location = '',
   });
 }

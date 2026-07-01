@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
+import 'supabase_service.dart';
 
 class GpsTrackingService {
   static StreamSubscription<Position>? _subscription;
@@ -33,14 +34,24 @@ class GpsTrackingService {
       latestLat = pos.latitude;
       latestLng = pos.longitude;
       final now = DateTime.now();
+      final dateStr =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
       AttendanceStore.gpsRecords.add(GpsRecord(
         employee: employee,
-        date: '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
+        date: dateStr,
         location:
             'Lat: ${pos.latitude.toStringAsFixed(6)}, Lng: ${pos.longitude.toStringAsFixed(6)}',
         time:
             '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
       ));
+      // Persist latest location to Supabase so HR can see it even after sign-out
+      if (UserSession.employeeId.isNotEmpty) {
+        SupabaseService.updateLocation(
+          employeeId: UserSession.employeeId,
+          date: dateStr,
+          location: '${pos.latitude},${pos.longitude}',
+        );
+      }
     });
   }
 
