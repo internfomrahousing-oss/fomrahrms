@@ -302,15 +302,21 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded, size: 28, color: _color),
-                    tooltip: 'Previous month',
-                    onPressed: () => setState(() {
-                      _selectedMonth = DateTime(
-                        _selectedMonth.month == 1 ? _selectedMonth.year - 1 : _selectedMonth.year,
-                        _selectedMonth.month == 1 ? 12 : _selectedMonth.month - 1,
-                      );
-                    }),
+                  Tooltip(
+                    message: 'Previous month',
+                    child: InkWell(
+                      onTap: () => setState(() {
+                        _selectedMonth = DateTime(
+                          _selectedMonth.month == 1 ? _selectedMonth.year - 1 : _selectedMonth.year,
+                          _selectedMonth.month == 1 ? 12 : _selectedMonth.month - 1,
+                        );
+                      }),
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(Icons.chevron_left_rounded, size: 28, color: _color),
+                      ),
+                    ),
                   ),
                   Expanded(
                     child: InkWell(
@@ -333,16 +339,22 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.chevron_right_rounded, size: 28,
-                        color: _isCurrentMonth ? Colors.grey.shade300 : _color),
-                    tooltip: _isCurrentMonth ? null : 'Next month',
-                    onPressed: _isCurrentMonth ? null : () => setState(() {
-                      _selectedMonth = DateTime(
-                        _selectedMonth.month == 12 ? _selectedMonth.year + 1 : _selectedMonth.year,
-                        _selectedMonth.month == 12 ? 1 : _selectedMonth.month + 1,
-                      );
-                    }),
+                  Tooltip(
+                    message: _isCurrentMonth ? '' : 'Next month',
+                    child: InkWell(
+                      onTap: _isCurrentMonth ? null : () => setState(() {
+                        _selectedMonth = DateTime(
+                          _selectedMonth.month == 12 ? _selectedMonth.year + 1 : _selectedMonth.year,
+                          _selectedMonth.month == 12 ? 1 : _selectedMonth.month + 1,
+                        );
+                      }),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(Icons.chevron_right_rounded, size: 28,
+                            color: _isCurrentMonth ? Colors.grey.shade400 : _color),
+                      ),
+                    ),
                   ),
                 ]),
               ),

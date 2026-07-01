@@ -88,11 +88,17 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Row(children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left_rounded, size: 28, color: _color),
-                tooltip: 'Previous day',
-                onPressed: () => setState(() =>
-                    _selectedDate = _selectedDate.subtract(const Duration(days: 1))),
+              Tooltip(
+                message: 'Previous day',
+                child: InkWell(
+                  onTap: () => setState(() =>
+                      _selectedDate = _selectedDate.subtract(const Duration(days: 1))),
+                  borderRadius: BorderRadius.circular(20),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(Icons.chevron_left_rounded, size: 28, color: _color),
+                  ),
+                ),
               ),
               Expanded(
                 child: InkWell(
@@ -117,14 +123,20 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.chevron_right_rounded,
-                    size: 28, color: isToday ? Colors.grey : _color),
-                tooltip: 'Next day',
-                onPressed: isToday
-                    ? null
-                    : () => setState(() =>
-                        _selectedDate = _selectedDate.add(const Duration(days: 1))),
+              Tooltip(
+                message: isToday ? '' : 'Next day',
+                child: InkWell(
+                  onTap: isToday
+                      ? null
+                      : () => setState(() =>
+                          _selectedDate = _selectedDate.add(const Duration(days: 1))),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(Icons.chevron_right_rounded,
+                        size: 28, color: isToday ? Colors.grey.shade400 : _color),
+                  ),
+                ),
               ),
             ]),
           ),

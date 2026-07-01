@@ -15,9 +15,14 @@ Future<DateTime?> showMonthPicker(BuildContext context, DateTime? current) {
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setLocal) => AlertDialog(
         title: Row(children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left_rounded),
-            onPressed: () => setLocal(() => year--),
+          InkWell(
+            onTap: () => setLocal(() => year--),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.chevron_left_rounded,
+                  color: Theme.of(ctx).colorScheme.primary),
+            ),
           ),
           Expanded(
             child: Text(
@@ -26,9 +31,14 @@ Future<DateTime?> showMonthPicker(BuildContext context, DateTime? current) {
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right_rounded),
-            onPressed: () => setLocal(() => year++),
+          InkWell(
+            onTap: () => setLocal(() => year++),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.chevron_right_rounded,
+                  color: Theme.of(ctx).colorScheme.primary),
+            ),
           ),
         ]),
         contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
