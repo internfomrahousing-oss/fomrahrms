@@ -35,31 +35,51 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   List<LeaveApplication> get _requests {
     if (_showAll) return LeaveStore.applications;
     if (!_teamLoaded) return LeaveStore.applications;
+    if (!_isMgmt) {
+      // Managers only handle short-term leaves (≤ 2 days);
+      // anything longer goes directly to management.
+      return LeaveStore.applications
+          .where((a) => _teamNames.contains(a.employeeName) && a.effectiveDays <= 2)
+          .toList();
+    }
     return LeaveStore.applications
         .where((a) => _teamNames.contains(a.employeeName))
         .toList();
   }
 
-  List<LeaveApplication> get _filtered => _requests.where((r) {
-        final matchSearch = _search.isEmpty ||
-            r.employeeName.toLowerCase().contains(_search.toLowerCase()) ||
-            r.leaveType.toLowerCase().contains(_search.toLowerCase());
-        final matchStatus =
-            _filterStatus == null || r.managerStatus == _filterStatus;
-        return matchSearch && matchStatus;
-      }).toList();
+  bool _matchesFilter(LeaveApplication r) {
+    final matchSearch = _search.isEmpty ||
+        r.employeeName.toLowerCase().contains(_search.toLowerCase()) ||
+        r.leaveType.toLowerCase().contains(_search.toLowerCase());
+    final matchStatus =
+        _filterStatus == null || r.managerStatus == _filterStatus;
+    return matchSearch && matchStatus;
+  }
 
-  List<LeaveApplication> get _longTermLeaves =>
-      _filtered.where((a) => a.effectiveDays > 2).toList();
+  List<LeaveApplication> get _filtered =>
+      _requests.where(_matchesFilter).toList();
+
+  // Long-term leaves (> 2 days) are always handled by management.
+  // In the management team-approvals view we show ALL employees' long-term
+  // leaves (not just the manager's own team), since the manager is bypassed.
+  List<LeaveApplication> get _longTermLeaves {
+    if (_isMgmt && !_showAll) {
+      return LeaveStore.applications
+          .where((a) => a.effectiveDays > 2 && _matchesFilter(a))
+          .toList();
+    }
+    return _filtered.where((a) => a.effectiveDays > 2).toList();
+  }
+
   List<LeaveApplication> get _regularLeaves =>
       _filtered.where((a) => a.effectiveDays <= 2).toList();
 
   int get _pendingCount =>
-      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
+      _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
   int get _approvedCount =>
-      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.approved).length;
+      _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.approved).length;
   int get _deniedCount =>
-      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.denied).length;
+      _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.denied).length;
 
   @override
   void initState() {
@@ -316,6 +336,30 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
           ),
           const SizedBox(height: 16),
 
+          // Policy notice for managers
+          if (!_isMgmt)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFFCC02).withValues(alpha: 0.6)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.info_outline_rounded, size: 15, color: Color(0xFFF57F17)),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Leaves longer than 2 days go directly to Management for approval.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFFF57F17), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+
           if (_filterStatus != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -365,7 +409,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             )
           else if (!_loading && _isMgmt && !_showAll) ...[
             _SectionHeader(
-              label: 'Long Term Leaves',
+              label: 'Long Term Leaves  (> 2 days — all employees)',
               count: _longTermLeaves.length,
               color: const Color(0xFFB71C1C),
               icon: Icons.date_range_rounded,
@@ -375,7 +419,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               _emptyCard(
                 icon: Icons.event_available_rounded,
                 title: 'No long term leave requests',
-                subtitle: 'Leave requests exceeding 2 days will appear here.',
+                subtitle: 'Leave requests exceeding 2 days appear here — managers are bypassed.',
               )
             else
               ..._longTermLeaves.map((app) => Padding(
