@@ -987,6 +987,34 @@ class SupabaseService {
     }
   }
 
+  static Future<AttendanceRecord?> fetchTodayAttendance(String employeeId) async {
+    if (employeeId.isEmpty) return null;
+    final today = DateTime.now();
+    final date =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('id', _attendanceId(employeeId, date))
+          .limit(1);
+      if (data == null || (data as List).isEmpty) return null;
+      final row = (data as List).first as Map<String, dynamic>;
+      return AttendanceRecord(
+        id:           row['id'] as String,
+        employeeName: row['employee_name'] as String,
+        employeeId:   (row['employee_id']  as String?) ?? '',
+        date:         row['date'] as String,
+        checkInTime:  (row['check_in_time']  as String?) ?? '',
+        checkOutTime: (row['check_out_time'] as String?) ?? '',
+        location:     (row['location']        as String?) ?? '',
+        gpsPoints:    _parseGpsPoints(row['gps_points']),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Sets AttendanceStore.isCheckedIn based on today's Supabase record.
   static Future<void> restoreCheckInState() async {
     if (!UserSession.loggedIn || UserSession.employeeId.isEmpty) return;

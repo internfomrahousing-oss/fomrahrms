@@ -15,12 +15,16 @@ class CheckOutPage extends StatefulWidget {
 class _CheckOutPageState extends State<CheckOutPage> {
   static const _color = Color(0xFF1565C0);
 
+  bool _loading = true;
+  AttendanceRecord? _record;
+
   final _timeController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _autoFillTime();
+    _loadTodayRecord();
   }
 
   @override
@@ -35,39 +39,41 @@ class _CheckOutPageState extends State<CheckOutPage> {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
-  void _onSave() {
-    if (_timeController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Please fill in the check-out time'),
-        backgroundColor: Colors.red.shade700,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ));
-      return;
-    }
+  Future<void> _loadTodayRecord() async {
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    if (!mounted) return;
+    setState(() {
+      _record = rec;
+      _loading = false;
+    });
+  }
+
+  Future<void> _onCheckOut() async {
     final now = DateTime.now();
     final date =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-    AttendanceStore.checkOuts.add(CheckOutRecord(
-      employee: UserSession.name.isNotEmpty ? UserSession.name : 'Employee',
-      date: date,
-      time: _timeController.text,
-      location: '—',
-    ));
+
     GpsTrackingService.stop();
     AttendanceStore.isCheckedIn = false;
-    SupabaseService.saveCheckOut(
+
+    await SupabaseService.saveCheckOut(
       employeeId: UserSession.employeeId,
       date: date,
       time: _timeController.text,
     );
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Checked out — GPS tracking stopped'),
-      backgroundColor: _color,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ));
-    setState(() {});
+
+    if (!mounted) return;
+    // Re-fetch to show updated record
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    if (mounted) {
+      setState(() => _record = rec);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Checked out successfully'),
+        backgroundColor: _color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+    }
   }
 
   @override
@@ -79,119 +85,255 @@ class _CheckOutPageState extends State<CheckOutPage> {
       backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child:
-                    const Icon(Icons.logout_rounded, color: _color, size: 26),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: _color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 16),
-              Text('Check Out',
-                  style: Theme.of(context).textTheme.headlineMedium),
-            ]),
-            const SizedBox(height: 24),
+              child: const Icon(Icons.logout_rounded, color: _color, size: 26),
+            ),
+            const SizedBox(width: 16),
+            Text('Check Out', style: Theme.of(context).textTheme.headlineMedium),
+          ]),
+          const SizedBox(height: 24),
 
+          if (_loading)
+            const Center(child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 48),
+              child: CircularProgressIndicator(),
+            ))
+
+          // Not checked in at all
+          else if (_record == null || _record!.checkInTime.isEmpty)
+            _InfoBanner(
+              icon: Icons.info_rounded,
+              message: "You haven't checked in today. Please check in first.",
+              color: Colors.orange,
+              isDark: isDark,
+            )
+
+          // Already checked out
+          else if (_record!.checkOutTime.isNotEmpty)
+            _AlreadyCheckedOut(record: _record!, isDark: isDark)
+
+          // Checked in, not yet checked out
+          else ...[
+            _CheckInSummaryBanner(record: _record!, isDark: isDark),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: Column(children: [
-                  TextField(
-                    controller: _timeController,
-                    decoration: InputDecoration(
-                      labelText: 'Check-Out Time',
-                      prefixIcon: const Icon(Icons.access_time_rounded,
-                          color: _color, size: 20),
-                      suffixIcon: IconButton(
-                        tooltip: 'Refresh time',
-                        icon: const Icon(Icons.schedule_rounded, color: _color),
-                        onPressed: _autoFillTime,
-                      ),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: cs.outlineVariant),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: _color, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: cs.surface,
-                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+                child: TextField(
+                  controller: _timeController,
+                  decoration: InputDecoration(
+                    labelText: 'Check-Out Time',
+                    prefixIcon: const Icon(Icons.access_time_rounded, color: _color, size: 20),
+                    suffixIcon: IconButton(
+                      tooltip: 'Refresh time',
+                      icon: const Icon(Icons.schedule_rounded, color: _color),
+                      onPressed: _autoFillTime,
                     ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: _color, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: cs.surface,
+                    labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
                   ),
-
-                  if (AttendanceStore.isCheckedIn) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.orange.withValues(alpha: 0.12)
-                            : Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: isDark
-                                ? Colors.orange.shade700
-                                : Colors.orange.shade300),
-                      ),
-                      child: Row(children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                              color: Colors.orange.shade500,
-                              shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'GPS tracking is active — will stop on check-out',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? Colors.orange.shade300
-                                  : Colors.orange.shade800,
-                              fontWeight: FontWeight.w500),
-                        ),
-                      ]),
-                    ),
-                  ],
-                ]),
+                ),
               ),
             ),
             const SizedBox(height: 16),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _onSave,
+                onPressed: _onCheckOut,
                 icon: const Icon(Icons.logout_rounded),
                 label: const Text('Check Out'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _color,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),
           ],
-        ),
+        ]),
       ),
     );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final MaterialColor color;
+  final bool isDark;
+  const _InfoBanner({required this.icon, required this.message, required this.color, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? color.withValues(alpha: 0.12) : color.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? color.shade700 : color.shade300),
+      ),
+      child: Row(children: [
+        Icon(icon, color: isDark ? color.shade300 : color.shade700, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(message,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? color.shade300 : color.shade800,
+                  fontWeight: FontWeight.w500)),
+        ),
+      ]),
+    );
+  }
+}
+
+class _CheckInSummaryBanner extends StatelessWidget {
+  final AttendanceRecord record;
+  final bool isDark;
+  const _CheckInSummaryBanner({required this.record, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.green.withValues(alpha: 0.1) : Colors.green.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? Colors.green.shade700 : Colors.green.shade300),
+      ),
+      child: Row(children: [
+        Icon(Icons.login_rounded,
+            color: isDark ? Colors.green.shade400 : Colors.green.shade600, size: 18),
+        const SizedBox(width: 10),
+        Text('Checked in at ',
+            style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.green.shade400 : Colors.green.shade700)),
+        Text(record.checkInTime,
+            style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace',
+                color: isDark ? Colors.green.shade300 : Colors.green.shade800)),
+        const SizedBox(width: 6),
+        Text('· GPS tracking active',
+            style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.green.shade500 : Colors.green.shade600)),
+      ]),
+    );
+  }
+}
+
+class _AlreadyCheckedOut extends StatelessWidget {
+  final AttendanceRecord record;
+  final bool isDark;
+  const _AlreadyCheckedOut({required this.record, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    String? duration;
+    try {
+      final inParts = record.checkInTime.split(':');
+      final outParts = record.checkOutTime.split(':');
+      if (inParts.length == 2 && outParts.length == 2) {
+        final inMin = int.parse(inParts[0]) * 60 + int.parse(inParts[1]);
+        final outMin = int.parse(outParts[0]) * 60 + int.parse(outParts[1]);
+        final diff = outMin - inMin;
+        if (diff > 0) {
+          final h = diff ~/ 60;
+          final m = diff % 60;
+          duration = h > 0 ? '${h}h ${m}m' : '${m}m';
+        }
+      }
+    } catch (_) {}
+
+    return Column(children: [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0D47A1).withValues(alpha: 0.12) : Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: isDark ? Colors.blue.shade700 : Colors.blue.shade300),
+        ),
+        child: Column(children: [
+          Icon(Icons.check_circle_rounded,
+              color: isDark ? Colors.blue.shade300 : Colors.blue.shade600, size: 36),
+          const SizedBox(height: 10),
+          Text('Already Checked Out',
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.blue.shade200 : Colors.blue.shade800)),
+          const SizedBox(height: 14),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _TimeBlock(label: 'Check-In', time: record.checkInTime, isDark: isDark),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Icon(Icons.arrow_forward_rounded,
+                  color: isDark ? Colors.blue.shade400 : Colors.blue.shade400, size: 20),
+            ),
+            _TimeBlock(label: 'Check-Out', time: record.checkOutTime, isDark: isDark),
+          ]),
+          if (duration != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.shade100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('Duration: $duration',
+                  style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.blue.shade200 : Colors.blue.shade800)),
+            ),
+          ],
+        ]),
+      ),
+    ]);
+  }
+}
+
+class _TimeBlock extends StatelessWidget {
+  final String label;
+  final String time;
+  final bool isDark;
+  const _TimeBlock({required this.label, required this.time, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.blue.shade400 : Colors.blue.shade600)),
+      const SizedBox(height: 4),
+      Text(time,
+          style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'monospace',
+              color: isDark ? Colors.blue.shade200 : Colors.blue.shade900)),
+    ]);
   }
 }
