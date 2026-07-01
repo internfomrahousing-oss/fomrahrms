@@ -98,17 +98,6 @@ class ShellTopBar extends StatelessWidget {
         const SizedBox(width: 16),
         // Theme toggle
         const ThemeToggle(),
-        const SizedBox(width: 12),
-        // Profile avatar with initial
-        CircleAvatar(
-          radius: 15,
-          backgroundColor: Colors.white.withValues(alpha: 0.2),
-          child: Text(initial,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold)),
-        ),
         const SizedBox(width: 16),
       ]),
     );
