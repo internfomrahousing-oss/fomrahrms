@@ -4,6 +4,7 @@ import '../models/user_session.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
 import '../models/theme_notifier.dart';
+import 'theme_toggle.dart';
 
 class _NavItem {
   final String label;
@@ -293,21 +294,27 @@ class _SidebarFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Colors.white12))),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Row(children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFBBDEFB), size: 18),
-            SizedBox(width: 10),
-            Text('Sign Out',
-                style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 13)),
-          ]),
-        ),
+      child: Column(
+        children: [
+          const ThemeToggle(),
+          const SizedBox(height: 10),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: Row(children: [
+                Icon(Icons.logout_rounded, color: Color(0xFFBBDEFB), size: 18),
+                SizedBox(width: 10),
+                Text('Sign Out',
+                    style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 13)),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
