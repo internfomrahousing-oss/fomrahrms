@@ -370,36 +370,79 @@ class _CheckInDetailDialogState extends State<_CheckInDetailDialog> {
   static const _color = Color(0xFF0D47A1);
   static final _registeredViews = <String>{};
 
-  Widget _buildMap(String location) {
-    // Parse "Lat: X, Lng: Y"
-    final parts = location.replaceAll('Lat: ', '').replaceAll('Lng: ', '').split(', ');
-    if (parts.length < 2) return const SizedBox.shrink();
-    final lat = double.tryParse(parts[0]);
-    final lng = double.tryParse(parts[1]);
-    if (lat == null || lng == null) return const SizedBox.shrink();
+  List<List<double>> _parsePoints(List<GpsRecord> records) {
+    final pts = <List<double>>[];
+    for (final g in records) {
+      final p = g.location
+          .replaceAll('Lat: ', '')
+          .replaceAll('Lng: ', '')
+          .split(', ');
+      if (p.length >= 2) {
+        final lat = double.tryParse(p[0]);
+        final lng = double.tryParse(p[1]);
+        if (lat != null && lng != null) pts.add([lat, lng]);
+      }
+    }
+    return pts;
+  }
 
-    final viewId =
-        'checkin_detail_${lat.toStringAsFixed(4)}_${lng.toStringAsFixed(4)}';
+  Widget _buildMap(List<GpsRecord> records) {
+    final pts = _parsePoints(records);
+    if (pts.isEmpty) return const SizedBox.shrink();
+
+    final jsPoints = pts.map((p) => '[${p[0]},${p[1]}]').join(',');
+    final viewId = 'route_${records.length}_${pts.last[0].toStringAsFixed(3)}_${pts.last[1].toStringAsFixed(3)}';
+
     if (!_registeredViews.contains(viewId)) {
       _registeredViews.add(viewId);
-      final l1 = lng - 0.005;
-      final la1 = lat - 0.005;
-      final l2 = lng + 0.005;
-      final la2 = lat + 0.005;
+      final mapHtml = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#map{width:100%;height:100%}
+@keyframes dash{to{stroke-dashoffset:-30}}
+@keyframes ripple{0%{transform:scale(1);opacity:.8}100%{transform:scale(3.5);opacity:0}}
+.pw{position:relative;width:28px;height:28px}
+.pr{position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50%;background:rgba(21,101,192,.3);animation:ripple 1.6s ease-out infinite}
+.pd{position:absolute;top:7px;left:7px;width:14px;height:14px;border-radius:50%;background:#1565C0;border:3px solid #fff;box-shadow:0 2px 8px rgba(21,101,192,.7)}
+</style>
+</head><body>
+<div id="map"></div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const pts=[$jsPoints];
+const map=L.map('map',{zoomControl:true,attributionControl:false});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+if(pts.length>=2){
+  L.polyline(pts,{color:'rgba(21,101,192,.18)',weight:12,lineCap:'round',lineJoin:'round'}).addTo(map);
+  const poly=L.polyline(pts,{color:'#1565C0',weight:4,dashArray:'14 8',lineCap:'round',lineJoin:'round',opacity:.95}).addTo(map);
+  setTimeout(()=>{const el=poly.getElement();if(el){el.style.animation='dash .8s linear infinite';}},120);
+  map.fitBounds(poly.getBounds(),{padding:[36,36]});
+}else{
+  map.setView(pts[0],16);
+}
+L.circleMarker(pts[0],{radius:7,fillColor:'#43A047',color:'#fff',weight:2.5,fillOpacity:1}).addTo(map).bindTooltip('Start',{permanent:false,direction:'top'});
+const icon=L.divIcon({html:'<div class="pw"><div class="pr"></div><div class="pd"></div></div>',iconSize:[28,28],iconAnchor:[14,14],className:''});
+L.marker(pts[pts.length-1],{icon}).addTo(map).bindTooltip('Latest',{permanent:false,direction:'top'});
+</script></body></html>''';
+
+      final blob = html.Blob([mapHtml], 'text/html');
+      final blobUrl = html.Url.createObjectUrlFromBlob(blob);
       ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
         return html.IFrameElement()
-          ..src = 'https://www.openstreetmap.org/export/embed.html'
-              '?bbox=$l1,$la1,$l2,$la2&layer=mapnik&marker=$lat,$lng'
+          ..src = blobUrl
           ..style.border = 'none'
           ..style.width = '100%'
           ..style.height = '100%'
           ..allowFullscreen = true;
       });
     }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
-        height: 200,
+        height: 240,
         child: HtmlElementView(viewType: viewId),
       ),
     );
@@ -459,40 +502,29 @@ class _CheckInDetailDialogState extends State<_CheckInDetailDialog> {
             _InfoRow(Icons.access_time_rounded, 'Check-In Time', r.time),
             const SizedBox(height: 20),
 
-            // GPS section
+            // GPS section header
             Row(children: [
-              const Icon(Icons.location_on_rounded,
-                  color: _color, size: 16),
+              const Icon(Icons.route_rounded, color: _color, size: 16),
               const SizedBox(width: 6),
-              const Text('GPS Tracking',
+              const Text('Route Tracking',
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF37474F))),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: gps.isNotEmpty
-                      ? Colors.green.shade50
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: gps.isNotEmpty
-                          ? Colors.green.shade300
-                          : Colors.grey.shade300),
+              if (gps.isNotEmpty) ...[
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                      color: Colors.green.shade500, shape: BoxShape.circle),
                 ),
-                child: Text(
-                  '${gps.length} point${gps.length == 1 ? '' : 's'} recorded',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: gps.isNotEmpty
-                          ? Colors.green.shade700
-                          : Colors.grey.shade600),
-                ),
-              ),
+                const SizedBox(width: 5),
+                Text('${gps.length} waypoint${gps.length == 1 ? '' : 's'}',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green.shade700)),
+              ],
             ]),
             const SizedBox(height: 10),
 
@@ -500,33 +532,27 @@ class _CheckInDetailDialogState extends State<_CheckInDetailDialog> {
               // Latest coordinates badge
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: _color.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: _color.withValues(alpha: 0.2)),
+                  border: Border.all(color: _color.withValues(alpha: 0.2)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.gps_fixed_rounded,
-                      size: 13, color: _color),
+                  const Icon(Icons.gps_fixed_rounded, size: 13, color: _color),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(latestGps.location,
                         style: const TextStyle(
-                            fontSize: 12,
-                            color: _color,
-                            fontFamily: 'monospace')),
+                            fontSize: 12, color: _color, fontFamily: 'monospace')),
                   ),
                   Text('at ${latestGps.time}',
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade500)),
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                 ]),
               ),
               const SizedBox(height: 10),
-              // Map
-              _buildMap(latestGps.location),
+              // Animated route map
+              _buildMap(gps),
             ] else
               Container(
                 width: double.infinity,
@@ -541,8 +567,7 @@ class _CheckInDetailDialogState extends State<_CheckInDetailDialog> {
                       size: 16, color: Colors.grey.shade400),
                   const SizedBox(width: 8),
                   Text('No GPS data recorded yet',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500)),
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                 ]),
               ),
           ]),
