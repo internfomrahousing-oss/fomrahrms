@@ -276,44 +276,51 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
       padding: const EdgeInsets.all(20),
       children: [
         // Month navigator
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left_rounded),
-                color: _color,
-                onPressed: () => setState(() {
-                  _selectedMonth = DateTime(
-                    _selectedMonth.month == 1 ? _selectedMonth.year - 1 : _selectedMonth.year,
-                    _selectedMonth.month == 1 ? 12 : _selectedMonth.month - 1,
-                  );
-                }),
-              ),
-              Expanded(
-                child: Column(children: [
-                  Text(
-                    '${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700, color: _color),
+        Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left_rounded, size: 28),
+                    color: _color,
+                    tooltip: 'Previous month',
+                    onPressed: () => setState(() {
+                      _selectedMonth = DateTime(
+                        _selectedMonth.month == 1 ? _selectedMonth.year - 1 : _selectedMonth.year,
+                        _selectedMonth.month == 1 ? 12 : _selectedMonth.month - 1,
+                      );
+                    }),
                   ),
-                  if (_isCurrentMonth)
-                    const Text('Current month',
-                        style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                  Expanded(
+                    child: Column(children: [
+                      Text(
+                        '${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700, color: _color),
+                      ),
+                      if (_isCurrentMonth)
+                        const Text('Current month',
+                            style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                    ]),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.chevron_right_rounded, size: 28,
+                        color: _isCurrentMonth ? Colors.grey.shade300 : _color),
+                    tooltip: _isCurrentMonth ? null : 'Next month',
+                    onPressed: _isCurrentMonth ? null : () => setState(() {
+                      _selectedMonth = DateTime(
+                        _selectedMonth.month == 12 ? _selectedMonth.year + 1 : _selectedMonth.year,
+                        _selectedMonth.month == 12 ? 1 : _selectedMonth.month + 1,
+                      );
+                    }),
+                  ),
                 ]),
               ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right_rounded),
-                color: _isCurrentMonth ? Colors.grey.shade300 : _color,
-                onPressed: _isCurrentMonth ? null : () => setState(() {
-                  _selectedMonth = DateTime(
-                    _selectedMonth.month == 12 ? _selectedMonth.year + 1 : _selectedMonth.year,
-                    _selectedMonth.month == 12 ? 1 : _selectedMonth.month + 1,
-                  );
-                }),
-              ),
-            ]),
+            ),
           ),
         ),
         const SizedBox(height: 12),
