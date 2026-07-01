@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
+import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
 import '../models/profile_store.dart';
@@ -227,6 +228,17 @@ import '../models/user_session.dart';
   alter table onboarding_forms add column if not exists assigned_email text default '';
   alter table onboarding_forms add column if not exists assigned_emp_id text default '';
   alter table onboarding_forms add column if not exists assigned_manager text default '';
+
+  create table if not exists attendance_records (
+    id text primary key,
+    employee_name text not null,
+    employee_id text default '',
+    date text not null,
+    check_in_time text default '',
+    check_out_time text default '',
+    created_at timestamptz default now()
+  );
+  alter table attendance_records disable row level security;
 
   create table if not exists form_versions (
     id uuid default gen_random_uuid() primary key,
@@ -851,6 +863,83 @@ class SupabaseService {
     } catch (_) {
       return 1;
     }
+  }
+
+  // ── Attendance Records ────────────────────────────────────────────────
+
+  static String _attendanceId(String employeeId, String date) =>
+      '${employeeId.isNotEmpty ? employeeId : 'emp'}_${date.replaceAll('/', '-')}';
+
+  static Future<void> saveCheckIn({
+    required String employeeName,
+    required String employeeId,
+    required String date,
+    required String time,
+  }) async {
+    try {
+      await _db?.from('attendance_records').upsert({
+        'id':             _attendanceId(employeeId, date),
+        'employee_name':  employeeName,
+        'employee_id':    employeeId,
+        'date':           date,
+        'check_in_time':  time,
+        'check_out_time': '',
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> saveCheckOut({
+    required String employeeId,
+    required String date,
+    required String time,
+  }) async {
+    try {
+      await _db
+          ?.from('attendance_records')
+          .update({'check_out_time': time})
+          .eq('id', _attendanceId(employeeId, date));
+    } catch (_) {}
+  }
+
+  static Future<List<AttendanceRecord>> fetchAttendanceForDate(String date) async {
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('date', date)
+          .order('created_at', ascending: true);
+      if (data == null) return [];
+      return (data as List).map((row) => AttendanceRecord(
+        id:           row['id'] as String,
+        employeeName: row['employee_name'] as String,
+        employeeId:   (row['employee_id']    as String?) ?? '',
+        date:         row['date'] as String,
+        checkInTime:  (row['check_in_time']  as String?) ?? '',
+        checkOutTime: (row['check_out_time'] as String?) ?? '',
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Sets AttendanceStore.isCheckedIn based on today's Supabase record.
+  static Future<void> restoreCheckInState() async {
+    if (!UserSession.loggedIn || UserSession.employeeId.isEmpty) return;
+    final now = DateTime.now();
+    final date =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('id', _attendanceId(UserSession.employeeId, date))
+          .limit(1);
+      if (data == null || (data as List).isEmpty) return;
+      final row = (data as List).first as Map<String, dynamic>;
+      final checkIn  = (row['check_in_time']  as String?) ?? '';
+      final checkOut = (row['check_out_time'] as String?) ?? '';
+      AttendanceStore.isCheckedIn = checkIn.isNotEmpty && checkOut.isEmpty;
+    } catch (_) {}
   }
 
   // ── Initial load on app start ─────────────────────────────────────────

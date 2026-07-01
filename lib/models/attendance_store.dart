@@ -38,3 +38,22 @@ class AttendanceStore {
 
   static bool isCheckedIn = false;
 }
+
+// Persistent record loaded from / saved to Supabase
+class AttendanceRecord {
+  final String id;
+  final String employeeName;
+  final String employeeId;
+  final String date;
+  final String checkInTime;
+  final String checkOutTime;
+
+  const AttendanceRecord({
+    required this.id,
+    required this.employeeName,
+    required this.employeeId,
+    required this.date,
+    this.checkInTime = '',
+    this.checkOutTime = '',
+  });
+}

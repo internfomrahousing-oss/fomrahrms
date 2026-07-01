@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 
 class CheckOutPage extends StatefulWidget {
@@ -55,6 +56,11 @@ class _CheckOutPageState extends State<CheckOutPage> {
     ));
     GpsTrackingService.stop();
     AttendanceStore.isCheckedIn = false;
+    SupabaseService.saveCheckOut(
+      employeeId: UserSession.employeeId,
+      date: date,
+      time: _timeController.text,
+    );
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Checked out — GPS tracking stopped'),
       backgroundColor: _color,

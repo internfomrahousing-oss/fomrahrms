@@ -30,5 +30,6 @@ void main() async {
           'NzQ0M30.6I2swrTQDDT0phQvRqDkLFFo_BxtmxD3NE9R8lDbDeI',
     );
     SupabaseService.loadAll();
+    SupabaseService.restoreCheckInState();
   } catch (_) {}
 }

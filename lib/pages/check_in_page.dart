@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 
 class CheckInPage extends StatefulWidget {
@@ -64,8 +65,9 @@ class _CheckInPageState extends State<CheckInPage> {
     final now = DateTime.now();
     final date =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
     AttendanceStore.checkIns.add(CheckInRecord(
-      employee: UserSession.name.isNotEmpty ? UserSession.name : 'Employee',
+      employee: empName,
       date: date,
       time: _timeController.text,
       location: '—',
@@ -73,6 +75,12 @@ class _CheckInPageState extends State<CheckInPage> {
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
     _startMapTimer();
+    SupabaseService.saveCheckIn(
+      employeeName: empName,
+      employeeId: UserSession.employeeId,
+      date: date,
+      time: _timeController.text,
+    );
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Checked in — GPS tracking started'),
       backgroundColor: _color,
