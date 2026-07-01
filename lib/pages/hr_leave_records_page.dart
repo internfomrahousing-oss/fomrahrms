@@ -118,82 +118,21 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
   Future<void> _pickMonth() async {
-    int pickYear = _selectedMonth.year;
-    int? pickedMonth;
+    final now = DateTime.now();
+    final initial = _selectedMonth.isAfter(now)
+        ? DateTime(now.year, now.month, 1)
+        : DateTime(_selectedMonth.year, _selectedMonth.month, 1);
 
-    await showDialog(
+    final picked = await showDatePicker(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) {
-          final now = DateTime.now();
-          return AlertDialog(
-            contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            title: Row(children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left_rounded, color: _color),
-                onPressed: () => setLocal(() => pickYear--),
-              ),
-              Expanded(
-                child: Text('$pickYear',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _color)),
-              ),
-              IconButton(
-                icon: Icon(Icons.chevron_right_rounded,
-                    color: pickYear >= now.year ? Colors.grey.shade300 : _color),
-                onPressed: pickYear >= now.year ? null : () => setLocal(() => pickYear++),
-              ),
-            ]),
-            content: SizedBox(
-              width: 260,
-              child: GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                childAspectRatio: 1.6,
-                children: List.generate(12, (i) {
-                  final isFuture = DateTime(pickYear, i + 1)
-                      .isAfter(DateTime(now.year, now.month));
-                  final isSelected = pickYear == _selectedMonth.year &&
-                      i + 1 == _selectedMonth.month;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: isFuture ? null : () {
-                      pickedMonth = i + 1;
-                      Navigator.of(ctx).pop();
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isSelected ? _color : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: isSelected ? null : Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _monthNames[i].substring(0, 3),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected
-                                ? Colors.white
-                                : isFuture
-                                    ? Colors.grey.shade300
-                                    : _color,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          );
-        },
-      ),
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDatePickerMode: DatePickerMode.day,
     );
 
-    if (pickedMonth != null && mounted) {
-      setState(() => _selectedMonth = DateTime(pickYear, pickedMonth!));
+    if (picked != null && mounted) {
+      setState(() => _selectedMonth = DateTime(picked.year, picked.month));
     }
   }
 
