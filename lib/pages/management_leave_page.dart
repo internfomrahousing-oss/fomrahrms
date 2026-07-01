@@ -21,20 +21,6 @@ class ManagementLeavePage extends StatelessWidget {
       '/management/leave/team-approvals',
       'Leave requests from employees reporting directly to you.',
     ),
-    _Topic(
-      'Apply Leave',
-      Icons.event_available_rounded,
-      Color(0xFF1565C0),
-      '/management/leave/apply',
-      'Submit your own leave application.',
-    ),
-    _Topic(
-      'Leave Balance',
-      Icons.balance_rounded,
-      Color(0xFF1976D2),
-      '/management/leave/balance',
-      'Check your personal leave balance and history.',
-    ),
   ];
 
   @override
