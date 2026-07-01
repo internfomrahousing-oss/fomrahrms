@@ -17,19 +17,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
 
   String _search = '';
   DateTime _selectedDate = DateTime.now();
-  late DateTime _viewMonth;
-
-  static const _monthNames = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December',
-  ];
-  static const _dayHeaders = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _viewMonth = DateTime(now.year, now.month);
   }
 
   bool get _isToday {
@@ -38,9 +29,6 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
         _selectedDate.month == t.month &&
         _selectedDate.day == t.day;
   }
-
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 
   bool _matchesDayDt(DateTime date, String dateStr) {
     final parts = dateStr.split('/');
@@ -52,11 +40,6 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   }
 
   bool _matchesDay(String dateStr) => _matchesDayDt(_selectedDate, dateStr);
-
-  bool _dayHasCheckIns(DateTime d) =>
-      AttendanceStore.checkIns.any((r) => _matchesDayDt(d, r.date));
-  bool _dayHasLate(DateTime d) =>
-      AttendanceStore.lateComing.any((r) => _matchesDayDt(d, r.date));
 
   bool _matches(String employee) =>
       _search.isEmpty ||
@@ -82,160 +65,49 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     );
   }
 
-  Widget _buildCalendar() {
+  Widget _buildDateNav() {
     final now = DateTime.now();
-    final firstDay = DateTime(_viewMonth.year, _viewMonth.month, 1);
-    final daysInMonth = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
-    final isCurrentMonth = _viewMonth.year == now.year && _viewMonth.month == now.month;
-    final startOffset = firstDay.weekday - 1; // Mon=0 … Sun=6
-
-    final totalCells = startOffset + daysInMonth;
-    final rows = (totalCells / 7).ceil();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          // Month navigator
-          Row(children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left_rounded, color: _color),
-              onPressed: () => setState(() {
-                _viewMonth = DateTime(
-                  _viewMonth.month == 1 ? _viewMonth.year - 1 : _viewMonth.year,
-                  _viewMonth.month == 1 ? 12 : _viewMonth.month - 1,
-                );
-              }),
-            ),
-            Expanded(
-              child: Text(
-                '${_monthNames[_viewMonth.month - 1]} ${_viewMonth.year}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700, color: _color),
+    final isToday = _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded, size: 28, color: _color),
+                tooltip: 'Previous day',
+                onPressed: () => setState(() =>
+                    _selectedDate = _selectedDate.subtract(const Duration(days: 1))),
               ),
-            ),
-            IconButton(
-              icon: Icon(Icons.chevron_right_rounded,
-                  color: isCurrentMonth ? Colors.grey.shade300 : _color),
-              onPressed: isCurrentMonth ? null : () => setState(() {
-                _viewMonth = DateTime(
-                  _viewMonth.month == 12 ? _viewMonth.year + 1 : _viewMonth.year,
-                  _viewMonth.month == 12 ? 1 : _viewMonth.month + 1,
-                );
-              }),
-            ),
-          ]),
-          const SizedBox(height: 8),
-
-          // Day-of-week headers
-          Row(
-            children: _dayHeaders.map((h) => Expanded(
-              child: Center(
-                child: Text(h,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade500)),
-              ),
-            )).toList(),
-          ),
-          const SizedBox(height: 4),
-
-          // Day grid
-          for (int row = 0; row < rows; row++)
-            Row(
-              children: List.generate(7, (col) {
-                final cellIndex = row * 7 + col;
-                final dayNum = cellIndex - startOffset + 1;
-                if (dayNum < 1 || dayNum > daysInMonth) {
-                  return const Expanded(child: SizedBox(height: 40));
-                }
-                final date = DateTime(_viewMonth.year, _viewMonth.month, dayNum);
-                final isFuture = date.isAfter(now);
-                final isSelected = _isSameDay(date, _selectedDate);
-                final isTodayCell = _isSameDay(date, now);
-                final hasCheckin = _dayHasCheckIns(date);
-                final hasLate = _dayHasLate(date);
-
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: isFuture ? null : () => setState(() => _selectedDate = date),
-                    child: Container(
-                      height: 44,
-                      margin: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? _color
-                            : isTodayCell
-                                ? _color.withValues(alpha: 0.08)
-                                : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: isTodayCell && !isSelected
-                            ? Border.all(color: _color.withValues(alpha: 0.4))
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '$dayNum',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: isSelected
-                                  ? Colors.white
-                                  : isFuture
-                                      ? Colors.grey.shade300
-                                      : const Color(0xFF1A237E),
-                            ),
-                          ),
-                          if (hasCheckin || hasLate)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (hasCheckin)
-                                  Container(
-                                    width: 4, height: 4,
-                                    margin: const EdgeInsets.only(top: 2, right: 1),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? Colors.white70 : Colors.green.shade600,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                if (hasLate)
-                                  Container(
-                                    width: 4, height: 4,
-                                    margin: const EdgeInsets.only(top: 2, left: 1),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? Colors.amber.shade200 : Colors.orange.shade600,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
+              Expanded(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                    _fmtDate(_selectedDate),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700, color: _color),
                   ),
-                );
-              }),
-            ),
-
-          const SizedBox(height: 8),
-          // Legend
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(width: 7, height: 7,
-                decoration: BoxDecoration(color: Colors.green.shade600, shape: BoxShape.circle)),
-            const SizedBox(width: 4),
-            Text('Check-in', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-            const SizedBox(width: 12),
-            Container(width: 7, height: 7,
-                decoration: BoxDecoration(color: Colors.orange.shade600, shape: BoxShape.circle)),
-            const SizedBox(width: 4),
-            Text('Late', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-          ]),
-        ]),
+                  if (isToday)
+                    const Text('Today',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ]),
+              ),
+              IconButton(
+                icon: Icon(Icons.chevron_right_rounded,
+                    size: 28, color: isToday ? Colors.grey : _color),
+                tooltip: 'Next day',
+                onPressed: isToday
+                    ? null
+                    : () => setState(() =>
+                        _selectedDate = _selectedDate.add(const Duration(days: 1))),
+              ),
+            ]),
+          ),
+        ),
       ),
     );
   }
@@ -305,26 +177,9 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
           ),
           const SizedBox(height: 10),
 
-          // Month calendar
-          _buildCalendar(),
-          const SizedBox(height: 8),
-
-          // Selected day label
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(children: [
-              const Icon(Icons.calendar_today_rounded, size: 14, color: _color),
-              const SizedBox(width: 6),
-              Text(
-                _isToday
-                    ? 'Today — ${_fmtDate(_selectedDate)}'
-                    : _fmtDate(_selectedDate),
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600, color: _color),
-              ),
-            ]),
-          ),
-          const SizedBox(height: 12),
+          // Day navigator
+          _buildDateNav(),
+          const SizedBox(height: 16),
 
           // Check-In Records (clickable rows)
           _Section(

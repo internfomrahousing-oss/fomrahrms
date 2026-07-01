@@ -133,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: null,
+      backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
@@ -179,6 +179,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildLoginCard() {
     return Card(
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(children: [
@@ -234,6 +235,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildSetPasswordCard() {
     final user = _pendingUser!;
     return Card(
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
