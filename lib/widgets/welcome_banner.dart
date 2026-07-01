@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_session.dart';
+import 'live_clock.dart';
 
 class WelcomeBanner extends StatefulWidget {
   final String subtitle;
@@ -136,16 +137,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
             ),
             if (wide) ...[
               const SizedBox(width: 16),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
-                ),
-                child: Icon(widget.avatarIcon, color: Colors.white70, size: 30),
-              ),
+              const LiveClock(),
             ],
             if (widget.onRefresh != null) ...[
               const SizedBox(width: 8),
