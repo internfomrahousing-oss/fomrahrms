@@ -219,6 +219,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isMgmt && _showAll) return _buildWithTabs(context);
     final filtered = _filtered;
     return Scaffold(
       backgroundColor: null,
@@ -480,6 +481,178 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   ),
                 )),
         ]),
+      ),
+    );
+  }
+
+  // ── Management "All Leave Approvals" tabbed view ─────────────────────────────
+
+  Widget _buildWithTabs(BuildContext context) {
+    final all          = _filtered;
+    final pendingLong  = _filtered.where((a) => a.effectiveDays > 2  && a.managerStatus == LeaveApprovalStatus.pending).toList();
+    final pendingShort = _filtered.where((a) => a.effectiveDays <= 2 && a.managerStatus == LeaveApprovalStatus.pending).toList();
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: null,
+        body: Column(children: [
+          // Fixed header
+          Container(
+            color: Theme.of(context).colorScheme.surface,
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Header row
+              Row(children: [
+                const NavBackButton(),
+                const SizedBox(width: 8),
+                Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: _color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.admin_panel_settings_rounded, color: _color, size: 26),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('All Leave Approvals', style: Theme.of(context).textTheme.headlineMedium),
+                    const Text('View and edit all employee leave decisions',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                  ]),
+                ),
+                IconButton(
+                  tooltip: 'Refresh',
+                  icon: const Icon(Icons.refresh_rounded, color: _color),
+                  onPressed: _loadData,
+                ),
+              ]),
+              const SizedBox(height: 16),
+
+              // Summary chips
+              Row(children: [
+                _SummaryChip(
+                  label: 'Pending',
+                  count: _pendingCount,
+                  icon: Icons.hourglass_empty_rounded,
+                  color: Colors.orange.shade700,
+                  active: _filterStatus == LeaveApprovalStatus.pending,
+                  onTap: () => setState(() => _filterStatus =
+                      _filterStatus == LeaveApprovalStatus.pending ? null : LeaveApprovalStatus.pending),
+                ),
+                const SizedBox(width: 10),
+                _SummaryChip(
+                  label: 'Approved',
+                  count: _approvedCount,
+                  icon: Icons.check_circle_rounded,
+                  color: Colors.green.shade700,
+                  active: _filterStatus == LeaveApprovalStatus.approved,
+                  onTap: () => setState(() => _filterStatus =
+                      _filterStatus == LeaveApprovalStatus.approved ? null : LeaveApprovalStatus.approved),
+                ),
+                const SizedBox(width: 10),
+                _SummaryChip(
+                  label: 'Denied',
+                  count: _deniedCount,
+                  icon: Icons.cancel_rounded,
+                  color: Colors.red.shade700,
+                  active: _filterStatus == LeaveApprovalStatus.denied,
+                  onTap: () => setState(() => _filterStatus =
+                      _filterStatus == LeaveApprovalStatus.denied ? null : LeaveApprovalStatus.denied),
+                ),
+              ]),
+              const SizedBox(height: 12),
+
+              // Search bar
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    onChanged: (v) => setState(() => _search = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search employee or leave type...',
+                      prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
+                      suffixIcon: _search.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () => setState(() => _search = ''))
+                          : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _color, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Tabs
+              TabBar(
+                labelColor: Theme.of(context).colorScheme.primary,
+                unselectedLabelColor:
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                indicatorColor: Theme.of(context).colorScheme.primary,
+                labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(text: 'All (${all.length})'),
+                  Tab(text: 'Pending > 2d (${pendingLong.length})'),
+                  Tab(text: 'Pending ≤ 2d (${pendingShort.length})'),
+                ],
+              ),
+            ]),
+          ),
+
+          // Tab content
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(children: [
+                    _tabList(context, all,          'No leave applications yet.'),
+                    _tabList(context, pendingLong,  'No pending holiday requests (> 2 days).'),
+                    _tabList(context, pendingShort, 'No pending regular leave requests (≤ 2 days).'),
+                  ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _tabList(BuildContext context, List<LeaveApplication> apps, String emptyMsg) {
+    if (apps.isEmpty) {
+      final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3);
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.inbox_rounded, size: 52, color: muted),
+          const SizedBox(height: 12),
+          Text(emptyMsg,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: muted, fontSize: 14)),
+        ]),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: apps.length,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _RequestCard(
+          request:      apps[i],
+          isManagement: true,
+          onApprove:    () => _approve(apps[i]),
+          onDeny:       () => _deny(apps[i]),
+          onReset:      () => _reset(apps[i]),
+        ),
       ),
     );
   }
