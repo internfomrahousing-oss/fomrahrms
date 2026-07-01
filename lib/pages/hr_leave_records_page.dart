@@ -284,8 +284,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Row(children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded, size: 28),
-                    color: _color,
+                    icon: const Icon(Icons.chevron_left_rounded, size: 28, color: _color),
                     tooltip: 'Previous month',
                     onPressed: () => setState(() {
                       _selectedMonth = DateTime(
