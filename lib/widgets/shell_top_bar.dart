@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
 import 'live_clock.dart';
 import 'theme_toggle.dart';
@@ -6,11 +7,13 @@ import 'theme_toggle.dart';
 class ShellTopBar extends StatelessWidget {
   final bool sidebarOpen;
   final VoidCallback onToggle;
+  final String homeRoute;
 
   const ShellTopBar({
     super.key,
     required this.sidebarOpen,
     required this.onToggle,
+    required this.homeRoute,
   });
 
   @override
@@ -52,34 +55,42 @@ class ShellTopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
-        // App logo tile
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(
-                color: Colors.white.withValues(alpha: 0.25), width: 0.8),
+        // Logo + name as home button
+        InkWell(
+          onTap: () => context.go(homeRoute),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25), width: 0.8),
+                ),
+                child: const Icon(Icons.apartment_rounded,
+                    color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('FOMRA HRMS',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5)),
+                  Text('Human Resource Management',
+                      style: TextStyle(color: Colors.white54, fontSize: 9)),
+                ],
+              ),
+            ]),
           ),
-          child:
-              const Icon(Icons.apartment_rounded, color: Colors.white, size: 20),
-        ),
-        const SizedBox(width: 10),
-        // App name + tagline
-        const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('FOMRA HRMS',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5)),
-            Text('Human Resource Management',
-                style: TextStyle(color: Colors.white54, fontSize: 9)),
-          ],
         ),
         const Spacer(),
         // Live clock

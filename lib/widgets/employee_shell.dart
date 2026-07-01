@@ -68,6 +68,7 @@ class _WideLayoutState extends State<_WideLayout> {
           ShellTopBar(
             sidebarOpen: _sidebarOpen,
             onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
+            homeRoute: '/employee/dashboard',
           ),
           Expanded(
             child: Stack(
