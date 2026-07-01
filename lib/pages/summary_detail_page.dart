@@ -22,7 +22,7 @@ final _sectionMap = {
     'Attendance Summary',
     Icons.access_time_rounded,
     Color(0xFF2E7D32),
-    ['Present Today', 'Absent Today', 'Late Arrivals'],
+    ['Present Today', 'Absent Today', 'Late Arrivals', 'On Permission', 'Comp Off', 'On Duty'],
   ),
   'task': const _SectionData(
     'Task Summary',
@@ -187,6 +187,9 @@ class _AttendanceSummaryPageState extends State<_AttendanceSummaryPage> {
           'Present Today': '$present',
           'Absent Today':  '$absent',
           'Late Arrivals': '—',
+          'On Permission': '—',
+          'Comp Off':      '—',
+          'On Duty':       '—',
         };
         _loading = false;
       });

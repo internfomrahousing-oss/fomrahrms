@@ -21894,7 +21894,7 @@ r.toString
 A.ib(r)
 q=a.h(0,"swipeEdge")
 q.toString
-return new A.Yw(s,r,B.a3E[A.eA(q)])},
+return new A.Yw(s,r,B.a3F[A.eA(q)])},
 Kt:function Kt(a,b){this.a=a
 this.b=b},
 Yw:function Yw(a,b,c){this.a=a
@@ -52989,7 +52989,7 @@ r=A.ji(B.a9Y,B.t,r==null?1:r)
 r.toString
 q=p.al(0,q.gt(q))
 if(q==null)q=1
-return A.blD(A.bkx(null,B.h,new A.Af(q,B.a3x,new A.ak(B.OG,this.e)),s,1,B.afp),r)}}
+return A.blD(A.bkx(null,B.h,new A.Af(q,B.a3y,new A.ak(B.OG,this.e)),s,1,B.afp),r)}}
 A.RO.prototype={
 l(){var s=this,r=s.bp$
 if(r!=null)r.M(0,s.gfm())
@@ -59218,7 +59218,7 @@ A.b_u.prototype={
 $2(a,b){return this.a.F$.cf(a,this.b)},
 $S:19}
 A.a2z.prototype={
-gJa(){return B.a2S},
+gJa(){return B.a2T},
 Oh(a){var s
 switch(a.a){case 0:s=this.d.b
 break
@@ -64291,7 +64291,7 @@ A.b_I.prototype={
 $2(a,b){return this.a.cf(a,b)},
 $S:19}
 A.a3F.prototype={
-gJa(){return B.a32},
+gJa(){return B.a33},
 Oh(a){var s,r=this
 switch(a.a){case 0:s=r.d.as
 break
@@ -65517,7 +65517,7 @@ return""+a},
 zM(a){var s=a.b
 return s<10?"0"+s:B.n.j(s)},
 Px(a){var s=B.nI[A.aT(a)-1]
-return B.a2P[A.YA(a)-1]+", "+s+" "+A.bI(a)+", "+A.aM(a)},
+return B.a2Q[A.YA(a)-1]+", "+s+" "+A.bI(a)+", "+A.aM(a)},
 Py(a){var s=B.n.j(A.aM(a))
 return B.nI[A.aT(a)-1]+" "+s},
 aK4(a){var s,r,q,p,o,n,m=null
@@ -71540,7 +71540,7 @@ n.b=n.a=p
 o.DR()},
 UU(a,b){var s,r,q,p,o,n,m,l,k=this,j=null,i=A.a([],t.sK)
 k.d===$&&A.b()
-for(s=t.l,r=0;r<24;++r){q=B.a2V[r]
+for(s=t.l,r=0;r<24;++r){q=B.a2W[r]
 p=q.a
 if(p!==0)o=""+p
 else{o=k.e
@@ -71579,7 +71579,7 @@ p=new A.pn(p,B.J,B.b3,o.k(0,B.aa)?new A.h1(1):o,k,k,k,k,B.bj,k)
 p.rj()
 j.push(new A.lq(q.a,!1,p,new A.aJD(l,q)))}return j},
 V_(a,b){var s,r,q,p,o,n,m,l,k=null,j=A.a([],t.sK)
-for(s=t.l,r=0;r<12;++r){q=B.a3z[r]
+for(s=t.l,r=0;r<12;++r){q=B.a3A[r]
 p=q.b
 this.e===$&&A.b()
 o=A.dy(k,b,p<10?"0"+p:B.n.j(p))
@@ -106143,7 +106143,7 @@ $0(){return this.a.Q=this.b},
 $S:0}
 A.aDv.prototype={
 $1(a){var s=this.a
-return new A.xK(B.a3f,A.cB(s.at,!0,t.N),new A.aDu(s),null)},
+return new A.xK(B.a3g,A.cB(s.at,!0,t.N),new A.aDu(s),null)},
 $S:647}
 A.aDu.prototype={
 $1(a){var s=this.a
@@ -107771,7 +107771,7 @@ if(!h.cv(f,"age"))l.push(A.i5(h.y,g,A.a([$.ES()],t.VS),B.cf,"Age",1,!0))
 n=A.a([n,m,h.tX(b6,l)],q)
 if(!h.cv(f,"dob"))B.b.A(n,A.a([B.av,new A.CS("Date of Birth",h.tB(h.go),!0,new A.aH4(h),g)],q))
 if(!h.cv(f,"gender"))B.b.A(n,A.a([B.av,new A.pP("Gender",B.AC,h.k1,new A.aH5(h),!0,!1,g)],q))
-if(!h.cv(f,"marital_status"))B.b.A(n,A.a([B.av,new A.pP("Marital Status",B.a3D,h.k2,new A.aH6(h),!0,!1,g)],q))
+if(!h.cv(f,"marital_status"))B.b.A(n,A.a([B.av,new A.pP("Marital Status",B.a3E,h.k2,new A.aH6(h),!0,!1,g)],q))
 B.b.A(n,h.kY(h.kZ(f),b6))
 p.push(new A.jx(B.b5,o,n,g))}o=h.RG
 if(o.a===0||A.kH(o,d)){o=h.RG
@@ -108186,7 +108186,7 @@ A.N0.prototype={
 U(){return new A.a4k()}}
 A.a4k.prototype={
 p(a){var s,r,q,p=this,o=null,n=A.f(8),m=A.aL(B.a0,1),l=t.p,k=A.y(o,A.z(A.a([B.apB,B.bb,p.UI("Yes"),B.V,p.UI("No")],l),B.f,B.c,B.e,0,o),B.h,o,o,B.PB,o,o,o,B.bX,o,o,1/0),j=t.o,i=J.iu(6,j)
-for(s=0;s<6;++s){r=B.a2U[s]
+for(s=0;s<6;++s){r=B.a2V[s]
 q=s<5?B.lW:B.q
 i[s]=A.y(o,A.h(B.a4P[s],o,o,o,o,B.lH,o,o,o),B.h,o,o,new A.C(o,o,new A.d9(B.q,q,B.q,B.q),o,o,o,B.l),o,o,o,B.bu,o,o,r)}r=A.a([A.y(o,A.z(i,B.f,B.c,B.e,0,o),B.h,B.c2,o,o,o,o,o,o,o,o,o),B.mD],l)
 q=p.a.c
@@ -108222,7 +108222,7 @@ A.a4r.prototype={
 p(a){var s,r,q,p=null,o=A.f(8),n=A.aL(B.a0,1),m=t.o,l=J.iu(6,m)
 for(s=0;s<6;++s){r=B.a40[s]
 q=s<5?B.lW:B.q
-l[s]=A.y(p,A.h(B.a3s[s],p,p,p,p,B.lH,p,p,p),B.h,p,p,new A.C(p,p,new A.d9(B.q,q,B.q,B.q),p,p,p,B.l),p,p,p,B.bu,p,p,r)}r=A.a([A.y(p,A.z(l,B.f,B.c,B.e,0,p),B.h,B.c2,p,p,p,p,p,p,p,p,p),B.mD],t.p)
+l[s]=A.y(p,A.h(B.a3t[s],p,p,p,p,B.lH,p,p,p),B.h,p,p,new A.C(p,p,new A.d9(B.q,q,B.q,B.q),p,p,p,B.l),p,p,p,B.bu,p,p,r)}r=A.a([A.y(p,A.z(l,B.f,B.c,B.e,0,p),B.h,B.c2,p,p,p,p,p,p,p,p,p),B.mD],t.p)
 q=this.c
 q=new A.cA(q,A.P(q).i("cA<1>"))
 B.b.A(r,q.gcM(q).ca(0,new A.aMI(this),m))
@@ -108411,11 +108411,11 @@ $S:696}
 A.a4j.prototype={
 p(a){var s=this.c
 if(s.length===0)return B.NF
-return new A.DR(B.a30,B.a3Z,B.a5u,s,null)}}
+return new A.DR(B.a31,B.a3Z,B.a5u,s,null)}}
 A.a4s.prototype={
 p(a){var s=this.c,r=A.P(s).i("a8<1>"),q=A.N(new A.a8(s,new A.aMK(),r),r.i("x.E"))
 if(q.length===0)return B.NF
-return new A.DR(B.a2Y,B.a4J,B.a2L,q,null)}}
+return new A.DR(B.a2Z,B.a4J,B.a2L,q,null)}}
 A.aMK.prototype={
 $1(a){return J.aee(J.EV(a),new A.aMJ())},
 $S:11}
@@ -110536,7 +110536,7 @@ $S:0}
 A.aMP.prototype={
 $2(a,b){var s,r,q,p,o=b.b>600?3:2,n=A.a([],t.p)
 for(s=0;s<7;s=r){r=s+o
-q=B.b.cd(B.a31,s,r>7?7:r)
+q=B.b.cd(B.a32,s,r>7?7:r)
 p=A.P(q).i("O<1,bf>")
 p=A.N(new A.O(q,new A.aMO(q),p),p.i("aq.E"))
 n.push(A.z(p,B.o,B.c,B.e,0,null))}return A.B(n,B.f,B.c,B.e,0,B.i)},
@@ -115153,7 +115153,7 @@ if(n>900)s=3
 else s=n>600?2:1
 r=A.a([],t.p)
 for(q=0;q<13;q=p){p=q+s
-o=B.b.cd(B.a2T,q,p>13?13:p)
+o=B.b.cd(B.a2U,q,p>13?13:p)
 n=A.P(o).i("O<1,bf>")
 n=A.N(new A.O(o,new A.b1f(o),n),n.i("aq.E"))
 r.push(A.z(n,B.o,B.c,B.e,0,null))}return A.B(r,B.f,B.c,B.e,0,B.i)},
@@ -116058,7 +116058,7 @@ m.push(new A.aac(q))
 m.push(A.bd(q,p?20:28,q))
 m.push(new A.DV(B.fb,"Team Overview",q))
 m.push(B.H)
-m.push(new A.a9o(B.a3A,q))
+m.push(new A.a9o(B.a3B,q))
 m.push(A.bd(q,p?20:28,q))
 m.push(new A.DV(B.z6,"My Team's Tasks",q))
 m.push(B.H)
@@ -117519,7 +117519,7 @@ r=A.X(p.lL(r,"Name",!0),1)
 q=s.h(b,"age")
 q.toString
 q=A.z(A.a([r,B.B,A.X(p.CK(q,"Age",!0,A.a([$.ES()],t.VS),B.cf),1),B.B,A.X(p.Wx(B.AC,"Gender",new A.aXB(p,a),p.CW[a]),1)],l),B.f,B.c,B.e,0,o)
-r=A.X(p.Wx(B.a3g,"Relation",new A.aXC(p,a),p.cx[a]),1)
+r=A.X(p.Wx(B.a3h,"Relation",new A.aXC(p,a),p.cx[a]),1)
 s=s.h(b,"occupation")
 s.toString
 return A.y(o,A.B(A.a([k,B.M,q,B.M,A.z(A.a([r,B.B,A.X(p.lL(s,"Occupation",!0),1),B.B,A.X(p.alD(p.cy[a],"Aadhar Copy",new A.aXD(p,a),new A.aXE(p,a)),1)],l),B.f,B.c,B.e,0,o)],l),B.o,B.c,B.e,0,B.i),B.h,o,o,new A.C(B.iB,o,m,n,o,o,B.l),o,o,B.bf,B.bg,o,o,o)},
@@ -118260,7 +118260,7 @@ $1(a){return a.e.length!==0},
 $S:95}
 A.aFd.prototype={
 $0(){var s=this.a,r=t.N
-s.e=A.ag(["Present Today",""+this.b,"Absent Today",""+this.c,"Late Arrivals","\u2014"],r,r)
+s.e=A.ag(["Present Today",""+this.b,"Absent Today",""+this.c,"Late Arrivals","\u2014","On Permission","\u2014","Comp Off","\u2014","On Duty","\u2014"],r,r)
 s.d=!1},
 $S:0}
 A.xj.prototype={
@@ -129691,8 +129691,8 @@ B.RK=new A.es(B.ar,null,null,B.aof,null)
 B.M9=new A.l(!0,B.aB,null,null,null,null,15,B.x,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.anF=new A.I("No candidates assigned to you",null,B.M9,null,null,null,null,null,null,null,null)
 B.aoq=new A.I("HR will assign candidates here for your review.",null,B.aY,null,null,null,null,null,null,null,null)
-B.a3B=A.a(s([B.zI,B.H,B.anF,B.aT,B.aoq]),t.p)
-B.Ty=new A.da(B.F,B.c,B.y,B.f,null,B.i,null,0,B.a3B,null)
+B.a3C=A.a(s([B.zI,B.H,B.anF,B.aT,B.aoq]),t.p)
+B.Ty=new A.da(B.F,B.c,B.y,B.f,null,B.i,null,0,B.a3C,null)
 B.RL=new A.es(B.ar,null,null,B.Ty,null)
 B.iY=new A.ab(62862,"MaterialIcons",null,!1)
 B.a0r=new A.a0(B.iY,13,B.j,null,null)
@@ -130373,8 +130373,8 @@ B.aqS=new A.I("I agree to the above declaration",null,B.jG,null,null,null,null,n
 B.Wk=new A.bf(1,B.au,B.aqS,null)
 B.uT=new A.l(!0,B.bJ,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ar2=new A.I("Manager Portal",null,B.uT,null,null,null,null,null,null,null,null)
-B.a2R=A.a(s([B.oX,B.ar2]),t.p)
-B.TL=new A.da(B.F,B.c,B.e,B.o,null,B.i,null,0,B.a2R,null)
+B.a2S=A.a(s([B.oX,B.ar2]),t.p)
+B.TL=new A.da(B.F,B.c,B.e,B.o,null,B.i,null,0,B.a2S,null)
 B.Wl=new A.bf(1,B.au,B.TL,null)
 B.Wn=new A.bf(1,B.au,B.ds,null)
 B.UG=new A.im(1,null,null,B.mk,null)
@@ -130410,8 +130410,8 @@ B.yC=new A.bf(1,B.au,B.aux,null)
 B.atY=new A.NB("Form Sections",B.zx,null)
 B.WD=new A.bf(1,B.au,B.atY,null)
 B.aoz=new A.I("Housing & Infrastructure",null,B.uT,null,null,null,null,null,null,null,null)
-B.a3u=A.a(s([B.oX,B.aoz]),t.p)
-B.TG=new A.da(B.F,B.c,B.e,B.o,null,B.i,null,0,B.a3u,null)
+B.a3v=A.a(s([B.oX,B.aoz]),t.p)
+B.TG=new A.da(B.F,B.c,B.e,B.o,null,B.i,null,0,B.a3v,null)
 B.WE=new A.bf(1,B.au,B.TG,null)
 B.bG=new A.l(!0,B.at,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ao1=new A.I("Policy document displayed to candidates \u2014 they must agree before submitting.",null,B.bG,null,null,null,null,null,null,null,null)
@@ -130551,8 +130551,8 @@ B.hG=new A.ab(63626,"MaterialIcons",null,!1)
 B.a3H=A.a(s(["Employee","Date","Check-In Time","GPS Location","Status"]),t.s)
 B.Xr=new A.ox("Check In",B.hG,B.m,B.a3H,null)
 B.hH=new A.ab(63627,"MaterialIcons",null,!1)
-B.a3_=A.a(s(["Employee","Date","Check-Out Time","GPS Location","Status"]),t.s)
-B.Xs=new A.ox("Check Out",B.hH,B.Y,B.a3_,null)
+B.a30=A.a(s(["Employee","Date","Check-Out Time","GPS Location","Status"]),t.s)
+B.Xs=new A.ox("Check Out",B.hH,B.Y,B.a30,null)
 B.rK=new A.ab(983715,"MaterialIcons",null,!1)
 B.a1B=A.a(s(["Employee","Date","Arrival Time","Late By","Deduction"]),t.s)
 B.Xt=new A.ox("Late Coming",B.rK,B.aI,B.a1B,null)
@@ -131142,11 +131142,11 @@ B.agy=new A.iJ("Onboarding",null,B.ZR,null)
 B.a0G=new A.a0(B.hJ,18,null,null,null)
 B.agE=new A.iJ("Interview",null,B.a0G,null)
 B.a2N=A.a(s([B.agy,B.agE]),t.p)
-B.a2P=A.a(s(["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]),t.s)
+B.a2Q=A.a(s(["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]),t.s)
 B.dm=new A.nB(0,"label")
 B.cQ=new A.nB(1,"avatar")
 B.eQ=new A.nB(2,"deleteIcon")
-B.a2S=A.a(s([B.dm,B.cQ,B.eQ]),A.aS("M<nB>"))
+B.a2T=A.a(s([B.dm,B.cQ,B.eQ]),A.aS("M<nB>"))
 B.awE=new A.hn("Employee Summary",B.eD,B.Z,"/management/employee-management")
 B.awq=new A.hn("Attendance Summary",B.bw,B.I,"/management/attendance-management")
 B.awv=new A.hn("Leave Management",B.dM,B.aI,"/management/leave-management")
@@ -131164,8 +131164,8 @@ B.awz=new A.hn("Approvals Summary",B.ee,B.ax,"/management/approvals")
 B.awy=new A.hn("Reports & Analytics",B.iZ,B.cb,"/management/reports-analytics")
 B.SO=new A.D(1,0.5333333333333333,0.054901960784313725,0.30980392156862746,B.p)
 B.awI=new A.hn("Administration",B.fb,B.SO,"/management/administration")
-B.a2T=A.a(s([B.awE,B.awq,B.awv,B.awr,B.awH,B.awP,B.awV,B.awA,B.awU,B.awJ,B.awz,B.awy,B.awI]),A.aS("M<hn>"))
-B.a2U=A.a(s([160,150,190,120,90,130]),t.n)
+B.a2U=A.a(s([B.awE,B.awq,B.awv,B.awr,B.awH,B.awP,B.awV,B.awA,B.awU,B.awJ,B.awz,B.awy,B.awI]),A.aS("M<hn>"))
+B.a2V=A.a(s([160,150,190,120,90,130]),t.n)
 B.N5=new A.bZ(0,0)
 B.N9=new A.bZ(1,0)
 B.Na=new A.bZ(2,0)
@@ -131190,11 +131190,11 @@ B.arG=new A.bZ(20,0)
 B.arH=new A.bZ(21,0)
 B.arI=new A.bZ(22,0)
 B.arJ=new A.bZ(23,0)
-B.a2V=A.a(s([B.N5,B.N9,B.Na,B.Nb,B.Nc,B.Nd,B.Ne,B.Nf,B.Ng,B.Nh,B.N6,B.N7,B.N8,B.arz,B.arA,B.arB,B.arC,B.arD,B.arE,B.arF,B.arG,B.arH,B.arI,B.arJ]),t.JN)
+B.a2W=A.a(s([B.N5,B.N9,B.Na,B.Nb,B.Nc,B.Nd,B.Ne,B.Nf,B.Ng,B.Nh,B.N6,B.N7,B.N8,B.arz,B.arA,B.arB,B.arC,B.arD,B.arE,B.arF,B.arG,B.arH,B.arI,B.arJ]),t.JN)
 B.Om=new A.jN("",6,"userDeleted")
 B.Az=A.a(s([B.im,B.k1,B.k2,B.io,B.k3,B.w5,B.Om,B.w4]),A.aS("M<jN>"))
-B.a2Y=A.a(s(["Organization","Position Held","From","To","Last CTC","Reason for Leaving"]),t.s)
-B.a30=A.a(s(["Academics","Degree/Specialization","School/College/University","Month/Year of Passing","% Marks","Certificate"]),t.s)
+B.a2Z=A.a(s(["Organization","Position Held","From","To","Last CTC","Reason for Leaving"]),t.s)
+B.a31=A.a(s(["Academics","Degree/Specialization","School/College/University","Month/Year of Passing","% Marks","Certificate"]),t.s)
 B.auf=new A.lj("My Attendance",B.bw,B.Y,"/employee/attendance-management")
 B.au2=new A.lj("Leave",B.dL,B.cE,"/employee/leave-management")
 B.au7=new A.lj("My Tasks",B.bS,B.c3,"/employee/tasks")
@@ -131202,7 +131202,7 @@ B.aui=new A.lj("My Payslips",B.c5,B.aI,"/employee/payslips")
 B.au4=new A.lj("Maintenance",B.dv,B.kn,"/employee/maintenance-management")
 B.auk=new A.lj("Onboarding",B.ff,B.kp,"/employee/employee-onboarding")
 B.aub=new A.lj("Notifications",B.fg,B.m,"/employee/notifications")
-B.a31=A.a(s([B.auf,B.au2,B.au7,B.aui,B.au4,B.auk,B.aub]),A.aS("M<lj>"))
+B.a32=A.a(s([B.auf,B.au2,B.au7,B.aui,B.au4,B.auk,B.aub]),A.aS("M<lj>"))
 B.avQ=new A.eG("My Profile",B.b5,"/manager/my-profile")
 B.avq=new A.eG("My Attendance",B.bw,"/manager/my-attendance")
 B.auZ=new A.eG("My Leave",B.dL,"/manager/my-leave")
@@ -131221,7 +131221,7 @@ B.cp=new A.hk(7,"suffixIcon")
 B.ep=new A.hk(8,"helperError")
 B.eR=new A.hk(9,"counter")
 B.fB=new A.hk(10,"container")
-B.a32=A.a(s([B.ch,B.cA,B.bo,B.cR,B.cS,B.cT,B.bB,B.cp,B.ep,B.eR,B.fB]),A.aS("M<hk>"))
+B.a33=A.a(s([B.ch,B.cA,B.bo,B.cR,B.cS,B.cT,B.bB,B.cp,B.ep,B.eR,B.fB]),A.aS("M<hk>"))
 B.a5N=new A.ri("en","US")
 B.AA=A.a(s([B.a5N]),t.ss)
 B.atG=new A.pI(0,0)
@@ -131232,8 +131232,8 @@ B.atI=new A.pI(8,0.12)
 B.atH=new A.pI(12,0.14)
 B.AB=A.a(s([B.atG,B.atL,B.atJ,B.atK,B.atI,B.atH]),A.aS("M<pI>"))
 B.AC=A.a(s(["Male","Female"]),t.s)
-B.a3f=A.a(s(["Engineering","Sales","HR","Finance","Marketing","Operations","Legal","Administration"]),t.s)
-B.a3g=A.a(s(["Mother","Father","Child","Spouse"]),t.s)
+B.a3g=A.a(s(["Engineering","Sales","HR","Finance","Marketing","Operations","Legal","Administration"]),t.s)
+B.a3h=A.a(s(["Mother","Father","Child","Spouse"]),t.s)
 B.avn=new A.dK("My Profile",B.b5,"/management/my-profile")
 B.avy=new A.dK("My Attendance",B.bw,"/management/my-attendance")
 B.avu=new A.dK("My Leave",B.dL,"/management/my-leave")
@@ -131244,7 +131244,7 @@ B.t6=A.a(s([B.avn,B.avy,B.avu,B.avO,B.avC,B.avL]),t.Ll)
 B.dP=new A.wr(0,"portrait")
 B.fo=new A.wr(1,"landscape")
 B.AD=A.a(s([B.dP,B.fo]),A.aS("M<wr>"))
-B.a3s=A.a(s(["Organization Name","Position Held","From\n[MM-YYYY]","To\n[MM-YYYY]","Last Drawn\nMonthly CTC","Reason for Leaving"]),t.s)
+B.a3t=A.a(s(["Organization Name","Position Held","From\n[MM-YYYY]","To\n[MM-YYYY]","Last Drawn\nMonthly CTC","Reason for Leaving"]),t.s)
 B.jE=new A.hg(0,"assigned")
 B.i2=new A.hg(1,"pending")
 B.jF=new A.hg(2,"inProgress")
@@ -131261,7 +131261,7 @@ B.AF=A.a(s([B.ac9,B.abZ,B.ac_,B.abX,B.ac0,B.ac1]),A.aS("M<+(hg?,i)>"))
 B.Oz=new A.TM(2,"outer")
 B.x7=new A.D(0.09803921568627451,0,0,0,B.p)
 B.PW=new A.bV(0.2,B.Oz,B.x7,B.t,11)
-B.a3x=A.a(s([B.PW]),t.V)
+B.a3y=A.a(s([B.PW]),t.V)
 B.arw=new A.bZ(0,5)
 B.aro=new A.bZ(0,10)
 B.arp=new A.bZ(0,15)
@@ -131273,7 +131273,7 @@ B.aru=new A.bZ(0,40)
 B.arv=new A.bZ(0,45)
 B.arx=new A.bZ(0,50)
 B.ary=new A.bZ(0,55)
-B.a3z=A.a(s([B.N5,B.arw,B.aro,B.arp,B.arq,B.arr,B.ars,B.art,B.aru,B.arv,B.arx,B.ary]),t.JN)
+B.a3A=A.a(s([B.N5,B.arw,B.aro,B.arp,B.arq,B.arr,B.ars,B.art,B.aru,B.arv,B.arx,B.ary]),t.JN)
 B.awS=new A.i7("Employee Summary",B.eD,B.m,"/manager/employee-management")
 B.awO=new A.i7("Attendance Summary",B.bw,B.I,"/manager/attendance-management")
 B.awK=new A.i7("Interview Review",B.nq,B.Y,"/manager/interview-review")
@@ -131285,11 +131285,11 @@ B.awx=new A.i7("Lead & Marketing",B.hF,B.aA,"/manager/lead-management")
 B.awT=new A.i7("Maintenance Summary",B.dv,B.kn,"/manager/maintenance-management")
 B.awF=new A.i7("Approvals Summary",B.ee,B.ax,"/manager/approvals")
 B.awG=new A.i7("Notifications",B.fg,B.aI,"/manager/notifications")
-B.a3A=A.a(s([B.awS,B.awO,B.awK,B.awC,B.awM,B.awD,B.aws,B.awx,B.awT,B.awF,B.awG]),A.aS("M<i7>"))
-B.a3D=A.a(s(["Single","Married","Separated"]),t.s)
+B.a3B=A.a(s([B.awS,B.awO,B.awK,B.awC,B.awM,B.awD,B.aws,B.awx,B.awT,B.awF,B.awG]),A.aS("M<i7>"))
+B.a3E=A.a(s(["Single","Married","Separated"]),t.s)
 B.agc=new A.Kt(0,"left")
 B.agd=new A.Kt(1,"right")
-B.a3E=A.a(s([B.agc,B.agd]),A.aS("M<Kt>"))
+B.a3F=A.a(s([B.agc,B.agd]),A.aS("M<Kt>"))
 B.bU=new A.KL(0,"upstream")
 B.a3J=A.a(s([B.bU,B.C]),A.aS("M<KL>"))
 B.c9=new A.xk(0,"rtl")
@@ -131599,7 +131599,7 @@ B.PI=new A.bV(-1,B.as,B.eu,B.fm,5)
 B.la=new A.m(0,6)
 B.Q4=new A.bV(0,B.as,B.ev,B.la,10)
 B.Qc=new A.bV(0,B.as,B.dF,B.ej,18)
-B.a2Q=A.a(s([B.PI,B.Q4,B.Qc]),t.V)
+B.a2R=A.a(s([B.PI,B.Q4,B.Qc]),t.V)
 B.tH=new A.m(0,5)
 B.PN=new A.bV(-3,B.as,B.eu,B.tH,5)
 B.tI=new A.m(0,8)
@@ -131616,19 +131616,19 @@ B.Q0=new A.bV(-4,B.as,B.eu,B.a9Z,8)
 B.a9U=new A.m(0,12)
 B.PX=new A.bV(2,B.as,B.ev,B.a9U,17)
 B.Qa=new A.bV(4,B.as,B.dF,B.tH,22)
-B.a2Z=A.a(s([B.Q0,B.PX,B.Qa]),t.V)
+B.a3_=A.a(s([B.Q0,B.PX,B.Qa]),t.V)
 B.Q9=new A.bV(-5,B.as,B.eu,B.tI,10)
 B.a9V=new A.m(0,16)
 B.Q2=new A.bV(2,B.as,B.ev,B.a9V,24)
 B.Qf=new A.bV(5,B.as,B.dF,B.la,30)
-B.a2X=A.a(s([B.Q9,B.Q2,B.Qf]),t.V)
+B.a2Y=A.a(s([B.Q9,B.Q2,B.Qf]),t.V)
 B.a9T=new A.m(0,11)
 B.PP=new A.bV(-7,B.as,B.eu,B.a9T,15)
 B.a9X=new A.m(0,24)
 B.Q8=new A.bV(3,B.as,B.ev,B.a9X,38)
 B.Q1=new A.bV(8,B.as,B.dF,B.Ga,46)
-B.a3w=A.a(s([B.PP,B.Q8,B.Q1]),t.V)
-B.a7v=new A.du([0,B.AI,1,B.a5e,2,B.a2A,3,B.a50,4,B.a1F,6,B.a2Q,8,B.a21,9,B.a2j,12,B.a2Z,16,B.a2X,24,B.a3w],A.aS("du<A,Z<bV>>"))
+B.a3x=A.a(s([B.PP,B.Q8,B.Q1]),t.V)
+B.a7v=new A.du([0,B.AI,1,B.a5e,2,B.a2A,3,B.a50,4,B.a1F,6,B.a2R,8,B.a21,9,B.a2j,12,B.a3_,16,B.a2Y,24,B.a3x],A.aS("du<A,Z<bV>>"))
 B.eF=new A.n(4294968065)
 B.uf=new A.b_(B.eF,!1,!1,!0,!1,B.W)
 B.ef=new A.n(4294968066)
@@ -132148,11 +132148,11 @@ B.a8I=new A.aJ(B.a_,["ob_postal","Postal Address"],t.w)
 B.a8W=new A.aJ(B.a_,["ob_permanent","Permanent Address"],t.w)
 B.a2M=A.a(s([B.a88,B.a8o,B.a8I,B.a8W]),t.B)
 B.a7W=new A.aJ(B.a_,["ob_family_table","Family Table (Name / Age / Gender / Relation / Occupation / Aadhar)"],t.w)
-B.a35=A.a(s([B.a7W]),t.B)
+B.a36=A.a(s([B.a7W]),t.B)
 B.a8v=new A.aJ(B.a_,["ob_edu_table","Education Table (Qualification / Institute / Year / Marks / Subject)"],t.w)
-B.a3a=A.a(s([B.a8v]),t.B)
+B.a3b=A.a(s([B.a8v]),t.B)
 B.a8H=new A.aJ(B.a_,["ob_exp_table","Experience Table (Organisation / Period / Designation / Salary / Reason)"],t.w)
-B.a3e=A.a(s([B.a8H]),t.B)
+B.a3f=A.a(s([B.a8H]),t.B)
 B.a8h=new A.aJ(B.a_,["ob_last_reporter","Last Reporting Person"],t.w)
 B.a8u=new A.aJ(B.a_,["ob_last_company","Last Company"],t.w)
 B.a8e=new A.aJ(B.a_,["ob_ref1","Reference 1"],t.w)
@@ -132178,14 +132178,14 @@ B.a8s=new A.aJ(B.a_,["ob_att_pan","PAN Card"],t.w)
 B.a89=new A.aJ(B.a_,["ob_att_exp","Experience Letters"],t.w)
 B.a8O=new A.aJ(B.a_,["ob_att_payslip","Pay Slips"],t.w)
 B.a8R=new A.aJ(B.a_,["ob_att_photo","Passport Photo"],t.w)
-B.a3y=A.a(s([B.a81,B.a8z,B.a8s,B.a89,B.a8O,B.a8R]),t.B)
+B.a3z=A.a(s([B.a81,B.a8z,B.a8s,B.a89,B.a8O,B.a8R]),t.B)
 B.a8_=new A.aJ(B.a_,["ob_policy_agree","I have read and agree to the HR Policy (mandatory)"],t.w)
-B.a37=A.a(s([B.a8_]),t.B)
+B.a38=A.a(s([B.a8_]),t.B)
 B.a8f=new A.aJ(B.a_,["ob_decl_date","Date"],t.w)
 B.a8d=new A.aJ(B.a_,["ob_decl_place","Place"],t.w)
 B.a8C=new A.aJ(B.a_,["ob_decl_agree","I Agree checkbox"],t.w)
 B.a5K=A.a(s([B.a8f,B.a8d,B.a8C]),t.B)
-B.FO=new A.aJ(B.G7,[B.a2o,B.a2M,B.a35,B.a3a,B.a3e,B.a1H,B.a5f,B.a3L,B.a3y,B.a37,B.a5K],t.U4)
+B.FO=new A.aJ(B.G7,[B.a2o,B.a2M,B.a36,B.a3b,B.a3f,B.a1H,B.a5f,B.a3L,B.a3z,B.a38,B.a5K],t.U4)
 B.a9H={"hr@fomrahousing.in":0,"manager@fomrahousing.in":1,"employee@fomrahousing.in":2,"management@fomrahousing.in":3}
 B.acv=new A.ye(["Admin@123",B.dA,"HR Admin","HR001"])
 B.acs=new A.ye(["Manager@123",B.eO,"Ravi Kumar","MGR001"])
@@ -132240,7 +132240,7 @@ B.a3S=A.a(s([8589934850,8589934850,8589934851,null]),t.Z)
 B.FT=new A.du(["*",B.a1V,"+",B.a1W,"-",B.a1X,".",B.a1Y,"/",B.a1Z,"0",B.a2_,"1",B.a20,"2",B.a24,"3",B.a25,"4",B.a26,"5",B.a27,"6",B.a28,"7",B.a29,"8",B.a2a,"9",B.a2c,"Alt",B.a3P,"AltGraph",B.a1K,"ArrowDown",B.a1L,"ArrowLeft",B.a1M,"ArrowRight",B.a1N,"ArrowUp",B.a1O,"Clear",B.a1T,"Control",B.a3Q,"Delete",B.a1J,"End",B.a1P,"Enter",B.a1I,"Home",B.a1Q,"Insert",B.a1U,"Meta",B.a3R,"PageDown",B.a1R,"PageUp",B.a1S,"Shift",B.a3S],A.aS("du<i,Z<A?>>"))
 B.a2b=A.a(s([B.AY,null,null,B.FE]),t.L)
 B.a4O=A.a(s([B.Fq,null,null,B.FF]),t.L)
-B.a2W=A.a(s([B.Fr,null,null,B.FG]),t.L)
+B.a2X=A.a(s([B.Fr,null,null,B.FG]),t.L)
 B.a3V=A.a(s([B.Fs,null,null,B.hS]),t.L)
 B.a1w=A.a(s([B.Ft,null,null,B.FH]),t.L)
 B.a5l=A.a(s([B.Fu,null,null,B.tp]),t.L)
@@ -132255,22 +132255,22 @@ B.a4Q=A.a(s([B.FC,null,null,B.hW]),t.L)
 B.a4V=A.a(s([B.FD,null,null,B.l6]),t.L)
 B.a2q=A.a(s([B.l1,B.l1,B.nW,null]),t.L)
 B.a5m=A.a(s([B.nS,null,B.nS,null]),t.L)
-B.a3k=A.a(s([B.eF,null,null,B.hT]),t.L)
-B.a3l=A.a(s([B.ef,null,null,B.hU]),t.L)
-B.a3m=A.a(s([B.eg,null,null,B.hV]),t.L)
+B.a3l=A.a(s([B.eF,null,null,B.hT]),t.L)
+B.a3m=A.a(s([B.ef,null,null,B.hU]),t.L)
+B.a3n=A.a(s([B.eg,null,null,B.hV]),t.L)
 B.a5q=A.a(s([B.eG,null,null,B.hW]),t.L)
 B.a55=A.a(s([B.ti,null,null,B.tq]),t.L)
 B.a2r=A.a(s([B.l0,B.l0,B.nV,null]),t.L)
 B.a4b=A.a(s([B.cx,null,null,B.hS]),t.L)
-B.a3n=A.a(s([B.hP,null,null,B.l3]),t.L)
+B.a3o=A.a(s([B.hP,null,null,B.l3]),t.L)
 B.a2e=A.a(s([B.nR,null,null,B.to]),t.L)
-B.a3o=A.a(s([B.hQ,null,null,B.l5]),t.L)
+B.a3p=A.a(s([B.hQ,null,null,B.l5]),t.L)
 B.a56=A.a(s([B.tj,null,null,B.tp]),t.L)
 B.a2s=A.a(s([B.l2,B.l2,B.nX,null]),t.L)
-B.a3p=A.a(s([B.kZ,null,null,B.l4]),t.L)
+B.a3q=A.a(s([B.kZ,null,null,B.l4]),t.L)
 B.a4l=A.a(s([B.l_,null,null,B.l6]),t.L)
 B.a2t=A.a(s([B.h1,B.h1,B.hR,null]),t.L)
-B.a91=new A.du(["*",B.a2b,"+",B.a4O,"-",B.a2W,".",B.a3V,"/",B.a1w,"0",B.a5l,"1",B.a59,"2",B.a2l,"3",B.a5w,"4",B.a57,"5",B.a2i,"6",B.a1E,"7",B.a2B,"8",B.a4Q,"9",B.a4V,"Alt",B.a2q,"AltGraph",B.a5m,"ArrowDown",B.a3k,"ArrowLeft",B.a3l,"ArrowRight",B.a3m,"ArrowUp",B.a5q,"Clear",B.a55,"Control",B.a2r,"Delete",B.a4b,"End",B.a3n,"Enter",B.a2e,"Home",B.a3o,"Insert",B.a56,"Meta",B.a2s,"PageDown",B.a3p,"PageUp",B.a4l,"Shift",B.a2t],A.aS("du<i,Z<n?>>"))
+B.a91=new A.du(["*",B.a2b,"+",B.a4O,"-",B.a2X,".",B.a3V,"/",B.a1w,"0",B.a5l,"1",B.a59,"2",B.a2l,"3",B.a5w,"4",B.a57,"5",B.a2i,"6",B.a1E,"7",B.a2B,"8",B.a4Q,"9",B.a4V,"Alt",B.a2q,"AltGraph",B.a5m,"ArrowDown",B.a3l,"ArrowLeft",B.a3m,"ArrowRight",B.a3n,"ArrowUp",B.a5q,"Clear",B.a55,"Control",B.a2r,"Delete",B.a4b,"End",B.a3o,"Enter",B.a2e,"Home",B.a3p,"Insert",B.a56,"Meta",B.a2s,"PageDown",B.a3q,"PageUp",B.a4l,"Shift",B.a2t],A.aS("du<i,Z<n?>>"))
 B.a9B={interview_details:0,experience_ctc:1,source:2}
 B.a9N={post_applied_options:0}
 B.a7P=new A.aJ(B.a9N,["Post Applied Roles"],t.w)
@@ -132292,7 +132292,7 @@ B.a8a=new A.aJ(B.a_,["marital_status","Marital Status"],t.w)
 B.a3G=A.a(s([B.a8S,B.a8B,B.a8D,B.a8G,B.a7Z,B.a7X,B.a7V,B.a8X,B.a8a]),t.B)
 B.a7Y=new A.aJ(B.a_,["interview_date","Interview Date"],t.w)
 B.a8U=new A.aJ(B.a_,["post_applied","Post Applied"],t.w)
-B.a36=A.a(s([B.a7Y,B.a8U]),t.B)
+B.a37=A.a(s([B.a7Y,B.a8U]),t.B)
 B.a8M=new A.aJ(B.a_,["total_exp","Total Experience"],t.w)
 B.a87=new A.aJ(B.a_,["relevant_exp","Relevant Experience"],t.w)
 B.a8l=new A.aJ(B.a_,["reason_change","Reason for Change"],t.w)
@@ -132302,27 +132302,27 @@ B.a82=new A.aJ(B.a_,["notice_period","Notice Period"],t.w)
 B.a4e=A.a(s([B.a8M,B.a87,B.a8l,B.a8c,B.a8T,B.a82]),t.B)
 B.a8g=new A.aJ(B.a_,["education_table","Education Table"],t.w)
 B.a8N=new A.aJ(B.a_,["standing_arrears","Standing Arrears"],t.w)
-B.a39=A.a(s([B.a8g,B.a8N]),t.B)
+B.a3a=A.a(s([B.a8g,B.a8N]),t.B)
 B.a8y=new A.aJ(B.a_,["employment_table","Employment History Table"],t.w)
-B.a3c=A.a(s([B.a8y]),t.B)
+B.a3d=A.a(s([B.a8y]),t.B)
 B.a8A=new A.aJ(B.a_,["source","Source"],t.w)
 B.a8r=new A.aJ(B.a_,["job_portal","Job Portal"],t.w)
 B.a8x=new A.aJ(B.a_,["referred_by","Referred by Employee"],t.w)
 B.a8E=new A.aJ(B.a_,["related_emp","Related to Employee"],t.w)
 B.a3O=A.a(s([B.a8A,B.a8r,B.a8x,B.a8E]),t.B)
 B.a7U=new A.aJ(B.a_,["referrals_table","Referrals Table"],t.w)
-B.a34=A.a(s([B.a7U]),t.B)
+B.a35=A.a(s([B.a7U]),t.B)
 B.a86=new A.aJ(B.a_,["applied_before","Applied Before?"],t.w)
-B.a38=A.a(s([B.a86]),t.B)
+B.a39=A.a(s([B.a86]),t.B)
 B.a8w=new A.aJ(B.a_,["address","Full Address"],t.w)
-B.a3b=A.a(s([B.a8w]),t.B)
+B.a3c=A.a(s([B.a8w]),t.B)
 B.a8F=new A.aJ(B.a_,["resume","Resume Upload (PDF / DOC)"],t.w)
-B.a3d=A.a(s([B.a8F]),t.B)
+B.a3e=A.a(s([B.a8F]),t.B)
 B.a7S=new A.aJ(B.a_,["declaration_name","Full Name"],t.w)
 B.a7R=new A.aJ(B.a_,["declaration_date","Date"],t.w)
 B.a8m=new A.aJ(B.a_,["declaration_agree","I Agree checkbox"],t.w)
 B.a4Z=A.a(s([B.a7S,B.a7R,B.a8m]),t.B)
-B.FU=new A.aJ(B.tG,[B.a3G,B.a36,B.a4e,B.a39,B.a3c,B.a3O,B.a34,B.a38,B.a3b,B.a3d,B.a4Z],t.U4)
+B.FU=new A.aJ(B.tG,[B.a3G,B.a37,B.a4e,B.a3a,B.a3d,B.a3O,B.a35,B.a39,B.a3c,B.a3e,B.a4Z],t.U4)
 B.FV=new A.aJ(B.tG,[B.b5,B.j1,B.hJ,B.j5,B.hB,B.kJ,B.kK,B.fZ,B.d9,B.iY,B.fi],t.H7)
 B.YF=new A.ab(983764,"MaterialIcons",null,!1)
 B.Yb=new A.ab(63477,"MaterialIcons",null,!1)
@@ -132881,8 +132881,8 @@ B.Zl=new A.a0(B.fi,15,B.I,null,null)
 B.ae=new A.cp(6,null,null,null)
 B.ajY=new A.l(!0,B.I,null,null,null,null,12,B.x,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aqX=new A.I("Approved by Management and Manager",null,B.ajY,null,null,null,null,null,null,null,null)
-B.a3h=A.a(s([B.Zl,B.ae,B.aqX]),t.p)
-B.K7=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3h,null)
+B.a3i=A.a(s([B.Zl,B.ae,B.aqX]),t.p)
+B.K7=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3i,null)
 B.oP=new A.l(!0,B.j,null,null,null,null,13,B.x,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aqo=new A.I("Employee",null,B.oP,null,null,null,null,null,null,null,null)
 B.uQ=new A.l(!0,B.bJ,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -132896,8 +132896,8 @@ B.Yf=new A.ab(63668,"MaterialIcons",null,!1)
 B.a0B=new A.a0(B.Yf,14,B.j,null,null)
 B.ahh=new A.l(!0,B.j,null,null,null,null,12,B.x,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aoW=new A.I("Please read the following HR Policy carefully",null,B.ahh,null,null,null,null,null,null,null,null)
-B.a3C=A.a(s([B.a0B,B.B,B.aoW]),t.p)
-B.acD=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3C,null)
+B.a3D=A.a(s([B.a0B,B.B,B.aoW]),t.p)
+B.acD=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3D,null)
 B.zM=new A.a0(B.bD,14,B.Q,null,null)
 B.Mj=new A.l(!0,B.Q,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aq6=new A.I("A calendar date picker will be shown to the candidate.",null,B.Mj,null,null,null,null,null,null,null,null)
@@ -132914,8 +132914,8 @@ B.acF=new A.dr(B.a8,B.c,B.e,B.o,null,B.i,null,0,B.a1x,null)
 B.a0m=new A.a0(B.za,20,B.ah,null,null)
 B.uL=new A.l(!0,null,null,null,null,null,15,B.A,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.apG=new A.I("Delete Application",null,B.uL,null,null,null,null,null,null,null,null)
-B.a3j=A.a(s([B.a0m,B.B,B.apG]),t.p)
-B.acG=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3j,null)
+B.a3k=A.a(s([B.a0m,B.B,B.apG]),t.p)
+B.acG=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3k,null)
 B.Z6=new A.a0(B.b8,12,B.I,null,null)
 B.ad=new A.cp(4,null,null,null)
 B.akk=new A.l(!0,B.I,null,null,null,null,10,B.x,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -132926,15 +132926,15 @@ B.A7=new A.a0(B.j3,14,B.aA,null,null)
 B.uZ=new A.l(!0,B.aA,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ang=new A.I("Candidates upload a photo (JPG / PNG). It will be auto-compressed to \u2264200 KB.",null,B.uZ,null,null,null,null,null,null,null,null)
 B.Wz=new A.bf(1,B.au,B.ang,null)
-B.a3i=A.a(s([B.A7,B.ae,B.Wz]),t.p)
-B.acI=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3i,null)
+B.a3j=A.a(s([B.A7,B.ae,B.Wz]),t.p)
+B.acI=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3j,null)
 B.aqC=new A.I("Admin User",null,B.oP,null,null,null,null,null,null,null,null)
 B.arb=new A.I("Administrator",null,B.uQ,null,null,null,null,null,null,null,null)
 B.a5c=A.a(s([B.aqC,B.arb]),t.p)
 B.TI=new A.da(B.F,B.c,B.e,B.o,null,B.i,null,0,B.a5c,null)
 B.WF=new A.bf(1,B.au,B.TI,null)
-B.a3r=A.a(s([B.m4,B.ac,B.WF]),t.p)
-B.acJ=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3r,null)
+B.a3s=A.a(s([B.m4,B.ac,B.WF]),t.p)
+B.acJ=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a3s,null)
 B.A4=new A.a0(B.h_,18,B.m,null,null)
 B.eM=new A.l(!0,B.cb,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.apD=new A.I('Toggle sections on/off, rename them, drag to reorder, or add custom fields. Tap a field chip \xd7 to hide it. Click "Update & Publish" when done.',null,B.eM,null,null,null,null,null,null,null,null)
@@ -133004,8 +133004,8 @@ B.a5L=A.a(s([B.a07,B.B,B.Wg]),t.p)
 B.acX=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a5L,null)
 B.aqt=new A.I("Employee uploads a document (PDF, DOC, DOCX, XLS, XLSX). Uploaded as-is.",null,B.v6,null,null,null,null,null,null,null,null)
 B.Wf=new A.bf(1,B.au,B.aqt,null)
-B.a33=A.a(s([B.A9,B.ae,B.Wf]),t.p)
-B.acY=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a33,null)
+B.a34=A.a(s([B.A9,B.ae,B.Wf]),t.p)
+B.acY=new A.dr(B.a8,B.c,B.e,B.f,null,B.i,null,0,B.a34,null)
 B.a_J=new A.a0(B.j4,14,B.Y,null,null)
 B.api=new A.I(u.C,null,B.v6,null,null,null,null,null,null,null,null)
 B.Wt=new A.bf(1,B.au,B.api,null)
@@ -134485,20 +134485,20 @@ B.awe=new A.pU(B.af3,B.b2,B.js,null,null)
 B.awf=new A.pU(B.ab,B.b2,B.js,null,null)
 B.a5k=A.a(s(["Total Employees","Active Employees","Employees on Leave","Employees on Permission","Employees Working Remotely"]),t.s)
 B.awg=new A.ln("Employee Summary",B.eD,B.m,B.a5k)
-B.a3q=A.a(s(["Open Tickets","Pending Issues","Resolved Issues"]),t.s)
-B.awh=new A.ln("Maintenance Summary",B.dv,B.kn,B.a3q)
-B.a3F=A.a(s(["Present Today","Absent Today","Late Arrivals"]),t.s)
-B.awi=new A.ln("Attendance Summary",B.bw,B.I,B.a3F)
+B.a3r=A.a(s(["Open Tickets","Pending Issues","Resolved Issues"]),t.s)
+B.awh=new A.ln("Maintenance Summary",B.dv,B.kn,B.a3r)
 B.a4H=A.a(s(["Alerts","Announcements","Policy Updates"]),t.s)
-B.awj=new A.ln("Notifications",B.fg,B.aI,B.a4H)
-B.a3t=A.a(s(["Payroll Processed","Pending Payroll","Total Salary Expense","Incentives Generated"]),t.s)
-B.awk=new A.ln("Payroll Summary",B.c5,B.Y,B.a3t)
+B.awi=new A.ln("Notifications",B.fg,B.aI,B.a4H)
+B.a3u=A.a(s(["Payroll Processed","Pending Payroll","Total Salary Expense","Incentives Generated"]),t.s)
+B.awj=new A.ln("Payroll Summary",B.c5,B.Y,B.a3u)
 B.a43=A.a(s(["Total Leads","New Leads","Converted Leads","Active Campaigns","Campaign ROI"]),t.s)
-B.awl=new A.ln("Lead & Marketing Summary",B.hF,B.aA,B.a43)
+B.awk=new A.ln("Lead & Marketing Summary",B.hF,B.aA,B.a43)
 B.a5s=A.a(s(["Top Performers","Low Performers","Department Performance Score","Employee Ranking"]),t.s)
-B.awm=new A.ln("Performance Summary",B.j7,B.kp,B.a5s)
-B.a3v=A.a(s(["Tasks Assigned","Tasks In Progress","Tasks Completed","Overdue Tasks","Productivity Percentage"]),t.s)
-B.awn=new A.ln("Task Summary",B.bS,B.Q,B.a3v)
+B.awl=new A.ln("Performance Summary",B.j7,B.kp,B.a5s)
+B.a2P=A.a(s(["Present Today","Absent Today","Late Arrivals","On Permission","Comp Off","On Duty"]),t.s)
+B.awm=new A.ln("Attendance Summary",B.bw,B.I,B.a2P)
+B.a3w=A.a(s(["Tasks Assigned","Tasks In Progress","Tasks Completed","Overdue Tasks","Productivity Percentage"]),t.s)
+B.awn=new A.ln("Task Summary",B.bS,B.Q,B.a3w)
 B.a5p=A.a(s(["Leave Approvals Pending","Task Approvals Pending","Payroll Approvals Pending"]),t.s)
 B.awo=new A.ln("Approvals Summary",B.ee,B.ax,B.a5p)
 B.NT=new A.a9l(null)
@@ -134648,7 +134648,7 @@ $.dl=""
 $.nw=""
 $.Lf=""
 $.blZ=A.b1(t.N)
-$.bDC=A.ag(["employee",B.awg,"attendance",B.awi,"task",B.awn,"performance",B.awm,"payroll",B.awk,"lead",B.awl,"maintenance",B.awh,"approvals",B.awo,"notifications",B.awj],t.N,A.aS("ln"))
+$.bDC=A.ag(["employee",B.awg,"attendance",B.awm,"task",B.awn,"performance",B.awl,"payroll",B.awj,"lead",B.awk,"maintenance",B.awh,"approvals",B.awo,"notifications",B.awi],t.N,A.aS("ln"))
 $.bdX=null
 $.bdY=null
 $.bdZ=null
