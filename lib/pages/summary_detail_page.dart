@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../widgets/section_detail_page.dart';
 
 class _SectionData {
@@ -14,7 +16,7 @@ final _sectionMap = {
     'Employee Summary',
     Icons.people_rounded,
     Color(0xFF0D47A1),
-    ['Total Employees', 'Active Employees', 'New Joiners', 'Employees on Leave', 'Employees Working Remotely'],
+    ['Total Employees', 'Active Employees', 'Employees on Leave', 'Employees on Permission', 'Employees Working Remotely'],
   ),
   'attendance': const _SectionData(
     'Attendance Summary',
@@ -74,15 +76,77 @@ class SummaryDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = _sectionMap[sectionId];
     if (data == null) {
-      return const Scaffold(
-        body: Center(child: Text('Section not found')),
-      );
+      return const Scaffold(body: Center(child: Text('Section not found')));
+    }
+    if (sectionId == 'employee') {
+      return _EmployeeSummaryPage(data: data);
     }
     return SectionDetailPage(
       title: data.title,
       icon: data.icon,
       color: data.color,
       items: data.items,
+    );
+  }
+}
+
+class _EmployeeSummaryPage extends StatefulWidget {
+  final _SectionData data;
+  const _EmployeeSummaryPage({required this.data});
+
+  @override
+  State<_EmployeeSummaryPage> createState() => _EmployeeSummaryPageState();
+}
+
+class _EmployeeSummaryPageState extends State<_EmployeeSummaryPage> {
+  bool _loading = true;
+  Map<String, String> _values = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final today = DateTime.now();
+    final dateStr =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+
+    final users = await UserStore.load();
+    final total = users.length;
+
+    final records = await SupabaseService.fetchAttendanceForDate(dateStr);
+    final present = records.where((r) => r.checkInTime.isNotEmpty).length;
+    final onLeave = (total - present).clamp(0, total);
+
+    if (mounted) {
+      setState(() {
+        _values = {
+          'Total Employees':         '$total',
+          'Active Employees':        '$present',
+          'Employees on Leave':      '$onLeave',
+          'Employees on Permission': '—',
+          'Employees Working Remotely': '—',
+        };
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return SectionDetailPage(
+      title: widget.data.title,
+      icon: widget.data.icon,
+      color: widget.data.color,
+      items: widget.data.items,
+      values: _values,
     );
   }
 }

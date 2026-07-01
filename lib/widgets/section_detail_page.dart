@@ -5,6 +5,7 @@ class SectionDetailPage extends StatelessWidget {
   final IconData icon;
   final Color color;
   final List<String> items;
+  final Map<String, String>? values;
 
   const SectionDetailPage({
     super.key,
@@ -12,6 +13,7 @@ class SectionDetailPage extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.items,
+    this.values,
   });
 
   @override
@@ -62,6 +64,7 @@ class SectionDetailPage extends StatelessWidget {
                     const SizedBox(height: 8),
                     ...items.map((item) => _ItemRow(
                           label: item,
+                          value: values?[item] ?? '—',
                           color: displayColor,
                           isDark: isDark,
                         )),
@@ -78,9 +81,10 @@ class SectionDetailPage extends StatelessWidget {
 
 class _ItemRow extends StatelessWidget {
   final String label;
+  final String value;
   final Color color;
   final bool isDark;
-  const _ItemRow({required this.label, required this.color, required this.isDark});
+  const _ItemRow({required this.label, required this.value, required this.color, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +121,7 @@ class _ItemRow extends StatelessWidget {
               border: Border.all(color: badgeBorder),
             ),
             child: Text(
-              '—',
+              value,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
