@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
+import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -365,29 +366,72 @@ class _PersonalGrid extends StatelessWidget {
 }
 
 // ── Today's Check-Ins ─────────────────────────────────────────────────────────
-class _TodayCheckIns extends StatelessWidget {
-  static const _color = Color(0xFF2E7D32);
-
+class _TodayCheckIns extends StatefulWidget {
   const _TodayCheckIns();
 
   @override
-  Widget build(BuildContext context) {
-    final today    = DateTime.now();
-    final todayStr = '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
-    final checkIns = AttendanceStore.checkIns
-        .where((r) => r.date == todayStr)
-        .toList();
+  State<_TodayCheckIns> createState() => _TodayCheckInsState();
+}
 
+class _TodayCheckInsState extends State<_TodayCheckIns> {
+  static const _color = Color(0xFF2E7D32);
+  List<AttendanceRecord> _records = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final today = DateTime.now();
+    final dateStr =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+    final records = await SupabaseService.fetchAttendanceForDate(dateStr);
+    if (mounted) {
+      setState(() {
+        _records = records.where((r) => r.checkInTime.isNotEmpty).toList();
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _SectionLabel(icon: Icons.login_rounded, label: "Today's Check-Ins"),
+      Row(children: [
+        Expanded(
+          child: _SectionLabel(icon: Icons.login_rounded, label: "Today's Check-Ins"),
+        ),
+        if (!_loading)
+          Tooltip(
+            message: 'Refresh',
+            child: InkWell(
+              onTap: () { setState(() => _loading = true); _load(); },
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(Icons.refresh_rounded, size: 16),
+              ),
+            ),
+          ),
+      ]),
       const SizedBox(height: 12),
-      if (checkIns.isEmpty)
+      if (_loading)
+        const Card(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        )
+      else if (_records.isEmpty)
         Card(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             child: Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.person_off_rounded, size: 36, color: Colors.grey.shade300),
+                Icon(Icons.person_off_rounded, size: 36, color: Colors.grey.shade400),
                 const SizedBox(height: 8),
                 Text('No check-ins recorded today',
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
@@ -396,7 +440,7 @@ class _TodayCheckIns extends StatelessWidget {
           ),
         )
       else
-        ...checkIns.map((r) => Card(
+        ..._records.map((r) => Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -414,36 +458,58 @@ class _TodayCheckIns extends StatelessWidget {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      Text(r.employee,
+                      Text(r.employeeName,
                           style: const TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
-                      Text(r.location,
+                      Text('ID: ${r.employeeId}',
                           style: TextStyle(
                               fontSize: 11,
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.5)),
-                          overflow: TextOverflow.ellipsis),
+                                  .withValues(alpha: 0.5))),
                     ]),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(r.time,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _color)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _TimeChip(label: 'In', time: r.checkInTime, color: _color),
+                      if (r.checkOutTime.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        _TimeChip(label: 'Out', time: r.checkOutTime, color: const Color(0xFFC62828)),
+                      ],
+                    ],
                   ),
                 ]),
               ),
             )),
     ]);
+  }
+}
+
+class _TimeChip extends StatelessWidget {
+  final String label;
+  final String time;
+  final Color color;
+  const _TimeChip({required this.label, required this.time, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(label,
+            style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.7))),
+        const SizedBox(width: 4),
+        Text(time,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+      ]),
+    );
   }
 }
 
