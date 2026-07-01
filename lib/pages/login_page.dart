@@ -132,15 +132,14 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo
               Container(
                 width: 90, height: 90,
                 decoration: BoxDecoration(
@@ -160,16 +159,22 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
                       color: _color, letterSpacing: 3)),
               const SizedBox(height: 6),
-              const Text('Housing & Infrastructure',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF78909C), letterSpacing: 1)),
+              Text('Housing & Infrastructure',
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : const Color(0xFF78909C),
+                      letterSpacing: 1)),
               const SizedBox(height: 40),
 
-              // Card — either normal login or first-login set-password
-              _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
+              _pendingUser != null
+                  ? _buildSetPasswordCard(isDark)
+                  : _buildLoginCard(isDark),
 
               const SizedBox(height: 24),
               Text('FOMRA Housing & Infrastructure © 2025',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white30 : Colors.grey.shade400)),
             ],
           ),
         ),
@@ -177,37 +182,31 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildLoginCard(bool isDark) {
     return Card(
-      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(children: [
-          // Email
           TextField(
             controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
-            decoration: _inputDecoration('Email', Icons.email_rounded),
+            decoration: _inputDecoration('Email', Icons.email_rounded, isDark),
           ),
           const SizedBox(height: 16),
-
-          // Password
           TextField(
             controller: _passwordCtrl,
             obscureText: _obscure,
             onSubmitted: (_) => _login(),
-            decoration: _inputDecoration('Password', Icons.lock_rounded).copyWith(
+            decoration: _inputDecoration('Password', Icons.lock_rounded, isDark).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                    size: 18, color: const Color(0xFF78909C)),
+                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF78909C)),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
           ),
-
-          _errorBanner(),
+          _errorBanner(isDark),
           const SizedBox(height: 20),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -232,14 +231,12 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildSetPasswordCard() {
+  Widget _buildSetPasswordCard(bool isDark) {
     final user = _pendingUser!;
     return Card(
-      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Welcome header
           Row(children: [
             Container(
               width: 40, height: 40,
@@ -254,44 +251,40 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Welcome, ${user.name}!',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _color)),
-                const Text('Set your password to continue.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                Text('Set your password to continue.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white54 : const Color(0xFF78909C))),
               ]),
             ),
           ]),
           const SizedBox(height: 20),
-
-          // New password
           TextField(
             controller: _newPassCtrl,
             obscureText: _obscureNew,
-            decoration: _inputDecoration('Create Password', Icons.lock_rounded).copyWith(
+            decoration: _inputDecoration('Create Password', Icons.lock_rounded, isDark).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                    size: 18, color: const Color(0xFF78909C)),
+                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF78909C)),
                 onPressed: () => setState(() => _obscureNew = !_obscureNew),
               ),
             ),
           ),
           const SizedBox(height: 16),
-
-          // Confirm password
           TextField(
             controller: _confirmCtrl,
             obscureText: _obscureConfirm,
             onSubmitted: (_) => _savePassword(),
-            decoration: _inputDecoration('Confirm Password', Icons.lock_outline_rounded).copyWith(
+            decoration: _inputDecoration('Confirm Password', Icons.lock_outline_rounded, isDark).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                    size: 18, color: const Color(0xFF78909C)),
+                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF78909C)),
                 onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
               ),
             ),
           ),
-
-          _errorBanner(),
+          _errorBanner(isDark),
           const SizedBox(height: 20),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -313,8 +306,10 @@ class _LoginPageState extends State<LoginPage> {
           Center(
             child: TextButton(
               onPressed: () => setState(() { _pendingUser = null; _error = null; }),
-              child: const Text('Back to Login',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+              child: Text('Back to Login',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white54 : const Color(0xFF78909C))),
             ),
           ),
         ]),
@@ -322,41 +317,49 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
+  InputDecoration _inputDecoration(String label, IconData icon, bool isDark) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: _color, size: 20),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFB0BEC5), width: 1.2),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF3A4A6A) : const Color(0xFFB0BEC5),
+            width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: _color, width: 2),
       ),
-      filled: true, fillColor: const Color(0xFFF5F8FF),
-      labelStyle: const TextStyle(color: Color(0xFF78909C)),
+      filled: true,
+      fillColor: isDark ? const Color(0xFF1E2740) : const Color(0xFFF5F8FF),
+      labelStyle: TextStyle(
+          color: isDark ? Colors.white54 : const Color(0xFF78909C)),
     );
   }
 
-  Widget _errorBanner() {
+  Widget _errorBanner(bool isDark) {
     if (_error == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: isDark ? Colors.red.shade900.withValues(alpha: 0.4) : Colors.red.shade50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red.shade200),
+          border: Border.all(
+              color: isDark ? Colors.red.shade700 : Colors.red.shade200),
         ),
         child: Row(children: [
-          Icon(Icons.error_outline_rounded, size: 16, color: Colors.red.shade600),
+          Icon(Icons.error_outline_rounded,
+              size: 16, color: isDark ? Colors.red.shade300 : Colors.red.shade600),
           const SizedBox(width: 8),
           Expanded(
             child: Text(_error!,
-                style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.red.shade300 : Colors.red.shade700)),
           ),
         ]),
       ),
@@ -369,37 +372,41 @@ class _CredentialsHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FF),
+        color: isDark ? const Color(0xFF1A2540) : const Color(0xFFF0F4FF),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFBBCCF0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF2A3A6A) : const Color(0xFFBBCCF0)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Admin Credentials',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0D47A1))),
         const SizedBox(height: 2),
-        const Text('Users created by Management set their own password on first login.',
-            style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+        Text('Users created by Management set their own password on first login.',
+            style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF78909C))),
         const SizedBox(height: 6),
-        _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123'),
+        _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123', isDark),
         const SizedBox(height: 4),
-        _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123'),
+        _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123', isDark),
         const SizedBox(height: 4),
-        _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123'),
+        _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123', isDark),
       ]),
     );
   }
 
-  Widget _cred(IconData icon, String role, String email, String pass) {
+  Widget _cred(IconData icon, String role, String email, String pass, bool isDark) {
     return Row(children: [
       Icon(icon, size: 13, color: const Color(0xFF0D47A1)),
       const SizedBox(width: 6),
-      Text('$role: ', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF37474F))),
+      Text('$role: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white70 : const Color(0xFF37474F))),
       Expanded(
         child: Text('$email / $pass',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
+            style: TextStyle(fontSize: 11,
+                color: isDark ? Colors.white54 : const Color(0xFF546E7A)),
             overflow: TextOverflow.ellipsis),
       ),
     ]);

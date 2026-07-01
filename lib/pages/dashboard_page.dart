@@ -22,7 +22,6 @@ const _sections = [
   _Section('Lead & Marketing',     Icons.leaderboard_rounded,            Color(0xFFE65100), '/summary/lead'),
   _Section('Maintenance Summary',  Icons.build_rounded,                  Color(0xFF4E342E), '/summary/maintenance'),
   _Section('Approvals Summary',    Icons.approval_rounded,               Color(0xFFC62828), '/summary/approvals'),
-  _Section('Notifications',        Icons.notifications_rounded,          Color(0xFF283593), '/summary/notifications'),
 ];
 
 class _Item {
@@ -290,6 +289,10 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final c = isDark
+        ? Color.lerp(section.color, Colors.white, 0.55)!
+        : section.color;
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -300,10 +303,10 @@ class _SectionCard extends StatelessWidget {
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: section.color.withValues(alpha: 0.1),
+                color: c.withValues(alpha: isDark ? 0.18 : 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(section.icon, color: section.color, size: 22),
+              child: Icon(section.icon, color: c, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -317,14 +320,11 @@ class _SectionCard extends StatelessWidget {
                             color: Theme.of(context).colorScheme.onSurface)),
                     const SizedBox(height: 2),
                     Text('View details',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: section.color.withValues(alpha: 0.8))),
+                        style: TextStyle(fontSize: 11, color: c)),
                   ]),
             ),
             Icon(Icons.arrow_forward_ios_rounded,
-                size: 13,
-                color: section.color.withValues(alpha: 0.5)),
+                size: 13, color: c.withValues(alpha: 0.7)),
           ]),
         ),
       ),
