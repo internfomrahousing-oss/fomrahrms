@@ -93,9 +93,6 @@ class ShellTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        // Live clock
-        const LiveClock(),
-        const SizedBox(width: 16),
         // Theme toggle
         const ThemeToggle(),
         const SizedBox(width: 16),

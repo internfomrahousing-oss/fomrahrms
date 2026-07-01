@@ -137,7 +137,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
             ),
             if (wide) ...[
               const SizedBox(width: 16),
-              const LiveClock(),
+              const LiveClock(horizontal: true),
             ],
             if (widget.onRefresh != null) ...[
               const SizedBox(width: 8),

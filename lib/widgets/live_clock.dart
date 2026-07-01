@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class LiveClock extends StatefulWidget {
-  const LiveClock({super.key});
+  final bool horizontal;
+  const LiveClock({super.key, this.horizontal = false});
 
   @override
   State<LiveClock> createState() => _LiveClockState();
@@ -45,6 +46,25 @@ class _LiveClockState extends State<LiveClock> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.horizontal) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(_time,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3)),
+          const SizedBox(width: 10),
+          Container(width: 1, height: 18, color: Colors.white30),
+          const SizedBox(width: 10),
+          Text(_date,
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 13, letterSpacing: 0.2)),
+        ],
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
