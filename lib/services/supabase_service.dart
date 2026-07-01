@@ -870,14 +870,15 @@ class SupabaseService {
   static String _attendanceId(String employeeId, String date) =>
       '${employeeId.isNotEmpty ? employeeId : 'emp'}_${date.replaceAll('/', '-')}';
 
-  static Future<void> saveCheckIn({
+  static Future<String?> saveCheckIn({
     required String employeeName,
     required String employeeId,
     required String date,
     required String time,
   }) async {
     try {
-      await _db?.from('attendance_records').upsert({
+      if (_db == null) return 'Database not connected';
+      await _db!.from('attendance_records').upsert({
         'id':             _attendanceId(employeeId, date),
         'employee_name':  employeeName,
         'employee_id':    employeeId,
@@ -885,7 +886,10 @@ class SupabaseService {
         'check_in_time':  time,
         'check_out_time': '',
       });
-    } catch (_) {}
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
   }
 
   static Future<void> saveCheckOut({

@@ -52,7 +52,7 @@ class _CheckInPageState extends State<CheckInPage> {
     });
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
     if (_timeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please fill in the check-in time'),
@@ -75,19 +75,31 @@ class _CheckInPageState extends State<CheckInPage> {
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
     _startMapTimer();
-    SupabaseService.saveCheckIn(
+    setState(() {});
+
+    final err = await SupabaseService.saveCheckIn(
       employeeName: empName,
       employeeId: UserSession.employeeId,
       date: date,
       time: _timeController.text,
     );
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Checked in — GPS tracking started'),
-      backgroundColor: _color,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ));
-    setState(() {});
+
+    if (!mounted) return;
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Check-in saved locally. Sync error: $err'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Checked in successfully'),
+        backgroundColor: _color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+    }
   }
 
   Widget _buildMap(double lat, double lng) {

@@ -7,10 +7,9 @@ class EmployeeAttendancePage extends StatelessWidget {
   const EmployeeAttendancePage({super.key, this.prefix = '/employee'});
 
   List<_Topic> get _topics => [
-    _Topic('Check In',     Icons.login_rounded,       const Color(0xFF0D47A1), '$prefix/attendance/check-in'),
-    _Topic('Check Out',    Icons.logout_rounded,      const Color(0xFF1565C0), '$prefix/attendance/check-out'),
-    _Topic('GPS Tracking', Icons.location_on_rounded, const Color(0xFF0288D1), '$prefix/attendance/gps-tracking'),
-    _Topic('Late Coming',  Icons.watch_later_rounded, const Color(0xFF283593), '$prefix/attendance/late-coming'),
+    _Topic('Check In',    Icons.login_rounded,       const Color(0xFF0D47A1), '$prefix/attendance/check-in'),
+    _Topic('Check Out',   Icons.logout_rounded,      const Color(0xFF1565C0), '$prefix/attendance/check-out'),
+    _Topic('Late Coming', Icons.watch_later_rounded, const Color(0xFF283593), '$prefix/attendance/late-coming'),
   ];
 
   @override
