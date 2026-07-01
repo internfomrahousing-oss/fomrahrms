@@ -16,6 +16,9 @@ class SectionDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayColor = isDark ? Color.lerp(color, Colors.white, 0.55)! : color;
+
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -23,17 +26,16 @@ class SectionDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
                 Container(
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
+                    color: displayColor.withValues(alpha: isDark ? 0.18 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: color, size: 26),
+                  child: Icon(icon, color: displayColor, size: 26),
                 ),
                 const SizedBox(width: 16),
                 Text(title, style: Theme.of(context).textTheme.headlineMedium),
@@ -41,7 +43,6 @@ class SectionDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Detail card with items
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -50,7 +51,7 @@ class SectionDetailPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.list_alt_rounded, color: color, size: 20),
+                        Icon(Icons.list_alt_rounded, color: displayColor, size: 20),
                         const SizedBox(width: 8),
                         Text('Summary',
                             style: Theme.of(context).textTheme.titleLarge),
@@ -61,7 +62,8 @@ class SectionDetailPage extends StatelessWidget {
                     const SizedBox(height: 8),
                     ...items.map((item) => _ItemRow(
                           label: item,
-                          color: color,
+                          color: displayColor,
+                          isDark: isDark,
                         )),
                   ],
                 ),
@@ -77,14 +79,22 @@ class SectionDetailPage extends StatelessWidget {
 class _ItemRow extends StatelessWidget {
   final String label;
   final Color color;
-  const _ItemRow({required this.label, required this.color});
+  final bool isDark;
+  const _ItemRow({required this.label, required this.color, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
+    final dividerColor = isDark ? Colors.white12 : const Color(0xFFF0F0F0);
+    final textColor = isDark
+        ? Theme.of(context).colorScheme.onSurface
+        : const Color(0xFF37474F);
+    final badgeBorder = isDark ? Colors.white24 : const Color(0xFFE0E0E0);
+    final dashColor = isDark ? Colors.white54 : Colors.grey.shade500;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: dividerColor)),
       ),
       child: Row(
         children: [
@@ -97,22 +107,21 @@ class _ItemRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF37474F)),
+              style: TextStyle(fontSize: 14, color: textColor),
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: null,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
+              border: Border.all(color: badgeBorder),
             ),
             child: Text(
               '—',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade500,
+                color: dashColor,
               ),
             ),
           ),

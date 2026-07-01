@@ -81,6 +81,11 @@ class _FormDetailPageState extends State<FormDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayColor = isDark
+        ? Color.lerp(widget.color, Colors.white, 0.55)!
+        : widget.color;
+
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -88,7 +93,6 @@ class _FormDetailPageState extends State<FormDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
                 const NavBackButton(),
@@ -97,10 +101,10 @@ class _FormDetailPageState extends State<FormDetailPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: widget.color.withValues(alpha: 0.1),
+                    color: displayColor.withValues(alpha: isDark ? 0.18 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(widget.icon, color: widget.color, size: 26),
+                  child: Icon(widget.icon, color: displayColor, size: 26),
                 ),
                 const SizedBox(width: 16),
                 Text(widget.title,
@@ -109,7 +113,6 @@ class _FormDetailPageState extends State<FormDetailPage> {
             ),
             const SizedBox(height: 24),
 
-            // Form card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -127,26 +130,12 @@ class _FormDetailPageState extends State<FormDetailPage> {
                           decoration: InputDecoration(
                             labelText: field.label,
                             prefixIcon: Icon(field.icon,
-                                color: widget.color, size: 20),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
+                                color: displayColor, size: 20),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide:
-                                  BorderSide(color: widget.color, width: 2),
+                                  BorderSide(color: displayColor, width: 2),
                             ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            labelStyle:
-                                const TextStyle(color: Color(0xFF78909C)),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 14),
                           ),
