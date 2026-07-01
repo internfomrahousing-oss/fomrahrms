@@ -340,24 +340,35 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
           if (!_isMgmt)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFFCC02).withValues(alpha: 0.6)),
-                ),
-                child: Row(children: [
-                  const Icon(Icons.info_outline_rounded, size: 15, color: Color(0xFFF57F17)),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Leaves longer than 2 days go directly to Management for approval.',
-                      style: TextStyle(fontSize: 11, color: Color(0xFFF57F17), fontWeight: FontWeight.w500),
-                    ),
+              child: Builder(builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.amber.withValues(alpha: 0.12)
+                        : const Color(0xFFFFF8E1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: Colors.amber.withValues(alpha: isDark ? 0.4 : 0.6)),
                   ),
-                ]),
-              ),
+                  child: Row(children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 15,
+                        color: isDark ? Colors.amber.shade300 : const Color(0xFFF57F17)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Leaves longer than 2 days go directly to Management for approval.',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.amber.shade300 : const Color(0xFFF57F17),
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ]),
+                );
+              }),
             ),
 
           if (_filterStatus != null)
@@ -481,18 +492,20 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
         child: Center(
-          child: Column(children: [
-            Icon(icon, size: 52, color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text(title,
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-            if (subtitle.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-            ],
-          ]),
+          child: Builder(builder: (context) {
+            final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3);
+            return Column(children: [
+              Icon(icon, size: 52, color: muted),
+              const SizedBox(height: 12),
+              Text(title, style: TextStyle(color: muted, fontSize: 14)),
+              if (subtitle.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(subtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: muted, fontSize: 12)),
+              ],
+            ]);
+          }),
         ),
       ),
     );
@@ -596,179 +609,192 @@ class _RequestCardState extends State<_RequestCard> {
 
     final req = widget.request;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Employee header
-          Row(children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: const Color(0xFF283593).withValues(alpha: 0.1),
-              child: Text(
-                req.employeeName.isNotEmpty
-                    ? req.employeeName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    color: Color(0xFF283593),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(req.employeeName,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A237E))),
-                    Text(req.department,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF78909C))),
-                  ]),
-            ),
-            _StatusPill(sl, sc, si),
-          ]),
-          const SizedBox(height: 14),
+      child: Builder(builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final onSurface = cs.onSurface;
+        final primary = cs.primary;
 
-          // Leave details
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF283593).withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: const Color(0xFF283593).withValues(alpha: 0.08)),
-            ),
-            child: Column(children: [
-              _DetailRow(Icons.label_rounded,      'Leave Type', req.leaveType),
-              const SizedBox(height: 8),
-              _DetailRow(Icons.date_range_rounded, 'Duration',
-                  '${_fmtDate(req.from)}  →  ${_fmtDate(req.to)}'),
-              const SizedBox(height: 8),
-              _DetailRow(Icons.numbers_rounded,    'Days',
-                  req.isHalfDay
-                      ? '½ day'
-                      : '${req.days} day${req.days == 1 ? '' : 's'}'),
-              if (req.reason.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _DetailRow(Icons.notes_rounded, 'Reason', req.reason),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 14),
-
-          // Action row — locked for managers when management has already decided
-          if (!widget.isManagement && req.managementDecided)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-              ),
-              child: Row(children: [
-                Icon(Icons.lock_rounded, size: 15, color: Colors.grey.shade500),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Decision locked by Management: $sl'
-                    '${req.decidedBy.isNotEmpty ? ' (${req.decidedBy})' : ''}',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ]),
-            )
-          else if (status == LeaveApprovalStatus.pending)
+        return Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Employee header
             Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: widget.onDeny,
-                  icon: const Icon(Icons.close_rounded, size: 16),
-                  label: const Text('Deny'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    side: BorderSide(color: Colors.red.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: primary.withValues(alpha: isDark ? 0.2 : 0.1),
+                child: Text(
+                  req.employeeName.isNotEmpty
+                      ? req.employeeName[0].toUpperCase()
+                      : '?',
+                  style: TextStyle(
+                      color: primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: widget.onApprove,
-                  icon: const Icon(Icons.check_rounded, size: 16),
-                  label: const Text('Approve'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                  ),
-                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(req.employeeName,
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: onSurface)),
+                      if (req.department.isNotEmpty)
+                        Text(req.department,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: onSurface.withValues(alpha: 0.5))),
+                    ]),
               ),
-            ])
-          else
-            Row(children: [
+              _StatusPill(sl, sc, si),
+            ]),
+            const SizedBox(height: 14),
+
+            // Leave details
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: isDark ? 0.08 : 0.04),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: primary.withValues(alpha: isDark ? 0.18 : 0.08)),
+              ),
+              child: Column(children: [
+                _DetailRow(Icons.label_rounded,      'Leave Type', req.leaveType),
+                const SizedBox(height: 8),
+                _DetailRow(Icons.date_range_rounded, 'Duration',
+                    '${_fmtDate(req.from)}  →  ${_fmtDate(req.to)}'),
+                const SizedBox(height: 8),
+                _DetailRow(Icons.numbers_rounded,    'Days',
+                    req.isHalfDay
+                        ? '½ day'
+                        : '${req.days} day${req.days == 1 ? '' : 's'}'),
+                if (req.reason.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _DetailRow(Icons.notes_rounded, 'Reason', req.reason),
+                ],
+              ]),
+            ),
+            const SizedBox(height: 14),
+
+            // Action row — locked for managers when management has already decided
+            if (!widget.isManagement && req.managementDecided)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: sc.withValues(alpha: 0.08),
+                  color: onSurface.withValues(alpha: isDark ? 0.08 : 0.05),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: onSurface.withValues(alpha: isDark ? 0.15 : 0.12)),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(si, size: 16, color: sc),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$sl by ${req.decidedBy.isEmpty ? 'Manager' : req.decidedBy}',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: sc),
+                child: Row(children: [
+                  Icon(Icons.lock_rounded,
+                      size: 15, color: onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Decision locked by Management: $sl'
+                      '${req.decidedBy.isNotEmpty ? ' (${req.decidedBy})' : ''}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: onSurface.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ]),
-              ),
-              const Spacer(),
-              // Undo button visible only within 10-minute window
-              if (_canUndo)
-                TextButton.icon(
-                  onPressed: widget.onReset,
-                  icon: const Icon(Icons.undo_rounded, size: 15),
-                  label: Text('Undo ($_countdown)',
-                      style: const TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF78909C)),
+              )
+            else if (status == LeaveApprovalStatus.pending)
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: widget.onDeny,
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    label: const Text('Deny'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade400,
+                      side: BorderSide(color: Colors.red.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
                 ),
-            ]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: widget.onApprove,
+                    icon: const Icon(Icons.check_rounded, size: 16),
+                    label: const Text('Approve'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ])
+            else
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: sc.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(si, size: 16, color: sc),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$sl by ${req.decidedBy.isEmpty ? 'Manager' : req.decidedBy}',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: sc),
+                    ),
+                  ]),
+                ),
+                const Spacer(),
+                if (_canUndo)
+                  TextButton.icon(
+                    onPressed: widget.onReset,
+                    icon: const Icon(Icons.undo_rounded, size: 15),
+                    label: Text('Undo ($_countdown)',
+                        style: const TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                        foregroundColor: onSurface.withValues(alpha: 0.5)),
+                  ),
+              ]),
 
-          // Denial reason
-          if (status == LeaveApprovalStatus.denied &&
-              req.rejectionComment.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.red.shade200),
+            // Denial reason
+            if (status == LeaveApprovalStatus.denied &&
+                req.rejectionComment.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: isDark ? 0.15 : 0.07),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: Colors.red.withValues(alpha: isDark ? 0.4 : 0.25)),
+                ),
+                child: Text(req.rejectionComment,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.red.shade300 : Colors.red.shade800)),
               ),
-              child: Text(req.rejectionComment,
-                  style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
-            ),
-          ],
-        ]),
-      ),
+            ],
+          ]),
+        );
+      }),
     );
   }
 }
@@ -783,19 +809,21 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final muted = cs.onSurface.withValues(alpha: 0.5);
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, size: 14, color: const Color(0xFF78909C)),
+      Icon(icon, size: 14, color: muted),
       const SizedBox(width: 8),
       Text('$label: ',
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF78909C),
+              color: muted,
               fontWeight: FontWeight.w500)),
       Expanded(
         child: Text(value,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF1A237E),
+                color: cs.primary,
                 fontWeight: FontWeight.w600)),
       ),
     ]);
