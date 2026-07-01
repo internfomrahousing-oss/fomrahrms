@@ -167,8 +167,10 @@ final _router = GoRouter(
         )),
         GoRoute(path: '/employee-management/records', builder: (_, __) => const HrEmployeeRecordsPage()),
         GoRoute(path: '/leave-management',                builder: (_, __) {
-          // HR goes to their allocation/records page; everyone else (management) goes to approve/deny
           if (UserSession.role == UserRole.hr) return const HrLeaveRecordsPage();
+          if (UserSession.role == UserRole.management) {
+            return const TeamLeaveApprovalsPage(isManagement: true, showAll: true);
+          }
           return const LeaveManagementPage();
         }),
         GoRoute(path: '/leave/apply',                     builder: (_, __) => const ApplyLeavePage()),
