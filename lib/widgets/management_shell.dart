@@ -127,11 +127,12 @@ class _NarrowLayout extends StatelessWidget {
         backgroundColor: _mgmtColor,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          const ThemeToggle(),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () => context.go('/management/notifications'),
           ),
-          const SizedBox(width: 8),
           const Padding(
             padding: EdgeInsets.only(right: 12),
             child: CircleAvatar(
