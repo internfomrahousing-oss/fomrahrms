@@ -55,7 +55,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
   Widget build(BuildContext context) {
     final name = UserSession.name.isNotEmpty ? UserSession.name : 'Admin';
     final wide = MediaQuery.of(context).size.width > 500;
-
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -67,7 +66,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
         ),
       ),
       child: Stack(children: [
-        // Decorative background circles
         Positioned(
           right: -50,
           top: -40,
@@ -92,7 +90,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
             ),
           ),
         ),
-        // Content
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 28, 28, 28),
           child: Row(children: [
@@ -115,19 +112,15 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                     style: const TextStyle(color: Colors.white60, fontSize: 12),
                   ),
                   const SizedBox(height: 16),
-                  // Greeting chip
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(_greetIcon,
-                          color: const Color(0xFFFFD54F), size: 14),
+                      Icon(_greetIcon, color: const Color(0xFFFFD54F), size: 14),
                       const SizedBox(width: 6),
                       Text(
                         '$_greeting, $name',
@@ -141,7 +134,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                 ],
               ),
             ),
-            // Avatar + refresh
             if (wide) ...[
               const SizedBox(width: 16),
               Container(
@@ -150,11 +142,9 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2), width: 1.5),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
                 ),
-                child: Icon(widget.avatarIcon,
-                    color: Colors.white70, size: 30),
+                child: Icon(widget.avatarIcon, color: Colors.white70, size: 30),
               ),
             ],
             if (widget.onRefresh != null) ...[
@@ -166,8 +156,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                   borderRadius: BorderRadius.circular(20),
                   child: const Padding(
                     padding: EdgeInsets.all(8),
-                    child: Icon(Icons.refresh_rounded,
-                        color: Colors.white60, size: 18),
+                    child: Icon(Icons.refresh_rounded, color: Colors.white60, size: 18),
                   ),
                 ),
               ),
