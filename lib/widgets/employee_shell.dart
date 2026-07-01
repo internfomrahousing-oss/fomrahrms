@@ -49,7 +49,14 @@ class _WideLayout extends StatelessWidget {
     return Scaffold(
       body: Row(children: [
         _Sidebar(location: location),
-        Expanded(child: child),
+        Expanded(
+          child: Stack(
+            children: [
+              child,
+              const Positioned(top: 12, right: 16, child: ThemeToggle()),
+            ],
+          ),
+        ),
       ]),
     );
   }
@@ -248,27 +255,21 @@ class _SidebarFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Colors.white12))),
-      child: Column(
-        children: [
-          const ThemeToggle(),
-          const SizedBox(height: 10),
-          InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Row(children: [
-                Icon(Icons.logout_rounded, color: Color(0xFFBBDEFB), size: 18),
-                SizedBox(width: 10),
-                Text('Sign Out',
-                    style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 13)),
-              ]),
-            ),
-          ),
-        ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Row(children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFBBDEFB), size: 18),
+            SizedBox(width: 10),
+            Text('Sign Out',
+                style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 13)),
+          ]),
+        ),
       ),
     );
   }
