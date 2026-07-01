@@ -8,12 +8,14 @@ class ShellTopBar extends StatelessWidget {
   final bool sidebarOpen;
   final VoidCallback onToggle;
   final String homeRoute;
+  final String notificationsRoute;
 
   const ShellTopBar({
     super.key,
     required this.sidebarOpen,
     required this.onToggle,
     required this.homeRoute,
+    required this.notificationsRoute,
   });
 
   @override
@@ -93,6 +95,24 @@ class ShellTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        // Notifications bell
+        Tooltip(
+          message: 'Notifications',
+          child: InkWell(
+            onTap: () => context.go(notificationsRoute),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.notifications_rounded,
+                  color: Colors.white70, size: 20),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
         // Theme toggle
         const ThemeToggle(),
         const SizedBox(width: 16),
