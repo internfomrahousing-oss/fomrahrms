@@ -907,6 +907,50 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  static Future<void> updateGpsPoints({
+    required String employeeId,
+    required String date,
+    required List<List<double>> points,
+  }) async {
+    try {
+      await _db
+          ?.from('attendance_records')
+          .update({'gps_points': points})
+          .eq('id', _attendanceId(employeeId, date));
+    } catch (_) {}
+  }
+
+  static Future<List<List<double>>> fetchGpsPoints({
+    required String employeeId,
+    required String date,
+  }) async {
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select('gps_points')
+          .eq('id', _attendanceId(employeeId, date))
+          .limit(1);
+      if (data == null || (data as List).isEmpty) return [];
+      return _parseGpsPoints((data as List).first['gps_points']);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static List<List<double>> _parseGpsPoints(dynamic raw) {
+    if (raw == null) return [];
+    try {
+      return (raw as List).map<List<double>>((p) {
+        if (p is List && p.length >= 2) {
+          return [(p[0] as num).toDouble(), (p[1] as num).toDouble()];
+        }
+        return [];
+      }).where((p) => p.length == 2).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<void> saveCheckOut({
     required String employeeId,
     required String date,
@@ -936,6 +980,7 @@ class SupabaseService {
         checkInTime:  (row['check_in_time']  as String?) ?? '',
         checkOutTime: (row['check_out_time'] as String?) ?? '',
         location:     (row['location']        as String?) ?? '',
+        gpsPoints:    _parseGpsPoints(row['gps_points']),
       )).toList();
     } catch (_) {
       return [];

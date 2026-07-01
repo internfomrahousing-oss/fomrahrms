@@ -47,7 +47,8 @@ class AttendanceRecord {
   final String date;
   final String checkInTime;
   final String checkOutTime;
-  final String location; // "lat,lng" or empty
+  final String location;
+  final List<List<double>> gpsPoints; // [[lat,lng], ...] route
 
   const AttendanceRecord({
     required this.id,
@@ -57,5 +58,6 @@ class AttendanceRecord {
     this.checkInTime = '',
     this.checkOutTime = '',
     this.location = '',
+    this.gpsPoints = const [],
   });
 }

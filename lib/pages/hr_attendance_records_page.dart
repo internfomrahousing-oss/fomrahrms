@@ -394,9 +394,9 @@ class _AttendanceDetailDialog extends StatelessWidget {
               _InfoRow(Icons.login_rounded, 'Check-In', r.checkInTime.isNotEmpty ? r.checkInTime : '—'),
               const SizedBox(height: 10),
               _InfoRow(Icons.logout_rounded, 'Check-Out', hasCheckOut ? r.checkOutTime : '—'),
-              if (r.location.isNotEmpty) ...[
+              if (r.gpsPoints.isNotEmpty || r.location.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _LocationMap(location: r.location),
+                _RouteMap(record: r),
               ],
               if (r.checkInTime.isNotEmpty && hasCheckOut) ...[
                 const SizedBox(height: 16),
@@ -469,82 +469,122 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ── Location map widget ───────────────────────────────────────────────────────
+// ── Route map widget ─────────────────────────────────────────────────────────
 
-class _LocationMap extends StatefulWidget {
-  final String location; // "lat,lng"
-  const _LocationMap({required this.location});
+class _RouteMap extends StatefulWidget {
+  final AttendanceRecord record;
+  const _RouteMap({required this.record});
 
   @override
-  State<_LocationMap> createState() => _LocationMapState();
+  State<_RouteMap> createState() => _RouteMapState();
 }
 
-class _LocationMapState extends State<_LocationMap> {
+class _RouteMapState extends State<_RouteMap> {
   static final _registered = <String>{};
 
-  String get _viewId => 'hr_loc_${widget.location.replaceAll(RegExp(r'[^0-9.]'), '_')}';
+  String get _viewId {
+    final pts = widget.record.gpsPoints.length;
+    return 'hr_route_${widget.record.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_$pts';
+  }
+
+  List<List<double>> get _points {
+    if (widget.record.gpsPoints.isNotEmpty) return widget.record.gpsPoints;
+    // Fallback: single point from location field
+    final parts = widget.record.location.split(',');
+    if (parts.length == 2) {
+      final lat = double.tryParse(parts[0].trim());
+      final lng = double.tryParse(parts[1].trim());
+      if (lat != null && lng != null) return [[lat, lng]];
+    }
+    return [];
+  }
 
   @override
   void initState() {
     super.initState();
-    final parts = widget.location.split(',');
-    if (parts.length == 2) {
-      final lat = double.tryParse(parts[0].trim());
-      final lng = double.tryParse(parts[1].trim());
-      if (lat != null && lng != null && !_registered.contains(_viewId)) {
-        _registered.add(_viewId);
-        final html = '''
-          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-          <div id="map" style="width:100%;height:100%;border-radius:10px;overflow:hidden;"></div>
-          <script>
-            var map = L.map('map', {zoomControl:false, dragging:false, scrollWheelZoom:false})
-              .setView([$lat,$lng], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            L.marker([$lat,$lng]).addTo(map);
-          </script>
-        ''';
-        final blob = html_lib.Blob([html], 'text/html');
-        final url  = html_lib.Url.createObjectUrl(blob);
-        ui_web.platformViewRegistry.registerViewFactory(
-          _viewId, (_) => html_lib.IFrameElement()
-            ..src = url
-            ..style.border = 'none'
-            ..style.width  = '100%'
-            ..style.height = '100%',
-        );
-      }
-    }
+    final pts = _points;
+    if (pts.isEmpty) return;
+    if (_registered.contains(_viewId)) return;
+    _registered.add(_viewId);
+
+    // Build JS points array
+    final jsPts = pts.map((p) => '[${p[0]},${p[1]}]').join(',');
+
+    final html = '''
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>body{margin:0;padding:0;} #map{width:100%;height:100%;}</style>
+      <div id="map"></div>
+      <script>
+        var pts = [$jsPts];
+        var map = L.map('map', {zoomControl:true});
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          {attribution:'© OpenStreetMap'}).addTo(map);
+
+        if (pts.length > 1) {
+          var route = L.polyline(pts, {color:'#1565C0', weight:4, opacity:0.85}).addTo(map);
+
+          // Green circle = start
+          L.circleMarker(pts[0], {
+            radius:8, color:'#fff', weight:2,
+            fillColor:'#2E7D32', fillOpacity:1
+          }).addTo(map).bindPopup('Check-in location');
+
+          // Red circle = latest point
+          L.circleMarker(pts[pts.length-1], {
+            radius:9, color:'#fff', weight:2,
+            fillColor:'#C62828', fillOpacity:1
+          }).addTo(map).bindPopup('Last known location');
+
+          map.fitBounds(route.getBounds(), {padding:[30,30]});
+        } else {
+          L.marker(pts[0]).addTo(map).bindPopup('Location').openPopup();
+          map.setView(pts[0], 15);
+        }
+      </script>
+    ''';
+
+    final blob = html_lib.Blob([html], 'text/html');
+    final url  = html_lib.Url.createObjectUrl(blob);
+    ui_web.platformViewRegistry.registerViewFactory(
+      _viewId, (_) => html_lib.IFrameElement()
+        ..src = url
+        ..style.border = 'none'
+        ..style.width  = '100%'
+        ..style.height = '100%',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final parts = widget.location.split(',');
-    if (parts.length != 2) return const SizedBox.shrink();
-    final lat = double.tryParse(parts[0].trim());
-    final lng = double.tryParse(parts[1].trim());
-    if (lat == null || lng == null) return const SizedBox.shrink();
+    final pts = _points;
+    if (pts.isEmpty) return const SizedBox.shrink();
 
+    final last = pts.last;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Icon(Icons.location_on_rounded, size: 15, color: Color(0xFF0D47A1)),
+        const Icon(Icons.route_rounded, size: 15, color: Color(0xFF1565C0)),
         const SizedBox(width: 6),
-        Text('Last Known Location',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
+        Text(
+          pts.length > 1 ? 'Route (${pts.length} points)' : 'Last Known Location',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+        ),
       ]),
       const SizedBox(height: 8),
       ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          height: 180,
+          height: 200,
           child: HtmlElementView(viewType: _viewId),
         ),
       ),
       const SizedBox(height: 6),
-      Text('Lat: ${lat.toStringAsFixed(6)}, Lng: ${lng.toStringAsFixed(6)}',
-          style: TextStyle(fontSize: 11,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
+      Text(
+        'Last: ${last[0].toStringAsFixed(6)}, ${last[1].toStringAsFixed(6)}',
+        style: TextStyle(fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+      ),
     ]);
   }
 }
