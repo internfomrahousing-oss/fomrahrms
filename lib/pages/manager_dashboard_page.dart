@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/task_store.dart';
 import '../models/user_session.dart';
-import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 
 class _Section {
@@ -14,17 +12,11 @@ class _Section {
 }
 
 const _hrSections = [
-  _Section('Employee Summary',     Icons.people_rounded,                 Color(0xFF0D47A1), '/manager/employee-management'),
-  _Section('Attendance Summary',   Icons.access_time_rounded,            Color(0xFF2E7D32), '/manager/attendance-management'),
-  _Section('Interview Review',     Icons.rate_review_rounded,            Color(0xFF1565C0), '/manager/interview-review'),
-  _Section('Team Leave Approvals', Icons.group_rounded,                  Color(0xFF283593), '/manager/leave/team-approvals'),
-  _Section('Task Summary',         Icons.task_alt_rounded,               Color(0xFF6A1B9A), '/manager/task-management'),
-  _Section('Performance Summary',  Icons.trending_up_rounded,            Color(0xFF00695C), '/manager/performance-management'),
-  _Section('Payroll Summary',      Icons.account_balance_wallet_rounded, Color(0xFF1565C0), '/manager/payroll-management'),
-  _Section('Lead & Marketing',     Icons.leaderboard_rounded,            Color(0xFFE65100), '/manager/lead-management'),
-  _Section('Maintenance Summary',  Icons.build_rounded,                  Color(0xFF4E342E), '/manager/maintenance-management'),
-  _Section('Approvals Summary',    Icons.approval_rounded,               Color(0xFFC62828), '/manager/approvals'),
-  _Section('Notifications',        Icons.notifications_rounded,          Color(0xFF283593), '/manager/notifications'),
+  _Section('Employee Summary',   Icons.people_rounded,                 Color(0xFF0D47A1), '/manager/employee-management'),
+  _Section('Attendance Summary', Icons.access_time_rounded,            Color(0xFF2E7D32), '/manager/attendance-management'),
+  _Section('Interview Review',   Icons.rate_review_rounded,            Color(0xFF1565C0), '/manager/interview-review'),
+  _Section('Payroll Summary',    Icons.account_balance_wallet_rounded, Color(0xFF1565C0), '/manager/payroll-management'),
+  _Section('Notifications',      Icons.notifications_rounded,          Color(0xFF283593), '/manager/notifications'),
 ];
 
 class _Item {
@@ -153,14 +145,6 @@ class ManagerDashboardPage extends StatelessWidget {
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(
-              icon: Icons.assignment_rounded,
-              label: "My Team's Tasks",
-            ),
-            const SizedBox(height: 12),
-            const _TeamTasksSection(),
-            SizedBox(height: narrow ? 20 : 28),
-
-            _SectionLabel(
               icon: Icons.person_rounded,
               label: 'My Space',
             ),
@@ -173,204 +157,6 @@ class ManagerDashboardPage extends StatelessWidget {
     );
   }
 }
-
-// ── Team tasks section ────────────────────────────────────────────────────────
-
-class _TeamTasksSection extends StatefulWidget {
-  const _TeamTasksSection();
-
-  @override
-  State<_TeamTasksSection> createState() => _TeamTasksSectionState();
-}
-
-class _TeamTasksSectionState extends State<_TeamTasksSection> {
-  List<Task> _teamTasks = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final users = await UserStore.load();
-    final managerName = UserSession.name.trim();
-    final teamNames = users
-        .where((u) => u.reportingManager.trim() == managerName && u.active)
-        .map((u) => u.name.trim())
-        .toSet();
-
-    final allTasks = await SupabaseService.fetchTasks();
-    if (!mounted) return;
-    setState(() {
-      _teamTasks = allTasks
-          .where((t) => teamNames.contains(t.assignedEmployee.trim()))
-          .toList();
-      _loading = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (_teamTasks.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(children: [
-            Icon(Icons.task_alt_rounded, color: Colors.grey.shade300, size: 32),
-            const SizedBox(width: 12),
-            Text('No tasks assigned by team members yet.',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-          ]),
-        ),
-      );
-    }
-
-    final pending = _teamTasks
-        .where((t) => t.status != TaskStatus.completed)
-        .length;
-    final completed =
-        _teamTasks.where((t) => t.status == TaskStatus.completed).length;
-    final overdue = _teamTasks
-        .where((t) =>
-            t.status != TaskStatus.completed &&
-            t.dueDate.isBefore(DateTime.now()))
-        .length;
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Summary chips
-      Row(children: [
-        _StatChip(label: '${_teamTasks.length} Total',
-            color: const Color(0xFF1565C0)),
-        const SizedBox(width: 8),
-        _StatChip(label: '$pending Active', color: const Color(0xFF6A1B9A)),
-        const SizedBox(width: 8),
-        _StatChip(label: '$completed Done', color: Colors.green.shade700),
-        if (overdue > 0) ...[
-          const SizedBox(width: 8),
-          _StatChip(label: '$overdue Overdue', color: Colors.red.shade700),
-        ],
-      ]),
-      const SizedBox(height: 12),
-
-      // Recent tasks (up to 5)
-      ..._teamTasks.take(5).map((t) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _TeamTaskTile(task: t),
-          )),
-
-      // View all link
-      if (_teamTasks.length > 5)
-        TextButton.icon(
-          onPressed: () => context.go('/manager/task-management'),
-          icon: const Icon(Icons.open_in_new_rounded, size: 14),
-          label: Text('View all ${_teamTasks.length} tasks'),
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF1565C0),
-            textStyle: const TextStyle(fontSize: 12),
-          ),
-        ),
-    ]);
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _StatChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600, color: color)),
-    );
-  }
-}
-
-class _TeamTaskTile extends StatelessWidget {
-  final Task task;
-  const _TeamTaskTile({required this.task});
-
-  Color _statusColor(TaskStatus s) => switch (s) {
-        TaskStatus.assigned => const Color(0xFF1565C0),
-        TaskStatus.pending => Colors.orange.shade700,
-        TaskStatus.inProgress => const Color(0xFF6A1B9A),
-        TaskStatus.completed => Colors.green.shade700,
-        TaskStatus.delayed => Colors.red.shade700,
-      };
-
-  String _statusLabel(TaskStatus s) => switch (s) {
-        TaskStatus.assigned => 'Assigned',
-        TaskStatus.pending => 'Pending',
-        TaskStatus.inProgress => 'In Progress',
-        TaskStatus.completed => 'Completed',
-        TaskStatus.delayed => 'Delayed',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final sc = _statusColor(task.status);
-    final isOverdue = task.status != TaskStatus.completed &&
-        task.dueDate.isBefore(DateTime.now());
-
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(task.name,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 2),
-              Text(
-                '${task.assignedEmployee} • Due ${_fmt(task.dueDate)}${isOverdue ? ' · Overdue' : ''}',
-                style: TextStyle(
-                    fontSize: 11,
-                    color: isOverdue ? Colors.red.shade600 : Colors.grey.shade500),
-              ),
-            ]),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: sc.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: sc.withValues(alpha: 0.3)),
-            ),
-            child: Text(_statusLabel(task.status),
-                style: TextStyle(
-                    fontSize: 10, fontWeight: FontWeight.w600, color: sc)),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-String _fmt(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
 // ── Section label ─────────────────────────────────────────────────────────────
 class _SectionLabel extends StatelessWidget {

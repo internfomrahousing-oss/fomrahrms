@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/attendance_store.dart';
-import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -14,15 +12,9 @@ class _Section {
 }
 
 const _sections = [
-  _Section('Employee Summary',     Icons.people_rounded,                 Color(0xFF0D47A1), '/summary/employee'),
-  _Section('Attendance Summary',   Icons.access_time_rounded,            Color(0xFF2E7D32), '/summary/attendance'),
-  _Section('Team Leave Approvals', Icons.group_rounded,                  Color(0xFF283593), '/leave-management'),
-  _Section('Task Summary',         Icons.task_alt_rounded,               Color(0xFF6A1B9A), '/summary/task'),
-  _Section('Performance Summary',  Icons.trending_up_rounded,            Color(0xFF00695C), '/summary/performance'),
-  _Section('Payroll Summary',      Icons.account_balance_wallet_rounded, Color(0xFF1565C0), '/summary/payroll'),
-  _Section('Lead & Marketing',     Icons.leaderboard_rounded,            Color(0xFFE65100), '/summary/lead'),
-  _Section('Maintenance Summary',  Icons.build_rounded,                  Color(0xFF4E342E), '/summary/maintenance'),
-  _Section('Approvals Summary',    Icons.approval_rounded,               Color(0xFFC62828), '/summary/approvals'),
+  _Section('Employee Summary',   Icons.people_rounded,                 Color(0xFF0D47A1), '/summary/employee'),
+  _Section('Attendance Summary', Icons.access_time_rounded,            Color(0xFF2E7D32), '/summary/attendance'),
+  _Section('Payroll Summary',    Icons.account_balance_wallet_rounded, Color(0xFF1565C0), '/summary/payroll'),
 ];
 
 class _Item {
@@ -102,9 +94,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
             _StatStrip(totalEmployees: _totalEmployees),
-            SizedBox(height: narrow ? 20 : 28),
-
-            const _TodayCheckIns(),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(
@@ -362,154 +351,6 @@ class _PersonalGrid extends StatelessWidget {
       }
       return Column(children: rows);
     });
-  }
-}
-
-// ── Today's Check-Ins ─────────────────────────────────────────────────────────
-class _TodayCheckIns extends StatefulWidget {
-  const _TodayCheckIns();
-
-  @override
-  State<_TodayCheckIns> createState() => _TodayCheckInsState();
-}
-
-class _TodayCheckInsState extends State<_TodayCheckIns> {
-  static const _color = Color(0xFF2E7D32);
-  List<AttendanceRecord> _records = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final today = DateTime.now();
-    final dateStr =
-        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
-    final records = await SupabaseService.fetchAttendanceForDate(dateStr);
-    if (mounted) {
-      setState(() {
-        _records = records.where((r) => r.checkInTime.isNotEmpty).toList();
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Expanded(
-          child: _SectionLabel(icon: Icons.login_rounded, label: "Today's Check-Ins"),
-        ),
-        if (!_loading)
-          Tooltip(
-            message: 'Refresh',
-            child: InkWell(
-              onTap: () { setState(() => _loading = true); _load(); },
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(Icons.refresh_rounded, size: 16),
-              ),
-            ),
-          ),
-      ]),
-      const SizedBox(height: 12),
-      if (_loading)
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        )
-      else if (_records.isEmpty)
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.person_off_rounded, size: 36, color: Colors.grey.shade400),
-                const SizedBox(height: 8),
-                Text('No check-ins recorded today',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
-              ]),
-            ),
-          ),
-        )
-      else
-        ..._records.map((r) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Row(children: [
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: _color.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.person_rounded, color: _color, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(r.employeeName,
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text('ID: ${r.employeeId}',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.5))),
-                    ]),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _TimeChip(label: 'In', time: r.checkInTime, color: _color),
-                      if (r.checkOutTime.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        _TimeChip(label: 'Out', time: r.checkOutTime, color: const Color(0xFFC62828)),
-                      ],
-                    ],
-                  ),
-                ]),
-              ),
-            )),
-    ]);
-  }
-}
-
-class _TimeChip extends StatelessWidget {
-  final String label;
-  final String time;
-  final Color color;
-  const _TimeChip({required this.label, required this.time, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(label,
-            style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.7))),
-        const SizedBox(width: 4),
-        Text(time,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
-      ]),
-    );
   }
 }
 
