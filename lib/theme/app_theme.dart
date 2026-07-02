@@ -22,7 +22,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+      scaffoldBackgroundColor: const Color(0xFFE8ECF1),
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryBlue,
         foregroundColor: white,
@@ -37,8 +37,8 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: white,
-        elevation: 2,
-        shadowColor: Colors.black12,
+        elevation: 3,
+        shadowColor: Colors.black.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
