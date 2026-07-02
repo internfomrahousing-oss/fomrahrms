@@ -61,7 +61,6 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
     if (_workedDate == null || _claimDate == null) {
       _snack('Please select both dates.'); return;
     }
-
     final reason = _reasonController.text.trim();
     final note   = 'Worked on: ${_fmtDate(_workedDate!)}'
         '${reason.isNotEmpty ? ' | $reason' : ''}';
@@ -82,6 +81,10 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
     SupabaseService.saveLeaveApplication(app);
 
     _snack('Comp Off request submitted successfully.');
+    _clear();
+  }
+
+  void _clear() {
     setState(() { _workedDate = null; _claimDate = null; });
     _reasonController.clear();
   }
@@ -102,7 +105,7 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Header
+          // ── Header ────────────────────────────────────────────────────
           Row(children: [
             const NavBackButton(),
             const SizedBox(width: 8),
@@ -115,153 +118,163 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
               child: const Icon(Icons.swap_horiz_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
-            Text('Apply Comp Off', style: Theme.of(context).textTheme.headlineMedium),
+            Text('Apply Comp Off',
+                style: Theme.of(context).textTheme.headlineMedium),
           ]),
           const SizedBox(height: 24),
-
-          // Info banner
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: _color.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _color.withValues(alpha: 0.2)),
-            ),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.info_outline_rounded, size: 16, color: _color),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Compensatory Off is granted for working on a holiday or weekend. '
-                  'Select the date you worked and the date you wish to take off.',
-                  style: TextStyle(fontSize: 12, color: _color),
-                ),
-              ),
-            ]),
-          ),
-          const SizedBox(height: 20),
 
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // Worked date
-                _SectionLabel('Date Worked (Holiday / Weekend)', _color),
-                const SizedBox(height: 8),
-                _DateTile(
-                  label: 'Date I worked',
-                  value: _workedDate != null ? _fmtDate(_workedDate!) : null,
-                  onTap: _pickWorked,
-                  color: _color,
-                ),
-                const SizedBox(height: 16),
-
-                // Claim date
-                _SectionLabel('Date to Claim Comp Off', _color),
-                const SizedBox(height: 8),
-                _DateTile(
-                  label: 'Day off I want',
-                  value: _claimDate != null ? _fmtDate(_claimDate!) : null,
-                  onTap: _pickClaim,
-                  color: _color,
-                ),
-                const SizedBox(height: 16),
-
-                // Reason
-                TextField(
-                  controller: _reasonController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Reason / Notes (optional)',
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.only(bottom: 40),
-                      child: Icon(Icons.notes_rounded, color: _color, size: 20),
-                    ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: _color, width: 2),
-                    ),
-                    filled: true, fillColor: Colors.white,
-                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Date worked ───────────────────────────────────────
+                  _DateField(
+                    label: 'Date Worked',
+                    hint: 'Select holiday / weekend worked',
+                    date: _workedDate,
+                    color: _color,
+                    onTap: _pickWorked,
+                    fmt: _fmtDate,
                   ),
-                ),
-              ]),
+                  const SizedBox(height: 14),
+
+                  // ── Claim date ────────────────────────────────────────
+                  _DateField(
+                    label: 'Comp Off Date',
+                    hint: 'Select day off you want',
+                    date: _claimDate,
+                    color: _color,
+                    onTap: _pickClaim,
+                    fmt: _fmtDate,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Reason / description ──────────────────────────────
+                  TextField(
+                    controller: _reasonController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      labelText: 'Reason / Description',
+                      alignLabelWithHint: true,
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.only(bottom: 72),
+                        child: Icon(Icons.notes_rounded, color: _color, size: 20),
+                      ),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: _color, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      labelStyle:
+                          const TextStyle(color: Color(0xFF78909C)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.send_rounded),
-              label: const Text('Submit Comp Off Request'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _color,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          // ── Buttons ───────────────────────────────────────────────────
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _clear,
+                icon: const Icon(Icons.clear_rounded),
+                label: const Text('Clear'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _color,
+                  side: const BorderSide(color: _color),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: _submit,
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('Apply Comp Off'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _color,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]),
         ]),
       ),
     );
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  final Color color;
-  const _SectionLabel(this.text, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(text,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color));
-  }
-}
-
-class _DateTile extends StatelessWidget {
+class _DateField extends StatelessWidget {
   final String label;
-  final String? value;
-  final VoidCallback onTap;
+  final String hint;
+  final DateTime? date;
   final Color color;
-  const _DateTile({required this.label, required this.value,
-      required this.onTap, required this.color});
+  final VoidCallback onTap;
+  final String Function(DateTime) fmt;
+  const _DateField({
+    required this.label, required this.hint, required this.date,
+    required this.color, required this.onTap, required this.fmt,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: value != null ? color.withValues(alpha: 0.05) : Colors.white,
+          color: date != null ? color.withValues(alpha: 0.05) : Colors.white,
           border: Border.all(
-            color: value != null ? color.withValues(alpha: 0.4) : const Color(0xFFE0E0E0),
-            width: value != null ? 1.5 : 1,
+            color: date != null
+                ? color.withValues(alpha: 0.4)
+                : const Color(0xFFE0E0E0),
+            width: date != null ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [
-          Icon(Icons.calendar_today_rounded, size: 18,
-              color: value != null ? color : const Color(0xFF90A4AE)),
-          const SizedBox(width: 10),
+          Icon(Icons.calendar_today_rounded,
+              size: 18,
+              color: date != null ? color : const Color(0xFF90A4AE)),
+          const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(fontSize: 11,
-                color: value != null ? color : const Color(0xFF78909C),
-                fontWeight: FontWeight.w600)),
-            const SizedBox(height: 3),
-            Text(value ?? 'Select date',
-                style: TextStyle(fontSize: 13,
-                    fontWeight: value != null ? FontWeight.w600 : FontWeight.normal,
-                    color: value != null ? const Color(0xFF1A237E) : const Color(0xFF90A4AE))),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: date != null ? color : const Color(0xFF78909C),
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(
+              date != null ? fmt(date!) : hint,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight:
+                    date != null ? FontWeight.w600 : FontWeight.normal,
+                color: date != null
+                    ? const Color(0xFF1A237E)
+                    : const Color(0xFF90A4AE),
+              ),
+            ),
           ]),
         ]),
       ),
