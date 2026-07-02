@@ -1,118 +1,305 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/leave_store.dart';
+import '../models/user_session.dart';
+import '../services/supabase_service.dart';
 
-class EmployeeLeavePage extends StatelessWidget {
+class EmployeeLeavePage extends StatefulWidget {
   final String prefix;
   const EmployeeLeavePage({super.key, this.prefix = '/employee'});
 
-  static const _blue = Color(0xFF0D47A1);
+  @override
+  State<EmployeeLeavePage> createState() => _EmployeeLeavePageState();
+}
+
+class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
+  static const _blue   = Color(0xFF0D47A1);
+  static const _purple = Color(0xFF6A1B9A);
+
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    try {
+      final fresh = await SupabaseService.fetchLeaveApplications()
+          .timeout(const Duration(seconds: 8));
+      if (fresh.isNotEmpty) {
+        LeaveStore.applications
+          ..clear()
+          ..addAll(fresh);
+        LeaveStore.syncCounter();
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  List<LeaveApplication> get _apps => LeaveStore.applications
+      .where((a) => a.employeeName == UserSession.name)
+      .toList();
+
+  int get _pending  => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.pending).length;
+  int get _approved => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.approved).length;
+  int get _denied   => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.denied).length;
 
   @override
   Widget build(BuildContext context) {
-    final topics = [
-      _Topic('Apply Leave',   Icons.event_available_rounded, const Color(0xFF0D47A1), '$prefix/leave/apply'),
-      _Topic('Leave Balance', Icons.balance_rounded,         const Color(0xFF1976D2), '$prefix/leave/balance'),
-      _Topic('Leave History', Icons.history_rounded,         const Color(0xFF283593), '$prefix/leave/approvals'),
-    ];
-
     return Scaffold(
-      backgroundColor: null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.beach_access_rounded, color: _blue, size: 22),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Column(children: [
+        // ── Header ────────────────────────────────────────────────────────
+        Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+          child: Row(children: [
+            Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text('Leave Management',
-                    style: Theme.of(context).textTheme.headlineMedium),
-              ),
-            ]),
-            const SizedBox(height: 20),
+              child: const Icon(Icons.beach_access_rounded, color: _blue, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Leave Management',
+                  style: Theme.of(context).textTheme.headlineMedium),
+            ),
 
-            // Sub-page cards
-            LayoutBuilder(builder: (context, constraints) {
-              final cols = constraints.maxWidth > 600 ? 3 : 2;
-              final rows = <Widget>[];
-              for (int i = 0; i < topics.length; i += cols) {
-                final end = (i + cols) > topics.length ? topics.length : i + cols;
-                final rowItems = topics.sublist(i, end);
-                rows.add(Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: rowItems.map((t) {
-                    final isLast = rowItems.last == t;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: isLast ? 0 : 12, bottom: 12),
-                        child: _TopicCard(topic: t),
-                      ),
-                    );
-                  }).toList(),
-                ));
-              }
-              return Column(children: rows);
-            }),
-          ],
+            // ── Leave Balance button ────────────────────────────────────
+            OutlinedButton.icon(
+              onPressed: () => context.push('${widget.prefix}/leave/balance'),
+              icon: const Icon(Icons.balance_rounded, size: 15),
+              label: const Text('Leave Balance', style: TextStyle(fontSize: 12)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _blue,
+                side: const BorderSide(color: _blue),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // ── Apply Leave button ──────────────────────────────────────
+            ElevatedButton.icon(
+              onPressed: () => context.push('${widget.prefix}/leave/apply'),
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('Apply Leave', style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _purple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.refresh_rounded, color: _blue, size: 20),
+              onPressed: _loadData,
+            ),
+          ]),
         ),
+        const Divider(height: 1),
+
+        // ── Status summary ─────────────────────────────────────────────
+        Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Row(children: [
+            _StatusChip('Pending',  Icons.hourglass_empty_rounded,
+                Colors.orange.shade700, _pending),
+            const SizedBox(width: 10),
+            _StatusChip('Approved', Icons.check_circle_rounded,
+                Colors.green.shade700, _approved),
+            const SizedBox(width: 10),
+            _StatusChip('Denied',   Icons.cancel_rounded,
+                Colors.red.shade700, _denied),
+          ]),
+        ),
+        const Divider(height: 1),
+
+        // ── Leave history list ─────────────────────────────────────────
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _apps.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          Text('No leave history yet',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
+                          const SizedBox(height: 6),
+                          Text('Tap "Apply Leave" to submit your first request.',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: _apps.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _AppCard(app: _apps[i]),
+                    ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Leave application card ─────────────────────────────────────────────────────
+class _AppCard extends StatelessWidget {
+  final LeaveApplication app;
+  const _AppCard({required this.app});
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Color _statusColor(LeaveApprovalStatus s) => switch (s) {
+        LeaveApprovalStatus.approved => Colors.green.shade700,
+        LeaveApprovalStatus.denied   => Colors.red.shade700,
+        LeaveApprovalStatus.pending  => Colors.orange.shade700,
+      };
+
+  IconData _statusIcon(LeaveApprovalStatus s) => switch (s) {
+        LeaveApprovalStatus.approved => Icons.check_circle_rounded,
+        LeaveApprovalStatus.denied   => Icons.cancel_rounded,
+        LeaveApprovalStatus.pending  => Icons.hourglass_empty_rounded,
+      };
+
+  String _statusLabel(LeaveApprovalStatus s) => switch (s) {
+        LeaveApprovalStatus.approved => 'Approved',
+        LeaveApprovalStatus.denied   => 'Denied',
+        LeaveApprovalStatus.pending  => 'Pending',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final status = app.effectiveStatus;
+    final sColor = _statusColor(status);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Top row: leave type + status pill
+          Row(children: [
+            Expanded(
+              child: Text(app.leaveType,
+                  style: const TextStyle(fontSize: 13,
+                      fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+            ),
+            _StatusPill(_statusLabel(status), sColor, _statusIcon(status)),
+          ]),
+          const SizedBox(height: 10),
+
+          Wrap(spacing: 16, runSpacing: 6, children: [
+            _InfoChip(Icons.calendar_today_rounded,
+                '${_fmt(app.from)} → ${_fmt(app.to)}'),
+            _InfoChip(Icons.numbers_rounded,
+                app.isHalfDay ? '½ day' : '${app.days} day${app.days == 1 ? '' : 's'}'),
+            _InfoChip(Icons.access_time_rounded,
+                'Applied: ${_fmt(app.appliedOn)}'),
+            if (app.reason.isNotEmpty)
+              _InfoChip(Icons.notes_rounded, app.reason),
+          ]),
+
+          if (status == LeaveApprovalStatus.denied &&
+              app.effectiveComment.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.info_outline_rounded, size: 13, color: Colors.red.shade700),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(app.effectiveComment,
+                      style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
+                ),
+              ]),
+            ),
+          ],
+        ]),
       ),
     );
   }
 }
 
-class _Topic {
-  final String title;
-  final IconData icon;
+class _StatusPill extends StatelessWidget {
+  final String label;
   final Color color;
-  final String route;
-  const _Topic(this.title, this.icon, this.color, this.route);
-}
-
-class _TopicCard extends StatelessWidget {
-  final _Topic topic;
-  const _TopicCard({required this.topic});
+  final IconData icon;
+  const _StatusPill(this.label, this.color, this.icon);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push(topic.route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(
-                  color: topic.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(topic.icon, color: topic.color, size: 24),
-              ),
-              const SizedBox(height: 10),
-              Text(topic.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A237E))),
-              const SizedBox(height: 4),
-              Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: topic.color.withValues(alpha: 0.6)),
-            ],
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 5),
+        Text(label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      ]),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _InfoChip(this.icon, this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 12, color: const Color(0xFF78909C)),
+      const SizedBox(width: 4),
+      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+    ]);
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final int count;
+  const _StatusChip(this.label, this.icon, this.color, this.count);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text('$count $label',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+      ]),
     );
   }
 }
