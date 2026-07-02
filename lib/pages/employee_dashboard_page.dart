@@ -92,7 +92,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     final name   = UserSession.name;
 
     return Material(
-      color: null,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
         padding: EdgeInsets.all(pad),
         child: Column(

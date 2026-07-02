@@ -58,7 +58,7 @@ class ManagerDashboardPage extends StatelessWidget {
     final pad    = narrow ? 16.0 : 24.0;
 
     return Material(
-      color: null,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
         padding: EdgeInsets.all(pad),
         child: Column(

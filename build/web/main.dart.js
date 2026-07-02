@@ -110163,8 +110163,8 @@ i=B.m.dN(k-j,0,k)
 if(q.c!=null)q.q(new A.aJP(q,k,j,i))
 return A.o(null,r)}})
 return A.p($async$tR,r)},
-n(a){var s=this,r=null,q=A.aw(a,r,t.l).w.a.a<700,p=q?16:24,o=s.d,n=s.e,m=s.f,l=A.bd(r,q?20:28,r),k=t.p
-return A.cO(B.Q,!0,r,A.bW(A.A(A.a([new A.Ly("Fomra Housing & Infrastructure",s.gau3(),r),new A.I(new A.a4(p,p,p,p),A.A(A.a([new A.aaW(o,n,m,r),l,new A.Q6(B.eN,"Team Overview",r),B.G,new A.aa7(r),A.bd(r,q?20:28,r),new A.Q6(B.bf,"My Space",r),B.G,new A.a7G(B.a5p,r),B.R],k),B.o,B.c,B.e,0,B.i),r)],k),B.o,B.c,B.e,0,B.i),r,B.t,r,r,r,B.H),B.h,r,0,r,r,r,r,r,B.aQ)}}
+n(a){var s=this,r=null,q=A.aw(a,r,t.l).w.a.a<700,p=q?16:24,o=A.v(a),n=s.d,m=s.e,l=s.f,k=A.bd(r,q?20:28,r),j=t.p
+return A.cO(B.Q,!0,r,A.bW(A.A(A.a([new A.Ly("Fomra Housing & Infrastructure",s.gau3(),r),new A.I(new A.a4(p,p,p,p),A.A(A.a([new A.aaW(n,m,l,r),k,new A.Q6(B.eN,"Team Overview",r),B.G,new A.aa7(r),A.bd(r,q?20:28,r),new A.Q6(B.bf,"My Space",r),B.G,new A.a7G(B.a5p,r),B.R],j),B.o,B.c,B.e,0,B.i),r)],j),B.o,B.c,B.e,0,B.i),r,B.t,r,r,r,B.H),B.h,o.fx,0,r,r,r,r,r,B.aQ)}}
 A.aJO.prototype={
 $1(a){return a.e.length!==0},
 $S:95}
@@ -112254,20 +112254,20 @@ break
 case 5:return A.o(null,r)
 case 1:return A.n(p.at(-1),r)}})
 return A.p($async$q6,r)},
-n(a){var s,r,q=this,p=null,o=A.aw(a,p,t.l).w.a.a<700,n=o?16:24,m=$.dk,l=t.p,k=A.a([],l)
-if(!o)B.b.v(k,A.a([A.y(A.a([A.A(A.a([A.f("My Dashboard",p,p,p,p,A.v(a).ok.e,p,p,p),B.a7,A.f("FOMRA Housing & Infrastructure",p,p,p,p,A.v(a).ok.z,p,p,p)],l),B.o,B.c,B.e,0,B.i),A.bp(p,p,p,B.en,p,p,q.gamT(),p,p,p,"Refresh",p)],l),B.f,B.i4,B.e,0,p),B.br],l))
+n(a){var s,r,q=this,p=null,o=A.aw(a,p,t.l).w.a.a<700,n=o?16:24,m=$.dk,l=A.v(a),k=t.p,j=A.a([],k)
+if(!o)B.b.v(j,A.a([A.y(A.a([A.A(A.a([A.f("My Dashboard",p,p,p,p,A.v(a).ok.e,p,p,p),B.a7,A.f("FOMRA Housing & Infrastructure",p,p,p,p,A.v(a).ok.z,p,p,p)],k),B.o,B.c,B.e,0,B.i),A.bp(p,p,p,B.en,p,p,q.gamT(),p,p,p,"Refresh",p)],k),B.f,B.i4,B.e,0,p),B.br],k))
 s=A.h(16)
 r=A.a([new A.bX(0,B.au,B.n.H(0.3),B.lq,16)],t.V)
-k.push(A.x(p,A.y(A.a([B.Sy,B.b5,A.U(A.A(A.a([B.vo,A.f(m.length!==0?m:"Employee",p,p,p,p,B.v8,p,p,p),B.a7,A.x(p,B.apL,B.h,p,p,new A.B(B.fZ,p,p,A.h(20),p,p,B.l),p,p,p,B.n0,p,p,p)],l),B.o,B.c,B.e,0,B.i),1)],l),B.f,B.c,B.e,0,p),B.h,p,p,new A.B(p,p,p,s,r,B.a1X,B.l),p,p,p,B.L,p,p,1/0))
-k.push(A.bd(p,o?16:24,p))
-if(q.f)k.push(B.abe)
+j.push(A.x(p,A.y(A.a([B.Sy,B.b5,A.U(A.A(A.a([B.vo,A.f(m.length!==0?m:"Employee",p,p,p,p,B.v8,p,p,p),B.a7,A.x(p,B.apL,B.h,p,p,new A.B(B.fZ,p,p,A.h(20),p,p,B.l),p,p,p,B.n0,p,p,p)],k),B.o,B.c,B.e,0,B.i),1)],k),B.f,B.c,B.e,0,p),B.h,p,p,new A.B(p,p,p,s,r,B.a1X,B.l),p,p,p,B.L,p,p,1/0))
+j.push(A.bd(p,o?16:24,p))
+if(q.f)j.push(B.abe)
 else{s=q.e
 if(s!=null||q.d!=null){r=q.d
-B.b.v(k,A.a([new A.Q7(B.Z9,"My Journey",p),B.G,new A.a6j(s,r,p),A.bd(p,o?16:24,p)],l))}}k.push(new A.Q7(B.Yv,"Quick Access",p))
-k.push(B.G)
-k.push(A.hG(new A.aO4()))
-k.push(B.M)
-return A.cO(B.Q,!0,p,A.bW(A.A(k,B.o,B.c,B.e,0,B.i),p,B.t,new A.a4(n,n,n,n),p,p,B.H),B.h,p,0,p,p,p,p,p,B.aQ)}}
+B.b.v(j,A.a([new A.Q7(B.Z9,"My Journey",p),B.G,new A.a6j(s,r,p),A.bd(p,o?16:24,p)],k))}}j.push(new A.Q7(B.Yv,"Quick Access",p))
+j.push(B.G)
+j.push(A.hG(new A.aO4()))
+j.push(B.M)
+return A.cO(B.Q,!0,p,A.bW(A.A(j,B.o,B.c,B.e,0,B.i),p,B.t,new A.a4(n,n,n,n),p,p,B.H),B.h,l.fx,0,p,p,p,p,p,B.aQ)}}
 A.aO0.prototype={
 $0(){return this.a.f=!0},
 $S:0}
@@ -117182,19 +117182,19 @@ case 2:p=b
 if(q.c!=null)q.q(new A.aW3(q,p))
 return A.o(null,r)}})
 return A.p($async$y9,r)},
-n(a){var s,r,q,p,o=null,n=A.aw(a,o,t.l).w.a.a<700,m=n?16:24,l=t.p,k=A.a([],l)
-if(!n)k.push(A.A(A.a([A.f("Management Dashboard",o,o,o,o,A.v(a).ok.e,o,o,o),B.a7,A.f("FOMRA Housing & Infrastructure \u2014 Management Portal",o,o,o,o,A.v(a).ok.z,o,o,o)],l),B.o,B.c,B.e,0,B.i))
-if(n)k.push(B.aZ)
-k.push(A.bp(o,o,o,B.a0s,o,o,this.gauf(),o,o,o,"Refresh",o))
-k=A.y(k,B.f,B.i4,B.e,0,o)
+n(a){var s,r,q,p,o=null,n=A.aw(a,o,t.l).w.a.a<700,m=n?16:24,l=A.v(a),k=t.p,j=A.a([],k)
+if(!n)j.push(A.A(A.a([A.f("Management Dashboard",o,o,o,o,A.v(a).ok.e,o,o,o),B.a7,A.f("FOMRA Housing & Infrastructure \u2014 Management Portal",o,o,o,o,A.v(a).ok.z,o,o,o)],k),B.o,B.c,B.e,0,B.i))
+if(n)j.push(B.aZ)
+j.push(A.bp(o,o,o,B.a0s,o,o,this.gauf(),o,o,o,"Refresh",o))
+j=A.y(j,B.f,B.i4,B.e,0,o)
 s=A.h(16)
 r=A.a([new A.bX(0,B.au,B.a3.H(0.35),B.lq,16)],t.V)
 q=$.dk
-s=A.x(o,A.y(A.a([B.x_,B.b5,A.U(A.A(A.a([B.vo,A.f(q.length!==0?q:"Management",o,o,o,o,B.v8,o,o,o),B.a7,A.x(o,B.ap3,B.h,o,o,new A.B(B.fZ,o,o,A.h(20),o,o,B.l),o,o,o,B.n0,o,o,o)],l),B.o,B.c,B.e,0,B.i),1)],l),B.f,B.c,B.e,0,o),B.h,o,o,new A.B(o,o,o,s,r,B.a1T,B.l),o,o,o,B.L,o,o,1/0)
+s=A.x(o,A.y(A.a([B.x_,B.b5,A.U(A.A(A.a([B.vo,A.f(q.length!==0?q:"Management",o,o,o,o,B.v8,o,o,o),B.a7,A.x(o,B.ap3,B.h,o,o,new A.B(B.fZ,o,o,A.h(20),o,o,B.l),o,o,o,B.n0,o,o,o)],k),B.o,B.c,B.e,0,B.i),1)],k),B.f,B.c,B.e,0,o),B.h,o,o,new A.B(o,o,o,s,r,B.a1T,B.l),o,o,o,B.L,o,o,1/0)
 r=A.bd(o,n?16:24,o)
 q=this.d
 p=A.bd(o,n?20:28,o)
-return A.cO(B.Q,!0,o,A.bW(A.A(A.a([k,B.br,s,r,new A.aaX(q,o),p,new A.Q8(B.hN,"Management Overview",o),B.G,new A.aa8(o),A.bd(o,n?20:28,o),new A.Q8(B.bf,"My Space",o),B.G,new A.a7H(o),B.R],l),B.o,B.c,B.e,0,B.i),o,B.t,new A.a4(m,m,m,m),o,o,B.H),B.h,o,0,o,o,o,o,o,B.aQ)}}
+return A.cO(B.Q,!0,o,A.bW(A.A(A.a([j,B.br,s,r,new A.aaX(q,o),p,new A.Q8(B.hN,"Management Overview",o),B.G,new A.aa8(o),A.bd(o,n?20:28,o),new A.Q8(B.bf,"My Space",o),B.G,new A.a7H(o),B.R],k),B.o,B.c,B.e,0,B.i),o,B.t,new A.a4(m,m,m,m),o,o,B.H),B.h,l.fx,0,o,o,o,o,o,B.aQ)}}
 A.aW3.prototype={
 $0(){return this.a.d=B.m.j(J.b_(this.b))},
 $S:0}
@@ -118126,23 +118126,23 @@ A.nM.prototype={}
 A.pV.prototype={}
 A.nQ.prototype={}
 A.Aw.prototype={
-n(a){var s,r,q=null,p=A.aw(a,q,t.l).w.a.a<700,o=p?16:24,n=t.p,m=A.a([],n)
-if(!p)B.b.v(m,A.a([A.A(A.a([A.f("Dashboard",q,q,q,q,A.v(a).ok.e,q,q,q),B.a7,A.f("FOMRA Housing & Infrastructure",q,q,q,q,A.v(a).ok.z,q,q,q)],n),B.o,B.c,B.e,0,B.i),B.br],n))
+n(a){var s,r,q=null,p=A.aw(a,q,t.l).w.a.a<700,o=p?16:24,n=A.v(a),m=t.p,l=A.a([],m)
+if(!p)B.b.v(l,A.a([A.A(A.a([A.f("Dashboard",q,q,q,q,A.v(a).ok.e,q,q,q),B.a7,A.f("FOMRA Housing & Infrastructure",q,q,q,q,A.v(a).ok.z,q,q,q)],m),B.o,B.c,B.e,0,B.i),B.br],m))
 s=A.h(16)
 r=A.a([new A.bX(0,B.au,B.aA.H(0.3),B.lq,16)],t.V)
-m.push(A.x(q,A.y(A.a([B.x_,B.b5,A.U(A.A(A.a([B.vo,B.arp,B.a7,A.x(q,B.ar3,B.h,q,q,new A.B(B.fZ,q,q,A.h(20),q,q,B.l),q,q,q,B.n0,q,q,q)],n),B.o,B.c,B.e,0,B.i),1)],n),B.f,B.c,B.e,0,q),B.h,q,q,new A.B(q,q,q,s,r,B.a1W,B.l),q,q,q,B.L,q,q,1/0))
-m.push(A.bd(q,p?16:24,q))
-m.push(new A.aaV(q))
-m.push(A.bd(q,p?20:28,q))
-m.push(new A.Q5(B.eN,"Team Overview",q))
-m.push(B.G)
-m.push(new A.aa6(B.a5D,q))
-m.push(A.bd(q,p?20:28,q))
-m.push(new A.Q5(B.bf,"My Space",q))
-m.push(B.G)
-m.push(new A.a7F(B.a4p,q))
-m.push(B.R)
-return A.cO(B.Q,!0,q,A.bW(A.A(m,B.o,B.c,B.e,0,B.i),q,B.t,new A.a4(o,o,o,o),q,q,B.H),B.h,q,0,q,q,q,q,q,B.aQ)}}
+l.push(A.x(q,A.y(A.a([B.x_,B.b5,A.U(A.A(A.a([B.vo,B.arp,B.a7,A.x(q,B.ar3,B.h,q,q,new A.B(B.fZ,q,q,A.h(20),q,q,B.l),q,q,q,B.n0,q,q,q)],m),B.o,B.c,B.e,0,B.i),1)],m),B.f,B.c,B.e,0,q),B.h,q,q,new A.B(q,q,q,s,r,B.a1W,B.l),q,q,q,B.L,q,q,1/0))
+l.push(A.bd(q,p?16:24,q))
+l.push(new A.aaV(q))
+l.push(A.bd(q,p?20:28,q))
+l.push(new A.Q5(B.eN,"Team Overview",q))
+l.push(B.G)
+l.push(new A.aa6(B.a5D,q))
+l.push(A.bd(q,p?20:28,q))
+l.push(new A.Q5(B.bf,"My Space",q))
+l.push(B.G)
+l.push(new A.a7F(B.a4p,q))
+l.push(B.R)
+return A.cO(B.Q,!0,q,A.bW(A.A(l,B.o,B.c,B.e,0,B.i),q,B.t,new A.a4(o,o,o,o),q,q,B.H),B.h,n.fx,0,q,q,q,q,q,B.aQ)}}
 A.Q5.prototype={
 n(a){var s,r=null,q=A.v(a).ax,p=q.b,o=p.H(0.12),n=A.h(8)
 n=A.x(r,A.aa(this.c,p,r,r,18),B.h,r,r,new A.B(o,r,r,n,r,r,B.l),r,32,r,r,r,r,32)
