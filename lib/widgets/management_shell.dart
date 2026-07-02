@@ -14,7 +14,7 @@ class _NavItem {
   const _NavItem(this.label, this.icon, this.route);
 }
 
-const _mgmtColor = Color(0xFF4A148C);
+const _mgmtColor = AppTheme.primaryBlueDark;
 
 const _navItems = [
   _NavItem('Dashboard',              Icons.dashboard_rounded,              '/management/dashboard'),
@@ -153,7 +153,7 @@ class _NarrowLayout extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.only(right: 12),
             child: CircleAvatar(
-              backgroundColor: Color(0xFF7B1FA2),
+              backgroundColor: AppTheme.primaryBlue,
               radius: 16,
               child: Icon(Icons.person, color: Colors.white, size: 18),
             ),
@@ -225,7 +225,7 @@ class _SidebarHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.apartment_rounded,
-                    color: _mgmtColor, size: 26),
+                    color: AppTheme.primaryBlue, size: 26),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -239,7 +239,7 @@ class _SidebarHeader extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5)),
                     Text('Management Portal',
-                        style: TextStyle(color: Color(0xFFE1BEE7), fontSize: 10)),
+                        style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 10)),
                   ],
                 ),
               ),
@@ -255,7 +255,7 @@ class _SidebarHeader extends StatelessWidget {
             child: Row(children: [
               const CircleAvatar(
                 radius: 16,
-                backgroundColor: Color(0xFF7B1FA2),
+                backgroundColor: AppTheme.primaryBlue,
                 child: Icon(Icons.person, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
@@ -271,7 +271,7 @@ class _SidebarHeader extends StatelessWidget {
                           fontWeight: FontWeight.w600),
                     ),
                     const Text('Management',
-                        style: TextStyle(color: Color(0xFFE1BEE7), fontSize: 11)),
+                        style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 11)),
                   ],
                 ),
               ),
