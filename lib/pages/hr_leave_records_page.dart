@@ -250,18 +250,6 @@ static String _fmtD(double d) =>
                         style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
                   ]),
                 ),
-                // Allocation badge (read-only)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _color.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _color.withValues(alpha: 0.2)),
-                  ),
-                  child: Text('${user.leaveAllocation} days',
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.bold, color: _color)),
-                ),
               ]),
               const SizedBox(height: 12),
               const Divider(height: 1),
