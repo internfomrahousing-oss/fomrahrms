@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -33,10 +34,12 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   bool   _isHalfDay  = false;
   final _reasonController = TextEditingController();
 
-  int    _monthlyAllocation = 0;
-  double _usedThisMonth     = 0.0;
-  bool   _isOnroll          = false;
-  bool   _isElEligible      = false;
+  double _usedCl       = 0.0;
+  double _usedMl       = 0.0;
+  double _usedEl       = 0.0;
+  int    _accruedEl    = 0;
+  bool   _isOnroll     = false;
+  bool   _isElEligible = false;
 
   List<String> get _leaveTypes {
     if (_isElEligible) {
@@ -53,8 +56,32 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
         .toList();
   }
 
-  double get _remainingThisMonth =>
-      (_monthlyAllocation - _usedThisMonth).clamp(0.0, _monthlyAllocation.toDouble());
+  String get _bucketLabel {
+    switch (LeaveStore.effectiveBucket(_leaveType)) {
+      case 'ML':  return 'Medical Leave';
+      case 'EL':  return 'Earned Leave';
+      case 'LOP': return 'LOP';
+      default:    return 'Casual Leave';
+    }
+  }
+
+  double get _usedForBucket {
+    switch (LeaveStore.effectiveBucket(_leaveType)) {
+      case 'ML': return _usedMl;
+      case 'EL': return _usedEl;
+      default:   return _usedCl;
+    }
+  }
+
+  double get _remaining {
+    final bucket = LeaveStore.effectiveBucket(_leaveType);
+    switch (bucket) {
+      case 'ML':  return _isOnroll ? (1.0 - _usedMl).clamp(0.0, 1.0) : 0.0;
+      case 'EL':  return (_accruedEl.toDouble() - _usedEl).clamp(0.0, _accruedEl.toDouble());
+      case 'LOP': return double.infinity;
+      default:    return (1.0 - _usedCl).clamp(0.0, 1.0);
+    }
+  }
 
   /// Calendar days selected (always >= 1).
   int get _calendarDays {
@@ -85,32 +112,56 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
         UserStore.load(),
         SupabaseService.fetchLeaveApplications(),
       ]);
-      final users  = results[0] as List;
+      final users  = (results[0] as List).cast<AppUser>();
       final leaves = results[1] as List<LeaveApplication>;
 
-      final match = users.where((u) => u.name == UserSession.name).toList();
-      final me = match.isNotEmpty ? match.first : null;
-      final allocation = me?.leaveAllocation ?? 21;
+      final matches = users.where((u) => u.name == UserSession.name).toList();
+      final me      = matches.isNotEmpty ? matches.first : null;
 
+      // EL cutoff for cumulative tracking
+      DateTime? elCutoff;
+      if (me != null && me.isElEligible) {
+        final ref = me.elLastAvailedAt.isNotEmpty ? me.elLastAvailedAt : me.elEligibleAt;
+        elCutoff = ref.isNotEmpty ? DateTime.tryParse(ref) : null;
+      }
+
+      // Per-bucket usage
       final now = DateTime.now();
-      final used = leaves
-          .where((a) =>
-              a.employeeName == UserSession.name &&
-              a.managerStatus == LeaveApprovalStatus.approved &&
-              a.from.year == now.year &&
-              a.from.month == now.month)
-          .fold(0.0, (s, a) => s + a.effectiveDays);
+      double usedCl = 0, usedMl = 0, usedEl = 0;
+      for (final a in leaves) {
+        if (a.employeeName != UserSession.name ||
+            a.managerStatus != LeaveApprovalStatus.approved) continue;
+        final bucket = LeaveStore.effectiveBucket(a.leaveType);
+        if (bucket == 'CL' && a.from.year == now.year && a.from.month == now.month) {
+          usedCl += a.effectiveDays;
+        } else if (bucket == 'ML' && a.from.year == now.year && a.from.month == now.month) {
+          usedMl += a.effectiveDays;
+        } else if (bucket == 'EL' && (elCutoff == null || a.from.isAfter(elCutoff))) {
+          usedEl += a.effectiveDays;
+        }
+      }
 
-      final isOnroll     = me?.isOnroll     ?? false;
-      final isElEligible = me?.isElEligible ?? false;
+      // EL accrual
+      int accruedEl = 0;
+      if (me != null && me.isElEligible) {
+        final ref = me.elLastAvailedAt.isNotEmpty ? me.elLastAvailedAt : me.elEligibleAt;
+        if (ref.isNotEmpty) {
+          final cut = DateTime.tryParse(ref);
+          if (cut != null) {
+            final months = (now.year - cut.year) * 12 + (now.month - cut.month);
+            accruedEl = (months * me.monthlyEl).clamp(0, 9999);
+          }
+        }
+      }
 
       if (mounted) setState(() {
-        _monthlyAllocation = allocation;
-        _usedThisMonth     = used;
-        _isOnroll          = isOnroll;
-        _isElEligible      = isElEligible;
-        // If current leave type is no longer available, reset to CL
-        if (!_leaveTypes.contains(_leaveType)) _leaveType = 'Casual Leave';
+        _usedCl       = usedCl;
+        _usedMl       = usedMl;
+        _usedEl       = usedEl;
+        _accruedEl    = accruedEl;
+        _isOnroll     = me?.isOnroll     ?? false;
+        _isElEligible = me?.isElEligible ?? false;
+        if (!_leaveTypes.contains(_leaveType)) _leaveType = _leaveTypes.first;
       });
     } catch (_) {}
   }
@@ -168,8 +219,8 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       return;
     }
 
-    // If allocation exceeded, show unpaid-leave T&C dialog before proceeding
-    if (_monthlyAllocation > 0 && _effectiveDays > _remainingThisMonth) {
+    // If bucket balance exceeded, show unpaid-leave T&C dialog before proceeding
+    if (_remaining != double.infinity && _effectiveDays > _remaining) {
       final agreed = await _showUnpaidDialog();
       if (!agreed) return;
     }
@@ -436,46 +487,47 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                     ],
                     const SizedBox(height: 16),
 
-                    // Monthly balance strip
-                    if (_monthlyAllocation > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _remainingThisMonth > 0
-                              ? const Color(0xFFE8F5E9)
-                              : const Color(0xFFFFEBEE),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _remainingThisMonth > 0
-                                ? const Color(0xFFA5D6A7)
-                                : const Color(0xFFEF9A9A),
+                    // Balance strip for the selected leave bucket
+                    if (LeaveStore.effectiveBucket(_leaveType) != 'LOP')
+                      Builder(builder: (ctx) {
+                        final hasBalance = _remaining > 0;
+                        final fg = hasBalance
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFC62828);
+                        final bg = hasBalance
+                            ? const Color(0xFFE8F5E9)
+                            : const Color(0xFFFFEBEE);
+                        final border = hasBalance
+                            ? const Color(0xFFA5D6A7)
+                            : const Color(0xFFEF9A9A);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: bg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: border),
                           ),
-                        ),
-                        child: Row(children: [
-                          Icon(
-                            _remainingThisMonth > 0
-                                ? Icons.event_available_rounded
-                                : Icons.event_busy_rounded,
-                            size: 16,
-                            color: _remainingThisMonth > 0
-                                ? const Color(0xFF2E7D32)
-                                : const Color(0xFFC62828),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'This month: ${_fmtEffective(_usedThisMonth)} used · ${_fmtEffective(_remainingThisMonth)} remaining of $_monthlyAllocation',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: _remainingThisMonth > 0
-                                    ? const Color(0xFF2E7D32)
-                                    : const Color(0xFFC62828),
+                          child: Row(children: [
+                            Icon(
+                              hasBalance
+                                  ? Icons.event_available_rounded
+                                  : Icons.event_busy_rounded,
+                              size: 16, color: fg,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '$_bucketLabel: ${_fmtEffective(_usedForBucket)} used'
+                                ' · ${_remaining == double.infinity ? '∞' : _fmtEffective(_remaining)} remaining',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: fg),
                               ),
                             ),
-                          ),
-                        ]),
-                      ),
+                          ]),
+                        );
+                      }),
 
                     const SizedBox(height: 16),
 

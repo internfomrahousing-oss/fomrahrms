@@ -57,6 +57,23 @@ class LeaveStore {
     }
   }
 
+  /// Maps any leave-type label to its balance bucket (CL / ML / EL / LOP).
+  /// All display-facing labels (Personal Leave, To Vote, Funeral, etc.) that
+  /// should deduct from CL return 'CL'.
+  static String effectiveBucket(String leaveType) {
+    switch (leaveType) {
+      case 'Medical / Sick Leave':
+      case 'Medical Leave':
+        return 'ML';
+      case 'Earned Leave':
+        return 'EL';
+      case 'LOP or Others':
+        return 'LOP';
+      default:
+        return 'CL'; // Casual, Personal, To Vote, Funeral, Maternity, Paternity…
+    }
+  }
+
   static int permMinutesFromReason(String reason) {
     if (reason.contains('30 Minutes')) return 30;
     if (reason.contains('1½ Hours')) return 90;

@@ -71,11 +71,11 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
     return a.from.year == now.year && a.from.month == now.month;
   }
 
-  double _usedMonth(String type) => _mine
+  double _usedBucket(String bucket) => _mine
       .where((a) =>
           a.managerStatus == LeaveApprovalStatus.approved &&
           _isThisMonth(a) &&
-          a.leaveType == type)
+          LeaveStore.effectiveBucket(a.leaveType) == bucket)
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
   double _usedElSinceAvail() {
@@ -165,14 +165,14 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                     // Leave type blocks — only what's applicable
                     Row(children: [
                       _LeaveBlock('CL',
-                        used:  _usedMonth('Casual Leave'),
+                        used:  _usedBucket('CL'),
                         quota: user.monthlyCl,
                         color: Colors.teal.shade700,
                         subtitle: 'This month'),
                       if (user.isOnroll || user.isElEligible) ...[
                         const SizedBox(width: 8),
                         _LeaveBlock('ML',
-                          used:  _usedMonth('Medical / Sick Leave'),
+                          used:  _usedBucket('ML'),
                           quota: user.monthlyMl,
                           color: const Color(0xFF1565C0),
                           subtitle: 'This month'),

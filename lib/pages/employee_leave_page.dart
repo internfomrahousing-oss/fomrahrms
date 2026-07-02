@@ -68,11 +68,11 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
     return a.from.year == now.year && a.from.month == now.month;
   }
 
-  double _usedMonth(String type) => _apps
+  double _usedBucket(String bucket) => _apps
       .where((a) =>
           a.managerStatus == LeaveApprovalStatus.approved &&
           _isThisMonth(a) &&
-          a.leaveType == type)
+          LeaveStore.effectiveBucket(a.leaveType) == bucket)
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
   double _usedElSinceAvail() {
@@ -128,9 +128,9 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
 
             // ── Compact leave balance ─────────────────────────────────────
             if (user != null) _CompactBalance(
-              clAvail: (user.monthlyCl - _usedMonth('Casual Leave')).clamp(0, 99).toInt(),
+              clAvail: (user.monthlyCl - _usedBucket('CL')).clamp(0, 99).toInt(),
               mlAvail: user.isOnroll || user.isElEligible
-                  ? (user.monthlyMl - _usedMonth('Medical / Sick Leave')).clamp(0, 99).toInt()
+                  ? (user.monthlyMl - _usedBucket('ML')).clamp(0, 99).toInt()
                   : -1,
               elAvail: user.isElEligible
                   ? (_elAccrued() - _usedElSinceAvail()).clamp(0, 999).toInt()
