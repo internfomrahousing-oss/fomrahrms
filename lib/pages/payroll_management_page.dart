@@ -153,6 +153,7 @@ class _EmployeePayrollCard extends StatefulWidget {
 class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
   static const _color  = Color(0xFF0D47A1);
   static const _purple = Color(0xFF6A1B9A);
+  bool _expanded   = false;
   bool _confirming = false;
 
   Future<void> _doConfirm() async {
@@ -162,7 +163,7 @@ class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
 
   @override
   Widget build(BuildContext context) {
-    final u = widget.user;
+    final u           = widget.user;
     final elAccrued   = widget.elAccrued;
     final elAvailable = (elAccrued - widget.elUsed).clamp(0.0, elAccrued.toDouble());
     final hasPending  = u.elAvailRequestedAt.isNotEmpty;
@@ -171,107 +172,167 @@ class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
         : null;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // Employee info row
-          Row(children: [
+        // ── Always-visible employee row ──
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(children: [
             CircleAvatar(
               radius: 20,
               backgroundColor: _color.withValues(alpha: 0.12),
               child: Text(
                 u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-                style: const TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                    color: _color, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(u.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+            Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(u.name,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A237E))),
               Text(u.designation.isEmpty ? u.role : '${u.designation} · ${u.role}',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                  style: const TextStyle(
+                      fontSize: 11, color: Color(0xFF78909C))),
             ])),
             _StatusChip(u.leaveStatus),
-          ]),
 
-          // EL section — only for EL-eligible employees
-          if (u.isElEligible) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Row(children: [
-              // EL balance
+            // EL Details toggle — only for EL-eligible employees
+            if (u.isElEligible) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _expanded
+                        ? _purple.withValues(alpha: 0.12)
+                        : _purple.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _purple.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('EL Details',
+                        style: TextStyle(
+                            fontSize: 11, color: _purple,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 14, color: _purple),
+                  ]),
+                ),
+              ),
+            ],
+          ]),
+        ),
+
+        // ── Expandable EL section ──
+        if (u.isElEligible && _expanded) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Row(children: [
+              // Balance box
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: _purple.withValues(alpha: 0.06),
+                    color: _purple.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: _purple.withValues(alpha: 0.18)),
                   ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('EL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _purple)),
-                    const SizedBox(height: 4),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('EL Balance',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700,
+                            color: _purple)),
+                    const SizedBox(height: 6),
                     Row(children: [
-                      Icon(Icons.event_available_rounded, size: 11, color: Colors.green.shade700),
+                      Icon(Icons.event_available_rounded,
+                          size: 11, color: Colors.green.shade700),
                       const SizedBox(width: 3),
-                      Text('${elAvailable % 1 == 0 ? elAvailable.toInt() : elAvailable.toStringAsFixed(1)}d',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.green.shade700)),
+                      Text(
+                          '${elAvailable % 1 == 0 ? elAvailable.toInt() : elAvailable.toStringAsFixed(1)}d',
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: Colors.green.shade700)),
                       const SizedBox(width: 3),
-                      const Text('available', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                      const Text('available',
+                          style: TextStyle(
+                              fontSize: 10, color: Color(0xFF78909C))),
                     ]),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Row(children: [
-                      Icon(Icons.check_circle_outline_rounded, size: 11, color: Colors.orange.shade700),
+                      Icon(Icons.check_circle_outline_rounded,
+                          size: 11, color: Colors.orange.shade700),
                       const SizedBox(width: 3),
-                      Text('${widget.elUsed % 1 == 0 ? widget.elUsed.toInt() : widget.elUsed.toStringAsFixed(1)}d',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.orange.shade700)),
+                      Text(
+                          '${widget.elUsed % 1 == 0 ? widget.elUsed.toInt() : widget.elUsed.toStringAsFixed(1)}d',
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: Colors.orange.shade700)),
                       const SizedBox(width: 3),
-                      const Text('used since last encashment', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                      const Text('used',
+                          style: TextStyle(
+                              fontSize: 10, color: Color(0xFF78909C))),
                     ]),
                     if (lastAvailed != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text('Last encashed: ${_fmtDate(lastAvailed)}',
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                          style: const TextStyle(
+                              fontSize: 10, color: Color(0xFF90A4AE))),
                     ],
                   ]),
                 ),
               ),
               const SizedBox(width: 12),
 
-              // EL availed column
-              if (hasPending)
-                Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('EL Encashment', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
-                  const SizedBox(height: 6),
+              // Encash column
+              Column(mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center, children: [
+                const Text('EL Encashment',
+                    style: TextStyle(
+                        fontSize: 10, color: Color(0xFF78909C))),
+                const SizedBox(height: 8),
+                if (hasPending)
                   ElevatedButton.icon(
                     onPressed: _confirming ? null : _doConfirm,
                     icon: _confirming
-                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 13, height: 13,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.check_rounded, size: 14),
-                    label: const Text('Confirm', style: TextStyle(fontSize: 12)),
+                    label: const Text('Confirm',
+                        style: TextStyle(fontSize: 12)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _purple,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
-                  ),
-                ])
-              else
-                Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('EL Encashment', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
-                  const SizedBox(height: 6),
+                  )
+                else
                   Text(
                     lastAvailed != null ? _fmtDate(lastAvailed) : '—',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF78909C)),
                   ),
-                ]),
+              ]),
             ]),
-          ],
-        ]),
-      ),
+          ),
+        ],
+      ]),
     );
   }
 
