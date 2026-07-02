@@ -266,7 +266,7 @@ class _ElBalanceCard extends StatelessWidget {
 
         if (lastAvailed != null) ...[
           const SizedBox(height: 12),
-          Text('Last availed: ${_fmtDate(lastAvailed)}',
+          Text('Last encashed: ${_fmtDate(lastAvailed)}',
               style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
         ],
 
@@ -281,7 +281,7 @@ class _ElBalanceCard extends StatelessWidget {
                 size: 16, color: Colors.orange.shade700),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('Avail EL request submitted. Awaiting HR confirmation.',
+              child: Text('Encash EL request submitted. Awaiting HR confirmation.',
                   style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
             ),
             Container(
@@ -303,8 +303,8 @@ class _ElBalanceCard extends StatelessWidget {
             Expanded(
               child: Text(
                 available > 0
-                    ? 'You have ${_fmt(available)} EL day${available == 1 ? '' : 's'} to avail. Once confirmed by HR, your balance will reset.'
-                    : 'No EL days available to avail yet.',
+                    ? 'You have ${_fmt(available)} EL day${available == 1 ? '' : 's'} to encash. Once confirmed by HR, your balance will reset.'
+                    : 'No EL days available to encash yet.',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
               ),
             ),
@@ -318,7 +318,7 @@ class _ElBalanceCard extends StatelessWidget {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.redeem_rounded, size: 16),
-                label: const Text('Avail EL'),
+                label: const Text('Encash EL'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _purple,
                   foregroundColor: Colors.white,

@@ -106692,7 +106692,7 @@ $2(a,b){return A.bEP(b)},
 $S:578}
 A.bby.prototype={
 $2(a,b){var s=null
-return A.cI(s,s,A.bS(A.z(A.a([B.ZH,B.R,B.ap4,B.R,A.cy(!1,B.arq,s,s,s,s,s,s,new A.baG(a),s,s)],t.p),B.f,B.c,B.z,0,B.i),s,s),s,s)},
+return A.cI(s,s,A.bS(A.z(A.a([B.ZH,B.R,B.ap1,B.R,A.cy(!1,B.arq,s,s,s,s,s,s,new A.baG(a),s,s)],t.p),B.f,B.c,B.z,0,B.i),s,s),s,s)},
 $S:579}
 A.baG.prototype={
 $0(){return A.cl(this.a).cZ(0,"/login",null)},
@@ -107323,7 +107323,7 @@ g=B.d.O(e.CW.a.a)
 f=A.ajH(p,B.d.O(e.cx.a.a),g,o,n,j,q,i,h,c,B.d.O(e.cy.a.a),l,m,r,s,k)
 $.bfD.push(f)
 A.aBo(f)
-e.c.R(t.q).f.bj(A.d2(d,d,d,B.n,B.eX,B.u,d,B.aps,d,B.as,d,d,d,d,d,d,new A.ai(A.h(8),B.q),d,d))
+e.c.R(t.q).f.bj(A.d2(d,d,d,B.n,B.eX,B.u,d,B.app,d,B.as,d,d,d,d,d,d,new A.ai(A.h(8),B.q),d,d))
 c=e.c
 c.toString
 c=A.cl(c).c
@@ -107633,7 +107633,7 @@ A.Dd.prototype={
 n(a){return A.bfC(new A.aO9(this,a),!1,0.6,0.9)}}
 A.aO9.prototype={
 $2(a,b){var s=null,r=this.b,q=t.p,p=this.a
-return A.z(A.a([B.M,A.A(s,s,B.h,s,s,new A.C(B.a_,s,s,A.h(2),s,s,B.l),s,4,s,s,s,s,40),new A.I(B.r_,A.x(A.a([B.anQ,B.bd,A.bs(s,s,s,B.a0Z,s,s,new A.aO7(r),s,s,s,s,s)],q),B.f,B.c,B.e,0,s),s),B.cM,A.U(A.kX(b,new A.aO8(p,r),p.c.length,s),1)],q),B.f,B.c,B.e,0,B.i)},
+return A.z(A.a([B.M,A.A(s,s,B.h,s,s,new A.C(B.a_,s,s,A.h(2),s,s,B.l),s,4,s,s,s,s,40),new A.I(B.r_,A.x(A.a([B.anN,B.bd,A.bs(s,s,s,B.a0Z,s,s,new A.aO7(r),s,s,s,s,s)],q),B.f,B.c,B.e,0,s),s),B.cM,A.U(A.kX(b,new A.aO8(p,r),p.c.length,s),1)],q),B.f,B.c,B.e,0,B.i)},
 $S:164}
 A.aO7.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -107823,7 +107823,7 @@ s===$&&A.b()
 s.l()
 this.aeK()},
 n(a){var s,r=this,q=null,p=A.av(a,q,t.l).w.a.a<700,o=p?16:24,n=p?16:24,m=t.p,l=A.a([],m)
-if(!p)B.b.A(l,A.a([A.x(A.a([A.A(q,B.A6,B.h,q,q,new A.C(B.eB,q,q,A.h(8),q,q,B.l),q,36,q,q,q,q,36),B.U,A.z(A.a([A.f("Administration",q,q,q,q,A.X(q,q,B.a3,q,q,q,q,q,q,q,q,22,q,q,B.y,q,q,!0,q,q,q,q,q,q,q,q),q,q,q),B.aqp],m),B.o,B.c,B.e,0,B.i)],m),B.f,B.c,B.e,0,q),B.bq],m))
+if(!p)B.b.A(l,A.a([A.x(A.a([A.A(q,B.A6,B.h,q,q,new A.C(B.eB,q,q,A.h(8),q,q,B.l),q,36,q,q,q,q,36),B.U,A.z(A.a([A.f("Administration",q,q,q,q,A.X(q,q,B.a3,q,q,q,q,q,q,q,q,22,q,q,B.y,q,q,!0,q,q,q,q,q,q,q,q),q,q,q),B.aqn],m),B.o,B.c,B.e,0,B.i)],m),B.f,B.c,B.e,0,q),B.bq],m))
 s=r.d
 s===$&&A.b()
 l.push(A.t6(s,B.a3,B.a3,B.eY,B.a5v,B.ap,q))
@@ -107862,7 +107862,7 @@ Nh(a){switch(a){case"HR":return B.n
 case"Manager":return B.aB
 case"Management":return B.a3
 default:return B.J}},
-n(a){var s=null,r=A.av(a,s,t.l).w.a.a<700?16:24,q=this.c,p=J.am(q),o=t.p,n=A.a([A.x(A.a([A.f("All Users ("+p.gD(q)+")",s,s,s,s,B.p9,s,s,s),A.cN(B.Zv,B.aoU,new A.b8x(this,a),A.ba(s,s,B.a3,s,s,s,0,s,s,B.k,s,s,B.dA,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],o),B.f,B.i9,B.e,0,s),B.R],o)
+n(a){var s=null,r=A.av(a,s,t.l).w.a.a<700?16:24,q=this.c,p=J.am(q),o=t.p,n=A.a([A.x(A.a([A.f("All Users ("+p.gD(q)+")",s,s,s,s,B.p9,s,s,s),A.cN(B.Zv,B.aoR,new A.b8x(this,a),A.ba(s,s,B.a3,s,s,s,0,s,s,B.k,s,s,B.dA,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],o),B.f,B.i9,B.e,0,s),B.R],o)
 if(p.gaw(q))n.push(A.bS(new A.I(B.mZ,A.z(A.a([A.aa(B.t1,B.a_,s,s,56),B.D,A.f("No users added yet",s,s,s,s,A.X(s,s,B.bz,s,s,s,s,s,s,s,s,15,s,s,s,s,s,!0,s,s,s,s,s,s,s,s),s,s,s),B.a4,A.f('Click "Create User" to add the first user.',s,s,s,s,A.X(s,s,B.aN,s,s,s,s,s,s,s,s,12,s,s,s,s,s,!0,s,s,s,s,s,s,s,s),s,s,s)],o),B.f,B.c,B.z,0,B.i),s),s,s))
 B.b.A(n,p.cg(q,new A.b8y(this,a),t.o))
 return A.kW(n,new A.a4(r,r,r,r),s,!1)},
@@ -108176,7 +108176,7 @@ ahS(a){var s=new A.aZH(),r=new A.aZI(),q=J.am(a),p=t.p
 return A.z(A.a([r.$2("Basic Information",A.a([s.$2("Name",q.h(a,"name")),s.$2("Phone",q.h(a,"phone_number")),s.$2("Father Name",q.h(a,"father_name")),s.$2("Designation",q.h(a,"designation")),s.$2("Date of Joining",q.h(a,"date_of_joining"))],p)),r.$2("Personal",A.a([s.$2("Full Name",q.h(a,"full_name")),s.$2("Date of Birth",q.h(a,"date_of_birth")),s.$2("Postal Address",q.h(a,"postal_address")),s.$2("Permanent Address",q.h(a,"permanent_address"))],p)),r.$2("Emergency",A.a([s.$2("Blood Group",q.h(a,"blood_group")),s.$2("Allergic To",q.h(a,"allergic_to")),s.$2("Emergency Contact",q.h(a,"emergency_contact_name")),s.$2("Emergency Number",q.h(a,"emergency_contact_number")),s.$2("Aadhar Number",q.h(a,"aadhar_number"))],p)),r.$2("Additional",A.a([s.$2("ESI Number",q.h(a,"esi_number")),s.$2("PF Number",q.h(a,"pf_number")),s.$2("Languages",q.h(a,"languages_known")),s.$2("Hobbies",q.h(a,"hobbies"))],p))],p),B.o,B.c,B.e,0,B.i)},
 n(a){var s,r,q,p,o=this,n=null,m=A.av(a,n,t.l).w.a.a<700
 if(o.e)return B.q2
-if(o.f!=null)return A.bS(A.z(A.a([B.a0q,B.D,B.aoJ,B.aL,A.f("Make sure you ran the SQL to add the status column\n(see Supabase setup guide).",n,n,n,n,A.X(n,n,B.cG,n,n,n,n,n,n,n,n,12,n,n,n,n,n,!0,n,n,n,n,n,n,n,n),B.b7,n,n),B.R,A.cN(B.ji,B.apb,o.gV8(),A.ba(n,n,B.a3,n,n,n,n,n,n,B.k,n,n,n,n,n,n,n,n,n,n))],t.p),B.f,B.c,B.z,0,B.i),n,n)
+if(o.f!=null)return A.bS(A.z(A.a([B.a0q,B.D,B.aoH,B.aL,A.f("Make sure you ran the SQL to add the status column\n(see Supabase setup guide).",n,n,n,n,A.X(n,n,B.cG,n,n,n,n,n,n,n,n,12,n,n,n,n,n,!0,n,n,n,n,n,n,n,n),B.b7,n,n),B.R,A.cN(B.ji,B.ap8,o.gV8(),A.ba(n,n,B.a3,n,n,n,n,n,n,B.k,n,n,n,n,n,n,n,n,n,n))],t.p),B.f,B.c,B.z,0,B.i),n,n)
 s=m?16:24
 r=m?12:16
 q=m?16:24
@@ -108226,7 +108226,7 @@ q=A.N(r).i("O<1,fz<i>>")
 r=A.K(new A.O(r,new A.aZK(),q),q.i("ar.E"))
 j.push(A.mU(s,o,!1,r,new A.aZL(i,b),o,h,t.N))}else j.push(A.ce(!0,B.S,!1,o,!0,B.u,o,A.ci(),p.e,o,o,o,o,o,2,A.bF(o,new A.aq(4,A.h(8),B.ab),o,o,o,o,o,o,!0,o,o,o,o,o,o,B.k,!0,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,B.ch,n,!0,!0,o,B.tc,o,o,o,o,o,o,o,o,o,o,o),B.t,!0,o,!0,o,!1,o,B.a7,o,o,o,o,o,o,o,1,o,o,!1,"\u2022",o,o,o,o,o,!1,o,o,!1,o,!0,o,B.L,o,o,B.a6,B.a5,o,o,o,o,o,o,o,!0,B.K,o,B.af,o,o,o,o))
 j=A.bY(A.z(j,B.f,B.c,B.z,0,B.i),o,B.t,o,o,o,B.H)
-return A.cs(A.a([A.cd(!1,B.aC,o,o,o,o,o,o,new A.aZM(a),o,o),A.cy(!1,B.er,o,o,o,o,o,o,new A.aZN(i,p.b,m,l,p.e,a,p.f,p.r),o,A.ba(o,o,B.a3,o,o,o,o,o,o,B.k,o,o,o,o,new A.ai(A.h(8),B.q),o,o,o,o,o))],k),j,o,o,B.aqg)},
+return A.cs(A.a([A.cd(!1,B.aC,o,o,o,o,o,o,new A.aZM(a),o,o),A.cy(!1,B.er,o,o,o,o,o,o,new A.aZN(i,p.b,m,l,p.e,a,p.f,p.r),o,A.ba(o,o,B.a3,o,o,o,o,o,o,B.k,o,o,o,o,new A.ai(A.h(8),B.q),o,o,o,o,o))],k),j,o,o,B.aqe)},
 $S:62}
 A.aZK.prototype={
 $1(a){var s=null
@@ -108328,15 +108328,15 @@ k=A.a6(e.h(f,"assigned_emp_id"))
 if(k==null)k="\u2014"
 e=A.a6(e.h(f,"assigned_manager"))
 if(e==null)e="\u2014"
-e=A.a([A.U(A.z(A.a([B.apy,B.uG,new A.D4(B.fp,"Email",l,i),new A.D4(B.eL,"Emp ID",k,i),new A.D4(B.dd,"Manager",e,i)],j),B.o,B.c,B.e,0,B.i),1)],j)
+e=A.a([A.U(A.z(A.a([B.apw,B.uG,new A.D4(B.fp,"Email",l,i),new A.D4(B.eL,"Emp ID",k,i),new A.D4(B.dd,"Manager",e,i)],j),B.o,B.c,B.e,0,B.i),1)],j)
 if(d==="hr_approved")e.push(A.bs(i,i,i,B.a0c,i,i,new A.aZY(g,this.b,f),i,i,i,"Edit details",B.f0))
 B.b.A(m,A.a([B.ak,A.A(i,A.x(e,B.o,B.c,B.e,0,i),B.h,i,i,new A.C(B.kA,i,i,n,i,i,B.l),i,i,i,B.VW,i,i,1/0)],j))}m.push(B.D)
 m.push(B.cM)
 m.push(B.D)
 e=this.b
-n=A.a([A.e8(B.a0A,B.apL,new A.aZZ(g,e,f),A.ed(i,i,i,i,i,i,i,i,i,B.a3,i,i,B.c7,i,new A.ai(A.h(8),B.q),B.Po,i,i,i,i))],j)
-if(d==="hr_approved")B.b.A(n,A.a([B.a9,A.e8(B.Z5,B.ao4,new A.b__(g,s),A.ed(i,i,i,i,i,i,i,i,i,B.ah,i,i,B.c7,i,new A.ai(A.h(8),B.q),B.iF,i,i,i,i)),B.a9,A.cN(B.a00,B.anX,new A.b_0(g,e,f),A.ba(i,i,B.a3,i,i,i,0,i,i,B.k,i,i,B.c7,i,new A.ai(A.h(8),B.q),i,i,i,i,i))],j))
-if(d==="access_granted")B.b.A(n,A.a([B.a9,B.Ze,B.ac,B.anR],j))
+n=A.a([A.e8(B.a0A,B.apJ,new A.aZZ(g,e,f),A.ed(i,i,i,i,i,i,i,i,i,B.a3,i,i,B.c7,i,new A.ai(A.h(8),B.q),B.Po,i,i,i,i))],j)
+if(d==="hr_approved")B.b.A(n,A.a([B.a9,A.e8(B.Z5,B.ao1,new A.b__(g,s),A.ed(i,i,i,i,i,i,i,i,i,B.ah,i,i,B.c7,i,new A.ai(A.h(8),B.q),B.iF,i,i,i,i)),B.a9,A.cN(B.a00,B.anU,new A.b_0(g,e,f),A.ba(i,i,B.a3,i,i,i,0,i,i,B.k,i,i,B.c7,i,new A.ai(A.h(8),B.q),i,i,i,i,i))],j))
+if(d==="access_granted")B.b.A(n,A.a([B.a9,B.Ze,B.ac,B.anO],j))
 m.push(A.x(n,B.f,B.c,B.e,0,i))
 return A.bv(new A.I(B.aK,A.z(m,B.o,B.c,B.e,0,B.i),i),i,0,B.ao,new A.ai(p,new A.aH(o,1,B.B,-1)))},
 $S:121}
@@ -108364,7 +108364,7 @@ agU(a){switch(a){case"HR":return B.eK
 case"Manager":return B.zK
 case"Management":return B.dd
 default:return B.bc}},
-n(a){var s=A.av(a,null,t.l).w.a.a<700?16:24,r=A.a([B.aq5,B.a4,B.ar3,B.R],t.p),q=this.c
+n(a){var s=A.av(a,null,t.l).w.a.a<700?16:24,r=A.a([B.aq3,B.a4,B.ar3,B.R],t.p),q=this.c
 B.b.A(r,new A.O(q,new A.b2e(this,a),A.N(q).i("O<1,c>")))
 return A.kW(r,new A.a4(s,s,s,s),null,!1)},
 agV(a,b){var s=null,r=b.a,q=$.ae(),p=b.b
@@ -108378,7 +108378,7 @@ $0(){return this.a.agV(this.b,this.c)},
 $S:0}
 A.b2c.prototype={
 $1(a){var s=this,r=null,q=s.b,p=s.c,o=t.p,n=A.z(A.a([new A.tw(q,"Role Name",B.nE,1,r),B.D,new A.tw(p,"Description",B.nv,2,r)],o),B.f,B.c,B.z,0,B.i)
-return A.cs(A.a([A.cd(!1,B.pd,r,r,r,r,r,r,new A.b2a(a),r,r),A.cy(!1,B.er,r,r,r,r,r,r,new A.b2b(s.a,q,s.d,p,a),r,A.ba(r,r,B.a3,r,r,r,0,r,r,B.k,r,r,r,r,new A.ai(A.h(8),B.q),r,r,r,r,r))],o),n,r,r,B.apd)},
+return A.cs(A.a([A.cd(!1,B.pd,r,r,r,r,r,r,new A.b2a(a),r,r),A.cy(!1,B.er,r,r,r,r,r,r,new A.b2b(s.a,q,s.d,p,a),r,A.ba(r,r,B.a3,r,r,r,0,r,r,B.k,r,r,r,r,new A.ai(A.h(8),B.q),r,r,r,r,r))],o),n,r,r,B.apa)},
 $S:8}
 A.b2a.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -108395,7 +108395,7 @@ A.aD(r.e,!1).am(null)},
 $S:0}
 A.a1O.prototype={
 n(a){var s=null,r=A.av(a,s,t.l).w.a.a<700?16:24,q=this.c,p=A.w(q).i("cb<1>"),o=A.K(new A.cb(q,p),p.i("y.E"))
-q=A.a([B.aoI,B.a4,B.aoi,B.R],t.p)
+q=A.a([B.aoG,B.a4,B.aof,B.R],t.p)
 B.b.A(q,new A.O(o,new A.aEe(this),A.N(o).i("O<1,c>")))
 q.push(B.M)
 p=A.h(10)
@@ -108604,7 +108604,7 @@ q=o.LE(o.gqi())
 p=o.x
 k.push(A.A(n,A.x(A.a([s,B.A,A.U(A.f("This month: "+r+" used \xb7 "+q+" remaining of "+p,n,n,n,n,A.X(n,n,o.gqi()>0?B.J:B.ax,n,n,n,n,n,n,n,n,12,n,n,B.w,n,n,!0,n,n,n,n,n,n,n,n),n,n,n),1)],m),B.f,B.c,B.e,0,n),B.h,n,n,new A.C(j,n,h,i,n,n,B.l),n,n,n,B.c2,n,n,n))}k.push(B.R)
 k.push(A.ce(!0,B.S,!1,n,!0,B.u,n,A.ci(),o.w,n,n,n,n,n,2,A.bF(!0,new A.aq(4,A.h(10),B.ab),n,n,n,n,n,n,!0,new A.aq(4,A.h(10),B.aM),n,n,n,n,n,B.k,!0,n,n,n,n,new A.aq(4,A.h(10),B.dt),n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,B.ch,"Reason",!0,!0,n,B.ab0,n,n,n,n,n,n,n,n,n,n,n),B.t,!0,n,!0,n,!1,n,B.a7,n,n,n,n,n,n,n,4,n,n,!1,"\u2022",n,n,n,n,n,!1,n,n,!1,n,!0,n,B.L,n,n,B.a6,B.a5,n,n,n,n,n,n,n,!0,B.K,n,B.af,n,n,n,n))
-return A.cI(n,n,A.bY(A.z(A.a([l,B.bu,A.bv(new A.I(B.L,A.z(k,B.o,B.c,B.e,0,B.i),n),n,n,n,n),B.R,A.x(A.a([A.U(A.e8(B.t4,B.pa,o.gahg(o),A.ed(n,n,n,n,n,n,n,n,n,n,n,n,B.h8,n,new A.ai(A.h(10),B.q),n,n,n,n,n)),1),B.b5,A.U(A.cN(B.tb,B.apJ,o.gahh(),A.ba(n,n,B.n,n,n,n,n,n,n,B.k,n,n,B.h8,n,new A.ai(A.h(10),B.q),n,n,n,n,n)),2)],m),B.f,B.c,B.e,0,n)],m),B.o,B.c,B.e,0,B.i),n,B.t,B.b2,n,n,B.H),n,n)}}
+return A.cI(n,n,A.bY(A.z(A.a([l,B.bu,A.bv(new A.I(B.L,A.z(k,B.o,B.c,B.e,0,B.i),n),n,n,n,n),B.R,A.x(A.a([A.U(A.e8(B.t4,B.pa,o.gahg(o),A.ed(n,n,n,n,n,n,n,n,n,n,n,n,B.h8,n,new A.ai(A.h(10),B.q),n,n,n,n,n)),1),B.b5,A.U(A.cN(B.tb,B.apH,o.gahh(),A.ba(n,n,B.n,n,n,n,n,n,n,B.k,n,n,B.h8,n,new A.ai(A.h(10),B.q),n,n,n,n,n)),2)],m),B.f,B.c,B.e,0,n)],m),B.o,B.c,B.e,0,B.i),n,B.t,B.b2,n,n,B.H),n,n)}}
 A.aFz.prototype={
 $1(a){return a!=="Earned Leave"},
 $S:17}
@@ -108652,7 +108652,7 @@ o=A.x(A.a([A.A(q,A.aa(B.zO,B.aP,q,q,22),B.h,q,q,new A.C(B.bG,q,q,o,q,q,B.l),q,q,
 s=A.h(10)
 r=A.ay(B.iU,1)
 s=A.z(A.a([A.A(q,A.z(A.a([A.f("Your monthly leave balance is exhausted.",q,q,q,q,A.X(q,q,B.aA,q,q,q,q,q,q,q,q,13,q,q,B.w,q,q,!0,q,q,q,q,q,q,q,q),q,q,q),B.M,A.f("By proceeding, you acknowledge that:",q,q,q,q,A.X(q,q,B.xA,q,q,q,q,q,q,q,q,12,q,q,q,q,q,!0,q,q,q,q,q,q,q,q),q,q,q),B.aL,new A.yF("This leave will be treated as Loss of Pay (LOP).",q),new A.yF("Salary will be deducted for the days applied.",q),new A.yF("This is subject to manager / management approval.",q),new A.yF("LOP entries are recorded in your attendance.",q)],n),B.o,B.c,B.e,0,B.i),B.h,q,q,new A.C(B.bG,q,r,s,q,q,B.l),q,q,q,B.cO,q,q,q)],n),B.f,B.c,B.z,0,B.i)
-return A.cs(A.a([A.cd(!1,B.aC,q,q,q,q,q,q,new A.aFJ(a),q,q),A.cy(!1,B.ap_,q,q,q,q,q,q,new A.aFK(a),q,A.ba(q,q,B.aP,q,q,q,q,q,q,B.k,q,q,q,q,new A.ai(A.h(8),B.q),q,q,q,q,q))],n),s,q,new A.ai(p,B.q),o)},
+return A.cs(A.a([A.cd(!1,B.aC,q,q,q,q,q,q,new A.aFJ(a),q,q),A.cy(!1,B.aoX,q,q,q,q,q,q,new A.aFK(a),q,A.ba(q,q,B.aP,q,q,q,q,q,q,B.k,q,q,q,q,new A.ai(A.h(8),B.q),q,q,q,q,q))],n),s,q,new A.ai(p,B.q),o)},
 $S:8}
 A.aFJ.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -109275,7 +109275,7 @@ if(!h.cD(b4,"declaration_agree")){m=h.p1
 l=m?B.aR:B.kt
 k=A.h(8)
 j=A.ay(m?B.mG:B.xi,1.5)
-n.push(A.jP(A.bfa(B.n,B.k,B.VX,B.AM,new A.aI1(h),g,g,B.aq7,m),g,B.ai,new A.C(l,g,j,k,g,g,B.l),B.Q,g,g,g,g))}B.b.A(n,h.l3(h.l4(b4),b6))
+n.push(A.jP(A.bfa(B.n,B.k,B.VX,B.AM,new A.aI1(h),g,g,B.aq5,m),g,B.ai,new A.C(l,g,j,k,g,g,B.l),B.Q,g,g,g,g))}B.b.A(n,h.l3(h.l4(b4),b6))
 p.push(new A.jz(B.dR,o,n,g))}p.push(B.hs)
 o=h.R8
 n=o?g:h.gaBl()
@@ -109423,7 +109423,7 @@ $0(){return this.a.R8=!1},
 $S:0}
 A.aHL.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cy(!1,B.api,s,s,s,s,s,s,new A.aHC(this.a),s,A.ba(s,s,B.n,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.ap2,s,s,B.ad3)},
+return A.cs(A.a([A.cy(!1,B.apf,s,s,s,s,s,s,new A.aHC(this.a),s,A.ba(s,s,B.n,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.ap_,s,s,B.ad3)},
 $S:8}
 A.aHC.prototype={
 $0(){var s=this.a,r=s.c
@@ -109596,7 +109596,7 @@ A.tz.prototype={}
 A.N6.prototype={
 U(){return new A.a4L()}}
 A.a4L.prototype={
-n(a){var s,r,q,p=this,o=null,n=A.h(8),m=A.ay(B.a_,1),l=t.p,k=A.A(o,A.x(A.a([B.apY,B.b5,p.Vm("Yes"),B.U,p.Vm("No")],l),B.f,B.c,B.e,0,o),B.h,o,o,B.PZ,o,o,o,B.c2,o,o,1/0),j=t.o,i=J.iw(6,j)
+n(a){var s,r,q,p=this,o=null,n=A.h(8),m=A.ay(B.a_,1),l=t.p,k=A.A(o,A.x(A.a([B.apW,B.b5,p.Vm("Yes"),B.U,p.Vm("No")],l),B.f,B.c,B.e,0,o),B.h,o,o,B.PZ,o,o,o,B.c2,o,o,1/0),j=t.o,i=J.iw(6,j)
 for(s=0;s<6;++s){r=B.a3e[s]
 q=s<5?B.m8:B.q
 i[s]=A.A(o,A.f(B.a59[s],o,o,o,o,B.jU,o,o,o),B.h,o,o,new A.C(o,o,new A.dd(B.q,q,B.q,B.q),o,o,o,B.l),o,o,o,B.bt,o,o,r)}r=A.a([A.A(o,A.x(i,B.f,B.c,B.e,0,o),B.h,B.bR,o,o,o,o,o,o,o,o,o),B.mQ],l)
@@ -109761,7 +109761,7 @@ q=s?16:20
 p=A.bs(i,i,i,B.A1,i,i,new A.agg(a),i,i,i,"Back",i)
 o=t.p
 p=A.a([p,B.A,A.U(A.z(A.a([A.f(j.dr(f,h).length===0?"Candidate Details":j.dr(f,h),i,i,i,i,B.uZ,i,i,i),A.f("Applied on "+j.an8(j.dr(f,"submitted_at")),i,i,i,i,B.aH,i,i,i)],o),B.o,B.c,B.e,0,B.i),1)],o)
-if(j.dr(f,"resume_url").length!==0)p.push(A.cN(B.ZD,B.ap3,new A.agh(j,f),A.ba(i,i,B.n,i,i,i,0,i,i,B.k,i,i,B.c2,i,new A.ai(A.h(8),B.q),i,i,i,i,i)))
+if(j.dr(f,"resume_url").length!==0)p.push(A.cN(B.ZD,B.ap0,new A.agh(j,f),A.ba(i,i,B.n,i,i,i,0,i,i,B.k,i,i,B.c2,i,new A.ai(A.h(8),B.q),i,i,i,i,i)))
 q=A.A(i,A.x(p,B.f,B.c,B.e,0,i),B.h,B.k,i,i,i,i,i,new A.a4(r,q,r,16),i,i,i)
 p=t.dR
 n=A.a([new A.mv("Personal Information",B.bc,i),new A.tI(s,A.a([new A.e2("Name",j.dr(f,h)),new A.e2("Mobile",j.dr(f,"mobile")),new A.e2("Email",j.dr(f,"email")),new A.e2("Place",j.dr(f,"place")),new A.e2("Date of Birth",j.dr(f,"dob")),new A.e2("Age",j.dr(f,"age")),new A.e2("Nationality",j.dr(f,"nationality")),new A.e2("Gender",j.dr(f,"gender")),new A.e2("Marital Status",j.dr(f,"marital_status"))],p),i),B.bq,new A.mv("Interview Details",B.kZ,i),new A.tI(s,A.a([new A.e2("Interview Date",j.dr(f,"interview_date")),new A.e2("Post Applied",j.dr(f,"post_applied"))],p),i),B.bq,new A.mv("Educational Qualifications",B.jf,i)],o)
@@ -110011,7 +110011,7 @@ $S:293}
 A.a2Q.prototype={
 n(a){var s=this,r=null,q=s.d,p=A.aa(B.bB,q,r,r,20),o=A.bs(r,r,r,A.aa(B.rW,q,r,r,r),r,r,s.f,r,r,r,"Refresh time",r),n=A.h(10),m=A.h(10),l=s.e,k=l.to
 if(k==null){k=l.u
-if(k==null)k=l.k3}return A.z(A.a([A.bv(new A.I(B.L,A.ce(!0,B.S,!1,r,!0,B.u,r,A.ci(),s.c,r,r,r,r,r,2,A.bF(r,new A.aq(4,n,B.ab),r,r,r,r,r,r,!0,new A.aq(4,m,new A.aH(k,1,B.B,-1)),r,r,r,r,r,l.k2,!0,r,r,r,r,new A.aq(4,A.h(10),new A.aH(q,2,B.B,-1)),r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,A.X(r,r,l.k3.I(0.6),r,r,r,r,r,r,r,r,r,r,r,r,r,r,!0,r,r,r,r,r,r,r,r),"Check-In Time",!0,!0,r,p,r,r,r,r,r,r,o,r,r,r,r),B.t,!0,r,!0,r,!1,r,B.a7,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.L,r,r,B.a6,B.a5,r,r,r,r,r,r,r,!0,B.K,r,B.af,r,r,r,r),r),r,r,r,r),B.R,A.bd(A.cN(B.zY,B.ao1,s.r,A.ba(r,r,q,r,r,r,r,r,r,B.k,r,r,B.h8,r,new A.ai(A.h(10),B.q),r,r,r,r,r)),r,1/0)],t.p),B.f,B.c,B.e,0,B.i)}}
+if(k==null)k=l.k3}return A.z(A.a([A.bv(new A.I(B.L,A.ce(!0,B.S,!1,r,!0,B.u,r,A.ci(),s.c,r,r,r,r,r,2,A.bF(r,new A.aq(4,n,B.ab),r,r,r,r,r,r,!0,new A.aq(4,m,new A.aH(k,1,B.B,-1)),r,r,r,r,r,l.k2,!0,r,r,r,r,new A.aq(4,A.h(10),new A.aH(q,2,B.B,-1)),r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,A.X(r,r,l.k3.I(0.6),r,r,r,r,r,r,r,r,r,r,r,r,r,r,!0,r,r,r,r,r,r,r,r),"Check-In Time",!0,!0,r,p,r,r,r,r,r,r,o,r,r,r,r),B.t,!0,r,!0,r,!1,r,B.a7,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.L,r,r,B.a6,B.a5,r,r,r,r,r,r,r,!0,B.K,r,B.af,r,r,r,r),r),r,r,r,r),B.R,A.bd(A.cN(B.zY,B.anZ,s.r,A.ba(r,r,q,r,r,r,r,r,r,B.k,r,r,B.h8,r,new A.ai(A.h(10),B.q),r,r,r,r,r)),r,1/0)],t.p),B.f,B.c,B.e,0,B.i)}}
 A.uN.prototype={
 U(){return new A.M8(new A.aj(B.x,$.ae()))}}
 A.M8.prototype={
@@ -110047,7 +110047,7 @@ break}s=4
 return A.k(A.C0($.ho),$async$yd)
 case 4:o=b
 if(p.c!=null){p.q(new A.aIt(p,o))
-p.c.R(t.q).f.bj(A.d2(null,null,null,B.W,B.eX,B.u,null,B.apf,null,B.as,null,null,null,null,null,null,new A.ai(A.h(8),B.q),null,null))}case 1:return A.o(q,r)}})
+p.c.R(t.q).f.bj(A.d2(null,null,null,B.W,B.eX,B.u,null,B.apc,null,B.as,null,null,null,null,null,null,new A.ai(A.h(8),B.q),null,null))}case 1:return A.o(q,r)}})
 return A.p($async$yd,r)},
 n(a){var s,r,q,p,o,n=this,m=null,l=A.v(a).ax,k=A.v(a).ax.a===B.aX,j=t.p,i=A.a([A.x(A.a([B.dh,B.A,A.A(m,B.ZY,B.h,m,m,new A.C(B.W.I(0.1),m,m,A.h(12),m,m,B.l),m,48,m,m,m,m,48),B.b5,A.f("Check Out",m,m,m,m,A.v(a).ok.e,m,m,m)],j),B.f,B.c,B.e,0,m),B.bu],j)
 if(n.d)i.push(B.wU)
@@ -110059,7 +110059,7 @@ q=A.h(10)
 p=A.h(10)
 o=l.to
 if(o==null){o=l.u
-if(o==null)o=l.k3}B.b.A(i,A.a([new A.a2R(s,k,m),B.R,A.bv(new A.I(B.L,A.ce(!0,B.S,!1,m,!0,B.u,m,A.ci(),n.f,m,m,m,m,m,2,A.bF(m,new A.aq(4,q,B.ab),m,m,m,m,m,m,!0,new A.aq(4,p,new A.aH(o,1,B.B,-1)),m,m,m,m,m,l.k2,!0,m,m,m,m,new A.aq(4,A.h(10),B.Pg),m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,A.X(m,m,l.k3.I(0.6),m,m,m,m,m,m,m,m,m,m,m,m,m,m,!0,m,m,m,m,m,m,m,m),"Check-Out Time",!0,!0,m,B.a0w,m,m,m,m,m,m,r,m,m,m,m),B.t,!0,m,!0,m,!1,m,B.a7,m,m,m,m,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.L,m,m,B.a6,B.a5,m,m,m,m,m,m,m,!0,B.K,m,B.af,m,m,m,m),m),m,m,m,m),B.R,A.bd(A.cN(B.a0m,B.aoR,n.gavn(),A.ba(m,m,B.W,m,m,m,m,m,m,B.k,m,m,B.h8,m,new A.ai(A.h(10),B.q),m,m,m,m,m)),m,1/0)],j))}}return A.cI(m,m,A.bY(A.z(i,B.o,B.c,B.e,0,B.i),m,B.t,B.b2,m,m,B.H),m,m)}}
+if(o==null)o=l.k3}B.b.A(i,A.a([new A.a2R(s,k,m),B.R,A.bv(new A.I(B.L,A.ce(!0,B.S,!1,m,!0,B.u,m,A.ci(),n.f,m,m,m,m,m,2,A.bF(m,new A.aq(4,q,B.ab),m,m,m,m,m,m,!0,new A.aq(4,p,new A.aH(o,1,B.B,-1)),m,m,m,m,m,l.k2,!0,m,m,m,m,new A.aq(4,A.h(10),B.Pg),m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,A.X(m,m,l.k3.I(0.6),m,m,m,m,m,m,m,m,m,m,m,m,m,m,!0,m,m,m,m,m,m,m,m),"Check-Out Time",!0,!0,m,B.a0w,m,m,m,m,m,m,r,m,m,m,m),B.t,!0,m,!0,m,!1,m,B.a7,m,m,m,m,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.L,m,m,B.a6,B.a5,m,m,m,m,m,m,m,!0,B.K,m,B.af,m,m,m,m),m),m,m,m,m),B.R,A.bd(A.cN(B.a0m,B.aoP,n.gavn(),A.ba(m,m,B.W,m,m,m,m,m,m,B.k,m,m,B.h8,m,new A.ai(A.h(10),B.q),m,m,m,m,m)),m,1/0)],j))}}return A.cI(m,m,A.bY(A.z(i,B.o,B.c,B.e,0,B.i),m,B.t,B.b2,m,m,B.H),m,m)}}
 A.aIs.prototype={
 $0(){var s=this.a
 s.e=this.b
@@ -110517,7 +110517,7 @@ s.x=!1},
 $S:0}
 A.aMc.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aMa(a),s,s),A.cy(!1,B.MY,s,s,s,s,s,s,new A.aMb(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqb,s,s,B.arc)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aMa(a),s,s),A.cy(!1,B.MY,s,s,s,s,s,s,new A.aMb(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aq9,s,s,B.arc)},
 $S:8}
 A.aMa.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -110543,7 +110543,7 @@ $1(a){return A.a6(J.a1(a,"status"))==="pending"},
 $S:12}
 A.aMk.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cy(!1,B.vm,s,s,s,s,s,s,new A.aMi(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.ao7,s,s,B.Nk)},
+return A.cs(A.a([A.cy(!1,B.vm,s,s,s,s,s,s,new A.aMi(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.ao4,s,s,B.Nk)},
 $S:8}
 A.aMi.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -110551,7 +110551,7 @@ return null},
 $S:0}
 A.aMl.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aMg(a),s,s),A.cy(!1,B.Ne,s,s,s,s,s,s,new A.aMh(a),s,A.ba(s,s,B.G,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqD,s,s,B.aqk)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aMg(a),s,s),A.cy(!1,B.Ne,s,s,s,s,s,s,new A.aMh(a),s,A.ba(s,s,B.G,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqD,s,s,B.aqi)},
 $S:8}
 A.aMg.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -110676,7 +110676,7 @@ return new A.jr(new A.aLY(s.a,s.b,s.c,s.d,s.e,s.f),null)},
 $S:61}
 A.aLY.prototype={
 $2(a,b){var s=this,r=null,q=A.f("Edit "+s.b,r,r,r,r,B.ij,r,r,r),p=s.c,o=new A.cC(p,A.N(p).i("cC<1>")),n=s.d,m=t.p
-n=A.bd(A.z(A.a([B.aoN,B.ak,new A.da(B.PH,A.ZF(!0,o.gcS(o).cg(0,new A.aLS(b,p),t.hT).df(0),new A.aLT(b,p),r,!0),r),B.D,A.x(A.a([A.U(A.ce(!0,B.S,!1,r,!0,B.u,r,A.ci(),n,r,r,r,r,r,2,A.bF(r,new A.aq(4,A.h(8),B.ab),r,B.cz,r,r,r,r,!0,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,"Add option\u2026",r,r,r,r,r,!0,r,r,r,!0,!0,r,r,r,r,r,r,r,r,r,r,r,r,r),B.t,!0,r,!0,r,!1,r,B.a7,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,new A.aLU(b,p,n),r,!1,r,r,!1,r,!0,r,B.L,r,r,B.a6,B.a5,r,r,r,r,r,r,r,!0,B.K,r,B.af,r,r,r,r),1),B.A,A.cy(!1,B.im,r,r,r,r,r,r,new A.aLV(n,b,p),r,A.ba(r,r,B.n,r,r,r,0,r,r,B.k,r,r,r,r,new A.ai(A.h(8),B.q),r,r,r,r,r))],m),B.f,B.c,B.e,0,r)],m),B.o,B.c,B.z,0,B.i),r,420)
+n=A.bd(A.z(A.a([B.aoL,B.ak,new A.da(B.PH,A.ZF(!0,o.gcS(o).cg(0,new A.aLS(b,p),t.hT).df(0),new A.aLT(b,p),r,!0),r),B.D,A.x(A.a([A.U(A.ce(!0,B.S,!1,r,!0,B.u,r,A.ci(),n,r,r,r,r,r,2,A.bF(r,new A.aq(4,A.h(8),B.ab),r,B.cz,r,r,r,r,!0,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,"Add option\u2026",r,r,r,r,r,!0,r,r,r,!0,!0,r,r,r,r,r,r,r,r,r,r,r,r,r),B.t,!0,r,!0,r,!1,r,B.a7,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,new A.aLU(b,p,n),r,!1,r,r,!1,r,!0,r,B.L,r,r,B.a6,B.a5,r,r,r,r,r,r,r,!0,B.K,r,B.af,r,r,r,r),1),B.A,A.cy(!1,B.im,r,r,r,r,r,r,new A.aLV(n,b,p),r,A.ba(r,r,B.n,r,r,r,0,r,r,B.k,r,r,r,r,new A.ai(A.h(8),B.q),r,r,r,r,r))],m),B.f,B.c,B.e,0,r)],m),B.o,B.c,B.z,0,B.i),r,420)
 return A.cs(A.a([A.cd(!1,B.aC,r,r,r,r,r,r,new A.aLW(a),r,r),A.cy(!1,B.er,r,r,r,r,r,r,new A.aLX(s.a,s.e,s.f,p,a),r,A.ba(r,r,B.n,r,r,r,r,r,r,B.k,r,r,r,r,new A.ai(A.h(8),B.q),r,r,r,r,r))],m),n,r,r,q)},
 $S:62}
 A.aLT.prototype={
@@ -110875,7 +110875,7 @@ s=A.f(m,o,o,o,o,B.ht,o,o,o)
 q=A.N(r).i("O<1,eW>")
 q=A.K(new A.O(r,new A.b34(),q),q.i("ar.E"))
 p=t.p
-return new A.I(B.hL,A.x(A.a([A.U(A.z(A.a([s,B.a4,A.er(q,4,6)],p),B.o,B.c,B.e,0,B.i),1),A.kr(B.ZV,B.ape,new A.b35(l,n,m),A.h1(o,o,o,o,o,o,o,o,o,B.n,o,o,o,o,o,o,o,o,o,o))],p),B.o,B.c,B.e,0,o),o)},
+return new A.I(B.hL,A.x(A.a([A.U(A.z(A.a([s,B.a4,A.er(q,4,6)],p),B.o,B.c,B.e,0,B.i),1),A.kr(B.ZV,B.apb,new A.b35(l,n,m),A.h1(o,o,o,o,o,o,o,o,o,B.n,o,o,o,o,o,o,o,o,o,o))],p),B.o,B.c,B.e,0,o),o)},
 $S:299}
 A.b34.prototype={
 $1(a){var s=null,r=B.n.I(0.07),q=A.h(20),p=A.ay(B.n.I(0.2),1)
@@ -111145,7 +111145,7 @@ a=A.h(20)
 a=A.a([A.x(A.a([d,B.a9,c,A.A(a0,A.x(A.a([A.aa(h.aW(),i.aW(),a0,a0,12),B.ac,A.f(g.aW(),a0,a0,a0,a0,A.X(a0,a0,i.aW(),a0,a0,a0,a0,a0,a0,a0,a0,11,a0,a0,B.w,a0,a0,!0,a0,a0,a0,a0,a0,a0,a0,a0),a0,a0,a0)],e),B.f,B.c,B.z,0,a0),B.h,a0,a0,new A.C(b,a0,a0,a,a0,a0,B.l),a0,a0,a0,B.d0,a0,a0,a0)],e),B.f,B.c,B.e,0,a0)],e)
 if(n.length!==0&&a1)B.b.A(a,A.a([B.aL,A.f("Approved by "+n,a0,a0,a0,a0,B.lT,a0,a0,a0)],e))
 if(m.length!==0&&p==="rejected")B.b.A(a,A.a([B.aL,A.f("Reason: "+m,a0,a0,a0,a0,B.va,a0,a0,a0)],e))
-if(k!=null)B.b.A(a,A.a([B.ak,B.hK,B.M,A.x(A.a([B.Z6,B.aa,A.U(A.f(k,a0,a0,a0,a0,B.amN,a0,a0,a0),1),A.kr(B.a0R,B.apu,new A.b8F(k,a4),A.h1(a0,a0,a0,a0,a0,a0,a0,a0,a0,B.n,a0,a0,a0,a0,a0,a0,a0,a0,a0,a0))],e),B.f,B.c,B.e,0,a0)],e))
+if(k!=null)B.b.A(a,A.a([B.ak,B.hK,B.M,A.x(A.a([B.Z6,B.aa,A.U(A.f(k,a0,a0,a0,a0,B.amN,a0,a0,a0),1),A.kr(B.a0R,B.apr,new A.b8F(k,a4),A.h1(a0,a0,a0,a0,a0,a0,a0,a0,a0,B.n,a0,a0,a0,a0,a0,a0,a0,a0,a0,a0))],e),B.f,B.c,B.e,0,a0)],e))
 return A.A(a0,A.z(a,B.o,B.c,B.e,0,B.i),B.h,a0,a0,new A.C(B.k,a0,f,a2,a0,a0,B.l),a0,a0,B.eH,B.cO,a0,a0,a0)}}
 A.b8F.prototype={
 $0(){var s=window.navigator.clipboard
@@ -111374,7 +111374,7 @@ if(m!=null)q.q(new A.aMS(q,a,m))
 return A.o(null,r)}})
 return A.p($async$CX,r)},
 n(a){var s,r,q,p,o,n=this,m=null,l=A.av(a,m,t.l).w.a.a<700,k=l?16:24,j=l?16:24,i=A.A(m,B.Al,B.h,m,m,new A.C(B.n.I(0.1),m,m,A.h(8),m,m,B.l),m,36,m,m,m,m,36),h=t.p
-i=A.a([i,B.U,A.U(A.z(A.a([B.apz,A.f($.eG===B.bZ?"Edit sections \xb7 Add custom fields \xb7 Update & Publish":"Edit sections \xb7 Add custom fields \xb7 Send for Management approval",m,m,m,m,B.aH,m,m,m)],h),B.o,B.c,B.e,0,B.i),1)],h)
+i=A.a([i,B.U,A.U(A.z(A.a([B.apx,A.f($.eG===B.bZ?"Edit sections \xb7 Add custom fields \xb7 Update & Publish":"Edit sections \xb7 Add custom fields \xb7 Send for Management approval",m,m,m,m,B.aH,m,m,m)],h),B.o,B.c,B.e,0,B.i),1)],h)
 if(!n.e){s=n.f
 r=s?m:n.gam9()
 if(s)q=B.lE
@@ -111423,7 +111423,7 @@ s.x=!1},
 $S:0}
 A.aN5.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aN3(a),s,s),A.cy(!1,B.MY,s,s,s,s,s,s,new A.aN4(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aoK,s,s,B.aoY)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aN3(a),s,s),A.cy(!1,B.MY,s,s,s,s,s,s,new A.aN4(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aoI,s,s,B.aoV)},
 $S:8}
 A.aN3.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -111447,7 +111447,7 @@ $1(a){return A.a6(J.a1(a,"status"))==="pending"},
 $S:12}
 A.aNd.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cy(!1,B.vm,s,s,s,s,s,s,new A.aNb(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqq,s,s,B.Nk)},
+return A.cs(A.a([A.cy(!1,B.vm,s,s,s,s,s,s,new A.aNb(a),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqo,s,s,B.Nk)},
 $S:8}
 A.aNb.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -111455,7 +111455,7 @@ return null},
 $S:0}
 A.aNe.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aN9(a),s,s),A.cy(!1,B.Ne,s,s,s,s,s,s,new A.aNa(a),s,A.ba(s,s,B.G,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.app,s,s,B.aoE)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aN9(a),s,s),A.cy(!1,B.Ne,s,s,s,s,s,s,new A.aNa(a),s,A.ba(s,s,B.G,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.apm,s,s,B.aoC)},
 $S:8}
 A.aN9.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -111610,7 +111610,7 @@ A.aMR.prototype={
 $1(a){var s,r=null,q=t.p,p=A.A(r,A.x(A.a([B.Zl,B.a9,B.WY,A.bs(r,r,r,B.A3,r,r,new A.aMO(a),r,r,r,r,r)],q),B.f,B.c,B.e,0,r),B.h,r,r,new A.C(B.cm,r,r,B.m6,r,r,B.l),r,r,r,B.Wc,r,r,r),o=this.a.c
 o.toString
 s=this.b
-return A.ol(r,r,A.z(A.a([p,new A.I(B.aK,A.z(A.a([B.apq,B.D,new A.da(new A.au(0,1/0,0,A.av(o,r,t.l).w.a.b*0.55),A.ce(!0,B.S,!1,r,!0,B.u,r,A.ci(),s,r,r,r,r,r,2,B.a16,B.t,!0,r,!0,r,!0,r,B.a7,r,r,r,r,r,r,r,r,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.L,r,r,B.a6,B.a5,r,r,r,r,r,r,B.am8,!0,B.K,r,B.af,r,r,r,r),r),B.D,A.x(A.a([A.cd(!1,B.aC,r,r,r,r,r,r,new A.aMP(a),r,r),B.A,A.cN(B.zZ,B.apW,new A.aMQ(a,s),A.ba(r,r,B.cm,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r))],q),B.f,B.jl,B.e,0,r)],q),B.o,B.c,B.e,0,B.i),r)],q),B.f,B.c,B.z,0,B.i),r,r,B.L,B.fE,r,r,r)},
+return A.ol(r,r,A.z(A.a([p,new A.I(B.aK,A.z(A.a([B.apn,B.D,new A.da(new A.au(0,1/0,0,A.av(o,r,t.l).w.a.b*0.55),A.ce(!0,B.S,!1,r,!0,B.u,r,A.ci(),s,r,r,r,r,r,2,B.a16,B.t,!0,r,!0,r,!0,r,B.a7,r,r,r,r,r,r,r,r,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.L,r,r,B.a6,B.a5,r,r,r,r,r,r,B.am8,!0,B.K,r,B.af,r,r,r,r),r),B.D,A.x(A.a([A.cd(!1,B.aC,r,r,r,r,r,r,new A.aMP(a),r,r),B.A,A.cN(B.zZ,B.apU,new A.aMQ(a,s),A.ba(r,r,B.cm,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r))],q),B.f,B.jl,B.e,0,r)],q),B.o,B.c,B.e,0,B.i),r)],q),B.f,B.c,B.z,0,B.i),r,r,B.L,B.fE,r,r,r)},
 $S:123}
 A.aMO.prototype={
 $0(){return A.aD(this.a,!1).eM()},
@@ -111691,7 +111691,7 @@ f=A.a([new A.I(B.yx,A.x(j,B.f,B.c,B.e,0,g),g)],i)
 if(r&&o.length!==0){l=A.x(A.a([B.Nm,B.aa,B.Ng],i),B.f,B.c,B.e,0,g)
 k=A.N(o).i("O<1,r2>")
 k=A.K(new A.O(o,new A.aYk(h,n),k),k.i("ar.E"))
-B.b.A(f,A.a([B.hK,new A.I(B.h9,A.z(A.a([l,B.aL,A.er(k,5,6)],i),B.o,B.c,B.e,0,B.i),g)],i))}if(r&&d==="hr_policy"&&h.Q!=null)B.b.A(f,A.a([B.hK,new A.I(B.c2,A.x(A.a([B.Zo,B.aa,B.X7,B.A,A.e8(B.a_4,B.apa,h.Q,A.ed(g,g,g,g,g,g,g,g,g,B.cm,g,g,B.j0,g,g,B.Pe,g,g,g,g))],i),B.f,B.c,B.e,0,g),g)],i))
+B.b.A(f,A.a([B.hK,new A.I(B.h9,A.z(A.a([l,B.aL,A.er(k,5,6)],i),B.o,B.c,B.e,0,B.i),g)],i))}if(r&&d==="hr_policy"&&h.Q!=null)B.b.A(f,A.a([B.hK,new A.I(B.c2,A.x(A.a([B.Zo,B.aa,B.X7,B.A,A.e8(B.a_4,B.ap7,h.Q,A.ed(g,g,g,g,g,g,g,g,g,B.cm,g,g,B.j0,g,g,B.Pe,g,g,g,g))],i),B.f,B.c,B.e,0,g),g)],i))
 if(r){l=A.a([A.x(A.a([B.Nf,B.bd,A.kr(B.Aj,B.N1,h.x,A.h1(g,g,g,g,g,g,g,g,g,B.n,g,g,g,g,g,g,g,g,g,g))],i),B.f,B.c,B.e,0,g)],i)
 if(p.length!==0){k=A.a([B.a4],i)
 j=new A.cC(p,A.N(p).i("cC<1>"))
@@ -112072,7 +112072,7 @@ n(a){var s,r,q=this,p=null,o=A.av(a,p,t.l).w.a.a<700,n=o?16:24,m=$.dm,l=t.p,k=A.
 if(!o)B.b.A(k,A.a([A.x(A.a([A.z(A.a([A.f("My Dashboard",p,p,p,p,A.v(a).ok.e,p,p,p),B.a4,A.f("FOMRA Housing & Infrastructure",p,p,p,p,A.v(a).ok.z,p,p,p)],l),B.o,B.c,B.e,0,B.i),A.bs(p,p,p,B.eN,p,p,q.gamO(),p,p,p,"Refresh",p)],l),B.f,B.i9,B.e,0,p),B.bu],l))
 s=A.h(16)
 r=A.a([new A.bX(0,B.au,B.n.I(0.3),B.lo,16)],t.V)
-k.push(A.A(p,A.x(A.a([B.Sp,B.b5,A.U(A.z(A.a([B.vn,A.f(m.length!==0?m:"Employee",p,p,p,p,B.v6,p,p,p),B.a4,A.A(p,B.apD,B.h,p,p,new A.C(B.h1,p,p,A.h(20),p,p,B.l),p,p,p,B.n_,p,p,p)],l),B.o,B.c,B.e,0,B.i),1)],l),B.f,B.c,B.e,0,p),B.h,p,p,new A.C(p,p,p,s,r,B.a1J,B.l),p,p,p,B.L,p,p,1/0))
+k.push(A.A(p,A.x(A.a([B.Sp,B.b5,A.U(A.z(A.a([B.vn,A.f(m.length!==0?m:"Employee",p,p,p,p,B.v6,p,p,p),B.a4,A.A(p,B.apB,B.h,p,p,new A.C(B.h1,p,p,A.h(20),p,p,B.l),p,p,p,B.n_,p,p,p)],l),B.o,B.c,B.e,0,B.i),1)],l),B.f,B.c,B.e,0,p),B.h,p,p,new A.C(p,p,p,s,r,B.a1J,B.l),p,p,p,B.L,p,p,1/0))
 k.push(A.bd(p,o?16:24,p))
 if(q.f)k.push(B.ab1)
 else{s=q.e
@@ -112347,7 +112347,7 @@ s=A.a([o,B.D,A.f(s,p,p,p,p,A.X(p,p,B.bz,p,p,p,p,p,p,p,p,15,p,p,p,p,p,!0,p,p,p,p,
 if(q.d.length===0)B.b.A(s,A.a([B.M,A.f('Click "Joining Form" to open the form and share it',p,p,p,p,A.X(p,p,B.aN,p,p,p,p,p,p,p,p,12,p,p,p,p,p,!0,p,p,p,p,p,p,p,p),p,p,p)],r))
 return A.bS(A.z(s,B.f,B.c,B.z,0,B.i),p,p)}return A.bgk(new A.aNS(q),o,new A.a4(a,a,a,a),p,new A.aNT(),!1)},
 ai4(a){var s=null,r=A.h(10),q=A.ay(B.fi,1),p=this.r,o=t.p
-r=A.a([A.A(s,A.x(A.a([B.a13,B.a9,A.U(A.z(A.a([B.aq3,B.b6,A.f(p.length===0?"No approved version yet \u2014 form will use defaults.":"Currently serving "+new A.a9(p,new A.aNQ(),A.N(p).i("a9<1>")).gD(0)+" active sections. Approving a new version instantly updates the form.",s,s,s,s,B.akM,s,s,s)],o),B.o,B.c,B.e,0,B.i),1)],o),B.f,B.c,B.e,0,s),B.h,s,s,new A.C(B.aR,s,q,r,s,s,B.l),s,s,B.mX,B.bh,s,s,s)],o)
+r=A.a([A.A(s,A.x(A.a([B.a13,B.a9,A.U(A.z(A.a([B.aq1,B.b6,A.f(p.length===0?"No approved version yet \u2014 form will use defaults.":"Currently serving "+new A.a9(p,new A.aNQ(),A.N(p).i("a9<1>")).gD(0)+" active sections. Approving a new version instantly updates the form.",s,s,s,s,B.akM,s,s,s)],o),B.o,B.c,B.e,0,B.i),1)],o),B.f,B.c,B.e,0,s),B.h,s,s,new A.C(B.aR,s,q,r,s,s,B.l),s,s,B.mX,B.bh,s,s,s)],o)
 q=this.f
 if(q.length===0)r.push(A.A(B.at,A.z(A.a([A.aa(B.fo,B.a_,s,s,52),B.D,A.f("No pending form versions",s,s,s,s,A.X(s,s,B.bz,s,s,s,s,s,s,s,s,15,s,s,s,s,s,!0,s,s,s,s,s,s,s,s),s,s,s),B.a4,A.f("When HR submits an edited form, it will appear here for approval.",s,s,s,s,A.X(s,s,B.aN,s,s,s,s,s,s,s,s,12,s,s,s,s,s,!0,s,s,s,s,s,s,s,s),s,s,s)],o),B.f,B.c,B.e,0,B.i),B.h,s,s,s,s,s,s,B.mZ,s,s,s))
 else B.b.A(r,new A.O(q,new A.aNR(this),A.N(q).i("O<1,c>")))
@@ -112359,7 +112359,7 @@ B.vH.RB(s,u.J,"_blank")},
 ak6(){A.zl(new A.qK(u.J))
 this.c.R(t.q).f.bj(B.afZ)},
 n(a){var s,r=this,q=null,p=A.av(a,q,t.l).w.a.a<700,o=p?16:24,n=A.v(a),m=p?16:24,l=A.A(q,B.ZG,B.h,q,q,new A.C(B.n.I(0.1),q,q,A.h(8),q,q,B.l),q,36,q,q,q,q,36),k=r.d.length,j=k===1?"":"s",i=t.p
-j=A.a([l,B.U,A.U(A.z(A.a([B.ao2,A.f(""+k+" submission"+j+" received",q,q,q,q,B.aH,q,q,q)],i),B.o,B.c,B.e,0,B.i),1)],i)
+j=A.a([l,B.U,A.U(A.z(A.a([B.ao_,A.f(""+k+" submission"+j+" received",q,q,q,q,B.aH,q,q,q)],i),B.o,B.c,B.e,0,B.i),1)],i)
 if(!p)B.b.A(j,A.a([A.e8(B.t6,B.vs,r.gak5(),A.ed(q,q,q,q,q,q,q,q,q,B.n,q,q,B.c2,q,new A.ai(A.h(8),B.q),B.ex,q,q,q,q)),B.A,A.e8(B.a0v,B.MS,new A.aO2(a),A.ed(q,q,q,q,q,q,q,q,q,B.G,q,q,B.c2,q,new A.ai(A.h(8),B.q),B.Pd,q,q,q,q)),B.A],i))
 j.push(A.cN(B.a0l,B.arH,r.gawx(),A.ba(q,q,B.n,q,q,q,0,q,q,B.k,q,q,B.c2,q,new A.ai(A.h(8),B.q),q,q,q,q,q)))
 j.push(B.A)
@@ -112617,7 +112617,7 @@ k=A.f("Email: "+A.u(k==null?"\u2014":k),h,h,h,h,B.lN,h,h,h)
 j=b.h(c,"assigned_emp_id")
 j=A.f("Emp ID: "+A.u(j==null?"\u2014":j),h,h,h,h,B.lN,h,h,h)
 b=b.h(c,"assigned_manager")
-B.b.A(n,A.a([B.D,A.A(h,A.z(A.a([B.aph,B.a4,k,j,A.f("Manager: "+A.u(b==null?"\u2014":b),h,h,h,h,B.lN,h,h,h)],l),B.o,B.c,B.e,0,B.i),B.h,h,h,new A.C(B.bR,h,h,m,h,h,B.l),h,h,h,B.bt,h,h,h)],l))}B.b.A(o,A.a([B.cM,new A.I(B.aK,A.z(n,B.o,B.c,B.e,0,B.i),h)],l))}return A.bv(A.z(o,B.f,B.c,B.e,0,B.i),h,0,B.ao,new A.ai(a,B.wr))},
+B.b.A(n,A.a([B.D,A.A(h,A.z(A.a([B.ape,B.a4,k,j,A.f("Manager: "+A.u(b==null?"\u2014":b),h,h,h,h,B.lN,h,h,h)],l),B.o,B.c,B.e,0,B.i),B.h,h,h,new A.C(B.bR,h,h,m,h,h,B.l),h,h,h,B.bt,h,h,h)],l))}B.b.A(o,A.a([B.cM,new A.I(B.aK,A.z(n,B.o,B.c,B.e,0,B.i),h)],l))}return A.bv(A.z(o,B.f,B.c,B.e,0,B.i),h,0,B.ao,new A.ai(a,B.wr))},
 tB(a,b){var s=null,r=t.zR,q=A.K(new A.dv(b,r),r.i("y.E"))
 if(q.length===0)return B.b_
 r=A.a([B.ar,A.f(a,s,s,s,s,B.lM,s,s,s),B.mP],t.p)
@@ -112634,7 +112634,7 @@ B.b.A(p,s.gcS(s).cg(0,new A.b4m(this,c),t.o))
 return A.z(p,B.o,B.c,B.e,0,B.i)},
 ahp(a){var s,r=t.j.b(a)?a:[],q=J.am(r)
 if(q.gaw(r))return B.b_
-s=A.a([B.ar,B.anU,B.mP],t.p)
+s=A.a([B.ar,B.anR,B.mP],t.p)
 B.b.A(s,q.cg(r,new A.b4c(),t.o))
 return A.z(s,B.o,B.c,B.e,0,B.i)},
 atE(a){return new A.O(A.a(A.d9(a,"_"," ").split(" "),t.s),new A.b4n(),t.a4).bN(0," ")}}
@@ -112659,7 +112659,7 @@ return new A.jr(new A.b4v(s.a,s.b,s.c,s.d,s.e,s.f),null)},
 $S:61}
 A.b4v.prototype={
 $2(a,b){var s,r,q,p,o,n=this,m=null,l=A.h(8),k=t.p,j=n.c,i=n.d
-l=A.a([A.A(m,A.x(A.a([B.a0s,B.A,A.U(A.f("These details will be used to create the employee account once Management approves.",m,m,m,m,B.ai9,m,m,m),1)],k),B.f,B.c,B.e,0,m),B.h,m,m,new A.C(B.bR,m,m,l,m,m,B.l),m,m,m,B.bt,m,m,m),B.R,A.ce(!0,B.S,!1,m,!0,B.u,m,A.ci(),j,m,m,m,m,m,2,A.bF(m,new A.aq(4,A.h(8),B.ab),m,m,m,m,m,m,!0,m,m,m,m,m,m,B.k,!0,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,B.ch,"Username",!0,!0,m,B.A_,m,m,m,m,m,B.anT,m,m,m,m,m),B.t,!0,m,!0,m,!1,m,B.a7,m,m,m,m,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.L,m,m,B.a6,B.a5,m,m,m,m,m,m,m,!0,B.K,m,B.af,m,m,m,m),B.D,A.ce(!0,B.S,!1,m,!0,B.u,m,A.ci(),i,m,m,m,m,m,2,A.bF(m,new A.aq(4,A.h(8),B.ab),m,m,m,m,m,m,!0,m,m,m,m,m,m,B.k,!0,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,B.ch,"Employee ID",!0,!0,m,B.a0y,m,m,m,m,m,m,m,m,m,m,m),B.t,!0,m,!0,m,!1,m,B.a7,m,m,m,m,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.L,m,m,B.a6,B.a5,m,m,m,m,m,m,m,!0,B.K,m,B.af,m,m,m,m)],k)
+l=A.a([A.A(m,A.x(A.a([B.a0s,B.A,A.U(A.f("These details will be used to create the employee account once Management approves.",m,m,m,m,B.ai9,m,m,m),1)],k),B.f,B.c,B.e,0,m),B.h,m,m,new A.C(B.bR,m,m,l,m,m,B.l),m,m,m,B.bt,m,m,m),B.R,A.ce(!0,B.S,!1,m,!0,B.u,m,A.ci(),j,m,m,m,m,m,2,A.bF(m,new A.aq(4,A.h(8),B.ab),m,m,m,m,m,m,!0,m,m,m,m,m,m,B.k,!0,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,B.ch,"Username",!0,!0,m,B.A_,m,m,m,m,m,B.anQ,m,m,m,m,m),B.t,!0,m,!0,m,!1,m,B.a7,m,m,m,m,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.L,m,m,B.a6,B.a5,m,m,m,m,m,m,m,!0,B.K,m,B.af,m,m,m,m),B.D,A.ce(!0,B.S,!1,m,!0,B.u,m,A.ci(),i,m,m,m,m,m,2,A.bF(m,new A.aq(4,A.h(8),B.ab),m,m,m,m,m,m,!0,m,m,m,m,m,m,B.k,!0,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,B.ch,"Employee ID",!0,!0,m,B.a0y,m,m,m,m,m,m,m,m,m,m,m),B.t,!0,m,!0,m,!1,m,B.a7,m,m,m,m,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.L,m,m,B.a6,B.a5,m,m,m,m,m,m,m,!0,B.K,m,B.af,m,m,m,m)],k)
 s=n.e
 if(s.length!==0){r=n.a
 q=r.a
@@ -112669,7 +112669,7 @@ o=A.N(s).i("O<1,fz<i>>")
 s=A.K(new A.O(s,new A.b4r(),o),o.i("ar.E"))
 B.b.A(l,A.a([B.D,A.mU(p,m,!1,s,new A.b4s(r,b),m,q,t.N)],k))}else B.b.A(l,A.a([B.M,A.f("No managers found. Add a Manager user first.",m,m,m,m,A.X(m,m,B.aP,m,m,m,m,m,m,m,m,12,m,m,m,m,m,!0,m,m,m,m,m,m,m,m),m,m,m)],k))
 l=A.bY(A.z(l,B.f,B.c,B.z,0,B.i),m,B.t,m,m,m,B.H)
-return A.cs(A.a([A.cd(!1,B.aC,m,m,m,m,m,m,new A.b4t(a),m,m),A.cy(!1,B.aqt,m,m,m,m,m,m,new A.b4u(n.a,n.b,a,j,i,n.f),m,A.ba(m,m,B.W,m,m,m,m,m,m,B.k,m,m,m,m,new A.ai(A.h(8),B.q),m,m,m,m,m))],k),l,m,m,B.aqa)},
+return A.cs(A.a([A.cd(!1,B.aC,m,m,m,m,m,m,new A.b4t(a),m,m),A.cy(!1,B.aqr,m,m,m,m,m,m,new A.b4u(n.a,n.b,a,j,i,n.f),m,A.ba(m,m,B.W,m,m,m,m,m,m,B.k,m,m,m,m,new A.ai(A.h(8),B.q),m,m,m,m,m))],k),l,m,m,B.aq8)},
 $S:62}
 A.b4r.prototype={
 $1(a){var s=null
@@ -112725,7 +112725,7 @@ $0(){return this.a.e=!1},
 $S:0}
 A.b4f.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b4d(a),s,s),A.cy(!1,B.jV,s,s,s,s,s,s,new A.b4e(a),s,A.ba(s,s,B.ah,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],t.p),B.aor,s,s,B.apO)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b4d(a),s,s),A.cy(!1,B.jV,s,s,s,s,s,s,new A.b4e(a),s,A.ba(s,s,B.ah,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],t.p),B.aop,s,s,B.apM)},
 $S:8}
 A.b4d.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -112984,7 +112984,7 @@ return A.p($async$$0,r)},
 $S:2}
 A.b_z.prototype={
 $1(a){var s=null,r=t.p,q=A.z(A.a([A.f("Publish onboarding form v"+this.a+"?",s,s,s,s,B.eY,s,s,s),B.M,A.A(s,B.acQ,B.h,s,s,new A.C(B.aR,s,s,A.h(8),s,s,B.l),s,s,s,B.bt,s,s,s)],r),B.f,B.c,B.z,0,B.i)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b_v(a),s,s),A.cy(!1,B.MV,s,s,s,s,s,s,new A.b_w(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],r),q,s,s,B.MU)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b_v(a),s,s),A.cy(!1,B.MU,s,s,s,s,s,s,new A.b_w(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],r),q,s,s,B.MT)},
 $S:8}
 A.b_v.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -113222,9 +113222,9 @@ q=A.a([A.x(A.a([q,B.A,A.f(p,m,m,m,m,A.X(m,m,r?B.aI:B.cG,m,m,m,m,m,m,m,m,13,m,m,m
 if(h){r=B.n.I(0.06)
 p=A.h(8)
 q.push(A.A(m,B.ad7,B.h,m,m,new A.C(r,m,A.ay(B.n.I(0.2),1),p,m,m,B.l),m,m,m,B.c2,m,m,1/0))}else{r=n.x?m:n.gaBb()
-r=A.U(A.cN(B.a_F,B.aoo,r,A.ba(m,m,B.aI,m,m,m,m,m,m,B.k,m,m,B.cc,m,new A.ai(A.h(10),B.q),m,m,m,m,m)),1)
+r=A.U(A.cN(B.a_F,B.aol,r,A.ba(m,m,B.aI,m,m,m,m,m,m,B.k,m,m,B.cc,m,new A.ai(A.h(10),B.q),m,m,m,m,m)),1)
 p=n.x?n.gaBh():m
-q.push(A.x(A.a([r,B.U,A.U(A.cN(B.a0M,B.aqc,p,A.ba(m,m,B.aT,m,m,m,m,m,m,B.k,m,m,B.cc,m,new A.ai(A.h(10),B.q),m,m,m,m,m)),1)],i),B.f,B.c,B.e,0,m))}r=n.w
+q.push(A.x(A.a([r,B.U,A.U(A.cN(B.a0M,B.aqa,p,A.ba(m,m,B.aT,m,m,m,m,m,m,B.k,m,m,B.cc,m,new A.ai(A.h(10),B.q),m,m,m,m,m)),1)],i),B.f,B.c,B.e,0,m))}r=n.w
 if(r.length!==0){p=A.f("Tracked Points",m,m,m,m,A.X(m,m,B.fe,m,m,m,m,m,m,m,m,12,m,m,B.w,m,m,!0,m,m,m,m,m,m,m,m),m,m,m)
 o=r.length
 if(o>5)o=5
@@ -113364,7 +113364,7 @@ return A.p($async$DC,r)},
 ahO(){var s,r,q=this,p=null,o=new A.aT(Date.now(),0,!1),n=q.e,m=A.az(n)===A.az(o)&&A.aN(n)===A.aN(o)&&A.bB(n)===A.bB(o),l=A.nz(A.ca(!1,A.h(20),!0,B.GI,p,!0,p,p,p,p,p,p,p,p,p,p,p,new A.aQS(q),p,p,p,p,p,p,p),"Previous day"),k=A.h(8),j=t.p
 n=A.a([A.f(B.tm[A.YV(n)-1]+", "+A.bB(n)+" "+B.l6[A.aN(n)-1]+" "+A.az(n),p,p,p,p,B.akV,B.b7,p,p)],j)
 if(m)n.push(B.are)
-else n.push(B.anW)
+else n.push(B.anT)
 n=A.U(A.ca(!1,k,!0,new A.I(B.qP,A.z(n,B.f,B.c,B.z,0,B.i),p),p,!0,p,p,p,p,p,p,p,p,p,p,p,q.gasM(),p,p,p,p,p,p,p),1)
 k=m?"":"Next day"
 s=m?p:new A.aQT(q)
@@ -113592,7 +113592,7 @@ aww(){var s=null,r=this.c
 r.toString
 A.c8(s,s,!0,s,new A.aR5(this),r,s,!0,t.z)},
 n(a){var s,r,q=this,p=null,o=t.p,n=A.a([A.A(p,B.a__,B.h,p,p,new A.C(B.n.I(0.1),p,p,A.h(12),p,p,B.l),p,48,p,p,p,p,48),B.b5,A.f("Employee Records",p,p,p,p,A.v(a).ok.e,p,p,p),B.bd,A.bs(p,p,p,B.eN,p,p,q.gasQ(),p,p,p,"Refresh",p),B.ac],o),m=$.eG
-if(m===B.dG||m===B.bZ)n.push(A.cN(B.td,B.ap6,q.gawv(),A.ba(p,p,B.n,p,p,p,p,p,p,B.k,p,p,B.c2,p,new A.ai(A.h(8),B.q),p,p,p,B.lQ,p)))
+if(m===B.dG||m===B.bZ)n.push(A.cN(B.td,B.ap3,q.gawv(),A.ba(p,p,B.n,p,p,p,p,p,p,B.k,p,p,B.c2,p,new A.ai(A.h(8),B.q),p,p,p,B.lQ,p)))
 n=A.x(n,B.f,B.c,B.e,0,p)
 m=A.h(10)
 s=A.h(10)
@@ -113778,27 +113778,27 @@ o.push(A.x(n,B.f,B.c,B.e,0,j))
 p=A.x(A.a([p,B.cg,A.U(A.z(o,B.o,B.c,B.e,0,B.i),1),A.bs(j,j,j,B.a0C,j,j,new A.b0r(a),j,j,j,j,j)],q),B.f,B.c,B.e,0,j)
 o=k.d
 o=A.a([p,B.R,B.dy,B.M,new A.pQ(B.eL,"Employee ID",o.c,j),new A.pQ(B.fp,"Email",o.b,j),new A.pQ(B.l0,"Mobile",o.y,j),new A.pQ(B.dQ,"Address",o.z,j),new A.pQ(B.bH,"Date of Joining",o.Q,j),new A.pQ(B.dd,"Reporting Manager",o.x,j)],q)
-if(r){p=A.a([B.ar,B.dy,B.ak,A.x(A.a([B.Zk,B.aa,B.aoH],q),B.f,B.c,B.e,0,j),B.ak],q)
+if(r){p=A.a([B.ar,B.dy,B.ak,A.x(A.a([B.Zk,B.aa,B.aoF],q),B.f,B.c,B.e,0,j),B.ak],q)
 if(k.d.as.length===0){n=k.r?j:k.gajT()
-p.push(A.bd(A.e8(B.a_R,B.aqh,n,A.ed(j,j,j,j,j,j,j,j,j,B.aI,j,j,B.hM,j,new A.ai(A.h(10),B.q),new A.aH(B.eC,1,B.B,-1),j,j,j,j)),j,1/0))}else{n=A.h(8)
+p.push(A.bd(A.e8(B.a_R,B.aqf,n,A.ed(j,j,j,j,j,j,j,j,j,B.aI,j,j,B.hM,j,new A.ai(A.h(10),B.q),new A.aH(B.eC,1,B.B,-1),j,j,j,j)),j,1/0))}else{n=A.h(8)
 m=A.ay(B.dL,1)
 n=A.a([A.U(A.A(j,A.x(A.a([A.aa(B.dR,B.aI,j,j,15),B.A,A.f("On-Roll confirmed",j,j,j,j,A.X(j,j,B.aI,j,j,j,j,j,j,j,j,12,j,j,B.w,j,j,!0,j,j,j,j,j,j,j,j),j,j,j)],q),B.f,B.c,B.e,0,j),B.h,j,j,new A.C(B.aR,j,m,n,j,j,B.l),j,j,j,B.c7,j,j,j),1)],q)
 if(k.gKx()){m=k.r?j:k.gaCA()
 B.b.A(n,A.a([B.A,A.kr(B.zU,A.f("Undo ("+k.WA(k.d.as)+")",j,j,j,j,B.lS,j,j,j),m,A.h1(j,j,j,j,j,j,j,j,j,B.kH,j,j,j,j,j,j,j,j,j,j))],q))}p.push(A.x(n,B.f,B.c,B.e,0,j))}if(k.d.as.length!==0){n=A.a([B.M],q)
 if(k.d.at.length===0){m=k.r?j:k.gajS()
-n.push(A.bd(A.e8(B.a0D,B.apt,m,A.ed(j,j,j,j,j,j,j,j,j,B.hF,j,j,B.hM,j,new A.ai(A.h(10),B.q),new A.aH(B.TK,1,B.B,-1),j,j,j,j)),j,1/0))}else{m=A.h(8)
+n.push(A.bd(A.e8(B.a0D,B.apq,m,A.ed(j,j,j,j,j,j,j,j,j,B.hF,j,j,B.hM,j,new A.ai(A.h(10),B.q),new A.aH(B.TK,1,B.B,-1),j,j,j,j)),j,1/0))}else{m=A.h(8)
 l=A.ay(B.ez,1)
 m=A.a([A.U(A.A(j,A.x(A.a([A.aa(B.d1,B.hF,j,j,15),B.A,A.f("EL eligible",j,j,j,j,A.X(j,j,B.hF,j,j,j,j,j,j,j,j,12,j,j,B.w,j,j,!0,j,j,j,j,j,j,j,j),j,j,j)],q),B.f,B.c,B.e,0,j),B.h,j,j,new A.C(B.eB,j,l,m,j,j,B.l),j,j,j,B.c7,j,j,j),1)],q)
 if(k.gKw()){l=k.r?j:k.gaCx()
 B.b.A(m,A.a([B.A,A.kr(B.zU,A.f("Undo ("+k.WA(k.d.at)+")",j,j,j,j,B.lS,j,j,j),l,A.h1(j,j,j,j,j,j,j,j,j,B.kH,j,j,j,j,j,j,j,j,j,j))],q))}n.push(A.x(m,B.f,B.c,B.e,0,j))}B.b.A(p,n)}p.push(B.a4)
 B.b.A(o,p)}o.push(B.D)
-o.push(A.bd(A.e8(B.a_Z,B.anY,new A.b0s(k,a),A.ed(j,j,j,j,j,j,j,j,j,B.W,j,j,B.dz,j,new A.ai(A.h(10),B.q),B.Pf,j,j,j,j)),j,1/0))
+o.push(A.bd(A.e8(B.a_Z,B.anV,new A.b0s(k,a),A.ed(j,j,j,j,j,j,j,j,j,B.W,j,j,B.dz,j,new A.ai(A.h(10),B.q),B.Pf,j,j,j,j)),j,1/0))
 if(r){p=k.d.f
 n=A.aa(p?B.rU:B.bc,j,j,j,16)
 m=A.f(p?"Deactivate Account":"Activate Account",j,j,j,j,j,j,j,j)
 l=p?B.ah:B.eS
 p=p?B.ah:B.eS
-B.b.A(o,A.a([B.ak,A.bd(A.e8(n,m,new A.b0t(k,a),A.ed(j,j,j,j,j,j,j,j,j,l,j,j,B.dz,j,new A.ai(A.h(10),B.q),new A.aH(p,1,B.B,-1),j,j,j,j)),j,1/0),B.ak,A.bd(A.cN(B.As,B.aoa,new A.b0u(k,a),A.ba(j,j,B.n,j,j,j,j,j,j,B.k,j,j,B.dz,j,new A.ai(A.h(10),B.q),j,j,j,j,j)),j,1/0)],q))}return A.ol(j,j,new A.da(B.PF,A.bY(A.z(o,B.f,B.c,B.z,0,B.i),j,B.t,B.b2,j,j,B.H),j),j,j,j,B.fE,j,new A.ai(i,B.q),j)}}
+B.b.A(o,A.a([B.ak,A.bd(A.e8(n,m,new A.b0t(k,a),A.ed(j,j,j,j,j,j,j,j,j,l,j,j,B.dz,j,new A.ai(A.h(10),B.q),new A.aH(p,1,B.B,-1),j,j,j,j)),j,1/0),B.ak,A.bd(A.cN(B.As,B.ao7,new A.b0u(k,a),A.ba(j,j,B.n,j,j,j,j,j,j,B.k,j,j,B.dz,j,new A.ai(A.h(10),B.q),j,j,j,j,j)),j,1/0)],q))}return A.ol(j,j,new A.da(B.PF,A.bY(A.z(o,B.f,B.c,B.z,0,B.i),j,B.t,B.b2,j,j,B.H),j),j,j,j,B.fE,j,new A.ai(i,B.q),j)}}
 A.b0j.prototype={
 $1(a){var s=this.a
 if(s.c==null)return
@@ -114108,7 +114108,7 @@ q=A.h(8)
 p=A.h(8)
 o=A.h(8)
 n=c?B.k:B.e8
-r=A.ce(!0,B.S,!1,d,!0,B.u,d,A.ci(),s,d,d,d,d,d,2,A.bF(d,new A.aq(4,q,B.ab),d,d,d,d,d,d,!0,new A.aq(4,p,B.aM),d,d,d,d,d,n,!0,d,d,d,d,new A.aq(4,o,B.dt),d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,B.ch,r,!0,!0,d,B.A_,d,d,d,d,d,B.aq9,d,d,d,d,d),B.t,!0,d,!0,d,!1,d,B.a7,d,d,d,B.ii,d,d,d,1,d,d,!1,"\u2022",d,d,d,d,d,!1,d,d,!c,d,!0,d,B.L,d,d,B.a6,B.a5,d,d,d,d,d,d,d,!0,B.K,d,B.af,d,d,d,d)
+r=A.ce(!0,B.S,!1,d,!0,B.u,d,A.ci(),s,d,d,d,d,d,2,A.bF(d,new A.aq(4,q,B.ab),d,d,d,d,d,d,!0,new A.aq(4,p,B.aM),d,d,d,d,d,n,!0,d,d,d,d,new A.aq(4,o,B.dt),d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,B.ch,r,!0,!0,d,B.A_,d,d,d,d,d,B.aq7,d,d,d,d,d),B.t,!0,d,!0,d,!1,d,B.a7,d,d,d,B.ii,d,d,d,1,d,d,!1,"\u2022",d,d,d,d,d,!1,d,d,!c,d,!0,d,B.L,d,d,B.a6,B.a5,d,d,d,d,d,d,d,!0,B.K,d,B.af,d,d,d,d)
 o=e.f
 o===$&&A.b()
 o=e.DE(o,"Employee ID",B.eL)
@@ -114149,7 +114149,7 @@ B.b.A(k,A.a([new A.I(B.eI,A.mU(s,B.N5,!1,r,new A.aLw(e),d,a0,g),d)],f))}a0=A.h(8
 s=e.ax
 s===$&&A.b()
 r=s?"User can log in":"Login disabled"
-k.push(A.bv(new A.a0C(s,new A.aLx(e),B.n,B.aqr,A.f(r,d,d,d,d,A.X(d,d,B.cG,d,d,d,d,d,d,d,d,12,d,d,d,d,d,!0,d,d,d,d,d,d,d,d),d,d,d),B.yl,d),d,0,d,new A.ai(a0,B.aM)))
+k.push(A.bv(new A.a0C(s,new A.aLx(e),B.n,B.aqp,A.f(r,d,d,d,d,A.X(d,d,B.cG,d,d,d,d,d,d,d,d,12,d,d,d,d,d,!0,d,d,d,d,d,d,d,d),d,d,d),B.yl,d),d,0,d,new A.ai(a0,B.aM)))
 k=A.bd(A.bY(A.z(k,B.f,B.c,B.z,0,B.i),d,B.t,d,d,d,B.H),d,480)
 a0=A.cd(!1,B.pd,d,d,d,d,d,d,new A.aLy(a1),d,d)
 s=e.ay?d:e.gazl()
@@ -114320,7 +114320,7 @@ case 2:o=b
 if(o!=null&&q.c!=null)q.q(new A.aRp(q,o))
 return A.o(null,r)}})
 return A.p($async$DG,r)},
-n(a){var s=this,r=null,q=A.v(a),p=t.p,o=A.x(A.a([B.dh,B.A,A.A(r,B.a0i,B.h,r,r,new A.C(B.n.I(0.1),r,r,A.h(12),r,r,B.l),r,48,r,r,r,r,48),B.b5,A.z(A.a([A.f("Leave Records",r,r,r,r,A.v(a).ok.e,r,r,r),B.MW],p),B.o,B.c,B.e,0,B.i),B.bd,A.bs(r,r,r,B.eN,r,r,s.gasU(),r,r,r,"Refresh",r)],p),B.f,B.c,B.e,0,r),n=s.d
+n(a){var s=this,r=null,q=A.v(a),p=t.p,o=A.x(A.a([B.dh,B.A,A.A(r,B.a0i,B.h,r,r,new A.C(B.n.I(0.1),r,r,A.h(12),r,r,B.l),r,48,r,r,r,r,48),B.b5,A.z(A.a([A.f("Leave Records",r,r,r,r,A.v(a).ok.e,r,r,r),B.MV],p),B.o,B.c,B.e,0,B.i),B.bd,A.bs(r,r,r,B.eN,r,r,s.gasU(),r,r,r,"Refresh",r)],p),B.f,B.c,B.e,0,r),n=s.d
 n===$&&A.b()
 q=A.A(r,A.z(A.a([o,B.R,A.t6(n,B.n,B.n,B.eY,B.a5Z,B.ap,r)],p),B.o,B.c,B.e,0,B.i),B.h,q.fx,r,r,r,r,r,B.kP,r,r,r)
 return A.cI(r,r,A.z(A.a([q,A.U(s.e?B.dJ:A.t7(A.a([s.ahI(),s.ahK()],p),n),1)],p),B.f,B.c,B.e,0,B.i),r,r)},
@@ -114799,7 +114799,7 @@ A.c8(o,o,!0,o,new A.aSP(n,this,p,new A.aSM(n,q,k,m,l,p),s,q,m,l,a,b),a,o,!0,t.z)
 n(a){var s,r,q,p,o,n,m=this,l=null,k=A.av(a,l,t.l).w.a.a<700,j=k?16:24,i=A.v(a),h=k?16:24,g=A.A(l,B.a0g,B.h,l,l,new A.C(B.n.I(0.1),l,l,A.h(8),l,l,B.l),l,36,l,l,l,l,36),f=m.d.length,e=f===1?"":"s",d=t.p
 e=A.U(A.z(A.a([B.aqZ,A.f(""+f+" application"+e+" received",l,l,l,l,B.aH,l,l,l)],d),B.o,B.c,B.e,0,B.i),1)
 f=A.e8(B.t6,B.vs,new A.aT_(m,a),A.ed(l,l,l,l,l,l,l,l,l,B.n,l,l,B.c2,l,new A.ai(A.h(8),B.q),B.ex,l,l,l,l))
-s=A.cN(B.a_7,B.aqs,new A.aT0(m),A.ba(l,l,B.n,l,l,l,0,l,l,B.k,l,l,B.c2,l,new A.ai(A.h(8),B.q),l,l,l,l,l))
+s=A.cN(B.a_7,B.aqq,new A.aT0(m),A.ba(l,l,B.n,l,l,l,0,l,l,B.k,l,l,B.c2,l,new A.ai(A.h(8),B.q),l,l,l,l,l))
 r=A.cN(B.Zt,B.MS,new A.aT1(a),A.ba(l,l,B.G,l,l,l,0,l,l,B.k,l,l,B.c2,l,new A.ai(A.h(8),B.q),l,l,l,l,l))
 q=m.f
 p=q?l:m.gZo()
@@ -114901,7 +114901,7 @@ s=t.p
 o=A.z(A.a([B.any,B.R,A.mU(n,q,!1,m,new A.aSp(p,b),q,o,t.N)],s),B.f,B.c,B.z,0,B.i)
 m=A.cd(!1,B.aC,q,q,q,q,q,q,new A.aSq(a),q,q)
 n=A.ba(q,q,B.J,q,q,q,q,q,q,B.k,q,q,q,q,new A.ai(A.h(8),B.q),q,q,q,q,q)
-return A.cs(A.a([m,A.cy(!1,B.arB,q,q,q,q,q,q,p.a==null?q:new A.aSr(p,r.b,a,r.d),q,n)],s),o,q,q,B.aoh)},
+return A.cs(A.a([m,A.cy(!1,B.arB,q,q,q,q,q,q,p.a==null?q:new A.aSr(p,r.b,a,r.d),q,n)],s),o,q,q,B.aoe)},
 $S:62}
 A.aSo.prototype={
 $1(a){var s=null
@@ -114953,7 +114953,7 @@ return A.p($async$$0,r)},
 $S:2}
 A.aSw.prototype={
 $1(a){var s=null,r=this.b,q=A.ce(!0,B.S,!1,s,!0,B.u,s,A.ci(),r,s,s,s,s,s,2,A.bF(s,new A.aq(4,A.h(8),B.ab),s,B.bh,s,s,s,s,!0,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,"Add or update your comment\u2026",s,s,s,s,s,s,s,s,s,!0,!0,s,s,s,s,s,s,s,s,s,s,s,s,s),B.t,!0,s,!0,s,!1,s,B.a7,s,s,s,s,s,s,s,4,s,s,!1,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.L,s,s,B.a6,B.a5,s,s,s,s,s,s,s,!0,B.K,s,B.af,s,s,s,s)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aSu(a),s,s),A.cy(!1,B.er,s,s,s,s,s,s,new A.aSv(this.a,a,this.c,r),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),q,s,s,B.aqv)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aSu(a),s,s),A.cy(!1,B.er,s,s,s,s,s,s,new A.aSv(this.a,a,this.c,r),s,A.ba(s,s,B.n,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),q,s,s,B.aqt)},
 $S:8}
 A.aSu.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -115035,22 +115035,22 @@ m=r.length===0
 l=!m?r:"(email not on file)"
 k=d.f
 j=d.d
-i=A.U(A.z(A.a([B.aoF,B.a4,A.ce(!0,B.S,!1,c,!0,B.u,c,A.ci(),k,c,c,c,c,c,2,A.bF(c,new A.aq(4,A.h(8),B.ab),c,B.cz,c,c,c,c,!0,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,B.ajB,"e.g. Manager, Executive",c,c,c,c,c,!0,c,c,c,!0,!0,c,c,c,c,c,c,c,c,c,c,c,c,c),B.t,!0,c,!0,c,!1,c,B.a7,c,c,c,c,c,c,c,1,c,c,!1,"\u2022",c,new A.aSB(j,a1),c,c,c,!1,c,c,!1,c,!0,c,B.L,c,c,B.a6,B.a5,c,c,c,c,c,c,B.bv,!0,B.K,c,B.af,c,c,c,c)],o),B.o,B.c,B.e,0,B.i),2)
+i=A.U(A.z(A.a([B.aoD,B.a4,A.ce(!0,B.S,!1,c,!0,B.u,c,A.ci(),k,c,c,c,c,c,2,A.bF(c,new A.aq(4,A.h(8),B.ab),c,B.cz,c,c,c,c,!0,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,B.ajB,"e.g. Manager, Executive",c,c,c,c,c,!0,c,c,c,!0,!0,c,c,c,c,c,c,c,c,c,c,c,c,c),B.t,!0,c,!0,c,!1,c,B.a7,c,c,c,c,c,c,c,1,c,c,!1,"\u2022",c,new A.aSB(j,a1),c,c,c,!1,c,c,!1,c,!0,c,B.L,c,c,B.a6,B.a5,c,c,c,c,c,c,B.bv,!0,B.K,c,B.af,c,c,c,c)],o),B.o,B.c,B.e,0,B.i),2)
 h=d.a
 g=h.a
 f=A.bF(c,new A.aq(4,A.h(8),B.ab),c,B.cz,c,c,c,c,!0,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,!0,c,c,c,!0,!0,c,c,c,c,c,c,c,c,c,c,c,c,c)
 e=t.fo
 e=A.K(new A.O(B.nX,new A.aSC(),e),e.i("ar.E"))
-i=A.x(A.a([i,B.a9,A.U(A.z(A.a([B.aox,B.a4,A.mU(f,B.anV,!1,e,new A.aSD(h,a1,j),c,g,t.N)],o),B.o,B.c,B.e,0,B.i),3)],o),B.o,B.c,B.e,0,c)
+i=A.x(A.a([i,B.a9,A.U(A.z(A.a([B.aov,B.a4,A.mU(f,B.anS,!1,e,new A.aSD(h,a1,j),c,g,t.N)],o),B.o,B.c,B.e,0,B.i),3)],o),B.o,B.c,B.e,0,c)
 g=A.ay(B.aN,1)
 f=A.h(8)
-f=A.U(A.z(A.a([B.apB,B.a4,A.ca(!1,c,!0,A.A(c,A.x(A.a([B.Z8,B.A,A.f(d.r.$1(h.b),c,c,c,c,B.v3,c,c,c)],o),B.f,B.c,B.e,0,c),B.h,c,c,new A.C(c,c,g,f,c,c,B.l),c,c,c,B.ym,c,c,c),c,!0,c,c,c,c,c,c,c,c,c,c,c,new A.aSE(h,a0,j,a1),c,c,c,c,c,c,c)],o),B.o,B.c,B.e,0,B.i),1)
+f=A.U(A.z(A.a([B.apz,B.a4,A.ca(!1,c,!0,A.A(c,A.x(A.a([B.Z8,B.A,A.f(d.r.$1(h.b),c,c,c,c,B.v3,c,c,c)],o),B.f,B.c,B.e,0,c),B.h,c,c,new A.C(c,c,g,f,c,c,B.l),c,c,c,B.ym,c,c,c),c,!0,c,c,c,c,c,c,c,c,c,c,c,new A.aSE(h,a0,j,a1),c,c,c,c,c,c,c)],o),B.o,B.c,B.e,0,B.i),1)
 g=A.ay(B.aN,1)
 e=A.h(8)
-j=A.a([new A.N9("To",l,c),B.M,new A.N9("Subject",b,c),B.ar,i,B.D,A.x(A.a([f,B.a9,A.U(A.z(A.a([B.aqx,B.a4,A.ca(!1,c,!0,A.A(c,A.x(A.a([B.a12,B.A,A.f(d.w.$1(h.c),c,c,c,c,B.v3,c,c,c)],o),B.f,B.c,B.e,0,c),B.h,c,c,new A.C(c,c,g,e,c,c,B.l),c,c,c,B.ym,c,c,c),c,!0,c,c,c,c,c,c,c,c,c,c,c,new A.aSF(h,a0,j,a1),c,c,c,c,c,c,c)],o),B.o,B.c,B.e,0,B.i),1)],o),B.f,B.c,B.e,0,c),B.ar,A.x(A.a([B.arA,B.bd,A.kr(B.a_x,B.apM,new A.aSG(j,a1),A.h1(c,c,c,c,c,c,c,c,c,B.ap,c,B.ae,B.ao,c,c,c,c,B.dg,c,c))],o),B.f,B.c,B.e,0,c),B.a4,A.ce(!0,B.S,!1,c,!0,B.u,c,A.ci(),a,c,c,c,c,c,2,A.bF(c,new A.aq(4,A.h(8),B.ab),c,B.bh,c,c,c,c,!0,c,c,c,c,c,c,A.v(d.x).ax.k2,!0,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,!0,!0,c,c,c,c,c,c,c,c,c,c,c,c,c),B.t,!0,c,!0,c,!1,c,B.a7,c,c,c,c,c,c,c,18,c,c,!1,"\u2022",c,c,c,c,c,!1,c,c,!1,c,!0,c,B.L,c,c,B.a6,B.a5,c,c,c,c,c,c,B.akZ,!0,B.K,c,B.af,c,c,c,c)],o)
+j=A.a([new A.N9("To",l,c),B.M,new A.N9("Subject",b,c),B.ar,i,B.D,A.x(A.a([f,B.a9,A.U(A.z(A.a([B.aqw,B.a4,A.ca(!1,c,!0,A.A(c,A.x(A.a([B.a12,B.A,A.f(d.w.$1(h.c),c,c,c,c,B.v3,c,c,c)],o),B.f,B.c,B.e,0,c),B.h,c,c,new A.C(c,c,g,e,c,c,B.l),c,c,c,B.ym,c,c,c),c,!0,c,c,c,c,c,c,c,c,c,c,c,new A.aSF(h,a0,j,a1),c,c,c,c,c,c,c)],o),B.o,B.c,B.e,0,B.i),1)],o),B.f,B.c,B.e,0,c),B.ar,A.x(A.a([B.arA,B.bd,A.kr(B.a_x,B.apK,new A.aSG(j,a1),A.h1(c,c,c,c,c,c,c,c,c,B.ap,c,B.ae,B.ao,c,c,c,c,B.dg,c,c))],o),B.f,B.c,B.e,0,c),B.a4,A.ce(!0,B.S,!1,c,!0,B.u,c,A.ci(),a,c,c,c,c,c,2,A.bF(c,new A.aq(4,A.h(8),B.ab),c,B.bh,c,c,c,c,!0,c,c,c,c,c,c,A.v(d.x).ax.k2,!0,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,c,!0,!0,c,c,c,c,c,c,c,c,c,c,c,c,c),B.t,!0,c,!0,c,!1,c,B.a7,c,c,c,c,c,c,c,18,c,c,!1,"\u2022",c,c,c,c,c,!1,c,c,!1,c,!0,c,B.L,c,c,B.a6,B.a5,c,c,c,c,c,c,B.akZ,!0,B.K,c,B.af,c,c,c,c)],o)
 if(m)B.b.A(j,A.a([B.ak,A.A(c,B.adf,B.h,c,c,new A.C(B.bG,c,c,A.h(8),c,c,B.l),c,c,c,B.bt,c,c,c)],o))
 l=A.bd(A.bY(A.z(j,B.o,B.c,B.e,0,B.i),c,B.t,c,c,c,B.H),c,560)
-a=A.cd(!1,B.aol,c,c,c,c,c,c,new A.aSH(k,a,a0),c,c)
+a=A.cd(!1,B.aoi,c,c,c,c,c,c,new A.aSH(k,a,a0),c,c)
 k=A.ba(c,c,B.W,c,c,c,c,c,c,B.k,c,c,c,c,new A.ai(A.h(8),B.q),c,c,c,c,c)
 return A.cs(A.a([a,A.cN(B.a_T,B.ar9,m?c:new A.aSI(d.b,a0,"mailto:"+r+"?subject="+s+"&body="+q,d.y),k)],o),l,c,new A.ai(p,B.q),n)},
 $S:62}
@@ -115294,17 +115294,17 @@ this.ak()},
 ZD(){var s=new A.aT(Date.now(),0,!1)
 this.d.scP(0,B.d.au(B.m.j(A.ke(s)),2,"0")+":"+B.d.au(B.m.j(A.m3(s)),2,"0"))},
 atK(){var s,r=this,q=null,p=r.d
-if(p.a.a.length===0||B.d.O(r.e.a.a).length===0){r.c.R(t.q).f.bj(A.d2(q,q,q,B.aT,B.eX,B.u,q,B.anH,q,B.as,q,q,q,q,q,q,new A.ai(A.h(8),B.q),q,q))
+if(p.a.a.length===0||B.d.O(r.e.a.a).length===0){r.c.R(t.q).f.bj(A.d2(q,q,q,B.aT,B.eX,B.u,q,B.anG,q,B.as,q,q,q,q,q,q,new A.ai(A.h(8),B.q),q,q))
 return}s=r.e
 B.d.O(s.a.a)
 $.buA.push(new A.Xe())
-r.c.R(t.q).f.bj(A.d2(q,q,q,B.aJ,B.eX,B.u,q,B.ap8,q,B.as,q,q,q,q,q,q,new A.ai(A.h(8),B.q),q,q))
+r.c.R(t.q).f.bj(A.d2(q,q,q,B.aJ,B.eX,B.u,q,B.ap5,q,B.as,q,q,q,q,q,q,new A.ai(A.h(8),B.q),q,q))
 p.cC(0,B.bm)
 s.cC(0,B.bm)},
 n(a){var s,r=this,q=null,p=t.p,o=A.x(A.a([B.dh,B.A,A.A(q,B.ZJ,B.h,q,q,new A.C(B.aJ.I(0.1),q,q,A.h(12),q,q,B.l),q,48,q,q,q,q,48),B.b5,A.f("Late Coming",q,q,q,q,A.v(a).ok.e,q,q,q)],p),B.f,B.c,B.e,0,q),n=r.f
 n=A.ce(!0,B.S,!1,q,!0,B.u,q,A.ci(),new A.aj(new A.bH(n,B.az,B.al),$.ae()),q,q,q,q,q,2,A.bF(q,new A.aq(4,A.h(10),B.ab),q,q,q,q,q,q,!0,new A.aq(4,A.h(10),B.aM),q,q,q,q,q,B.ff,!0,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,B.ch,"Date",!0,!0,q,B.a_b,q,q,q,q,q,q,q,q,q,q,q),B.t,!0,q,!0,q,!1,q,B.a7,q,q,q,q,q,q,q,1,q,q,!1,"\u2022",q,q,q,q,q,!1,q,q,!0,q,!0,q,B.L,q,q,B.a6,B.a5,q,q,q,q,q,q,q,!0,B.K,q,B.af,q,q,q,q)
 s=A.bs(q,q,q,B.a_1,q,q,r.gatI(),q,q,q,"Use current time",q)
-return A.cI(q,q,A.bY(A.z(A.a([o,B.bu,A.bv(new A.I(B.L,A.z(A.a([n,B.R,A.ce(!0,B.S,!1,q,!0,B.u,q,A.ci(),r.d,q,q,q,q,q,2,A.bF(q,new A.aq(4,A.h(10),B.ab),q,q,q,q,q,q,!0,new A.aq(4,A.h(10),B.aM),q,q,q,q,q,B.k,!0,q,q,q,q,new A.aq(4,A.h(10),B.m7),q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,B.ch,"Arrival Time",!0,!0,q,B.ZP,q,q,q,q,q,q,s,q,q,q,q),B.t,!0,q,!0,q,!1,q,B.a7,q,q,q,q,q,q,q,1,q,q,!1,"\u2022",q,q,q,q,q,!1,q,q,!1,q,!0,q,B.L,q,q,B.a6,B.a5,q,q,q,q,q,q,q,!0,B.K,q,B.af,q,q,q,q),B.R,A.ce(!0,B.S,!1,q,!0,B.u,q,A.ci(),r.e,q,q,q,q,q,2,A.bF(q,new A.aq(4,A.h(10),B.ab),q,q,q,q,q,q,!0,new A.aq(4,A.h(10),B.aM),q,q,q,q,q,B.k,!0,q,q,q,q,new A.aq(4,A.h(10),B.m7),q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,B.ch,"Reason for Late Coming",!0,!0,q,B.ab3,q,q,q,q,q,q,q,q,q,q,q),B.t,!0,q,!0,q,!1,q,B.a7,q,q,q,q,q,q,q,3,q,q,!1,"\u2022",q,q,q,q,q,!1,q,q,!1,q,!0,q,B.L,q,q,B.a6,B.a5,q,q,q,q,q,q,q,!0,B.K,q,B.af,q,q,q,q)],p),B.f,B.c,B.e,0,B.i),q),q,q,q,q),B.R,A.x(A.a([A.U(A.e8(B.t4,B.pa,new A.aTf(r),A.ed(q,q,q,q,q,q,q,q,q,q,q,q,B.cc,q,new A.ai(A.h(10),B.q),q,q,q,q,q)),1),B.b5,A.U(A.cN(B.tb,B.anK,r.gatJ(),A.ba(q,q,B.aJ,q,q,q,q,q,q,B.k,q,q,B.cc,q,new A.ai(A.h(10),B.q),q,q,q,q,q)),2)],p),B.f,B.c,B.e,0,q)],p),B.o,B.c,B.e,0,B.i),q,B.t,B.b2,q,q,B.H),q,q)}}
+return A.cI(q,q,A.bY(A.z(A.a([o,B.bu,A.bv(new A.I(B.L,A.z(A.a([n,B.R,A.ce(!0,B.S,!1,q,!0,B.u,q,A.ci(),r.d,q,q,q,q,q,2,A.bF(q,new A.aq(4,A.h(10),B.ab),q,q,q,q,q,q,!0,new A.aq(4,A.h(10),B.aM),q,q,q,q,q,B.k,!0,q,q,q,q,new A.aq(4,A.h(10),B.m7),q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,B.ch,"Arrival Time",!0,!0,q,B.ZP,q,q,q,q,q,q,s,q,q,q,q),B.t,!0,q,!0,q,!1,q,B.a7,q,q,q,q,q,q,q,1,q,q,!1,"\u2022",q,q,q,q,q,!1,q,q,!1,q,!0,q,B.L,q,q,B.a6,B.a5,q,q,q,q,q,q,q,!0,B.K,q,B.af,q,q,q,q),B.R,A.ce(!0,B.S,!1,q,!0,B.u,q,A.ci(),r.e,q,q,q,q,q,2,A.bF(q,new A.aq(4,A.h(10),B.ab),q,q,q,q,q,q,!0,new A.aq(4,A.h(10),B.aM),q,q,q,q,q,B.k,!0,q,q,q,q,new A.aq(4,A.h(10),B.m7),q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,q,B.ch,"Reason for Late Coming",!0,!0,q,B.ab3,q,q,q,q,q,q,q,q,q,q,q),B.t,!0,q,!0,q,!1,q,B.a7,q,q,q,q,q,q,q,3,q,q,!1,"\u2022",q,q,q,q,q,!1,q,q,!1,q,!0,q,B.L,q,q,B.a6,B.a5,q,q,q,q,q,q,q,!0,B.K,q,B.af,q,q,q,q)],p),B.f,B.c,B.e,0,B.i),q),q,q,q,q),B.R,A.x(A.a([A.U(A.e8(B.t4,B.pa,new A.aTf(r),A.ed(q,q,q,q,q,q,q,q,q,q,q,q,B.cc,q,new A.ai(A.h(10),B.q),q,q,q,q,q)),1),B.b5,A.U(A.cN(B.tb,B.anI,r.gatJ(),A.ba(q,q,B.aJ,q,q,q,q,q,q,B.k,q,q,B.cc,q,new A.ai(A.h(10),B.q),q,q,q,q,q)),2)],p),B.f,B.c,B.e,0,q)],p),B.o,B.c,B.e,0,B.i),q,B.t,B.b2,q,q,B.H),q,q)}}
 A.aTf.prototype={
 $0(){var s=this.a
 s.d.cC(0,B.bm)
@@ -115383,10 +115383,10 @@ r=A.f("Lead Management",m,m,m,m,A.v(a).ok.e,m,m,m)
 q=J.b2(n.d)
 p=J.b2(n.d)===1?"":"s"
 o=t.p
-p=A.a([A.x(A.a([s,B.b5,A.U(A.z(A.a([r,A.f(""+q+" source"+p,m,m,m,m,B.aH,m,m,m)],o),B.o,B.c,B.e,0,B.i),1),A.kr(B.a_Y,B.aot,n.gaAR(),A.h1(m,m,m,m,m,m,m,m,m,B.n,m,m,m,m,m,m,m,m,m,m))],o),B.f,B.c,B.e,0,m),B.lF],o)
+p=A.a([A.x(A.a([s,B.b5,A.U(A.z(A.a([r,A.f(""+q+" source"+p,m,m,m,m,B.aH,m,m,m)],o),B.o,B.c,B.e,0,B.i),1),A.kr(B.a_Y,B.aor,n.gaAR(),A.h1(m,m,m,m,m,m,m,m,m,B.n,m,m,m,m,m,m,m,m,m,m))],o),B.f,B.c,B.e,0,m),B.lF],o)
 if(J.et(n.d))p.push(A.bS(new A.I(B.VS,A.z(A.a([A.aa(B.dc,B.a_,m,m,56),B.D,A.f("No sources yet",m,m,m,m,A.X(m,m,B.bz,m,m,m,m,m,m,m,m,m,m,m,m,m,m,!0,m,m,m,m,m,m,m,m),m,m,m),B.aL,B.arC],o),B.f,B.c,B.e,0,B.i),m),m,m))
 else p.push(A.hd(new A.aTN(n)))
-s=A.bY(A.z(p,B.o,B.c,B.e,0,B.i),m,B.t,B.Wf,m,m,B.H)}return A.cI(m,m,s,m,new A.zP(B.a_M,B.n,n.gaAy(),B.apS,m))}}
+s=A.bY(A.z(p,B.o,B.c,B.e,0,B.i),m,B.t,B.Wf,m,m,B.H)}return A.cI(m,m,s,m,new A.zP(B.a_M,B.n,n.gaAy(),B.apQ,m))}}
 A.aTs.prototype={
 $0(){var s=this.a
 s.d=this.b
@@ -115397,7 +115397,7 @@ $1(a){var s=this
 return new A.jr(new A.aTD(s.a,s.b,s.c,s.d),null)},
 $S:61}
 A.aTD.prototype={
-$2(a,b){var s,r,q,p,o,n,m,l=this,k=null,j=A.h(16),i=A.h(10),h=t.p,g=A.a([B.apv,B.M],h)
+$2(a,b){var s,r,q,p,o,n,m,l=this,k=null,j=A.h(16),i=A.h(10),h=t.p,g=A.a([B.apt,B.M],h)
 B.b.A(g,new A.O(A.a(["1. Create a Google Sheet with column headers in row 1","2. Click Share \u2192 add info@fomrahousing.in as Editor","3. Copy the URL from the browser address bar","4. Paste it below and click Test Connection"],t.s),new A.aTy(),t.bg))
 s=l.c
 r=l.b
@@ -115497,7 +115497,7 @@ $0(){},
 $S:0}
 A.aTI.prototype={
 $1(a){var s=null,r=A.h(16),q=this.b,p=A.ce(!0,B.S,!0,s,!0,B.u,s,A.ci(),q,s,s,s,s,s,2,this.a.Mm("Source name","e.g. Meta Leads"),B.t,!0,s,!0,s,!1,s,B.a7,s,s,s,s,s,s,s,1,s,s,!1,"\u2022",s,s,s,new A.aTF(a,q),s,!1,s,s,!1,s,!0,s,B.L,s,s,B.a6,B.a5,s,s,s,s,s,s,s,!0,B.K,s,B.Mf,s,s,s,s)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aTG(a),s,s),A.akC(B.er,new A.aTH(a,q),s)],t.p),p,s,new A.ai(r,B.q),B.ap9)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aTG(a),s,s),A.akC(B.er,new A.aTH(a,q),s)],t.p),p,s,new A.ai(r,B.q),B.ap6)},
 $S:8}
 A.aTF.prototype={
 $1(a){var s=this.b.a.a
@@ -115518,7 +115518,7 @@ $0(){return this.a.b=B.d.O(this.b)},
 $S:0}
 A.aTq.prototype={
 $1(a){var s=null,r=A.h(16),q=A.f('Remove "'+this.a.b+'"? This cannot be undone.',s,s,s,s,s,s,s,s)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aTo(a),s,s),A.akC(B.jV,new A.aTp(a),A.bwH(B.ah,s,s))],t.p),q,s,new A.ai(r,B.q),B.aqo)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aTo(a),s,s),A.akC(B.jV,new A.aTp(a),A.bwH(B.ah,s,s))],t.p),q,s,new A.ai(r,B.q),B.aqm)},
 $S:8}
 A.aTo.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -115536,7 +115536,7 @@ $1(a){return a.a===this.a.a},
 $S:194}
 A.aTM.prototype={
 $1(a){var s=null,r=A.h(16),q=t.p,p=this.a
-return A.ol(s,s,new A.da(B.PA,A.z(A.a([A.A(s,A.x(A.a([B.a_U,B.a9,B.X9,A.bs(s,B.f9,s,B.A3,s,s,new A.aTK(a),B.ao,s,s,s,s)],q),B.f,B.c,B.e,0,s),B.h,s,s,B.pX,s,s,s,B.Wa,s,s,1/0),new A.i1(1,B.dO,A.bY(A.z(A.a([B.arI,B.ar,p.tK("1","Create the Google Sheet","Open Google Sheets and create a new spreadsheet. Add your column headers in the first row (e.g. Name, Phone, Status)."),p.tK("2","Open Apps Script","In the sheet, click Extensions \u2192 Apps Script. Or go to script.google.com and click New project."),p.tK("3","Paste the script code","Delete everything in the editor. Paste the code below, then click Save (Ctrl+S)."),B.aum,p.tK("4","Deploy as Web App",'First time: Click Deploy \u2192 New deployment \u2192 Type: Web app \u2192 Execute as: Me \u2192 Who has access: Anyone \u2192 Deploy \u2192 Authorise when prompted.\n\nUpdating existing script: Click Deploy \u2192 Manage deployments \u2192 pencil icon \u2192 change Version to "New version" \u2192 Deploy.'),p.tK("5","Copy the /exec URL","After deploying, copy the URL ending in /exec. That is your Apps Script URL for this sheet."),p.tK("6","Add it in the app","Tap Add New here, enter a name, paste the /exec URL, click Test Connection, then Add.")],q),B.o,B.c,B.e,0,B.i),s,B.t,B.L,s,s,B.H),s),new A.I(B.W8,A.bd(A.akC(B.aoe,new A.aTL(a),s),s,1/0),s)],q),B.f,B.c,B.z,0,B.i),s),s,s,s,B.fE,s,new A.ai(r,B.q),s)},
+return A.ol(s,s,new A.da(B.PA,A.z(A.a([A.A(s,A.x(A.a([B.a_U,B.a9,B.X9,A.bs(s,B.f9,s,B.A3,s,s,new A.aTK(a),B.ao,s,s,s,s)],q),B.f,B.c,B.e,0,s),B.h,s,s,B.pX,s,s,s,B.Wa,s,s,1/0),new A.i1(1,B.dO,A.bY(A.z(A.a([B.arI,B.ar,p.tK("1","Create the Google Sheet","Open Google Sheets and create a new spreadsheet. Add your column headers in the first row (e.g. Name, Phone, Status)."),p.tK("2","Open Apps Script","In the sheet, click Extensions \u2192 Apps Script. Or go to script.google.com and click New project."),p.tK("3","Paste the script code","Delete everything in the editor. Paste the code below, then click Save (Ctrl+S)."),B.aum,p.tK("4","Deploy as Web App",'First time: Click Deploy \u2192 New deployment \u2192 Type: Web app \u2192 Execute as: Me \u2192 Who has access: Anyone \u2192 Deploy \u2192 Authorise when prompted.\n\nUpdating existing script: Click Deploy \u2192 Manage deployments \u2192 pencil icon \u2192 change Version to "New version" \u2192 Deploy.'),p.tK("5","Copy the /exec URL","After deploying, copy the URL ending in /exec. That is your Apps Script URL for this sheet."),p.tK("6","Add it in the app","Tap Add New here, enter a name, paste the /exec URL, click Test Connection, then Add.")],q),B.o,B.c,B.e,0,B.i),s,B.t,B.L,s,s,B.H),s),new A.I(B.W8,A.bd(A.akC(B.aob,new A.aTL(a),s),s,1/0),s)],q),B.f,B.c,B.z,0,B.i),s),s,s,s,B.fE,s,new A.ai(r,B.q),s)},
 $S:123}
 A.aTK.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -115903,8 +115903,8 @@ if(o.gZ3())i.push(A.wV(n,A.A(n,n,B.h,n,n,B.Q1,n,8,n,n,n,n,8),n,n,n,-3,-3,n))
 j=A.a([j,B.D,A.x(A.a([h,B.A,new A.eU(B.cj,n,B.c4,B.h,i,n)],e),B.f,B.c,B.e,0,n)],e)
 if(o.w&&J.dT(o.d)){i=A.h(12)
 h=A.ay(B.a_,1)
-g=A.a([B.apF,B.bd],e)
-if(o.gZ3())g.push(A.cK(n,B.apC,B.t,!1,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,o.gajk(),n,n,n,n,n,n))
+g=A.a([B.apD,B.bd],e)
+if(o.gZ3())g.push(A.cK(n,B.apA,B.t,!1,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,o.gajk(),n,n,n,n,n,n))
 g=A.a([A.x(g,B.f,B.c,B.e,0,n),B.D],e)
 if(o.dy!=null){f=o.y
 s=A.N(f).i("O<1,I>")
@@ -116119,7 +116119,7 @@ return A.p($async$$0,r)},
 $S:2}
 A.aUc.prototype={
 $1(a){var s=null,r=A.f('Remove "'+this.a.gaZ(0)+'" permanently from Google Sheets?',s,s,s,s,B.Mr,s,s,s)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aUa(a),s,s),A.cy(!1,B.jV,s,s,s,s,s,s,new A.aUb(a),s,A.ba(s,s,B.ax,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),r,s,s,B.apr)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aUa(a),s,s),A.cy(!1,B.jV,s,s,s,s,s,s,new A.aUb(a),s,A.ba(s,s,B.ax,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),r,s,s,B.apo)},
 $S:8}
 A.aUa.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -116142,7 +116142,7 @@ r=A.w(s).i("dh<1,2>")
 r=A.i5(new A.dh(s,r),new A.aUe(),r.i("y.E"),t.iF)
 s=A.K(r,A.w(r).i("y.E"))
 r=this.a
-return A.ol(q,q,new A.da(B.PB,A.z(A.a([n,A.U(A.bY(A.z(s,B.f,B.c,B.e,0,B.i),q,B.t,B.L,q,q,B.H),1),B.cM,new A.I(B.kN,A.x(A.a([A.e8(B.ZK,B.aob,new A.aUf(r,a,m),A.ed(q,q,q,q,q,q,q,q,q,B.n,q,q,q,q,new A.ai(A.h(8),B.q),B.ex,q,q,q,q)),B.A,A.e8(B.Zs,B.jV,new A.aUg(r,a,m),A.ed(q,q,q,q,q,q,q,q,q,B.ax,q,q,q,q,new A.ai(A.h(8),B.q),B.Ph,q,q,q,q))],l),B.f,B.jl,B.e,0,q),q)],l),B.f,B.c,B.e,0,B.i),q),q,q,q,B.fE,q,new A.ai(o,B.q),q)},
+return A.ol(q,q,new A.da(B.PB,A.z(A.a([n,A.U(A.bY(A.z(s,B.f,B.c,B.e,0,B.i),q,B.t,B.L,q,q,B.H),1),B.cM,new A.I(B.kN,A.x(A.a([A.e8(B.ZK,B.ao8,new A.aUf(r,a,m),A.ed(q,q,q,q,q,q,q,q,q,B.n,q,q,q,q,new A.ai(A.h(8),B.q),B.ex,q,q,q,q)),B.A,A.e8(B.Zs,B.jV,new A.aUg(r,a,m),A.ed(q,q,q,q,q,q,q,q,q,B.ax,q,q,q,q,new A.ai(A.h(8),B.q),B.Ph,q,q,q,q))],l),B.f,B.jl,B.e,0,q),q)],l),B.f,B.c,B.e,0,B.i),q),q,q,q,B.fE,q,new A.ai(o,B.q),q)},
 $S:123}
 A.aUd.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -116283,7 +116283,7 @@ n(a){var s=null,r=this.c,q=A.aa(r?B.rX:B.zD,B.bp,s,s,52),p=A.f(r?"No leads match
 return A.bS(A.z(A.a([q,B.D,p,B.aL,A.f(r?"Try a different search or status filter.":"Add your first lead or connect your Google Sheet.",s,s,s,s,B.aH,B.b7,s,s)],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
 A.a59.prototype={
 n(a){var s=null
-return A.bS(A.z(A.a([B.t5,B.D,B.apE,B.aL,new A.I(B.Wh,A.f(this.c,s,s,s,s,B.aH,B.b7,s,s),s),B.bq,A.cN(B.ji,B.pc,this.d,A.ba(s,s,B.n,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
+return A.bS(A.z(A.a([B.t5,B.D,B.apC,B.aL,new A.I(B.Wh,A.f(this.c,s,s,s,s,B.aH,B.b7,s,s),s),B.bq,A.cN(B.ji,B.pc,this.d,A.ba(s,s,B.n,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
 A.w2.prototype={
 U(){return new A.a6i(A.a([],t.vG))}}
 A.a6i.prototype={
@@ -116573,7 +116573,7 @@ A.cl(r).cZ(0,"/management/dashboard",p)
 break}},
 ajx(a,b,c){return this.KP(a,b,c,"")},
 n(a){var s=null,r=A.v(a).ax.a===B.aX,q=A.A(s,B.Zj,B.h,s,s,new A.C(B.n,s,s,A.h(22),A.a([new A.bX(0,B.au,B.n.I(0.3),B.aaa,24)],t.V),s,B.l),s,90,s,s,s,s,90),p=A.f("Housing & Infrastructure",s,s,s,s,A.X(s,s,r?B.h_:B.ap,s,s,s,s,s,s,s,s,13,s,s,s,s,s,!0,s,1,s,s,s,s,s,s),s,s,s),o=this.as!=null?this.aix(r):this.aic(r)
-return A.cI(s,s,A.bS(A.bY(A.z(A.a([q,B.bu,B.apk,B.aL,p,B.afJ,o,B.bu,A.f("FOMRA Housing & Infrastructure \xa9 2025",s,s,s,s,A.X(s,s,r?B.xI:B.aN,s,s,s,s,s,s,s,s,11,s,s,s,s,s,!0,s,s,s,s,s,s,s,s),s,s,s)],t.p),B.f,B.cB,B.e,0,B.i),s,B.t,B.yw,s,s,B.H),s,s),s,s)},
+return A.cI(s,s,A.bS(A.bY(A.z(A.a([q,B.bu,B.aph,B.aL,p,B.afJ,o,B.bu,A.f("FOMRA Housing & Infrastructure \xa9 2025",s,s,s,s,A.X(s,s,r?B.xI:B.aN,s,s,s,s,s,s,s,s,11,s,s,s,s,s,!0,s,s,s,s,s,s,s,s),s,s,s)],t.p),B.f,B.cB,B.e,0,B.i),s,B.t,B.yw,s,s,B.H),s,s),s,s)},
 aic(a){var s,r,q=this,p=null,o=A.ce(!0,B.S,!1,p,!0,B.u,p,A.ci(),q.d,p,p,p,p,p,2,q.DM("Email",B.fp,a),B.t,!0,p,!0,p,!1,p,B.a7,p,p,p,B.ii,p,p,p,1,p,p,!1,"\u2022",p,p,p,p,p,!1,p,p,!1,p,!0,p,B.L,p,p,B.a6,B.a5,p,p,p,p,p,p,p,!0,B.K,p,B.af,p,p,p,p),n=q.x,m=q.DM("Password",B.nx,a),l=q.x?B.nG:B.nH
 n=A.ce(!0,B.S,!1,p,!0,B.u,p,A.ci(),q.e,p,p,p,p,p,2,m.Pe(A.bs(p,p,p,A.aa(l,a?B.mz:B.ap,p,p,18),p,p,new A.aV4(q),p,p,p,p,p)),B.t,!0,p,!0,p,!1,p,B.a7,p,p,p,p,p,p,p,1,p,p,n,"\u2022",p,p,p,new A.aV5(q),p,!1,p,p,!1,p,!0,p,B.L,p,p,B.a6,B.a5,p,p,p,p,p,p,p,!0,B.K,p,B.af,p,p,p,p)
 m=q.Xt(a)
@@ -116830,7 +116830,7 @@ n=t.fo
 n=A.K(new A.O(B.a5C,new A.aVF(),n),n.i("ar.E"))
 p=A.mU(o,l,!1,n,new A.aVG(m),l,p,t.N)
 o=A.v(a).ok.y
-k=A.a([s,B.D,k,B.D,A.bv(new A.I(B.L,A.z(A.a([new A.Q7(a,B.Yf,"Report an Issue",l),B.R,q,B.M,p,B.R,A.f("Description",l,l,l,l,o==null?l:o.zl(B.w),l,l,l),B.M,A.ce(!0,B.S,!1,l,!0,B.u,l,A.ci(),m.f,l,l,l,l,l,2,A.bF(l,new A.aq(4,A.h(8),B.ab),l,B.bh,l,l,l,l,!0,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,"Describe the problem in detail\u2026",l,l,l,l,l,l,l,l,l,!0,!0,l,l,l,l,l,l,l,l,l,l,l,l,l),B.t,!0,l,!0,l,!1,l,B.a7,l,l,l,l,l,l,l,4,l,l,!1,"\u2022",l,l,l,l,l,!1,l,l,!1,l,!0,l,B.L,l,l,B.a6,B.a5,l,l,l,l,l,l,l,!0,B.K,l,B.af,l,l,l,l),B.R,A.bd(A.cN(B.A5,B.aoP,m.gaBm(),l),l,1/0)],r),B.o,B.c,B.e,0,B.i),l),l,l,l,l),B.bu,new A.Q7(a,B.zG,"My Reported Issues",l),B.D],r)
+k=A.a([s,B.D,k,B.D,A.bv(new A.I(B.L,A.z(A.a([new A.Q7(a,B.Yf,"Report an Issue",l),B.R,q,B.M,p,B.R,A.f("Description",l,l,l,l,o==null?l:o.zl(B.w),l,l,l),B.M,A.ce(!0,B.S,!1,l,!0,B.u,l,A.ci(),m.f,l,l,l,l,l,2,A.bF(l,new A.aq(4,A.h(8),B.ab),l,B.bh,l,l,l,l,!0,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,"Describe the problem in detail\u2026",l,l,l,l,l,l,l,l,l,!0,!0,l,l,l,l,l,l,l,l,l,l,l,l,l),B.t,!0,l,!0,l,!1,l,B.a7,l,l,l,l,l,l,l,4,l,l,!1,"\u2022",l,l,l,l,l,!1,l,l,!1,l,!0,l,B.L,l,l,B.a6,B.a5,l,l,l,l,l,l,l,!0,B.K,l,B.af,l,l,l,l),B.R,A.bd(A.cN(B.A5,B.aoN,m.gaBm(),l),l,1/0)],r),B.o,B.c,B.e,0,B.i),l),l,l,l,l),B.bu,new A.Q7(a,B.zG,"My Reported Issues",l),B.D],r)
 if(j.length===0)k.push(B.auf)
 else B.b.A(k,new A.O(j,new A.aVH(),A.N(j).i("O<1,c>")))
 return A.cI(l,l,A.bY(A.z(k,B.o,B.c,B.e,0,B.i),l,B.t,B.b2,l,l,B.H),l,l)}}
@@ -116995,7 +116995,7 @@ k=A.x(k,B.f,B.i9,B.e,0,o)
 s=A.h(16)
 r=A.a([new A.bX(0,B.au,B.a3.I(0.35),B.lo,16)],t.V)
 q=$.dm
-s=A.A(o,A.x(A.a([B.wZ,B.b5,A.U(A.z(A.a([B.vn,A.f(q.length!==0?q:"Management",o,o,o,o,B.v6,o,o,o),B.a4,A.A(o,B.aoW,B.h,o,o,new A.C(B.h1,o,o,A.h(20),o,o,B.l),o,o,o,B.n_,o,o,o)],l),B.o,B.c,B.e,0,B.i),1)],l),B.f,B.c,B.e,0,o),B.h,o,o,new A.C(o,o,o,s,r,B.a1F,B.l),o,o,o,B.L,o,o,1/0)
+s=A.A(o,A.x(A.a([B.wZ,B.b5,A.U(A.z(A.a([B.vn,A.f(q.length!==0?q:"Management",o,o,o,o,B.v6,o,o,o),B.a4,A.A(o,B.aoT,B.h,o,o,new A.C(B.h1,o,o,A.h(20),o,o,B.l),o,o,o,B.n_,o,o,o)],l),B.o,B.c,B.e,0,B.i),1)],l),B.f,B.c,B.e,0,o),B.h,o,o,new A.C(o,o,o,s,r,B.a1F,B.l),o,o,o,B.L,o,o,1/0)
 r=A.bd(o,n?16:24,o)
 q=this.d
 p=A.bd(o,n?20:28,o)
@@ -117334,7 +117334,7 @@ s.f=!1},
 $S:0}
 A.aW6.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aW4(a),s,s),A.cy(!1,B.MX,s,s,s,s,s,s,new A.aW5(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqm,s,s,B.aof)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aW4(a),s,s),A.cy(!1,B.MX,s,s,s,s,s,s,new A.aW5(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.aqk,s,s,B.aoc)},
 $S:8}
 A.aW4.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -117722,7 +117722,7 @@ return A.p($async$$0,r)},
 $S:2}
 A.aDY.prototype={
 $1(a){var s=null,r=t.p,q=A.z(A.a([A.f("Publish application form v"+this.a+"?",s,s,s,s,B.eY,s,s,s),B.M,A.A(s,B.acY,B.h,s,s,new A.C(B.aR,s,s,A.h(8),s,s,B.l),s,s,s,B.bt,s,s,s)],r),B.f,B.c,B.z,0,B.i)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aDU(a),s,s),A.cy(!1,B.MV,s,s,s,s,s,s,new A.aDV(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],r),q,s,s,B.MU)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aDU(a),s,s),A.cy(!1,B.MU,s,s,s,s,s,s,new A.aDV(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],r),q,s,s,B.MT)},
 $S:8}
 A.aDU.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -117904,7 +117904,7 @@ A.a4Z.prototype={
 n(a){return B.Sf}}
 A.Ni.prototype={
 n(a){var s=null
-return A.bS(A.z(A.a([B.ZS,B.D,B.ao9,B.aL,A.f(this.c,s,s,s,s,B.aH,B.b7,s,s),B.bq,A.cN(B.ji,B.pc,this.d,A.ba(s,s,B.a3,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
+return A.bS(A.z(A.a([B.ZS,B.D,B.ao6,B.aL,A.f(this.c,s,s,s,s,B.aH,B.b7,s,s),B.bq,A.cN(B.ji,B.pc,this.d,A.ba(s,s,B.a3,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
 A.Sk.prototype={
 l(){var s=this,r=s.bt$
 if(r!=null)r.M(0,s.gfq())
@@ -118230,7 +118230,7 @@ case 6:case 1:return A.o(q,r)
 case 2:return A.n(o.at(-1),r)}})
 return A.p($async$uh,r)},
 n(a){var s,r=this,q=null,p=A.av(a,q,t.l).w.a.a<700,o=p?16:24,n=p?16:24,m=A.A(q,B.a_N,B.h,q,q,new A.C(B.aB.I(0.1),q,q,A.h(8),q,q,B.l),q,36,q,q,q,q,36),l=r.d.length,k=l===1?"":"s",j=t.p
-k=A.U(A.z(A.a([B.aoX,A.f(""+l+" candidate"+k+" assigned to you",q,q,q,q,B.aH,q,q,q)],j),B.o,B.c,B.e,0,B.i),1)
+k=A.U(A.z(A.a([B.aoU,A.f(""+l+" candidate"+k+" assigned to you",q,q,q,q,B.aH,q,q,q)],j),B.o,B.c,B.e,0,B.i),1)
 l=r.e
 s=l?q:r.gZO()
 n=A.A(q,A.x(A.a([m,B.U,k,A.bs(q,q,q,l?B.afH:B.a0F,q,q,s,q,q,q,"Refresh",q)],j),B.f,B.c,B.e,0,q),B.h,B.k,q,q,q,q,q,new A.a4(o,n,o,16),q,q,q)
@@ -118265,7 +118265,7 @@ s.e=!1},
 $S:0}
 A.aWn.prototype={
 $1(a){var s=null
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aWl(a),s,s),A.cy(!1,B.aqE,s,s,s,s,s,s,new A.aWm(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.arG,s,s,B.apN)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aWl(a),s,s),A.cy(!1,B.aqE,s,s,s,s,s,s,new A.aWm(a),s,A.ba(s,s,B.J,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.arG,s,s,B.apL)},
 $S:8}
 A.aWl.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -118294,7 +118294,7 @@ return A.p($async$$0,r)},
 $S:2}
 A.aWq.prototype={
 $1(a){var s=null,r=this.b,q=A.ce(!0,B.S,!1,s,!0,B.u,s,A.ci(),r,s,s,s,s,s,2,A.bF(s,new A.aq(4,A.h(8),B.ab),s,B.bh,s,s,s,s,!0,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,"Add or update your comment\u2026",s,s,s,s,s,s,s,s,s,!0,!0,s,s,s,s,s,s,s,s,s,s,s,s,s),B.t,!0,s,!0,s,!1,s,B.a7,s,s,s,s,s,s,s,4,s,s,!1,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.L,s,s,B.a6,B.a5,s,s,s,s,s,s,s,!0,B.K,s,B.af,s,s,s,s)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aWo(a),s,s),A.cy(!1,B.er,s,s,s,s,s,s,new A.aWp(this.a,a,this.c,r),s,A.ba(s,s,B.aB,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),q,s,s,B.aoq)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.aWo(a),s,s),A.cy(!1,B.er,s,s,s,s,s,s,new A.aWp(this.a,a,this.c,r),s,A.ba(s,s,B.aB,s,s,s,s,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),q,s,s,B.aoo)},
 $S:8}
 A.aWo.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -118387,7 +118387,7 @@ A.a53.prototype={
 n(a){return B.Sc}}
 A.a57.prototype={
 n(a){var s=null
-return A.bS(A.z(A.a([B.t5,B.D,B.aoO,B.aL,A.f(this.c,s,s,s,s,B.aH,B.b7,s,s),B.bq,A.cN(B.ji,B.pc,this.d,A.ba(s,s,B.aB,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
+return A.bS(A.z(A.a([B.t5,B.D,B.aoM,B.aL,A.f(this.c,s,s,s,s,B.aH,B.b7,s,s),B.bq,A.cN(B.ji,B.pc,this.d,A.ba(s,s,B.aB,s,s,s,0,s,s,B.k,s,s,s,s,new A.ai(A.h(8),B.q),s,s,s,s,s))],t.p),B.f,B.c,B.z,0,B.i),s,s)}}
 A.wh.prototype={
 U(){return new A.a6w(A.a([],t.R9))}}
 A.a6w.prototype={
@@ -118687,17 +118687,17 @@ k=B.G.I(0.05)
 r=A.h(10)
 q=A.ay(B.G.I(0.25),1)
 p=t.p
-o=A.a([B.anI],p)
-if(j)o.push(B.anS)
-else if(s!=null)o.push(A.f("Last availed: "+(B.d.au(B.m.j(A.bB(s)),2,"0")+"/"+B.d.au(B.m.j(A.aN(s)),2,"0")+"/"+A.az(s)),l,l,l,l,B.fI,l,l,l))
-else o.push(B.anM)
+o=A.a([B.aon],p)
+if(j)o.push(B.anP)
+else if(s!=null)o.push(A.f("Last encashed: "+(B.d.au(B.m.j(A.bB(s)),2,"0")+"/"+B.d.au(B.m.j(A.aN(s)),2,"0")+"/"+A.az(s)),l,l,l,l,B.fI,l,l,l))
+else o.push(B.aqy)
 o=A.a([B.a_y,B.a9,A.U(A.z(o,B.o,B.c,B.e,0,B.i),1)],p)
 if(j){n=A.h(8)
 m=A.ay(B.iM,1)
 o.push(A.A(l,A.x(A.a([A.aa(B.cd,B.aP,l,l,12),B.ac,A.f("Pending",l,l,l,l,A.X(l,l,B.aP,l,l,l,l,l,l,l,l,11,l,l,B.w,l,l,!0,l,l,l,l,l,l,l,l),l,l,l)],p),B.f,B.c,B.z,0,l),B.h,l,l,new A.C(B.bG,l,m,n,l,l,B.l),l,l,l,B.qQ,l,l,l))}else{p=this.d
 n=p?l:this.e
 p=p?B.afG:B.a0u
-o.push(A.cN(p,B.anE,n,A.ba(l,l,B.G,l,l,l,l,l,l,B.k,l,l,B.c7,l,new A.ai(A.h(8),B.q),l,l,l,l,l)))}return A.A(l,A.x(o,B.f,B.c,B.e,0,l),B.h,l,l,new A.C(k,l,q,r,l,l,B.l),l,l,l,B.ee,l,l,l)}}
+o.push(A.cN(p,B.aps,n,A.ba(l,l,B.G,l,l,l,l,l,l,B.k,l,l,B.c7,l,new A.ai(A.h(8),B.q),l,l,l,l,l)))}return A.A(l,A.x(o,B.f,B.c,B.e,0,l),B.h,l,l,new A.C(k,l,q,r,l,l,B.l),l,l,l,B.ee,l,l,l)}}
 A.wy.prototype={
 U(){return new A.Ox()}}
 A.Ox.prototype={
@@ -118794,28 +118794,28 @@ r=A.ay(B.G.I(0.2),1)
 q=B.G.I(0.1)
 p=A.h(20)
 o=t.p
-p=A.x(A.a([B.a_8,B.A,B.aqL,B.bd,A.A(l,B.aq1,B.h,l,l,new A.C(q,l,A.ay(B.G.I(0.2),1),p,l,l,B.l),l,l,l,B.da,l,l,l)],o),B.f,B.c,B.e,0,l)
+p=A.x(A.a([B.a_8,B.A,B.aqL,B.bd,A.A(l,B.aq_,B.h,l,l,new A.C(q,l,A.ay(B.G.I(0.2),1),p,l,l,B.l),l,l,l,B.da,l,l,l)],o),B.f,B.c,B.e,0,l)
 q=A.f(A.bhm(i),l,l,l,l,A.X(l,l,B.aI,l,l,l,l,l,l,l,l,36,l,l,B.eh,l,l,!0,l,l,l,l,l,l,l,l),l,l,l)
 n=i===1
-k=A.a([p,B.bq,A.x(A.a([A.U(A.z(A.a([q,B.b6,A.f("day"+(n?"":"s")+" available",l,l,l,l,B.aH,l,l,l)],o),B.f,B.c,B.e,0,B.i),1),A.A(l,l,B.h,B.G.I(0.15),l,l,l,48,l,l,l,l,1),A.U(A.z(A.a([A.f(""+k,l,l,l,l,B.ai7,l,l,l),B.b6,B.aro],o),B.f,B.c,B.e,0,B.i),1),A.A(l,l,B.h,B.G.I(0.15),l,l,l,48,l,l,l,l,1),A.U(A.z(A.a([A.f(A.bhm(j),l,l,l,l,A.X(l,l,B.aP,l,l,l,l,l,l,l,l,36,l,l,B.eh,l,l,!0,l,l,l,l,l,l,l,l),l,l,l),B.b6,B.aqj],o),B.f,B.c,B.e,0,B.i),1)],o),B.f,B.c,B.e,0,l)],o)
-if(f!=null)B.b.A(k,A.a([B.D,A.f("Last availed: "+(B.d.au(B.m.j(A.bB(f)),2,"0")+"/"+B.d.au(B.m.j(A.aN(f)),2,"0")+"/"+A.az(f)),l,l,l,l,B.v9,l,l,l)],o))
+k=A.a([p,B.bq,A.x(A.a([A.U(A.z(A.a([q,B.b6,A.f("day"+(n?"":"s")+" available",l,l,l,l,B.aH,l,l,l)],o),B.f,B.c,B.e,0,B.i),1),A.A(l,l,B.h,B.G.I(0.15),l,l,l,48,l,l,l,l,1),A.U(A.z(A.a([A.f(""+k,l,l,l,l,B.ai7,l,l,l),B.b6,B.aro],o),B.f,B.c,B.e,0,B.i),1),A.A(l,l,B.h,B.G.I(0.15),l,l,l,48,l,l,l,l,1),A.U(A.z(A.a([A.f(A.bhm(j),l,l,l,l,A.X(l,l,B.aP,l,l,l,l,l,l,l,l,36,l,l,B.eh,l,l,!0,l,l,l,l,l,l,l,l),l,l,l),B.b6,B.aqh],o),B.f,B.c,B.e,0,B.i),1)],o),B.f,B.c,B.e,0,l)],o)
+if(f!=null)B.b.A(k,A.a([B.D,A.f("Last encashed: "+(B.d.au(B.m.j(A.bB(f)),2,"0")+"/"+B.d.au(B.m.j(A.aN(f)),2,"0")+"/"+A.az(f)),l,l,l,l,B.v9,l,l,l)],o))
 k.push(B.bq)
 k.push(B.cM)
 k.push(B.R)
 if(h.ay.length!==0){j=A.aa(B.cd,B.aP,l,l,16)
-h=A.U(A.f("Avail EL request submitted. Awaiting HR confirmation.",l,l,l,l,A.X(l,l,B.aP,l,l,l,l,l,l,l,l,12,l,l,l,l,l,!0,l,l,l,l,l,l,l,l),l,l,l),1)
+h=A.U(A.f("Encash EL request submitted. Awaiting HR confirmation.",l,l,l,l,A.X(l,l,B.aP,l,l,l,l,l,l,l,l,12,l,l,l,l,l,!0,l,l,l,l,l,l,l,l),l,l,l),1)
 q=A.h(8)
 p=A.ay(B.iM,1)
 k.push(A.x(A.a([j,B.A,h,A.A(l,A.f("Pending",l,l,l,l,A.X(l,l,B.aP,l,l,l,l,l,l,l,l,11,l,l,B.w,l,l,!0,l,l,l,l,l,l,l,l),l,l,l),B.h,l,l,new A.C(B.bG,l,p,q,l,l,B.l),l,l,l,B.qQ,l,l,l)],o),B.f,B.c,B.e,0,l))}else{j=i>0
 if(j){h=A.bhm(i)
 q=n?"":"s"
-q="You have "+h+" EL day"+q+" to avail. Once confirmed by HR, your balance will reset."
-h=q}else h="No EL days available to avail yet."
+q="You have "+h+" EL day"+q+" to encash. Once confirmed by HR, your balance will reset."
+h=q}else h="No EL days available to encash yet."
 o=A.a([A.U(A.f(h,l,l,l,l,B.aH,l,l,l),1),B.U],o)
 if(j){j=m.f
 h=j?l:m.r
 j=j?B.oR:B.ZN
-o.push(A.cN(j,B.aq_,h,A.ba(l,l,B.G,l,l,l,l,l,l,B.k,l,l,B.dA,l,new A.ai(A.h(8),B.q),l,l,l,l,l)))}k.push(A.x(o,B.f,B.c,B.e,0,l))}return A.A(l,A.z(k,B.o,B.c,B.e,0,B.i),B.h,l,l,new A.C(g,l,r,s,l,l,B.l),l,l,l,B.L,l,l,l)}}
+o.push(A.cN(j,B.apY,h,A.ba(l,l,B.G,l,l,l,l,l,l,B.k,l,l,B.dA,l,new A.ai(A.h(8),B.q),l,l,l,l,l)))}k.push(A.x(o,B.f,B.c,B.e,0,l))}return A.A(l,A.z(k,B.o,B.c,B.e,0,B.i),B.h,l,l,new A.C(g,l,r,s,l,l,B.l),l,l,l,B.L,l,l,l)}}
 A.wz.prototype={
 U(){return new A.Oy()}}
 A.Oy.prototype={
@@ -119129,7 +119129,7 @@ if(i.length!==0)j.push(new A.tv("Team",B.b.bN(i,", "),c))
 o.push(A.er(j,8,24))
 o.push(B.R)
 j=a0===B.jQ
-if(j&&!a.ax)o.push(A.cN(B.a0e,B.ap5,d.a.f,A.ba(c,c,B.W,c,c,c,0,c,c,B.k,c,B.ae,B.yt,c,new A.ai(A.h(20),B.q),c,c,B.dg,c,c)))
+if(j&&!a.ax)o.push(A.cN(B.a0e,B.ap2,d.a.f,A.ba(c,c,B.W,c,c,c,0,c,c,B.k,c,B.ae,B.yt,c,new A.ai(A.h(20),B.q),c,c,B.dg,c,c)))
 else if(j&&a.ax||a0===B.jR||a0===B.ig||a0===B.fF)o.push(A.cN(B.a09,B.arb,d.a.r,A.ba(c,c,B.aI,c,c,c,0,c,c,B.k,c,B.ae,B.yt,c,new A.ai(A.h(20),B.q),c,c,B.dg,c,c)))
 else if(b)o.push(A.x(A.a([A.aa(B.nx,B.aN,c,c,13),B.ac,A.f("Completed \u2014 no further changes",c,c,c,c,A.X(c,c,B.aN,c,c,c,c,c,c,c,c,11,c,c,c,c,c,!0,c,c,c,c,c,c,c,c),c,c,c)],l),B.f,B.c,B.z,0,c))
 B.b.A(k,o)}return A.bv(A.ca(!1,m,!0,new A.I(B.aK,A.z(k,B.o,B.c,B.e,0,B.i),c),c,!0,c,c,c,c,c,c,c,c,c,c,c,new A.aXH(d),c,c,c,c,c,c,c),c,c,c,c)}}
@@ -119649,7 +119649,7 @@ p=A.a([A.x(A.a([A.U(s.fT(s.id,"ESI Number"),1),B.U,A.U(s.fT(s.k1,"PF Number"),1)
 B.b.A(p,s.kj(s.ke(r)))
 return s.mP(A.z(p,B.f,B.c,B.e,0,B.i),B.hf,q)},
 ahX(){var s=this,r="emergency_details",q=s.kf(r,"EMERGENCY DETAILS OF EMPLOYEE"),p=t.p
-p=A.a([A.x(A.a([A.U(s.Xh(12,B.a5Y,"Blood Group",new A.aYF(s),s.p4),1),B.U,A.U(s.fT(s.R8,"Allergic To"),1)],p),B.f,B.c,B.e,0,null),s.tF(s.RG,"Any Major Illness",2),s.fT(s.rx,"Emergency Contact Person Name"),s.amR(s.ry,"Emergency Contact Person Number",A.a([$.SY()],t.VS),B.fG),s.tF(s.to,"Emergency Contact Person Address",2),new A.I(B.yk,A.z(A.a([B.apl,B.aL,s.Xz(s.x1,!0,"Upload Aadhar Copy (PDF / image \xb7 max 1 MB)",new A.aYG(s),new A.aYH(s))],p),B.o,B.c,B.e,0,B.i),null)],p)
+p=A.a([A.x(A.a([A.U(s.Xh(12,B.a5Y,"Blood Group",new A.aYF(s),s.p4),1),B.U,A.U(s.fT(s.R8,"Allergic To"),1)],p),B.f,B.c,B.e,0,null),s.tF(s.RG,"Any Major Illness",2),s.fT(s.rx,"Emergency Contact Person Name"),s.amR(s.ry,"Emergency Contact Person Number",A.a([$.SY()],t.VS),B.fG),s.tF(s.to,"Emergency Contact Person Address",2),new A.I(B.yk,A.z(A.a([B.api,B.aL,s.Xz(s.x1,!0,"Upload Aadhar Copy (PDF / image \xb7 max 1 MB)",new A.aYG(s),new A.aYH(s))],p),B.o,B.c,B.e,0,B.i),null)],p)
 B.b.A(p,s.kj(s.ke(r)))
 return s.mP(A.z(p,B.o,B.c,B.e,0,B.i),B.zQ,q)},
 ahM(){var s=this,r="attachments",q=s.kf(r,"Attachments"),p=t.o
@@ -119667,7 +119667,7 @@ j=A.a([j,B.ar,A.cK(m,A.A(m,A.x(A.a([A.aa(p,i?B.J:B.aP,m,m,22),B.a9,B.WI],h),B.f,
 B.b.A(j,o.kj(o.ke(n)))
 return o.mP(A.z(j,B.o,B.c,B.e,0,B.i),B.rV,k)},
 ahQ(){var s=this,r="declaration",q=null,p=s.kf(r,"Declaration"),o=A.h(8),n=t.p
-n=A.a([A.A(q,B.ap0,B.h,q,q,new A.C(B.xr,q,A.ay(B.TG,1),o,q,q,B.l),q,q,q,B.bh,q,q,q),B.R,A.x(A.a([A.U(s.L7("Date",new A.aYy(s),s.tW(s.xr)),1),B.U,A.U(s.fT(s.y1,"Place"),1)],n),B.f,B.c,B.e,0,q),B.D,A.x(A.a([A.bf9(B.n,!1,q,q,q,!1,q,q,new A.aYz(s),q,q,q,q,q,!1,s.y2),B.WK],n),B.f,B.c,B.e,0,q)],n)
+n=A.a([A.A(q,B.aoY,B.h,q,q,new A.C(B.xr,q,A.ay(B.TG,1),o,q,q,B.l),q,q,q,B.bh,q,q,q),B.R,A.x(A.a([A.U(s.L7("Date",new A.aYy(s),s.tW(s.xr)),1),B.U,A.U(s.fT(s.y1,"Place"),1)],n),B.f,B.c,B.e,0,q),B.D,A.x(A.a([A.bf9(B.n,!1,q,q,q,!1,q,q,new A.aYz(s),q,q,q,q,q,!1,s.y2),B.WK],n),B.f,B.c,B.e,0,q)],n)
 B.b.A(n,s.kj(s.ke(r)))
 return s.mP(A.z(n,B.o,B.c,B.e,0,B.i),B.Yz,p)},
 CB(a,b,c,d){var s,r=null,q=A.h(14),p=B.n.I(0.1),o=A.h(9)
@@ -120228,7 +120228,7 @@ return A.k(q.tY(),$async$xa)
 case 3:return A.o(null,r)}})
 return A.p($async$xa,r)},
 n(a){var s,r=this,q=null,p=A.v(a),o=t.p
-p=A.A(q,A.x(A.a([B.dh,B.A,A.A(q,B.zX,B.h,q,q,new A.C(B.n.I(0.1),q,q,A.h(12),q,q,B.l),q,48,q,q,q,q,48),B.b5,A.z(A.a([A.f("Payroll Management",q,q,q,q,A.v(a).ok.e,q,q,q),B.MW],o),B.o,B.c,B.e,0,B.i),B.bd,A.bs(q,q,q,B.eN,q,q,r.gawX(),q,q,q,"Refresh",q)],o),B.f,B.c,B.e,0,q),B.h,p.fx,q,q,q,q,q,B.Wg,q,q,q)
+p=A.A(q,A.x(A.a([B.dh,B.A,A.A(q,B.zX,B.h,q,q,new A.C(B.n.I(0.1),q,q,A.h(12),q,q,B.l),q,48,q,q,q,q,48),B.b5,A.z(A.a([A.f("Payroll Management",q,q,q,q,A.v(a).ok.e,q,q,q),B.MV],o),B.o,B.c,B.e,0,B.i),B.bd,A.bs(q,q,q,B.eN,q,q,r.gawX(),q,q,q,"Refresh",q)],o),B.f,B.c,B.e,0,q),B.h,p.fx,q,q,q,q,q,B.Wg,q,q,q)
 if(r.d)s=B.dJ
 else{s=r.e.length
 s=s===0?A.bS(A.f("No employees found.",q,q,q,q,A.X(q,q,B.aN,q,q,q,q,q,q,q,q,q,q,q,q,q,q,!0,q,q,q,q,q,q,q,q),q,q,q),q,q):A.kX(q,new A.b_r(r),s,B.L)}return A.cI(q,q,A.z(A.a([p,B.cM,A.U(s,1)],o),B.f,B.c,B.e,0,B.i),q,q)}}
@@ -120293,14 +120293,14 @@ n=A.aa(B.d1,B.aI,j,j,11)
 n=A.x(A.a([n,B.eW,A.f(A.u(B.j.b2(f,1)===0?B.j.ek(f):B.j.ah(f,1))+"d",j,j,j,j,A.X(j,j,B.aI,j,j,j,j,j,j,j,j,11,j,j,B.y,j,j,!0,j,j,j,j,j,j,j,j),j,j,j),B.eW,B.vl],o),B.f,B.c,B.e,0,j)
 m=A.aa(B.fo,B.aP,j,j,11)
 l=k.a.d
-n=A.a([B.aqS,B.a4,n,B.b6,A.x(A.a([m,B.eW,A.f(A.u(B.j.b2(l,1)===0?B.j.ek(l):B.j.ah(l,1))+"d",j,j,j,j,A.X(j,j,B.aP,j,j,j,j,j,j,j,j,11,j,j,B.y,j,j,!0,j,j,j,j,j,j,j,j),j,j,j),B.eW,B.aoS],o),B.f,B.c,B.e,0,j)],o)
+n=A.a([B.aqS,B.a4,n,B.b6,A.x(A.a([m,B.eW,A.f(A.u(B.j.b2(l,1)===0?B.j.ek(l):B.j.ah(l,1))+"d",j,j,j,j,A.X(j,j,B.aP,j,j,j,j,j,j,j,j,11,j,j,B.y,j,j,!0,j,j,j,j,j,j,j,j),j,j,j),B.eW,B.aqv],o),B.f,B.c,B.e,0,j)],o)
 m=s!=null
-if(m)B.b.A(n,A.a([B.b6,A.f("Last availed: "+A.bnZ(s),j,j,j,j,B.fI,j,j,j)],o))
+if(m)B.b.A(n,A.a([B.b6,A.f("Last encashed: "+A.bnZ(s),j,j,j,j,B.fI,j,j,j)],o))
 i=A.a([A.U(A.A(j,A.z(n,B.o,B.c,B.e,0,B.i),B.h,j,j,new A.C(i,j,q,r,j,j,B.l),j,j,j,B.cz,j,j,j),1),B.U],o)
 if(h.ay.length!==0){r=k.d
 q=r?j:k.galo()
 r=r?B.afM:B.ZL
-i.push(A.z(A.a([B.MT,B.aL,A.cN(r,B.ara,q,A.ba(j,j,B.G,j,j,j,j,j,j,B.k,j,j,B.h9,j,new A.ai(A.h(8),B.q),j,j,j,j,j))],o),B.f,B.c,B.z,0,B.i))}else i.push(A.z(A.a([B.MT,B.aL,A.f(m?A.bnZ(s):"\u2014",j,j,j,j,B.aH,j,j,j)],o),B.f,B.c,B.z,0,B.i))
+i.push(A.z(A.a([B.MW,B.aL,A.cN(r,B.ara,q,A.ba(j,j,B.G,j,j,j,j,j,j,B.k,j,j,B.h9,j,new A.ai(A.h(8),B.q),j,j,j,j,j))],o),B.f,B.c,B.z,0,B.i))}else i.push(A.z(A.a([B.MW,B.aL,A.f(m?A.bnZ(s):"\u2014",j,j,j,j,B.aH,j,j,j)],o),B.f,B.c,B.z,0,B.i))
 B.b.A(p,A.a([B.D,B.cM,B.D,A.x(i,B.f,B.c,B.e,0,j)],o))}return A.bv(new A.I(B.aK,A.z(p,B.o,B.c,B.e,0,B.i),j),j,j,B.bg,j)}}
 A.aO5.prototype={
 $0(){return this.a.d=!0},
@@ -120652,7 +120652,7 @@ A.c8(s,s,!0,s,new A.b5l(this.a,this.c,r),r,s,!0,t.z)},
 $S:0}
 A.b5l.prototype={
 $1(a){var s=null,r=A.f('Delete "'+this.b.b+'"?',s,s,s,s,s,s,s,s),q=this.c
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b5i(q),s,s),A.cy(!1,B.jV,s,s,s,s,s,s,new A.b5j(this.a,q),s,A.ba(s,s,B.aT,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],t.p),r,s,s,B.aoj)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b5i(q),s,s),A.cy(!1,B.jV,s,s,s,s,s,s,new A.b5j(this.a,q),s,A.ba(s,s,B.aT,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],t.p),r,s,s,B.aog)},
 $S:8}
 A.b5i.prototype={
 $0(){A.aD(this.a,!1).am(null)
@@ -120826,7 +120826,7 @@ p=A.a([s,B.bu,m,B.R,A.bv(new A.I(B.cO,A.ce(!0,B.S,!1,n,!0,B.u,n,A.ci(),n,n,n,n,n
 if(!o.a.c)p.push(new A.I(B.bg,new A.ev(new A.b6t(),n),n))
 m=o.r
 if(m!=null){m=m.b
-p.push(new A.I(B.bg,A.x(A.a([A.f("Showing: "+m[0].toUpperCase()+B.d.ck(m,1)+" only",n,n,n,n,B.aH,n,n,n),B.A,A.cK(n,B.aou,B.t,!1,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,new A.b6u(o),n,n,n,n,n,n)],q),B.f,B.c,B.e,0,n),n))}if(o.w)p.push(B.wW)
+p.push(new A.I(B.bg,A.x(A.a([A.f("Showing: "+m[0].toUpperCase()+B.d.ck(m,1)+" only",n,n,n,n,B.aH,n,n,n),B.A,A.cK(n,B.aos,B.t,!1,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,new A.b6u(o),n,n,n,n,n,n)],q),B.f,B.c,B.e,0,n),n))}if(o.w)p.push(B.wW)
 m=!o.w
 if(m&&!o.a.c&&o.e&&o.d.a===0)p.push(o.xt(B.t1,"Ask Management to assign employees via Administration \u2192 Edit User \u2192 Reporting Manager.","No employees assigned to you"))
 else if(m&&o.glS().length===0)p.push(o.xt(B.dc,"Leave requests will appear here for approval.",o.a.c?"No leave requests yet":"No leave requests from your team"))
@@ -120856,7 +120856,7 @@ h=A.N(i).i("a9<1>")
 r=A.K(new A.a9(i,new A.b5I(),h),h.i("y.E"))
 i=A.v(a)
 h=t.p
-g=A.x(A.a([B.dh,B.A,A.A(j,B.a_9,B.h,j,j,new A.C(B.aJ.I(0.1),j,j,A.h(12),j,j,B.l),j,48,j,j,j,j,48),B.b5,A.U(A.z(A.a([A.f("All Leave Approvals",j,j,j,j,A.v(a).ok.e,j,j,j),B.anO],h),B.o,B.c,B.e,0,B.i),1),A.bs(j,j,j,B.At,j,j,k.ga1v(),j,j,j,"Refresh",j)],h),B.f,B.c,B.e,0,j)
+g=A.x(A.a([B.dh,B.A,A.A(j,B.a_9,B.h,j,j,new A.C(B.aJ.I(0.1),j,j,A.h(12),j,j,B.l),j,48,j,j,j,j,48),B.b5,A.U(A.z(A.a([A.f("All Leave Approvals",j,j,j,j,A.v(a).ok.e,j,j,j),B.anL],h),B.o,B.c,B.e,0,B.i),1),A.bs(j,j,j,B.At,j,j,k.ga1v(),j,j,j,"Refresh",j)],h),B.f,B.c,B.e,0,j)
 q=A.x(A.a([new A.q5("Pending",k.ga_B(),B.cd,B.aP,k.r===B.bC,new A.b5J(k),j),B.a9,new A.q5("Approved",k.gVk(),B.b3,B.aI,k.r===B.c3,new A.b5K(k),j),B.a9,new A.q5("Denied",k.gWN(),B.bV,B.aT,k.r===B.cr,new A.b5L(k),j)],h),B.f,B.c,B.e,0,j)
 p=k.f.length!==0?A.bs(j,j,j,B.hi,j,j,new A.b5M(k),j,j,j,j,j):j
 o=A.h(10)
@@ -120928,7 +120928,7 @@ if(this.a.a.c)s.at=!0},
 $S:0}
 A.b5R.prototype={
 $1(a){var s=null,r=A.h(16),q=t.p,p=A.z(A.a([B.aqI,B.ak,A.ce(!0,B.S,!0,s,!0,B.u,s,A.ci(),this.a,s,s,s,s,s,2,A.bF(s,new A.aq(4,A.h(8),B.ab),s,B.cz,s,s,s,s,!0,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,"e.g. Insufficient notice / Busy period",s,s,s,s,s,s,s,s,s,!0,!0,s,s,s,s,s,s,s,s,s,s,s,s,s),B.t,!0,s,!0,s,!1,s,B.a7,s,s,s,s,s,s,s,3,s,s,!1,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.L,s,s,B.a6,B.a5,s,s,s,s,s,s,s,!0,B.K,s,B.af,s,s,s,s)],q),B.f,B.c,B.z,0,B.i)
-return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b5P(a),s,s),A.cy(!1,B.vo,s,s,s,s,s,s,new A.b5Q(a),s,A.ba(s,s,B.aT,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],q),p,s,new A.ai(r,B.q),B.aow)},
+return A.cs(A.a([A.cd(!1,B.aC,s,s,s,s,s,s,new A.b5P(a),s,s),A.cy(!1,B.vo,s,s,s,s,s,s,new A.b5Q(a),s,A.ba(s,s,B.aT,s,s,s,s,s,s,B.k,s,s,s,s,s,s,s,s,s,s))],q),p,s,new A.ai(r,B.q),B.aou)},
 $S:8}
 A.b5P.prototype={
 $0(){A.aD(this.a,!1).am(!1)
@@ -121731,7 +121731,7 @@ p===$&&A.b()
 s=A.N(p).i("O<1,i>")
 A.K(new A.O(p,new A.aPM(),s),s.i("ar.E"))
 r.a.toString
-r.c.R(t.q).f.bj(A.d2(q,q,q,r.a.e,B.eX,B.u,q,B.ap1,q,B.as,q,q,q,q,q,q,new A.ai(A.h(8),B.q),q,q))},
+r.c.R(t.q).f.bj(A.d2(q,q,q,r.a.e,B.eX,B.u,q,B.aoZ,q,B.as,q,q,q,q,q,q,new A.ai(A.h(8),B.q),q,q))},
 ane(){var s,r,q=this.d
 q===$&&A.b()
 s=q.length
@@ -122192,7 +122192,7 @@ o=B.k.I(0.12)
 n=A.h(24)
 m=A.ay(B.k.I(0.2),1)
 l=t.p
-n=A.a([A.U(A.z(A.a([B.aod,B.a4,p,B.R,A.A(j,A.x(A.a([A.aa(k.gaob(),B.ms,j,j,14),B.aa,A.f(k.gaoc()+", "+i,j,j,j,j,B.ail,j,j,j)],l),B.f,B.c,B.z,0,j),B.h,j,j,new A.C(o,j,m,n,j,j,B.l),j,j,j,B.fl,j,j,j)],l),B.o,B.c,B.e,0,B.i),1)],l)
+n=A.a([A.U(A.z(A.a([B.aoa,B.a4,p,B.R,A.A(j,A.x(A.a([A.aa(k.gaob(),B.ms,j,j,14),B.aa,A.f(k.gaoc()+", "+i,j,j,j,j,B.ail,j,j,j)],l),B.f,B.c,B.z,0,j),B.h,j,j,new A.C(o,j,m,n,j,j,B.l),j,j,j,B.fl,j,j,j)],l),B.o,B.c,B.e,0,B.i),1)],l)
 if(s.a.a>500)B.b.A(n,A.a([B.b5,B.a64],l))
 s=k.a.e
 B.b.A(n,A.a([B.A,A.nz(A.ca(!1,A.h(20),!0,B.ab6,j,!0,j,j,j,j,j,j,j,j,j,j,j,s,j,j,j,j,j,j,j),"Refresh")],l))
@@ -122971,7 +122971,7 @@ A.a9E.prototype={}
 A.zL.prototype={
 n(a){var s=null,r=this.c
 r=r==null?s:"GoException: "+r.a
-return A.JB(!0,A.bS(A.z(A.a([B.aqf,B.R,A.f(r==null?"page not found":r,s,s,s,s,s,s,s,s),B.R,new A.M1(new A.ake(a),B.aqA,s)],t.p),B.f,B.cB,B.e,0,B.i),s,s),B.ao,!0)}}
+return A.JB(!0,A.bS(A.z(A.a([B.aqd,B.R,A.f(r==null?"page not found":r,s,s,s,s,s,s,s,s),B.R,new A.M1(new A.ake(a),B.aqA,s)],t.p),B.f,B.cB,B.e,0,B.i),s,s),B.ao,!0)}}
 A.ake.prototype={
 $0(){return A.cl(this.a).cZ(0,"/",null)},
 $S:0}
@@ -123018,7 +123018,7 @@ return new A.bi(A.bx(s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s
 qz(a,b,c,d){return this.$ti.i("im<1>").a(this.c).CW.$4(a,b,c,d)}}
 A.wC.prototype={}
 A.Ay.prototype={
-n(a){var s=null,r=A.Ty(s,s,s,B.aqd),q=this.c
+n(a){var s=null,r=A.Ty(s,s,s,B.aqb),q=this.c
 q=q==null?s:"GoException: "+q.a
 return A.cI(r,s,A.bS(A.z(A.a([A.bmO(q==null?"page not found":q,s),A.cd(!1,B.anC,s,s,s,s,s,s,new A.arW(a),s,s)],t.p),B.f,B.cB,B.e,0,B.i),s,s),s,s)}}
 A.arW.prototype={
@@ -132024,12 +132024,12 @@ B.Ab=new A.a0(B.he,38,B.bp,null,null)
 B.ak=new A.cm(null,10,null,null)
 B.ap=new A.D(1,0.47058823529411764,0.5647058823529412,0.611764705882353,B.p)
 B.v7=new A.l(!0,B.ap,null,null,null,null,13,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anP=new A.H("No versions yet",null,B.v7,null,null,null,null,null,null,null,null)
+B.anM=new A.H("No versions yet",null,B.v7,null,null,null,null,null,null,null,null)
 B.a4=new A.cm(null,4,null,null)
 B.dv=new A.D(1,0.7333333333333333,0.7333333333333333,0.7333333333333333,B.p)
 B.p_=new A.l(!0,B.dv,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.MR=new A.H("Submitted versions will appear here after approval.",null,B.p_,null,null,null,null,null,null,null,null)
-B.a2A=A.a(s([B.Ab,B.ak,B.anP,B.a4,B.MR]),t.p)
+B.a2A=A.a(s([B.Ab,B.ak,B.anM,B.a4,B.MR]),t.p)
 B.U8=new A.de(B.H,B.c,B.z,B.f,null,B.i,null,0,B.a2A,null)
 B.S8=new A.el(B.at,null,null,B.U8,null)
 B.dc=new A.ad(63507,"MaterialIcons",null,!1)
@@ -132039,18 +132039,18 @@ B.p6=new A.l(!0,B.n,null,null,null,null,15,B.w,null,null,null,null,null,null,nul
 B.ari=new A.H("No applications yet",null,B.p6,null,null,null,null,null,null,null,null)
 B.aL=new A.cm(null,6,null,null)
 B.aH=new A.l(!0,B.ap,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apm=new A.H("Submitted forms will appear here instantly.",null,B.aH,null,null,null,null,null,null,null,null)
-B.a6_=A.a(s([B.A0,B.D,B.ari,B.aL,B.apm]),t.p)
+B.apj=new A.H("Submitted forms will appear here instantly.",null,B.aH,null,null,null,null,null,null,null,null)
+B.a6_=A.a(s([B.A0,B.D,B.ari,B.aL,B.apj]),t.p)
 B.Uc=new A.de(B.H,B.c,B.z,B.f,null,B.i,null,0,B.a6_,null)
 B.Sa=new A.el(B.at,null,null,B.Uc,null)
-B.aoy=new A.H("No onboarding form found for this employee.",null,B.MO,B.b7,null,null,null,null,null,null,null)
-B.Sb=new A.el(B.at,null,null,B.aoy,null)
+B.aow=new A.H("No onboarding form found for this employee.",null,B.MO,B.b7,null,null,null,null,null,null,null)
+B.Sb=new A.el(B.at,null,null,B.aow,null)
 B.Sv=new A.jS(null,B.n,null)
 B.fb=new A.el(B.at,null,null,B.Sv,null)
 B.Mv=new A.l(!0,B.aB,null,null,null,null,15,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.ao_=new A.H("No candidates assigned to you",null,B.Mv,null,null,null,null,null,null,null,null)
-B.aoL=new A.H("HR will assign candidates here for your review.",null,B.aH,null,null,null,null,null,null,null,null)
-B.a3W=A.a(s([B.A0,B.D,B.ao_,B.aL,B.aoL]),t.p)
+B.anX=new A.H("No candidates assigned to you",null,B.Mv,null,null,null,null,null,null,null,null)
+B.aoJ=new A.H("HR will assign candidates here for your review.",null,B.aH,null,null,null,null,null,null,null,null)
+B.a3W=A.a(s([B.A0,B.D,B.anX,B.aL,B.aoJ]),t.p)
 B.TX=new A.de(B.H,B.c,B.z,B.f,null,B.i,null,0,B.a3W,null)
 B.Sc=new A.el(B.at,null,null,B.TX,null)
 B.j9=new A.ad(62862,"MaterialIcons",null,!1)
@@ -132059,8 +132059,8 @@ B.wV=new A.el(B.at,null,null,B.a0N,null)
 B.VN=new A.a4(0,32,0,32)
 B.ab9=new A.I(B.VN,B.mj,null)
 B.wW=new A.el(B.at,null,null,B.ab9,null)
-B.aqy=new A.H("No form versions yet",null,B.v7,null,null,null,null,null,null,null,null)
-B.a5u=A.a(s([B.Ab,B.ak,B.aqy,B.a4,B.MR]),t.p)
+B.aqx=new A.H("No form versions yet",null,B.v7,null,null,null,null,null,null,null,null)
+B.a5u=A.a(s([B.Ab,B.ak,B.aqx,B.a4,B.MR]),t.p)
 B.Ud=new A.de(B.H,B.c,B.z,B.f,null,B.i,null,0,B.a5u,null)
 B.Sd=new A.el(B.at,null,null,B.Ud,null)
 B.aK=new A.a4(16,16,16,16)
@@ -132071,14 +132071,14 @@ B.ez=new A.D(1,0.807843137254902,0.5764705882352941,0.8470588235294118,B.p)
 B.a_0=new A.a0(B.t3,52,B.ez,null,null)
 B.vd=new A.l(!0,B.a3,null,null,null,null,15,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.art=new A.H("No form edit requests",null,B.vd,null,null,null,null,null,null,null,null)
-B.aoD=new A.H("Form versions submitted by HR will appear here for approval.",null,B.aH,null,null,null,null,null,null,null,null)
-B.a5B=A.a(s([B.a_0,B.D,B.art,B.aL,B.aoD]),t.p)
+B.aoB=new A.H("Form versions submitted by HR will appear here for approval.",null,B.aH,null,null,null,null,null,null,null,null)
+B.a5B=A.a(s([B.a_0,B.D,B.art,B.aL,B.aoB]),t.p)
 B.U5=new A.de(B.H,B.c,B.z,B.f,null,B.i,null,0,B.a5B,null)
 B.Sf=new A.el(B.at,null,null,B.U5,null)
 B.Z3=new A.a0(B.dc,52,B.ez,null,null)
-B.ao6=new A.H("No candidates pending approval",null,B.vd,null,null,null,null,null,null,null,null)
-B.aog=new A.H("Candidates accepted by a Manager will appear here.",null,B.aH,null,null,null,null,null,null,null,null)
-B.a2o=A.a(s([B.Z3,B.D,B.ao6,B.aL,B.aog]),t.p)
+B.ao3=new A.H("No candidates pending approval",null,B.vd,null,null,null,null,null,null,null,null)
+B.aod=new A.H("Candidates accepted by a Manager will appear here.",null,B.aH,null,null,null,null,null,null,null,null)
+B.a2o=A.a(s([B.Z3,B.D,B.ao3,B.aL,B.aod]),t.p)
 B.U3=new A.de(B.H,B.c,B.z,B.f,null,B.i,null,0,B.a2o,null)
 B.Sh=new A.el(B.at,null,null,B.U3,null)
 B.St=new A.jS(null,B.aB,null)
@@ -132253,12 +132253,12 @@ B.xM=new A.D(1,1,0.9764705882352941,0.7686274509803922,B.p)
 B.e=new A.XD(1,"max")
 B.y=new A.kL(6,700)
 B.aji=new A.l(!0,B.k,null,null,null,null,18,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apR=new A.H("Fomra Housing & Infrastructure Pvt Ltd",null,B.aji,B.b7,null,null,null,null,null,null,null)
+B.apP=new A.H("Fomra Housing & Infrastructure Pvt Ltd",null,B.aji,B.b7,null,null,null,null,null,null,null)
 B.Mt=new A.l(!0,B.aQ,null,null,null,null,13,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.anB=new A.H("(Corporate Office)",null,B.Mt,B.b7,null,null,null,null,null,null,null)
 B.akU=new A.l(!0,B.k,null,null,null,null,15,B.y,null,1.2,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apZ=new A.H("EMPLOYEE JOINING FORM",null,B.akU,B.b7,null,null,null,null,null,null,null)
-B.a5W=A.a(s([B.apR,B.a4,B.anB,B.D,B.apZ]),t.p)
+B.apX=new A.H("EMPLOYEE JOINING FORM",null,B.akU,B.b7,null,null,null,null,null,null,null)
+B.a5W=A.a(s([B.apP,B.a4,B.anB,B.D,B.apX]),t.p)
 B.U2=new A.de(B.H,B.c,B.e,B.f,null,B.i,null,0,B.a5W,null)
 B.b3=new A.ad(63029,"MaterialIcons",null,!1)
 B.a_n=new A.a0(B.b3,64,B.J,null,null)
@@ -132272,10 +132272,10 @@ B.a1T=A.a(s([B.a_n,B.R,B.arl,B.M,B.ar8]),t.p)
 B.Ua=new A.de(B.H,B.c,B.e,B.f,null,B.i,null,0,B.a1T,null)
 B.o=new A.uW(0,"start")
 B.aj2=new A.l(!0,B.k,null,null,null,null,14,B.y,null,0.5,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apo=new A.H("FOMRA HRMS",null,B.aj2,null,null,null,null,null,null,null,null)
+B.apl=new A.H("FOMRA HRMS",null,B.aj2,null,null,null,null,null,null,null,null)
 B.ak7=new A.l(!0,B.h_,null,null,null,null,9,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoz=new A.H("Human Resource Management",null,B.ak7,null,null,null,null,null,null,null,null)
-B.a4h=A.a(s([B.apo,B.aoz]),t.p)
+B.aox=new A.H("Human Resource Management",null,B.ak7,null,null,null,null,null,null,null,null)
+B.a4h=A.a(s([B.apl,B.aox]),t.p)
 B.Ue=new A.de(B.H,B.c,B.z,B.o,null,B.i,null,0,B.a4h,null)
 B.mI=new A.kH(0,"cut")
 B.mJ=new A.kH(1,"copy")
@@ -132706,8 +132706,8 @@ B.WB=new A.bh(1,B.aw,B.U1,null)
 B.aur=new A.a5N(null)
 B.yM=new A.bh(1,B.aw,B.aur,null)
 B.akG=new A.l(!0,B.bz,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apH=new A.H("Apps Script code",null,B.akG,null,null,null,null,null,null,null,null)
-B.WC=new A.bh(1,B.aw,B.apH,null)
+B.apF=new A.H("Apps Script code",null,B.akG,null,null,null,null,null,null,null,null)
+B.WC=new A.bh(1,B.aw,B.apF,null)
 B.afK=new A.cm(null,null,null,null)
 B.WD=new A.bh(1,B.aw,B.afK,null)
 B.V3=new A.ip(null,null,null,B.a_,null)
@@ -132715,20 +132715,20 @@ B.kS=new A.bh(1,B.aw,B.V3,null)
 B.amc=new A.l(!0,B.k,null,null,null,null,18,B.y,null,1.5,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.pb=new A.H("FOMRA",null,B.amc,null,null,null,null,null,null,null,null)
 B.p4=new A.l(!0,B.bp,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoC=new A.H("Management Portal",null,B.p4,null,null,null,null,null,null,null,null)
-B.a4j=A.a(s([B.pb,B.aoC]),t.p)
+B.aoA=new A.H("Management Portal",null,B.p4,null,null,null,null,null,null,null,null)
+B.a4j=A.a(s([B.pb,B.aoA]),t.p)
 B.Ug=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a4j,null)
 B.WE=new A.bh(1,B.aw,B.Ug,null)
 B.aq=new A.kL(4,500)
 B.p5=new A.l(!0,B.cb,null,null,null,null,13,B.aq,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.ao3=new A.H("Resume",null,B.p5,null,null,null,null,null,null,null,null)
-B.WF=new A.bh(1,B.aw,B.ao3,null)
+B.ao0=new A.H("Resume",null,B.p5,null,null,null,null,null,null,null,null)
+B.WF=new A.bh(1,B.aw,B.ao0,null)
 B.v8=new A.l(!0,B.cb,null,null,null,null,13,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aq8=new A.H("I have read and agree to the HR Policy  *",null,B.v8,null,null,null,null,null,null,null,null)
+B.aq6=new A.H("I have read and agree to the HR Policy  *",null,B.v8,null,null,null,null,null,null,null,null)
 B.b6=new A.cm(null,2,null,null)
 B.fI=new A.l(!0,B.ap,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apA=new A.H("This is mandatory. You must accept before submitting the form.",null,B.fI,null,null,null,null,null,null,null,null)
-B.a2X=A.a(s([B.aq8,B.b6,B.apA]),t.p)
+B.apy=new A.H("This is mandatory. You must accept before submitting the form.",null,B.fI,null,null,null,null,null,null,null,null)
+B.a2X=A.a(s([B.aq6,B.b6,B.apy]),t.p)
 B.TY=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a2X,null)
 B.WI=new A.bh(1,B.aw,B.TY,null)
 B.zN=new A.ad(983690,"MaterialIcons",null,!0)
@@ -132744,49 +132744,49 @@ B.WL=new A.bh(1,B.aw,B.U9,null)
 B.WN=new A.bh(1,B.aw,B.dy,null)
 B.V4=new A.ip(1,null,null,B.my,null)
 B.j2=new A.bh(1,B.aw,B.V4,null)
-B.apT=new A.H("Employee Portal",null,B.p4,null,null,null,null,null,null,null,null)
-B.a4x=A.a(s([B.pb,B.apT]),t.p)
+B.apR=new A.H("Employee Portal",null,B.p4,null,null,null,null,null,null,null,null)
+B.a4x=A.a(s([B.pb,B.apR]),t.p)
 B.U_=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a4x,null)
 B.WQ=new A.bh(1,B.aw,B.U_,null)
 B.p8=new A.l(!0,B.n,null,null,null,null,22,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aqH=new A.H("Edit Application Form",null,B.p8,null,null,null,null,null,null,null,null)
-B.apQ=new A.H("Edit form sections \xb7 Add custom fields \xb7 Send for Management approval",null,B.aH,null,null,null,null,null,null,null,null)
-B.a46=A.a(s([B.aqH,B.apQ]),t.p)
+B.apO=new A.H("Edit form sections \xb7 Add custom fields \xb7 Send for Management approval",null,B.aH,null,null,null,null,null,null,null,null)
+B.a46=A.a(s([B.aqH,B.apO]),t.p)
 B.Uf=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a46,null)
 B.WR=new A.bh(1,B.aw,B.Uf,null)
 B.alG=new A.l(!0,B.a3,null,null,null,null,22,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.arE=new A.H("Interview Review",null,B.alG,null,null,null,null,null,null,null,null)
-B.aon=new A.H("Review candidates and form edit requests",null,B.aH,null,null,null,null,null,null,null,null)
-B.a54=A.a(s([B.arE,B.aon]),t.p)
+B.aok=new A.H("Review candidates and form edit requests",null,B.aH,null,null,null,null,null,null,null,null)
+B.a54=A.a(s([B.arE,B.aok]),t.p)
 B.U0=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a54,null)
 B.WS=new A.bh(1,B.aw,B.U0,null)
 B.akT=new A.l(!0,B.k,null,null,null,null,15,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aqi=new A.H("Edit HR Policy Text",null,B.akT,null,null,null,null,null,null,null,null)
-B.WY=new A.bh(1,B.aw,B.aqi,null)
+B.aqg=new A.H("Edit HR Policy Text",null,B.akT,null,null,null,null,null,null,null,null)
+B.WY=new A.bh(1,B.aw,B.aqg,null)
 B.amE=new A.l(!0,B.W,null,null,null,null,14,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anN=new A.H("My Profile",null,B.amE,null,null,null,null,null,null,null,null)
+B.anK=new A.H("My Profile",null,B.amE,null,null,null,null,null,null,null,null)
 B.akz=new A.l(!0,B.W,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aq6=new A.H("Your profile is managed by HR. Contact HR to update any details.",null,B.akz,null,null,null,null,null,null,null,null)
-B.a20=A.a(s([B.anN,B.a4,B.aq6]),t.p)
+B.aq4=new A.H("Your profile is managed by HR. Contact HR to update any details.",null,B.akz,null,null,null,null,null,null,null,null)
+B.a20=A.a(s([B.anK,B.a4,B.aq4]),t.p)
 B.Ub=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a20,null)
 B.X0=new A.bh(1,B.aw,B.Ub,null)
 B.auZ=new A.a6N(null)
 B.yN=new A.bh(1,B.aw,B.auZ,null)
 B.aup=new A.NI("Form Sections",B.zN,null)
 B.X2=new A.bh(1,B.aw,B.aup,null)
-B.aoV=new A.H("Housing & Infrastructure",null,B.p4,null,null,null,null,null,null,null,null)
-B.a3P=A.a(s([B.pb,B.aoV]),t.p)
+B.aoS=new A.H("Housing & Infrastructure",null,B.p4,null,null,null,null,null,null,null,null)
+B.a3P=A.a(s([B.pb,B.aoS]),t.p)
 B.U4=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a3P,null)
 B.X3=new A.bh(1,B.aw,B.U4,null)
 B.bF=new A.l(!0,B.ap,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aok=new A.H("Policy document displayed to candidates \u2014 they must agree before submitting.",null,B.bF,null,null,null,null,null,null,null,null)
-B.X7=new A.bh(1,B.aw,B.aok,null)
+B.aoh=new A.H("Policy document displayed to candidates \u2014 they must agree before submitting.",null,B.bF,null,null,null,null,null,null,null,null)
+B.X7=new A.bh(1,B.aw,B.aoh,null)
 B.My=new A.l(!0,B.k,null,null,null,null,15,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoc=new A.H("How to Add a New Sheet",null,B.My,null,null,null,null,null,null,null,null)
-B.X9=new A.bh(1,B.aw,B.aoc,null)
+B.ao9=new A.H("How to Add a New Sheet",null,B.My,null,null,null,null,null,null,null,null)
+B.X9=new A.bh(1,B.aw,B.ao9,null)
 B.amT=new A.l(!0,null,null,null,null,null,17,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aov=new A.H("Attendance Record",null,B.amT,null,null,null,null,null,null,null,null)
-B.Xa=new A.bh(1,B.aw,B.aov,null)
+B.aot=new A.H("Attendance Record",null,B.amT,null,null,null,null,null,null,null,null)
+B.Xa=new A.bh(1,B.aw,B.aot,null)
 B.lO=new A.l(!0,null,null,null,null,null,16,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aqG=new A.H("Unpaid Leave Notice",null,B.lO,null,null,null,null,null,null,null,null)
 B.Xc=new A.bh(1,B.aw,B.aqG,null)
@@ -135089,8 +135089,8 @@ B.VH=new A.a4(0,0,0,48)
 B.a01=new A.a0(B.jc,20,B.aJ,null,null)
 B.ab3=new A.I(B.VH,B.a01,null)
 B.Wj=new A.a4(52,0,0,0)
-B.aoM=new A.H("Employees under your wing",null,B.aH,null,null,null,null,null,null,null,null)
-B.ab4=new A.I(B.Wj,B.aoM,null)
+B.aoK=new A.H("Employees under your wing",null,B.aH,null,null,null,null,null,null,null,null)
+B.ab4=new A.I(B.Wj,B.aoK,null)
 B.a_l=new A.a0(B.cP,18,B.qp,null,null)
 B.ab6=new A.I(B.bU,B.a_l,null)
 B.ab8=new A.I(B.kQ,B.ji,null)
@@ -135151,14 +135151,14 @@ B.ac_=new A.AS(1,"scroll")
 B.ac0=new A.AS(3,"scale")
 B.ac1=new A.AS(4,"unknown")
 B.A=new A.cm(8,null,null,null)
-B.aoT=new A.H("Rename",null,null,null,null,null,null,null,null,null,null)
-B.a5X=A.a(s([B.As,B.A,B.aoT]),t.p)
+B.aoQ=new A.H("Rename",null,null,null,null,null,null,null,null,null,null)
+B.a5X=A.a(s([B.As,B.A,B.aoQ]),t.p)
 B.acX=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a5X,null)
 B.ac2=new A.AV("rename",B.acX,null,t.wI)
 B.a0j=new A.a0(B.rN,16,B.ah,null,null)
 B.vf=new A.l(!0,B.ah,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.ao5=new A.H("Delete",null,B.vf,null,null,null,null,null,null,null,null)
-B.a50=A.a(s([B.a0j,B.A,B.ao5]),t.p)
+B.ao2=new A.H("Delete",null,B.vf,null,null,null,null,null,null,null,null)
+B.a50=A.a(s([B.a0j,B.A,B.ao2]),t.p)
 B.acM=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a50,null)
 B.ac3=new A.AV("delete",B.acM,null,t.wI)
 B.ac4=new A.wT(B.iT,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -135235,8 +135235,8 @@ B.Ku=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a3C,null)
 B.p1=new A.l(!0,B.k,null,null,null,null,13,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aqO=new A.H("Employee",null,B.p1,null,null,null,null,null,null,null,null)
 B.p0=new A.l(!0,B.bp,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apX=new A.H("Staff Member",null,B.p0,null,null,null,null,null,null,null,null)
-B.a5K=A.a(s([B.aqO,B.apX]),t.p)
+B.apV=new A.H("Staff Member",null,B.p0,null,null,null,null,null,null,null,null)
+B.a5K=A.a(s([B.aqO,B.apV]),t.p)
 B.U7=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a5K,null)
 B.WU=new A.bh(1,B.aw,B.U7,null)
 B.a45=A.a(s([B.mi,B.a9,B.WU]),t.p)
@@ -135244,13 +135244,13 @@ B.acN=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a45,null)
 B.YE=new A.ad(63668,"MaterialIcons",null,!1)
 B.a0X=new A.a0(B.YE,14,B.k,null,null)
 B.ahs=new A.l(!0,B.k,null,null,null,null,12,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apg=new A.H("Please read the following HR Policy carefully",null,B.ahs,null,null,null,null,null,null,null,null)
-B.a3X=A.a(s([B.a0X,B.A,B.apg]),t.p)
+B.apd=new A.H("Please read the following HR Policy carefully",null,B.ahs,null,null,null,null,null,null,null,null)
+B.a3X=A.a(s([B.a0X,B.A,B.apd]),t.p)
 B.acO=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a3X,null)
 B.A4=new A.a0(B.bH,14,B.G,null,null)
 B.MC=new A.l(!0,B.G,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aqu=new A.H("A calendar date picker will be shown to the candidate.",null,B.MC,null,null,null,null,null,null,null,null)
-B.WX=new A.bh(1,B.aw,B.aqu,null)
+B.aqs=new A.H("A calendar date picker will be shown to the candidate.",null,B.MC,null,null,null,null,null,null,null,null)
+B.WX=new A.bh(1,B.aw,B.aqs,null)
 B.a5M=A.a(s([B.A4,B.aa,B.WX]),t.p)
 B.acP=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a5M,null)
 B.Yj=new A.ad(62870,"MaterialIcons",null,!1)
@@ -135262,14 +135262,14 @@ B.a1S=A.a(s([B.Ah,B.aa,B.WO]),t.p)
 B.acQ=new A.dt(B.ad,B.c,B.e,B.o,null,B.i,null,0,B.a1S,null)
 B.a0I=new A.a0(B.zl,20,B.ah,null,null)
 B.v_=new A.l(!0,null,null,null,null,null,15,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aq4=new A.H("Delete Application",null,B.v_,null,null,null,null,null,null,null,null)
-B.a3E=A.a(s([B.a0I,B.A,B.aq4]),t.p)
+B.aq2=new A.H("Delete Application",null,B.v_,null,null,null,null,null,null,null,null)
+B.a3E=A.a(s([B.a0I,B.A,B.aq2]),t.p)
 B.acR=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a3E,null)
 B.Zq=new A.a0(B.b3,12,B.J,null,null)
 B.ac=new A.cm(4,null,null,null)
 B.aky=new A.l(!0,B.J,null,null,null,null,10,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aqn=new A.H("Interview Done",null,B.aky,null,null,null,null,null,null,null,null)
-B.a5x=A.a(s([B.Zq,B.ac,B.aqn]),t.p)
+B.aql=new A.H("Interview Done",null,B.aky,null,null,null,null,null,null,null,null)
+B.a5x=A.a(s([B.Zq,B.ac,B.aql]),t.p)
 B.acS=new A.dt(B.ad,B.c,B.z,B.f,null,B.i,null,0,B.a5x,null)
 B.Ar=new A.a0(B.jd,14,B.aA,null,null)
 B.vc=new A.l(!0,B.aA,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -135286,16 +135286,16 @@ B.a3M=A.a(s([B.mi,B.a9,B.X4]),t.p)
 B.acU=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a3M,null)
 B.Ao=new A.a0(B.hf,18,B.n,null,null)
 B.ik=new A.l(!0,B.cb,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aq0=new A.H('Toggle sections on/off, rename them, drag to reorder, or add custom fields. Tap a field chip \xd7 to hide it. Click "Update & Publish" when done.',null,B.ik,null,null,null,null,null,null,null,null)
-B.X1=new A.bh(1,B.aw,B.aq0,null)
+B.apZ=new A.H('Toggle sections on/off, rename them, drag to reorder, or add custom fields. Tap a field chip \xd7 to hide it. Click "Update & Publish" when done.',null,B.ik,null,null,null,null,null,null,null,null)
+B.X1=new A.bh(1,B.aw,B.apZ,null)
 B.a30=A.a(s([B.Ao,B.a9,B.X1]),t.p)
 B.acV=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a30,null)
-B.apK=new A.H("Employee uploads a photo (JPG / PNG). Auto-compressed to \u2264200 KB.",null,B.vc,null,null,null,null,null,null,null,null)
-B.WW=new A.bh(1,B.aw,B.apK,null)
+B.apI=new A.H("Employee uploads a photo (JPG / PNG). Auto-compressed to \u2264200 KB.",null,B.vc,null,null,null,null,null,null,null,null)
+B.WW=new A.bh(1,B.aw,B.apI,null)
 B.a52=A.a(s([B.Ar,B.aa,B.WW]),t.p)
 B.acW=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a52,null)
-B.ao8=new A.H("This will immediately become the live application form. A versioned link will be generated that candidates can use to apply.",null,B.Mw,null,null,null,null,null,null,null,null)
-B.Xb=new A.bh(1,B.aw,B.ao8,null)
+B.ao5=new A.H("This will immediately become the live application form. A versioned link will be generated that candidates can use to apply.",null,B.Mw,null,null,null,null,null,null,null,null)
+B.Xb=new A.bh(1,B.aw,B.ao5,null)
 B.a4q=A.a(s([B.Ah,B.aa,B.Xb]),t.p)
 B.acY=new A.dt(B.ad,B.c,B.e,B.o,null,B.i,null,0,B.a4q,null)
 B.Z7=new A.a0(B.je,14,B.n,null,null)
@@ -135306,8 +135306,8 @@ B.a2I=A.a(s([B.Z7,B.aa,B.WA]),t.p)
 B.acZ=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a2I,null)
 B.a0P=new A.a0(B.bV,15,B.ax,null,null)
 B.alg=new A.l(!0,B.ax,null,null,null,null,12,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aqe=new A.H("Rejected by Management",null,B.alg,null,null,null,null,null,null,null,null)
-B.a4m=A.a(s([B.a0P,B.aa,B.aqe]),t.p)
+B.aqc=new A.H("Rejected by Management",null,B.alg,null,null,null,null,null,null,null,null)
+B.a4m=A.a(s([B.a0P,B.aa,B.aqc]),t.p)
 B.ad_=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a4m,null)
 B.Zf=new A.a0(B.hf,16,B.a3,null,null)
 B.akH=new A.l(!0,B.a3,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -135315,8 +135315,8 @@ B.aqJ=new A.H("Management always retains full access regardless of these setting
 B.WV=new A.bh(1,B.aw,B.aqJ,null)
 B.a3_=A.a(s([B.Zf,B.a9,B.WV]),t.p)
 B.ad0=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a3_,null)
-B.ap7=new A.H('Toggle sections on/off, rename them, edit option lists, or add custom fields to any section. Tap a field chip \xd7 to hide it from the live form. Click "Update & Publish" when done.',null,B.ik,null,null,null,null,null,null,null,null)
-B.Wz=new A.bh(1,B.aw,B.ap7,null)
+B.ap4=new A.H('Toggle sections on/off, rename them, edit option lists, or add custom fields to any section. Tap a field chip \xd7 to hide it from the live form. Click "Update & Publish" when done.',null,B.ik,null,null,null,null,null,null,null,null)
+B.Wz=new A.bh(1,B.aw,B.ap4,null)
 B.a4g=A.a(s([B.Ao,B.a9,B.Wz]),t.p)
 B.ad1=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a4g,null)
 B.Au=new A.a0(B.ft,14,B.W,null,null)
@@ -135327,19 +135327,19 @@ B.a32=A.a(s([B.Au,B.aa,B.WM]),t.p)
 B.ad2=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a32,null)
 B.a0a=new A.a0(B.b3,24,B.eS,null,null)
 B.dp=new A.l(!0,B.n,null,null,null,null,16,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoB=new A.H("Application Submitted",null,B.dp,null,null,null,null,null,null,null,null)
-B.a41=A.a(s([B.a0a,B.A,B.aoB]),t.p)
+B.aoz=new A.H("Application Submitted",null,B.dp,null,null,null,null,null,null,null,null)
+B.a41=A.a(s([B.a0a,B.A,B.aoz]),t.p)
 B.ad3=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a41,null)
 B.A8=new A.a0(B.hc,14,B.J,null,null)
 B.lT=new A.l(!0,B.J,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apn=new A.H("A single tick-box that the candidate can check or leave unchecked.",null,B.lT,null,null,null,null,null,null,null,null)
-B.WP=new A.bh(1,B.aw,B.apn,null)
+B.apk=new A.H("A single tick-box that the candidate can check or leave unchecked.",null,B.lT,null,null,null,null,null,null,null,null)
+B.WP=new A.bh(1,B.aw,B.apk,null)
 B.a2K=A.a(s([B.A8,B.aa,B.WP]),t.p)
 B.ad4=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a2K,null)
 B.a_t=new A.a0(B.zC,12,B.aA,null,null)
 B.ahO=new A.l(!0,B.aA,null,null,null,null,10,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anF=new A.H("Pending Review",null,B.ahO,null,null,null,null,null,null,null,null)
-B.a56=A.a(s([B.a_t,B.ac,B.anF]),t.p)
+B.anE=new A.H("Pending Review",null,B.ahO,null,null,null,null,null,null,null,null)
+B.a56=A.a(s([B.a_t,B.ac,B.anE]),t.p)
 B.Kv=new A.dt(B.ad,B.c,B.z,B.f,null,B.i,null,0,B.a56,null)
 B.Zz=new A.a0(B.hU,20,B.ah,null,null)
 B.arf=new A.H("Remove from your view",null,B.v_,null,null,null,null,null,null,null,null)
@@ -135347,8 +135347,8 @@ B.a37=A.a(s([B.Zz,B.A,B.arf]),t.p)
 B.ad5=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a37,null)
 B.a0t=new A.a0(B.zx,16,B.n,null,null)
 B.Ms=new A.l(!0,B.n,null,null,null,null,12,B.aq,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apI=new A.H("GPS tracking runs until you check out.",null,B.Ms,null,null,null,null,null,null,null,null)
-B.WH=new A.bh(1,B.aw,B.apI,null)
+B.apG=new A.H("GPS tracking runs until you check out.",null,B.Ms,null,null,null,null,null,null,null,null)
+B.WH=new A.bh(1,B.aw,B.apG,null)
 B.a63=A.a(s([B.a0t,B.A,B.WH]),t.p)
 B.ad7=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a63,null)
 B.aqU=new A.H("Employee uploads a document (PDF, DOC, DOCX, XLS, XLSX). Uploaded as-is.",null,B.vj,null,null,null,null,null,null,null,null)
@@ -135356,17 +135356,17 @@ B.WG=new A.bh(1,B.aw,B.aqU,null)
 B.a3o=A.a(s([B.Au,B.aa,B.WG]),t.p)
 B.ad8=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a3o,null)
 B.a05=new A.a0(B.je,14,B.W,null,null)
-B.apG=new A.H(u.C,null,B.vj,null,null,null,null,null,null,null,null)
-B.WT=new A.bh(1,B.aw,B.apG,null)
+B.apE=new A.H(u.C,null,B.vj,null,null,null,null,null,null,null,null)
+B.WT=new A.bh(1,B.aw,B.apE,null)
 B.a2B=A.a(s([B.a05,B.aa,B.WT]),t.p)
 B.ad9=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a2B,null)
-B.aql=new A.H("A calendar date picker will be shown to the employee.",null,B.MC,null,null,null,null,null,null,null,null)
-B.X6=new A.bh(1,B.aw,B.aql,null)
+B.aqj=new A.H("A calendar date picker will be shown to the employee.",null,B.MC,null,null,null,null,null,null,null,null)
+B.X6=new A.bh(1,B.aw,B.aqj,null)
 B.a5V=A.a(s([B.A4,B.aa,B.X6]),t.p)
 B.ada=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a5V,null)
 B.aqP=new A.H("Manager",null,B.p1,null,null,null,null,null,null,null,null)
-B.aoA=new A.H("Reporting Manager",null,B.p0,null,null,null,null,null,null,null,null)
-B.a5G=A.a(s([B.aqP,B.aoA]),t.p)
+B.aoy=new A.H("Reporting Manager",null,B.p0,null,null,null,null,null,null,null,null)
+B.a5G=A.a(s([B.aqP,B.aoy]),t.p)
 B.TZ=new A.de(B.H,B.c,B.e,B.o,null,B.i,null,0,B.a5G,null)
 B.X5=new A.bh(1,B.aw,B.TZ,null)
 B.a2Y=A.a(s([B.mi,B.a9,B.X5]),t.p)
@@ -135382,12 +135382,12 @@ B.a55=A.a(s([B.A8,B.aa,B.X_]),t.p)
 B.add=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a55,null)
 B.a0V=new A.a0(B.rO,24,B.hl,null,null)
 B.akk=new A.l(!0,B.hl,null,null,null,null,16,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apV=new A.H("Submission Failed",null,B.akk,null,null,null,null,null,null,null,null)
-B.a4v=A.a(s([B.a0V,B.A,B.apV]),t.p)
+B.apT=new A.H("Submission Failed",null,B.akk,null,null,null,null,null,null,null,null)
+B.a4v=A.a(s([B.a0V,B.A,B.apT]),t.p)
 B.ade=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a4v,null)
 B.a07=new A.a0(B.zO,14,B.aA,null,null)
-B.anJ=new A.H("No email address on file for this candidate.",null,B.vc,null,null,null,null,null,null,null,null)
-B.X8=new A.bh(1,B.aw,B.anJ,null)
+B.anH=new A.H("No email address on file for this candidate.",null,B.vc,null,null,null,null,null,null,null,null)
+B.X8=new A.bh(1,B.aw,B.anH,null)
 B.a2Q=A.a(s([B.a07,B.aa,B.X8]),t.p)
 B.adf=new A.dt(B.ad,B.c,B.e,B.f,null,B.i,null,0,B.a2Q,null)
 B.ua=new A.Bs(null)
@@ -135708,51 +135708,51 @@ B.afR=new A.ns(3,"hide")
 B.axX=new A.ns(4,"remove")
 B.LT=new A.ns(5,"timeout")
 B.afS=new A.BN(null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apw=new A.H("Please select a date in the Declaration section.",null,null,null,null,null,null,null,null,null,null)
-B.afT=new A.ef(B.apw,B.hl,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.aos=new A.H("Lead updated in Google Sheets",null,null,null,null,null,null,null,null,null,null)
-B.afU=new A.ef(B.aos,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.apu=new A.H("Please select a date in the Declaration section.",null,null,null,null,null,null,null,null,null,null)
+B.afT=new A.ef(B.apu,B.hl,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.aoq=new A.H("Lead updated in Google Sheets",null,null,null,null,null,null,null,null,null,null)
+B.afU=new A.ef(B.aoq,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
 B.aqM=new A.H("Cannot delete: this row has no identifier in the first column",null,null,null,null,null,null,null,null,null,null)
 B.afV=new A.ef(B.aqM,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.aq2=new A.H("Could not read file. Please try again.",null,null,null,null,null,null,null,null,null,null)
-B.afW=new A.ef(B.aq2,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.ao0=new A.H("Onboarding form sent to Management for approval",null,null,null,null,null,null,null,null,null,null)
-B.afX=new A.ef(B.ao0,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.aq0=new A.H("Could not read file. Please try again.",null,null,null,null,null,null,null,null,null,null)
+B.afW=new A.ef(B.aq0,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.anY=new A.H("Onboarding form sent to Management for approval",null,null,null,null,null,null,null,null,null,null)
+B.afX=new A.ef(B.anY,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
 B.anD=new A.H("Form version sent to Management for approval",null,null,null,null,null,null,null,null,null,null)
 B.afY=new A.ef(B.anD,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
 B.aqz=new A.H("Link copied to clipboard",null,null,null,null,null,null,null,null,null,null)
 B.afZ=new A.ef(B.aqz,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
-B.aoG=new A.H("Please select start and due dates",null,null,null,null,null,null,null,null,null,null)
-B.ag_=new A.ef(B.aoG,null,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.aop=new A.H("Current form link copied",null,null,null,null,null,null,null,null,null,null)
-B.ag0=new A.ef(B.aop,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
-B.apU=new A.H("Due date must be after start date",null,null,null,null,null,null,null,null,null,null)
-B.ag1=new A.ef(B.apU,null,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.aqw=new A.H("Form link copied to clipboard",null,null,null,null,null,null,null,null,null,null)
-B.ag2=new A.ef(B.aqw,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
-B.aom=new A.H("Please fill all required fields.",null,null,null,null,null,null,null,null,null,null)
-B.ag3=new A.ef(B.aom,B.hl,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.apc=new A.H("Link copied",null,null,null,null,null,null,null,null,null,null)
-B.ag4=new A.ef(B.apc,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
-B.anZ=new A.H("No columns detected yet. Refresh first.",null,null,null,null,null,null,null,null,null,null)
-B.ag5=new A.ef(B.anZ,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.apj=new A.H("No email assigned. Ask HR to re-forward this submission.",null,null,null,null,null,null,null,null,null,null)
-B.ag6=new A.ef(B.apj,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.anL=new A.H("Please agree to the declaration before submitting.",null,null,null,null,null,null,null,null,null,null)
-B.ag7=new A.ef(B.anL,B.ah,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.apx=new A.H("Issue submitted successfully.",null,null,null,null,null,null,null,null,null,null)
-B.ag8=new A.ef(B.apx,B.eS,null,null,null,null,null,null,null,null,null,null,null,B.mU,null,null,null,B.u,null)
-B.apP=new A.H("Lead may not have been saved \u2014 try refreshing in a few seconds",null,null,null,null,null,null,null,null,null,null)
+B.aoE=new A.H("Please select start and due dates",null,null,null,null,null,null,null,null,null,null)
+B.ag_=new A.ef(B.aoE,null,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.aom=new A.H("Current form link copied",null,null,null,null,null,null,null,null,null,null)
+B.ag0=new A.ef(B.aom,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
+B.apS=new A.H("Due date must be after start date",null,null,null,null,null,null,null,null,null,null)
+B.ag1=new A.ef(B.apS,null,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.aqu=new A.H("Form link copied to clipboard",null,null,null,null,null,null,null,null,null,null)
+B.ag2=new A.ef(B.aqu,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
+B.aoj=new A.H("Please fill all required fields.",null,null,null,null,null,null,null,null,null,null)
+B.ag3=new A.ef(B.aoj,B.hl,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.ap9=new A.H("Link copied",null,null,null,null,null,null,null,null,null,null)
+B.ag4=new A.ef(B.ap9,B.J,null,null,null,null,null,null,null,null,null,null,null,B.h6,null,null,null,B.u,null)
+B.anW=new A.H("No columns detected yet. Refresh first.",null,null,null,null,null,null,null,null,null,null)
+B.ag5=new A.ef(B.anW,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.apg=new A.H("No email assigned. Ask HR to re-forward this submission.",null,null,null,null,null,null,null,null,null,null)
+B.ag6=new A.ef(B.apg,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.anJ=new A.H("Please agree to the declaration before submitting.",null,null,null,null,null,null,null,null,null,null)
+B.ag7=new A.ef(B.anJ,B.ah,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.apv=new A.H("Issue submitted successfully.",null,null,null,null,null,null,null,null,null,null)
+B.ag8=new A.ef(B.apv,B.eS,null,null,null,null,null,null,null,null,null,null,null,B.mU,null,null,null,B.u,null)
+B.apN=new A.H("Lead may not have been saved \u2014 try refreshing in a few seconds",null,null,null,null,null,null,null,null,null,null)
 B.Vp=new A.bn(5e6)
-B.ag9=new A.ef(B.apP,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.Vp,null,null,null,B.u,null)
-B.anG=new A.H("Please read and agree to the HR Policy before submitting.",null,null,null,null,null,null,null,null,null,null)
-B.aga=new A.ef(B.anG,B.cy,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.aoQ=new A.H("No employees found. Add users via Administration first.",null,null,null,null,null,null,null,null,null,null)
-B.LU=new A.ef(B.aoQ,null,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.ag9=new A.ef(B.apN,B.dU,null,null,null,null,null,null,null,null,null,null,null,B.Vp,null,null,null,B.u,null)
+B.anF=new A.H("Please read and agree to the HR Policy before submitting.",null,null,null,null,null,null,null,null,null,null)
+B.aga=new A.ef(B.anF,B.cy,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.aoO=new A.H("No employees found. Add users via Administration first.",null,null,null,null,null,null,null,null,null,null)
+B.LU=new A.ef(B.aoO,null,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
 B.ar4=new A.H("You must agree to the declaration before submitting.",null,null,null,null,null,null,null,null,null,null)
 B.agb=new A.ef(B.ar4,B.hl,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
-B.aoZ=new A.H("Lead added to Google Sheets",null,null,null,null,null,null,null,null,null,null)
-B.agc=new A.ef(B.aoZ,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
+B.aoW=new A.H("Lead added to Google Sheets",null,null,null,null,null,null,null,null,null,null)
+B.agc=new A.ef(B.aoW,B.J,null,null,null,null,null,null,null,null,null,null,null,B.as,null,null,null,B.u,null)
 B.LV=new A.Kk(0,"permissive")
 B.agd=new A.Kk(1,"normal")
 B.age=new A.Kk(2,"forced")
@@ -136272,186 +136272,186 @@ B.MQ=new A.H("Add Section",null,B.ij,null,null,null,null,null,null,null,null)
 B.anA=new A.H("Management",null,B.p0,null,null,null,null,null,null,null,null)
 B.jV=new A.H("Delete",null,null,null,null,null,null,null,null,null,null)
 B.anC=new A.H("Home",null,null,null,null,null,null,null,null,null,null)
-B.anE=new A.H("Avail EL",null,B.bw,null,null,null,null,null,null,null,null)
-B.anH=new A.H("Please fill in all fields",null,null,null,null,null,null,null,null,null,null)
-B.amw=new A.l(!0,B.G,null,null,null,null,12,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anI=new A.H("EL Availed",null,B.amw,null,null,null,null,null,null,null,null)
-B.anK=new A.H("Submit",null,null,null,null,null,null,null,null,null,null)
-B.anM=new A.H("Not yet availed",null,B.fI,null,null,null,null,null,null,null,null)
-B.anO=new A.H(u.r,null,B.aH,null,null,null,null,null,null,null,null)
-B.anQ=new A.H("Select Employee",null,B.il,null,null,null,null,null,null,null,null)
+B.anG=new A.H("Please fill in all fields",null,null,null,null,null,null,null,null,null,null)
+B.anI=new A.H("Submit",null,null,null,null,null,null,null,null,null,null)
+B.anL=new A.H(u.r,null,B.aH,null,null,null,null,null,null,null,null)
+B.anN=new A.H("Select Employee",null,B.il,null,null,null,null,null,null,null,null)
 B.akJ=new A.l(!0,B.G,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anR=new A.H("Account active",null,B.akJ,null,null,null,null,null,null,null,null)
+B.anO=new A.H("Account active",null,B.akJ,null,null,null,null,null,null,null,null)
 B.MS=new A.H("Edit Form",null,B.bv,null,null,null,null,null,null,null,null)
 B.akq=new A.l(!0,B.dU,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anS=new A.H("Awaiting HR confirmation",null,B.akq,null,null,null,null,null,null,null,null)
+B.anP=new A.H("Awaiting HR confirmation",null,B.akq,null,null,null,null,null,null,null,null)
 B.aC=new A.H("Cancel",null,null,null,null,null,null,null,null,null,null)
-B.MT=new A.H("EL Availed",null,B.fI,null,null,null,null,null,null,null,null)
-B.anT=new A.H("@fomrahousing.in",null,B.lL,null,null,null,null,null,null,null,null)
-B.anU=new A.H("Attachments",null,B.lM,null,null,null,null,null,null,null,null)
-B.anV=new A.H("Select position",null,B.bv,null,null,null,null,null,null,null,null)
+B.anQ=new A.H("@fomrahousing.in",null,B.lL,null,null,null,null,null,null,null,null)
+B.anR=new A.H("Attachments",null,B.lM,null,null,null,null,null,null,null,null)
+B.anS=new A.H("Select position",null,B.bv,null,null,null,null,null,null,null,null)
 B.er=new A.H("Save",null,null,null,null,null,null,null,null,null,null)
 B.alF=new A.l(!0,B.fw,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.anW=new A.H("Tap to pick date",null,B.alF,null,null,null,null,null,null,null,null)
+B.anT=new A.H("Tap to pick date",null,B.alF,null,null,null,null,null,null,null,null)
 B.ajH=new A.l(!0,B.J,null,null,null,null,15,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.MU=new A.H("Approve & Publish",null,B.ajH,null,null,null,null,null,null,null,null)
-B.anX=new A.H("Approve",null,B.bw,null,null,null,null,null,null,null,null)
-B.anY=new A.H("Interview & Onboarding Records",null,null,null,null,null,null,null,null,null,null)
-B.MV=new A.H("Approve & Publish",null,null,null,null,null,null,null,null,null,null)
-B.MW=new A.H("HR Management",null,B.aH,null,null,null,null,null,null,null,null)
-B.ao1=new A.H("Check In",null,null,null,null,null,null,null,null,null,null)
-B.ao2=new A.H("Employee Onboarding",null,B.p8,null,null,null,null,null,null,null,null)
+B.MT=new A.H("Approve & Publish",null,B.ajH,null,null,null,null,null,null,null,null)
+B.anU=new A.H("Approve",null,B.bw,null,null,null,null,null,null,null,null)
+B.anV=new A.H("Interview & Onboarding Records",null,null,null,null,null,null,null,null,null,null)
+B.MU=new A.H("Approve & Publish",null,null,null,null,null,null,null,null,null,null)
+B.MV=new A.H("HR Management",null,B.aH,null,null,null,null,null,null,null,null)
+B.anZ=new A.H("Check In",null,null,null,null,null,null,null,null,null,null)
+B.ao_=new A.H("Employee Onboarding",null,B.p8,null,null,null,null,null,null,null,null)
+B.MW=new A.H("EL Encashment",null,B.fI,null,null,null,null,null,null,null,null)
 B.pa=new A.H("Clear",null,null,null,null,null,null,null,null,null,null)
-B.ao4=new A.H("Deny",null,B.bw,null,null,null,null,null,null,null,null)
-B.ao7=new A.H("There is already a form version waiting for Management approval. Please wait for it to be reviewed before submitting another.",null,B.bL,null,null,null,null,null,null,null,null)
-B.ao9=new A.H("Could not load data",null,B.vd,null,null,null,null,null,null,null,null)
+B.ao1=new A.H("Deny",null,B.bw,null,null,null,null,null,null,null,null)
+B.ao4=new A.H("There is already a form version waiting for Management approval. Please wait for it to be reviewed before submitting another.",null,B.bL,null,null,null,null,null,null,null,null)
+B.ao6=new A.H("Could not load data",null,B.vd,null,null,null,null,null,null,null,null)
 B.MX=new A.H("Approve",null,null,null,null,null,null,null,null,null,null)
-B.aoa=new A.H("Edit Profile",null,null,null,null,null,null,null,null,null,null)
-B.aob=new A.H("Edit",null,null,null,null,null,null,null,null,null,null)
+B.ao7=new A.H("Edit Profile",null,null,null,null,null,null,null,null,null,null)
+B.ao8=new A.H("Edit",null,null,null,null,null,null,null,null,null,null)
 B.akl=new A.l(!0,B.k,null,null,null,null,24,B.y,null,0.3,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aod=new A.H("Welcome to FOMRA HRMS",null,B.akl,null,null,null,null,null,null,null,null)
-B.aoe=new A.H("Got it",null,null,null,null,null,null,null,null,null,null)
+B.aoa=new A.H("Welcome to FOMRA HRMS",null,B.akl,null,null,null,null,null,null,null,null)
+B.aob=new A.H("Got it",null,null,null,null,null,null,null,null,null,null)
 B.MY=new A.H("Update & Publish",null,null,null,null,null,null,null,null,null,null)
-B.aof=new A.H("Approve Candidate",null,B.v0,null,null,null,null,null,null,null,null)
+B.aoc=new A.H("Approve Candidate",null,B.v0,null,null,null,null,null,null,null,null)
 B.MZ=new A.H("Custom fields can be added after the section is created.",null,B.bF,null,null,null,null,null,null,null,null)
-B.aoh=new A.H("Assign to Manager",null,B.dp,null,null,null,null,null,null,null,null)
-B.aoi=new A.H("Enable or disable module access across the system.",null,B.aH,null,null,null,null,null,null,null,null)
-B.aoj=new A.H("Delete Task",null,null,null,null,null,null,null,null,null,null)
-B.aol=new A.H("Close",null,null,null,null,null,null,null,null,null,null)
+B.aoe=new A.H("Assign to Manager",null,B.dp,null,null,null,null,null,null,null,null)
+B.aof=new A.H("Enable or disable module access across the system.",null,B.aH,null,null,null,null,null,null,null,null)
+B.aog=new A.H("Delete Task",null,null,null,null,null,null,null,null,null,null)
+B.aoi=new A.H("Close",null,null,null,null,null,null,null,null,null,null)
 B.N_=new A.H("Save Field",null,null,null,null,null,null,null,null,null,null)
-B.aoo=new A.H("Start",null,null,null,null,null,null,null,null,null,null)
-B.aoq=new A.H("Manager Comment",null,B.il,null,null,null,null,null,null,null,null)
-B.aor=new A.H("Are you sure you want to permanently delete this submission?",null,null,null,null,null,null,null,null,null,null)
+B.aol=new A.H("Start",null,null,null,null,null,null,null,null,null,null)
+B.amw=new A.l(!0,B.G,null,null,null,null,12,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+B.aon=new A.H("EL Encashment",null,B.amw,null,null,null,null,null,null,null,null)
+B.aoo=new A.H("Manager Comment",null,B.il,null,null,null,null,null,null,null,null)
+B.aop=new A.H("Are you sure you want to permanently delete this submission?",null,null,null,null,null,null,null,null,null,null)
 B.anb=new A.l(!0,B.ah,null,null,null,null,9,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.N0=new A.H("Required",null,B.anb,null,null,null,null,null,null,null,null)
 B.N1=new A.H("Add Field",null,B.bw,null,null,null,null,null,null,null,null)
-B.aot=new A.H("Setup Guide",null,B.bw,null,null,null,null,null,null,null,null)
+B.aor=new A.H("Setup Guide",null,B.bw,null,null,null,null,null,null,null,null)
 B.ajb=new A.l(!0,B.aJ,null,null,null,null,12,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aou=new A.H("Clear",null,B.ajb,null,null,null,null,null,null,null,null)
-B.aow=new A.H("Deny Leave",null,B.lO,null,null,null,null,null,null,null,null)
-B.aox=new A.H("Position",null,B.ht,null,null,null,null,null,null,null,null)
-B.aoE=new A.H("Send for Approval",null,B.dp,null,null,null,null,null,null,null,null)
-B.aoF=new A.H("Title / Designation",null,B.ht,null,null,null,null,null,null,null,null)
-B.aoH=new A.H("Employment Status",null,B.ht,null,null,null,null,null,null,null,null)
-B.aoI=new A.H("Control Access",null,B.p9,null,null,null,null,null,null,null,null)
+B.aos=new A.H("Clear",null,B.ajb,null,null,null,null,null,null,null,null)
+B.aou=new A.H("Deny Leave",null,B.lO,null,null,null,null,null,null,null,null)
+B.aov=new A.H("Position",null,B.ht,null,null,null,null,null,null,null,null)
+B.aoC=new A.H("Send for Approval",null,B.dp,null,null,null,null,null,null,null,null)
+B.aoD=new A.H("Title / Designation",null,B.ht,null,null,null,null,null,null,null,null)
+B.aoF=new A.H("Employment Status",null,B.ht,null,null,null,null,null,null,null,null)
+B.aoG=new A.H("Control Access",null,B.p9,null,null,null,null,null,null,null,null)
 B.amK=new A.l(!0,null,null,null,null,null,null,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoJ=new A.H("Could not load submissions.",null,B.amK,null,null,null,null,null,null,null,null)
-B.aoK=new A.H("This will immediately update the live Onboarding Form for new employees. The current version will be saved to history.",null,B.bL,null,null,null,null,null,null,null,null)
-B.aoN=new A.H("Hold and drag to reorder. Tap \xd7 to remove.",null,B.bF,null,null,null,null,null,null,null,null)
+B.aoH=new A.H("Could not load submissions.",null,B.amK,null,null,null,null,null,null,null,null)
+B.aoI=new A.H("This will immediately update the live Onboarding Form for new employees. The current version will be saved to history.",null,B.bL,null,null,null,null,null,null,null,null)
+B.aoL=new A.H("Hold and drag to reorder. Tap \xd7 to remove.",null,B.bF,null,null,null,null,null,null,null,null)
 B.ajV=new A.l(!0,B.cb,null,null,null,null,12,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.N2=new A.H("Form Structure Preview",null,B.ajV,null,null,null,null,null,null,null,null)
-B.aoO=new A.H("Could not load applications",null,B.Mv,null,null,null,null,null,null,null,null)
-B.aoP=new A.H("Submit Issue",null,null,null,null,null,null,null,null,null,null)
-B.aoR=new A.H("Check Out",null,null,null,null,null,null,null,null,null,null)
-B.aoS=new A.H("used since last avail",null,B.fI,null,null,null,null,null,null,null,null)
+B.aoM=new A.H("Could not load applications",null,B.Mv,null,null,null,null,null,null,null,null)
+B.aoN=new A.H("Submit Issue",null,null,null,null,null,null,null,null,null,null)
+B.aoP=new A.H("Check Out",null,null,null,null,null,null,null,null,null,null)
 B.ak3=new A.l(!0,B.ah,null,null,null,null,15,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.N3=new A.H("Reject Form Version",null,B.ak3,null,null,null,null,null,null,null,null)
 B.Ty=new A.D(1,0.6666666666666666,0.6666666666666666,0.6666666666666666,B.p)
 B.amQ=new A.l(!0,B.Ty,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.N4=new A.H("Drag to reorder \xb7 tap \xd7 to remove",null,B.amQ,null,null,null,null,null,null,null,null)
-B.aoU=new A.H("Create User",null,null,null,null,null,null,null,null,null,null)
+B.aoR=new A.H("Create User",null,null,null,null,null,null,null,null,null,null)
 B.vi=new A.l(!0,B.k,null,null,null,null,11,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoW=new A.H("Management \u2014 Full Access",null,B.vi,null,null,null,null,null,null,null,null)
+B.aoT=new A.H("Management \u2014 Full Access",null,B.vi,null,null,null,null,null,null,null,null)
 B.akW=new A.l(!0,B.aB,null,null,null,null,22,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aoX=new A.H("Interview Review",null,B.akW,null,null,null,null,null,null,null,null)
-B.aoY=new A.H("Update & Publish Onboarding Form",null,B.dp,null,null,null,null,null,null,null,null)
+B.aoU=new A.H("Interview Review",null,B.akW,null,null,null,null,null,null,null,null)
+B.aoV=new A.H("Update & Publish Onboarding Form",null,B.dp,null,null,null,null,null,null,null,null)
 B.N5=new A.H("None assigned",null,null,null,null,null,null,null,null,null,null)
-B.ap_=new A.H("I Agree \u2014 Apply as LOP",null,null,null,null,null,null,null,null,null,null)
+B.aoX=new A.H("I Agree \u2014 Apply as LOP",null,null,null,null,null,null,null,null,null,null)
 B.Tg=new A.D(1,0.36470588235294116,0.25098039215686274,0.21568627450980393,B.p)
 B.aln=new A.l(!0,B.Tg,null,null,null,null,12,null,null,null,null,null,1.6,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.ap0=new A.H("I declare that the information given herein above is true & correct to the best of my knowledge & belief & nothing material has been concealed.\n\nI understand that if the above information is found false or incorrect, at any time during the course of my employment, my services will be terminated forthwith without any notice or compensation.",null,B.aln,null,null,null,null,null,null,null,null)
-B.ap1=new A.H("Saved successfully",null,null,null,null,null,null,null,null,null,null)
+B.aoY=new A.H("I declare that the information given herein above is true & correct to the best of my knowledge & belief & nothing material has been concealed.\n\nI understand that if the above information is found false or incorrect, at any time during the course of my employment, my services will be terminated forthwith without any notice or compensation.",null,B.aln,null,null,null,null,null,null,null,null)
+B.aoZ=new A.H("Saved successfully",null,null,null,null,null,null,null,null,null,null)
 B.am5=new A.l(!0,B.cb,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.ap2=new A.H("Your application has been submitted successfully. We will get back to you soon.",null,B.am5,null,null,null,null,null,null,null,null)
+B.ap_=new A.H("Your application has been submitted successfully. We will get back to you soon.",null,B.am5,null,null,null,null,null,null,null,null)
 B.vl=new A.H("available",null,B.fI,null,null,null,null,null,null,null,null)
-B.ap3=new A.H("Resume",null,B.bv,null,null,null,null,null,null,null,null)
+B.ap0=new A.H("Resume",null,B.bv,null,null,null,null,null,null,null,null)
 B.alO=new A.l(!0,null,null,null,null,null,18,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.ap4=new A.H("Page not found",null,B.alO,null,null,null,null,null,null,null,null)
-B.ap5=new A.H("Mark as Received",null,B.lQ,null,null,null,null,null,null,null,null)
-B.ap6=new A.H("Add New",null,null,null,null,null,null,null,null,null,null)
+B.ap1=new A.H("Page not found",null,B.alO,null,null,null,null,null,null,null,null)
+B.ap2=new A.H("Mark as Received",null,B.lQ,null,null,null,null,null,null,null,null)
+B.ap3=new A.H("Add New",null,null,null,null,null,null,null,null,null,null)
 B.vm=new A.H("OK",null,null,null,null,null,null,null,null,null,null)
 B.N6=new A.H("Add Task",null,null,null,null,null,null,null,null,null,null)
-B.ap8=new A.H("Late coming recorded successfully",null,null,null,null,null,null,null,null,null,null)
-B.ap9=new A.H("Rename source",null,B.lO,null,null,null,null,null,null,null,null)
-B.apa=new A.H("Edit Policy Text",null,B.bw,null,null,null,null,null,null,null,null)
-B.apb=new A.H("Retry",null,null,null,null,null,null,null,null,null,null)
-B.apd=new A.H("Edit Role",null,B.v1,null,null,null,null,null,null,null,null)
-B.ape=new A.H("Edit",null,B.bw,null,null,null,null,null,null,null,null)
-B.apf=new A.H("Checked out successfully",null,null,null,null,null,null,null,null,null,null)
-B.aph=new A.H("Forwarded with details:",null,B.Mz,null,null,null,null,null,null,null,null)
+B.ap5=new A.H("Late coming recorded successfully",null,null,null,null,null,null,null,null,null,null)
+B.ap6=new A.H("Rename source",null,B.lO,null,null,null,null,null,null,null,null)
+B.ap7=new A.H("Edit Policy Text",null,B.bw,null,null,null,null,null,null,null,null)
+B.ap8=new A.H("Retry",null,null,null,null,null,null,null,null,null,null)
+B.apa=new A.H("Edit Role",null,B.v1,null,null,null,null,null,null,null,null)
+B.apb=new A.H("Edit",null,B.bw,null,null,null,null,null,null,null,null)
+B.apc=new A.H("Checked out successfully",null,null,null,null,null,null,null,null,null,null)
+B.ape=new A.H("Forwarded with details:",null,B.Mz,null,null,null,null,null,null,null,null)
 B.vn=new A.H("Welcome back!",null,B.Mt,null,null,null,null,null,null,null,null)
-B.api=new A.H("Submit Another",null,null,null,null,null,null,null,null,null,null)
+B.apf=new A.H("Submit Another",null,null,null,null,null,null,null,null,null,null)
 B.air=new A.l(!0,B.n,null,null,null,null,28,B.y,null,3,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apk=new A.H("FOMRA HRMS",null,B.air,null,null,null,null,null,null,null,null)
-B.apl=new A.H("Aadhar Copy",null,B.dq,null,null,null,null,null,null,null,null)
+B.aph=new A.H("FOMRA HRMS",null,B.air,null,null,null,null,null,null,null,null)
+B.api=new A.H("Aadhar Copy",null,B.dq,null,null,null,null,null,null,null,null)
 B.N7=new A.H("Description",null,B.MK,null,null,null,null,null,null,null,null)
-B.app=new A.H("The updated onboarding form will be sent to Management for approval.",null,B.bL,null,null,null,null,null,null,null,null)
-B.apq=new A.H("This text will be displayed to candidates on the onboarding form. They must read and agree to it before submitting.",null,B.aH,null,null,null,null,null,null,null,null)
-B.apr=new A.H("Delete Lead",null,B.ve,null,null,null,null,null,null,null,null)
-B.aps=new A.H("Employee added successfully",null,null,null,null,null,null,null,null,null,null)
-B.apt=new A.H("Confirm EL Eligibility (1 year on-roll)",null,null,null,null,null,null,null,null,null,null)
-B.apu=new A.H("Copy",null,B.bw,null,null,null,null,null,null,null,null)
+B.apm=new A.H("The updated onboarding form will be sent to Management for approval.",null,B.bL,null,null,null,null,null,null,null,null)
+B.apn=new A.H("This text will be displayed to candidates on the onboarding form. They must read and agree to it before submitting.",null,B.aH,null,null,null,null,null,null,null,null)
+B.apo=new A.H("Delete Lead",null,B.ve,null,null,null,null,null,null,null,null)
+B.app=new A.H("Employee added successfully",null,null,null,null,null,null,null,null,null,null)
+B.apq=new A.H("Confirm EL Eligibility (1 year on-roll)",null,null,null,null,null,null,null,null,null,null)
+B.apr=new A.H("Copy",null,B.bw,null,null,null,null,null,null,null,null)
+B.aps=new A.H("Encash EL",null,B.bw,null,null,null,null,null,null,null,null)
 B.al5=new A.l(!0,B.aB,null,null,null,null,12,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apv=new A.H("How to add a new sheet:",null,B.al5,null,null,null,null,null,null,null,null)
-B.apy=new A.H("Account details (set by HR):",null,B.Mu,null,null,null,null,null,null,null,null)
-B.apz=new A.H("Edit Onboarding Form",null,B.p8,null,null,null,null,null,null,null,null)
-B.apB=new A.H("Joining Date",null,B.ht,null,null,null,null,null,null,null,null)
+B.apt=new A.H("How to add a new sheet:",null,B.al5,null,null,null,null,null,null,null,null)
+B.apw=new A.H("Account details (set by HR):",null,B.Mu,null,null,null,null,null,null,null,null)
+B.apx=new A.H("Edit Onboarding Form",null,B.p8,null,null,null,null,null,null,null,null)
+B.apz=new A.H("Joining Date",null,B.ht,null,null,null,null,null,null,null,null)
 B.ahI=new A.l(!0,B.dU,null,null,null,null,12,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apC=new A.H("Clear All",null,B.ahI,null,null,null,null,null,null,null,null)
-B.apD=new A.H("Staff Member",null,B.vi,null,null,null,null,null,null,null,null)
-B.apE=new A.H("Could not load leads",null,B.p6,null,null,null,null,null,null,null,null)
-B.apF=new A.H("Filters",null,B.lM,null,null,null,null,null,null,null,null)
+B.apA=new A.H("Clear All",null,B.ahI,null,null,null,null,null,null,null,null)
+B.apB=new A.H("Staff Member",null,B.vi,null,null,null,null,null,null,null,null)
+B.apC=new A.H("Could not load leads",null,B.p6,null,null,null,null,null,null,null,null)
+B.apD=new A.H("Filters",null,B.lM,null,null,null,null,null,null,null,null)
 B.ala=new A.l(!0,B.ah,null,null,null,null,14,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.N8=new A.H("Remove Section",null,B.ala,null,null,null,null,null,null,null,null)
-B.apJ=new A.H("Submit Application",null,null,null,null,null,null,null,null,null,null)
-B.apL=new A.H("View Details",null,B.bw,null,null,null,null,null,null,null,null)
-B.apM=new A.H("Reset to template",null,B.lS,null,null,null,null,null,null,null,null)
-B.apN=new A.H("Accept & Forward to Management",null,B.il,null,null,null,null,null,null,null,null)
-B.apO=new A.H("Delete Submission",null,B.vf,null,null,null,null,null,null,null,null)
+B.apH=new A.H("Submit Application",null,null,null,null,null,null,null,null,null,null)
+B.apJ=new A.H("View Details",null,B.bw,null,null,null,null,null,null,null,null)
+B.apK=new A.H("Reset to template",null,B.lS,null,null,null,null,null,null,null,null)
+B.apL=new A.H("Accept & Forward to Management",null,B.il,null,null,null,null,null,null,null,null)
+B.apM=new A.H("Delete Submission",null,B.vf,null,null,null,null,null,null,null,null)
 B.ajG=new A.l(!0,null,null,null,null,null,13,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.N9=new A.H("Approve & Publish",null,B.ajG,null,null,null,null,null,null,null,null)
 B.aik=new A.l(!0,B.k,null,null,null,null,null,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apS=new A.H("Add New",null,B.aik,null,null,null,null,null,null,null,null)
+B.apQ=new A.H("Add New",null,B.aik,null,null,null,null,null,null,null,null)
 B.Na=new A.H("Drag  \u283f  to reorder sections",null,B.bF,null,null,null,null,null,null,null,null)
-B.apW=new A.H("Save Policy",null,null,null,null,null,null,null,null,null,null)
+B.apU=new A.H("Save Policy",null,null,null,null,null,null,null,null,null,null)
 B.ako=new A.l(!0,B.cb,null,null,null,null,12,null,B.rC,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.apY=new A.H("Standing Arrears in Degree, if any",null,B.ako,null,null,null,null,null,null,null,null)
+B.apW=new A.H("Standing Arrears in Degree, if any",null,B.ako,null,null,null,null,null,null,null,null)
 B.ajh=new A.l(!0,B.bn,null,null,null,null,11,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Nb=new A.H("Changes vs current live form:",null,B.ajh,null,null,null,null,null,null,null,null)
-B.aq_=new A.H("Avail EL",null,null,null,null,null,null,null,null,null,null)
-B.aq1=new A.H("EL Eligible",null,B.v5,null,null,null,null,null,null,null,null)
+B.apY=new A.H("Encash EL",null,null,null,null,null,null,null,null,null,null)
+B.aq_=new A.H("EL Eligible",null,B.v5,null,null,null,null,null,null,null,null)
 B.aho=new A.l(!0,B.cm,null,null,null,null,12,B.y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aq3=new A.H("Onboarding form link is always live",null,B.aho,null,null,null,null,null,null,null,null)
-B.aq5=new A.H("System Roles",null,B.p9,null,null,null,null,null,null,null,null)
-B.aq7=new A.H("I AGREE TO THE ABOVE DECLARATION  *",null,B.v4,null,null,null,null,null,null,null,null)
+B.aq1=new A.H("Onboarding form link is always live",null,B.aho,null,null,null,null,null,null,null,null)
+B.aq3=new A.H("System Roles",null,B.p9,null,null,null,null,null,null,null,null)
+B.aq5=new A.H("I AGREE TO THE ABOVE DECLARATION  *",null,B.v4,null,null,null,null,null,null,null,null)
 B.aiT=new A.l(!0,B.n,null,null,null,null,12,B.w,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aq9=new A.H("@fomrahousing.in",null,B.aiT,null,null,null,null,null,null,null,null)
-B.aqa=new A.H("Forward to Management",null,B.ME,null,null,null,null,null,null,null,null)
-B.aqb=new A.H("This will immediately update the live Application Form for all new candidates. The current version will be saved to history.",null,B.bL,null,null,null,null,null,null,null,null)
-B.aqc=new A.H("Stop",null,null,null,null,null,null,null,null,null,null)
+B.aq7=new A.H("@fomrahousing.in",null,B.aiT,null,null,null,null,null,null,null,null)
+B.aq8=new A.H("Forward to Management",null,B.ME,null,null,null,null,null,null,null,null)
+B.aq9=new A.H("This will immediately update the live Application Form for all new candidates. The current version will be saved to history.",null,B.bL,null,null,null,null,null,null,null,null)
+B.aqa=new A.H("Stop",null,null,null,null,null,null,null,null,null,null)
 B.Nc=new A.H("Field Type",null,B.p7,null,null,null,null,null,null,null,null)
-B.aqd=new A.H("Page Not Found",null,null,null,null,null,null,null,null,null,null)
-B.aqf=new A.H("Page Not Found",null,B.lP,null,null,null,null,null,null,null,null)
+B.aqb=new A.H("Page Not Found",null,null,null,null,null,null,null,null,null,null)
+B.aqd=new A.H("Page Not Found",null,B.lP,null,null,null,null,null,null,null,null)
 B.Nd=new A.H("Add Section",null,B.bw,null,null,null,null,null,null,null,null)
-B.aqg=new A.H("Edit Account Details",null,B.v1,null,null,null,null,null,null,null,null)
-B.aqh=new A.H("Confirm On-Roll (unlocks ML + CL)",null,null,null,null,null,null,null,null,null,null)
-B.aqj=new A.H("days used",null,B.aH,null,null,null,null,null,null,null,null)
+B.aqe=new A.H("Edit Account Details",null,B.v1,null,null,null,null,null,null,null,null)
+B.aqf=new A.H("Confirm On-Roll (unlocks ML + CL)",null,null,null,null,null,null,null,null,null,null)
+B.aqh=new A.H("days used",null,B.aH,null,null,null,null,null,null,null,null)
 B.Ne=new A.H("Send for Approval",null,null,null,null,null,null,null,null,null,null)
-B.aqk=new A.H("Send Form for Approval",null,B.dp,null,null,null,null,null,null,null,null)
-B.aqm=new A.H("This will mark the candidate as approved by Management.",null,B.bL,null,null,null,null,null,null,null,null)
-B.aqo=new A.H("Delete source?",null,B.lO,null,null,null,null,null,null,null,null)
-B.aqp=new A.H("Management access only",null,B.aH,null,null,null,null,null,null,null,null)
-B.aqq=new A.H("There is already an onboarding form version waiting for approval.",null,B.bL,null,null,null,null,null,null,null,null)
+B.aqi=new A.H("Send Form for Approval",null,B.dp,null,null,null,null,null,null,null,null)
+B.aqk=new A.H("This will mark the candidate as approved by Management.",null,B.bL,null,null,null,null,null,null,null,null)
+B.aqm=new A.H("Delete source?",null,B.lO,null,null,null,null,null,null,null,null)
+B.aqn=new A.H("Management access only",null,B.aH,null,null,null,null,null,null,null,null)
+B.aqo=new A.H("There is already an onboarding form version waiting for approval.",null,B.bL,null,null,null,null,null,null,null,null)
 B.Nf=new A.H("Custom Fields",null,B.ht,null,null,null,null,null,null,null,null)
 B.al9=new A.l(!0,null,null,null,null,null,14,B.aq,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aqr=new A.H("Active",null,B.al9,null,null,null,null,null,null,null,null)
+B.aqp=new A.H("Active",null,B.al9,null,null,null,null,null,null,null,null)
 B.akr=new A.l(!0,B.dv,null,null,null,null,9,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Ng=new A.H("(tap \xd7 to hide a field)",null,B.akr,null,null,null,null,null,null,null,null)
-B.aqs=new A.H("Application Form",null,B.bv,null,null,null,null,null,null,null,null)
-B.aqt=new A.H("Forward",null,null,null,null,null,null,null,null,null,null)
-B.aqv=new A.H("HR Comment",null,B.dp,null,null,null,null,null,null,null,null)
+B.aqq=new A.H("Application Form",null,B.bv,null,null,null,null,null,null,null,null)
+B.aqr=new A.H("Forward",null,null,null,null,null,null,null,null,null,null)
+B.aqt=new A.H("HR Comment",null,B.dp,null,null,null,null,null,null,null,null)
 B.Nh=new A.H("Answer Options",null,B.p7,null,null,null,null,null,null,null,null)
-B.aqx=new A.H("Joining Time",null,B.ht,null,null,null,null,null,null,null,null)
+B.aqv=new A.H("used since last encashment",null,B.fI,null,null,null,null,null,null,null,null)
+B.aqw=new A.H("Joining Time",null,B.ht,null,null,null,null,null,null,null,null)
+B.aqy=new A.H("Not yet encashed",null,B.fI,null,null,null,null,null,null,null,null)
 B.aiW=new A.l(!0,B.k,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.aqA=new A.H("Go to home page",null,B.aiW,null,null,null,null,null,null,null,null)
 B.aqC=new A.H("Add new source",null,B.lO,null,null,null,null,null,null,null,null)

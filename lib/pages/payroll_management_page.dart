@@ -228,11 +228,11 @@ class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
                       Text('${widget.elUsed % 1 == 0 ? widget.elUsed.toInt() : widget.elUsed.toStringAsFixed(1)}d',
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.orange.shade700)),
                       const SizedBox(width: 3),
-                      const Text('used since last avail', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                      const Text('used since last encashment', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
                     ]),
                     if (lastAvailed != null) ...[
                       const SizedBox(height: 2),
-                      Text('Last availed: ${_fmtDate(lastAvailed)}',
+                      Text('Last encashed: ${_fmtDate(lastAvailed)}',
                           style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
                     ],
                   ]),
@@ -243,7 +243,7 @@ class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
               // EL availed column
               if (hasPending)
                 Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('EL Availed', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                  const Text('EL Encashment', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
                   const SizedBox(height: 6),
                   ElevatedButton.icon(
                     onPressed: _confirming ? null : _doConfirm,
@@ -261,7 +261,7 @@ class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
                 ])
               else
                 Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('EL Availed', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                  const Text('EL Encashment', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
                   const SizedBox(height: 6),
                   Text(
                     lastAvailed != null ? _fmtDate(lastAvailed) : '—',

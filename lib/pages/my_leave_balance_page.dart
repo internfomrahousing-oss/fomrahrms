@@ -318,17 +318,17 @@ class _ElAvailCard extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('EL Availed',
+            const Text('EL Encashment',
                 style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w700, color: _purple)),
             if (hasPending)
               const Text('Awaiting HR confirmation',
                   style: TextStyle(fontSize: 10, color: Colors.orange))
             else if (lastAvailed != null)
-              Text('Last availed: ${_fmtDate(lastAvailed)}',
+              Text('Last encashed: ${_fmtDate(lastAvailed)}',
                   style: const TextStyle(fontSize: 10, color: Color(0xFF78909C)))
             else
-              const Text('Not yet availed',
+              const Text('Not yet encashed',
                   style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
           ]),
         ),
@@ -360,7 +360,7 @@ class _ElAvailCard extends StatelessWidget {
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.redeem_rounded, size: 14),
-            label: const Text('Avail EL', style: TextStyle(fontSize: 12)),
+            label: const Text('Encash EL', style: TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: _purple,
               foregroundColor: Colors.white,
