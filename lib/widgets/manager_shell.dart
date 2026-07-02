@@ -15,15 +15,12 @@ class _NavItem {
 }
 
 const _hrNavItems = [
-  _NavItem('Dashboard',              Icons.dashboard_rounded,              '/manager/dashboard'),
-  _NavItem('Interview Review',       Icons.rate_review_rounded,            '/manager/interview-review'),
-  _NavItem('Team Leave Approvals',   Icons.group_rounded,                  '/manager/leave/team-approvals'),
-  _NavItem('Task Management',        Icons.task_alt_rounded,               '/manager/task-management'),
-  _NavItem('Employee Onboarding',    Icons.how_to_reg_rounded,             '/manager/employee-onboarding'),
-  _NavItem('Approvals',              Icons.approval_rounded,               '/manager/approvals'),
-  _NavItem('Notifications',          Icons.notifications_rounded,          '/manager/notifications'),
-  _NavItem('Reports & Analytics',    Icons.bar_chart_rounded,              '/manager/reports-analytics'),
-  _NavItem('Settings',               Icons.settings_rounded,               '/manager/settings'),
+  _NavItem('Dashboard',            Icons.dashboard_rounded,     '/manager/dashboard'),
+  _NavItem('Interview Review',     Icons.rate_review_rounded,   '/manager/interview-review'),
+  _NavItem('Team Leave Approvals', Icons.group_rounded,         '/manager/leave/team-approvals'),
+  _NavItem('Task Management',      Icons.task_alt_rounded,      '/manager/task-management'),
+  _NavItem('Notifications',        Icons.notifications_rounded, '/manager/notifications'),
+  _NavItem('Settings',             Icons.settings_rounded,      '/manager/settings'),
 ];
 
 const _personalNavItems = [
