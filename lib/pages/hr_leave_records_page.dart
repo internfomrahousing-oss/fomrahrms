@@ -265,17 +265,19 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
               const Divider(height: 1),
               const SizedBox(height: 10),
 
-              // ML / CL / EL breakdown
+              // ML / CL / EL breakdown (all cumulative)
               Row(children: [
                 _LeaveTypeBlock('ML',
-                  _usedByType(user.name, 'Medical / Sick Leave'),
-                  _pendingByType(user.name, 'Medical / Sick Leave'),
-                  const Color(0xFF1565C0)),
+                  _usedByType(user.name, 'Medical / Sick Leave', monthOnly: false),
+                  _pendingByType(user.name, 'Medical / Sick Leave', monthOnly: false),
+                  const Color(0xFF1565C0),
+                  monthOnly: false),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('CL',
-                  _usedByType(user.name, 'Casual Leave'),
-                  _pendingByType(user.name, 'Casual Leave'),
-                  Colors.teal.shade700),
+                  _usedByType(user.name, 'Casual Leave', monthOnly: false),
+                  _pendingByType(user.name, 'Casual Leave', monthOnly: false),
+                  Colors.teal.shade700,
+                  monthOnly: false),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('EL',
                   _usedByType(user.name, 'Earned Leave', monthOnly: false),
@@ -501,22 +503,15 @@ class _AllocationEditorState extends State<_AllocationEditor> {
       ]);
     }
 
-    return GestureDetector(
-      onTap: () => setState(() => _editing = true),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: _color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _color.withValues(alpha: 0.2)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text('${widget.value} days',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _color)),
-          const SizedBox(width: 6),
-          const Icon(Icons.edit_rounded, size: 13, color: _color),
-        ]),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _color.withValues(alpha: 0.2)),
       ),
+      child: Text('${widget.value} days',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _color)),
     );
   }
 }
