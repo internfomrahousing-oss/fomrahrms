@@ -56,4 +56,24 @@ class LeaveStore {
       if (n != null && n > _counter) _counter = n;
     }
   }
+
+  static int permMinutesFromReason(String reason) {
+    if (reason.contains('30 Minutes')) return 30;
+    if (reason.contains('1½ Hours')) return 90;
+    if (reason.contains('2 Hours')) return 120;
+    if (reason.contains('1 Hour')) return 60;
+    return 60;
+  }
+
+  static int permUsedThisMonth(String employeeName) {
+    final now = DateTime.now();
+    return applications
+        .where((a) =>
+            a.leaveType == 'Permission' &&
+            a.employeeName == employeeName &&
+            a.from.year == now.year &&
+            a.from.month == now.month &&
+            a.managerStatus != LeaveApprovalStatus.denied)
+        .fold<int>(0, (sum, a) => sum + permMinutesFromReason(a.reason));
+  }
 }

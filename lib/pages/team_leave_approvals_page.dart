@@ -36,15 +36,16 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     if (_showAll) return LeaveStore.applications;
     if (!_teamLoaded) return LeaveStore.applications;
     if (!_isMgmt) {
-      // Managers only handle short-term leaves (≤ 2 days);
-      // anything longer goes directly to management.
+      // Manager: team's Permission/CompOff + regular leaves ≤ 2 days
       return LeaveStore.applications
-          .where((a) => _teamNames.contains(a.employeeName) && a.effectiveDays <= 2)
+          .where((a) => _teamNames.contains(a.employeeName) &&
+              (a.leaveType == 'Permission' ||
+               a.leaveType == 'Comp Off' ||
+               a.effectiveDays <= 2))
           .toList();
     }
-    return LeaveStore.applications
-        .where((a) => _teamNames.contains(a.employeeName))
-        .toList();
+    // Management: all employees
+    return LeaveStore.applications;
   }
 
   bool _matchesFilter(LeaveApplication r) {
@@ -59,20 +60,21 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   List<LeaveApplication> get _filtered =>
       _requests.where(_matchesFilter).toList();
 
-  // Long-term leaves (> 2 days) are always handled by management.
-  // In the management team-approvals view we show ALL employees' long-term
-  // leaves (not just the manager's own team), since the manager is bypassed.
-  List<LeaveApplication> get _longTermLeaves {
-    if (_isMgmt && !_showAll) {
-      return LeaveStore.applications
-          .where((a) => a.effectiveDays > 2 && _matchesFilter(a))
-          .toList();
-    }
-    return _filtered.where((a) => a.effectiveDays > 2).toList();
+  bool _isPermCompOff(LeaveApplication a) =>
+      a.leaveType == 'Permission' || a.leaveType == 'Comp Off';
+
+  List<LeaveApplication> get _leaveSection {
+    var src = _filtered.where((a) => !_isPermCompOff(a));
+    // Manager only handles ≤ 2-day regular leaves; holidays go to Management
+    if (!_isMgmt && !_showAll) src = src.where((a) => a.effectiveDays <= 2);
+    return src.toList();
   }
 
-  List<LeaveApplication> get _regularLeaves =>
-      _filtered.where((a) => a.effectiveDays <= 2).toList();
+  List<LeaveApplication> get _permSection =>
+      _filtered.where((a) => a.leaveType == 'Permission').toList();
+
+  List<LeaveApplication> get _compOffSection =>
+      _filtered.where((a) => a.leaveType == 'Comp Off').toList();
 
   int get _pendingCount =>
       _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
@@ -337,41 +339,6 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
           ),
           const SizedBox(height: 16),
 
-          // Policy notice for managers
-          if (!_isMgmt)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Builder(builder: (context) {
-                final isDark = Theme.of(context).brightness == Brightness.dark;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.amber.withValues(alpha: 0.12)
-                        : const Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: Colors.amber.withValues(alpha: isDark ? 0.4 : 0.6)),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 15,
-                        color: isDark ? Colors.amber.shade300 : const Color(0xFFF57F17)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Holidays (leaves > 2 days) go directly to Management for approval.',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? Colors.amber.shade300 : const Color(0xFFF57F17),
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ]),
-                );
-              }),
-            ),
-
           if (_filterStatus != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -413,53 +380,34 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   : 'No leave requests from your team',
               subtitle: 'Leave requests will appear here for approval.',
             )
-          else if (!_loading && filtered.isEmpty)
+          else if (!_loading && _filtered.isEmpty)
             _emptyCard(
               icon: Icons.search_off_rounded,
               title: 'No results match your search',
               subtitle: '',
             )
-          else if (!_loading && _isMgmt && !_showAll) ...[
+          else if (!_loading) ...[
+            // ── Leave Applications ──────────────────────────────────────────
             _SectionHeader(
-              label: 'Holidays  (> 2 days — all employees)',
-              count: _longTermLeaves.length,
-              color: const Color(0xFFB71C1C),
-              icon: Icons.beach_access_rounded,
-            ),
-            const SizedBox(height: 8),
-            if (_longTermLeaves.isEmpty)
-              _emptyCard(
-                icon: Icons.event_available_rounded,
-                title: 'No holiday requests',
-                subtitle: 'Leave requests exceeding 2 days appear here — managers are bypassed.',
-              )
-            else
-              ..._longTermLeaves.map((app) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RequestCard(
-                      request:      app,
-                      isManagement: _isMgmt,
-                      onApprove:    () => _approve(app),
-                      onDeny:       () => _deny(app),
-                      onReset:      () => _reset(app),
-                    ),
-                  )),
-            const SizedBox(height: 16),
-            _SectionHeader(
-              label: 'Regular Leaves  (≤ 2 days)',
-              count: _regularLeaves.length,
+              label: 'Leave Applications',
+              count: _leaveSection.length,
               color: const Color(0xFF283593),
               icon: Icons.event_note_rounded,
             ),
             const SizedBox(height: 8),
-            if (_regularLeaves.isEmpty)
+            if (!_isMgmt)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _holidayPolicyNotice(context),
+              ),
+            if (_leaveSection.isEmpty)
               _emptyCard(
-                icon: Icons.inbox_rounded,
-                title: 'No regular leave requests',
+                icon: Icons.event_available_rounded,
+                title: 'No leave requests',
                 subtitle: '',
               )
             else
-              ..._regularLeaves.map((app) => Padding(
+              ..._leaveSection.map((app) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _RequestCard(
                       request:      app,
@@ -469,17 +417,63 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                       onReset:      () => _reset(app),
                     ),
                   )),
-          ] else if (!_loading)
-            ...filtered.map((app) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _RequestCard(
-                    request:      app,
-                    isManagement: _isMgmt,
-                    onApprove:    () => _approve(app),
-                    onDeny:       () => _deny(app),
-                    onReset:      () => _reset(app),
-                  ),
-                )),
+            const SizedBox(height: 20),
+
+            // ── Permission Applications ─────────────────────────────────────
+            _SectionHeader(
+              label: 'Permission Applications',
+              count: _permSection.length,
+              color: const Color(0xFF00838F),
+              icon: Icons.access_time_rounded,
+            ),
+            const SizedBox(height: 8),
+            _permLimitBanner(context),
+            const SizedBox(height: 8),
+            if (_permSection.isEmpty)
+              _emptyCard(
+                icon: Icons.schedule_rounded,
+                title: 'No permission requests',
+                subtitle: '',
+              )
+            else
+              ..._permSection.map((app) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RequestCard(
+                      request:      app,
+                      isManagement: _isMgmt,
+                      onApprove:    () => _approve(app),
+                      onDeny:       () => _deny(app),
+                      onReset:      () => _reset(app),
+                    ),
+                  )),
+            const SizedBox(height: 20),
+
+            // ── Comp Off Applications ───────────────────────────────────────
+            _SectionHeader(
+              label: 'Comp Off Applications',
+              count: _compOffSection.length,
+              color: const Color(0xFF2E7D32),
+              icon: Icons.swap_horiz_rounded,
+            ),
+            const SizedBox(height: 8),
+            if (_compOffSection.isEmpty)
+              _emptyCard(
+                icon: Icons.swap_horiz_rounded,
+                title: 'No comp off requests',
+                subtitle: '',
+              )
+            else
+              ..._compOffSection.map((app) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RequestCard(
+                      request:      app,
+                      isManagement: _isMgmt,
+                      onApprove:    () => _approve(app),
+                      onDeny:       () => _deny(app),
+                      onReset:      () => _reset(app),
+                    ),
+                  )),
+          ],
         ]),
       ),
     );
@@ -488,9 +482,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   // ── Management "All Leave Approvals" tabbed view ─────────────────────────────
 
   Widget _buildWithTabs(BuildContext context) {
-    final all          = _filtered;
-    final pendingLong  = _filtered.where((a) => a.effectiveDays > 2  && a.managerStatus == LeaveApprovalStatus.pending).toList();
-    final pendingShort = _filtered.where((a) => a.effectiveDays <= 2 && a.managerStatus == LeaveApprovalStatus.pending).toList();
+    final leaveApps   = _filtered.where((a) => !_isPermCompOff(a)).toList();
+    final permApps    = _permSection;
+    final compOffApps = _compOffSection;
 
     return DefaultTabController(
       length: 3,
@@ -605,9 +599,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                 indicatorColor: Theme.of(context).colorScheme.primary,
                 labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 tabs: [
-                  Tab(text: 'All (${all.length})'),
-                  Tab(text: 'Pending > 2d (${pendingLong.length})'),
-                  Tab(text: 'Pending ≤ 2d (${pendingShort.length})'),
+                  Tab(text: 'Leaves (${leaveApps.length})'),
+                  Tab(text: 'Permission (${permApps.length})'),
+                  Tab(text: 'Comp Off (${compOffApps.length})'),
                 ],
               ),
             ]),
@@ -618,9 +612,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : TabBarView(children: [
-                    _tabList(context, all,          'No leave applications yet.'),
-                    _tabList(context, pendingLong,  'No pending holiday requests (> 2 days).'),
-                    _tabList(context, pendingShort, 'No pending regular leave requests (≤ 2 days).'),
+                    _tabList(context, leaveApps,   'No leave applications yet.'),
+                    _tabList(context, permApps,    'No permission requests.'),
+                    _tabList(context, compOffApps, 'No comp off requests.'),
                   ]),
           ),
         ]),
@@ -654,6 +648,66 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
           onReset:      () => _reset(apps[i]),
         ),
       ),
+    );
+  }
+
+  Widget _holidayPolicyNotice(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.amber.withValues(alpha: 0.12)
+            : const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: Colors.amber.withValues(alpha: isDark ? 0.4 : 0.6)),
+      ),
+      child: Row(children: [
+        Icon(Icons.info_outline_rounded,
+            size: 15,
+            color: isDark
+                ? Colors.amber.shade300
+                : const Color(0xFFF57F17)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Leaves > 2 days go directly to Management for approval.',
+            style: TextStyle(
+                fontSize: 11,
+                color: isDark
+                    ? Colors.amber.shade300
+                    : const Color(0xFFF57F17),
+                fontWeight: FontWeight.w500),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _permLimitBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00838F).withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: const Color(0xFF00838F).withValues(alpha: 0.25)),
+      ),
+      child: const Row(children: [
+        Icon(Icons.info_outline_rounded,
+            size: 15, color: Color(0xFF00838F)),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Each employee is entitled to 2 hours of permission per month.',
+            style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF00838F),
+                fontWeight: FontWeight.w500),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -878,6 +932,47 @@ class _RequestCardState extends State<_RequestCard> {
                 if (req.reason.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   _DetailRow(Icons.notes_rounded, 'Reason', req.reason),
+                ],
+                if (req.leaveType == 'Permission') ...[
+                  const SizedBox(height: 8),
+                  Builder(builder: (ctx) {
+                    final mu        = Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.5);
+                    final used      = LeaveStore.permUsedThisMonth(req.employeeName);
+                    final remaining = (120 - used).clamp(0, 120);
+                    final badgeColor = remaining == 0
+                        ? Colors.red.shade700
+                        : remaining <= 30
+                            ? Colors.orange.shade700
+                            : const Color(0xFF00838F);
+                    return Row(children: [
+                      Icon(Icons.schedule_rounded, size: 14, color: mu),
+                      const SizedBox(width: 8),
+                      Text('Monthly: ',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: mu,
+                              fontWeight: FontWeight.w500)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: badgeColor.withValues(alpha: 0.35)),
+                        ),
+                        child: Text(
+                          remaining == 0
+                              ? 'Limit reached'
+                              : '$remaining min left this month',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: badgeColor),
+                        ),
+                      ),
+                    ]);
+                  }),
                 ],
               ]),
             ),

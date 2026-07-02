@@ -72,6 +72,18 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
       _snack('Please specify the reason.'); return;
     }
 
+    // Monthly permission limit: 120 min (2 hours) per employee
+    final name  = UserSession.name.isEmpty ? 'Employee' : UserSession.name;
+    final used  = LeaveStore.permUsedThisMonth(name);
+    final want  = LeaveStore.permMinutesFromReason(_duration);
+    if (used + want > 120) {
+      final left = (120 - used).clamp(0, 120);
+      _snack(left == 0
+          ? 'Monthly permission limit (2 hrs) reached.'
+          : 'Only ${left} min remaining this month. Cannot apply $_duration.');
+      return;
+    }
+
     final reasonText = _isOther ? _otherController.text.trim() : _reason;
     final desc       = _descController.text.trim();
     final note = 'Permission: $_duration | $reasonText'
