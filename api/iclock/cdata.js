@@ -73,15 +73,16 @@ async function processLogs(rawBody) {
     const time  = timeISO.substring(0, 5);               // HH:MM
     const recId = `${pinId}_${day}-${month}-${year}`;   // e.g. EMP001_02-07-2026
 
-    // Look up employee name from app_users
+    // Look up employee name by biometric_id (device PIN)
     const users = await sbGet(
-      `app_users?employee_id=eq.${encodeURIComponent(pinId)}&select=name&limit=1`
+      `app_users?biometric_id=eq.${encodeURIComponent(pinId)}&select=name,employee_id&limit=1`
     );
     if (!users.length) {
-      console.log(`ADMS: unknown PIN "${pinId}" — add employee_id in HR records`);
+      console.log(`ADMS: unknown biometric PIN "${pinId}" — set Biometric ID in HR employee records`);
       continue;
     }
     const employeeName = users[0].name;
+    const empId        = users[0].employee_id || pinId;
 
     // Check today's existing attendance record
     const existing = await sbGet(
@@ -93,7 +94,7 @@ async function processLogs(rawBody) {
       await sbPost('attendance_records', {
         id:             recId,
         employee_name:  employeeName,
-        employee_id:    pinId,
+        employee_id:    empId,
         date,
         check_in_time:  time,
         check_out_time: '',

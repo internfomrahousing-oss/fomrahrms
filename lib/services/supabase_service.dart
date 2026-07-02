@@ -602,6 +602,7 @@ class SupabaseService {
         dateOfJoining:      (row['date_of_joining']       as String?) ?? '',
         onrollConfirmedAt:  (row['onroll_confirmed_at']   as String?) ?? '',
         elEligibleAt:       (row['el_eligible_at']        as String?) ?? '',
+        biometricId:        (row['biometric_id']          as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -624,6 +625,7 @@ class SupabaseService {
       'date_of_joining':      u.dateOfJoining,
       'onroll_confirmed_at':  u.onrollConfirmedAt,
       'el_eligible_at':       u.elEligibleAt,
+      'biometric_id':         u.biometricId,
     });
   }
 

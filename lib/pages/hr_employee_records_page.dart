@@ -872,6 +872,7 @@ class _EditDialogState extends State<_EditDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _empIdCtrl;
+  late final TextEditingController _bioIdCtrl;
   late final TextEditingController _desigCtrl;
   late final TextEditingController _mobileCtrl;
   late final TextEditingController _addressCtrl;
@@ -893,6 +894,7 @@ class _EditDialogState extends State<_EditDialog> {
     _nameCtrl    = TextEditingController(text: u?.name ?? '');
     _emailCtrl   = TextEditingController(text: u != null ? _prefix(u.email) : '');
     _empIdCtrl   = TextEditingController(text: u?.employeeId ?? '');
+    _bioIdCtrl   = TextEditingController(text: u?.biometricId ?? '');
     _desigCtrl   = TextEditingController(text: u?.designation ?? '');
     _mobileCtrl  = TextEditingController(text: u?.mobile ?? '');
     _addressCtrl = TextEditingController(text: u?.address ?? '');
@@ -907,7 +909,7 @@ class _EditDialogState extends State<_EditDialog> {
   @override
   void dispose() {
     for (final c in [
-      _nameCtrl, _emailCtrl, _empIdCtrl, _desigCtrl,
+      _nameCtrl, _emailCtrl, _empIdCtrl, _bioIdCtrl, _desigCtrl,
       _mobileCtrl, _addressCtrl, _joiningCtrl, _leaveCtrl,
     ]) {
       c.dispose();
@@ -934,6 +936,7 @@ class _EditDialogState extends State<_EditDialog> {
       name:             name,
       email:            '$prefix$_domain',
       employeeId:       _empIdCtrl.text.trim(),
+      biometricId:      _bioIdCtrl.text.trim(),
       designation:      _desigCtrl.text.trim(),
       role:             _role,
       active:           _active,
@@ -1082,6 +1085,7 @@ class _EditDialogState extends State<_EditDialog> {
             ),
 
             _field(_empIdCtrl,   'Employee ID',               Icons.badge_rounded),
+            _field(_bioIdCtrl,   'Biometric ID (Device PIN)', Icons.fingerprint_rounded),
             _field(_desigCtrl,   'Designation',               Icons.work_rounded),
             _field(_mobileCtrl,  'Mobile',                    Icons.phone_rounded,
                 keyboard: TextInputType.phone),

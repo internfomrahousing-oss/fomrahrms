@@ -15,6 +15,7 @@ class AppUser {
   String dateOfJoining;       // ISO date string, set when management creates the user
   String onrollConfirmedAt;   // ISO datetime when HR confirmed on-roll; empty = probation
   String elEligibleAt;        // ISO datetime when HR confirmed EL eligibility; empty = not eligible
+  String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
 
   AppUser({
     required this.name,
@@ -31,6 +32,7 @@ class AppUser {
     this.dateOfJoining = '',
     this.onrollConfirmedAt = '',
     this.elEligibleAt = '',
+    this.biometricId = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
@@ -81,6 +83,7 @@ class AppUser {
     'dateOfJoining':       dateOfJoining,
     'onrollConfirmedAt':   onrollConfirmedAt,
     'elEligibleAt':        elEligibleAt,
+    'biometricId':         biometricId,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -98,5 +101,6 @@ class AppUser {
     dateOfJoining:     j['dateOfJoining']     as String? ?? '',
     onrollConfirmedAt: j['onrollConfirmedAt'] as String? ?? '',
     elEligibleAt:      j['elEligibleAt']      as String? ?? '',
+    biometricId:       j['biometricId']       as String? ?? '',
   );
 }
