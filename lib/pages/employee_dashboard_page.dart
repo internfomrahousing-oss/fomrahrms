@@ -208,18 +208,6 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
               SizedBox(height: narrow ? 16 : 24),
             ],
 
-            // EL avail section — only for EL-eligible employees
-            if (_myUser != null && _myUser!.isElEligible) ...[
-              _SectionLabel(icon: Icons.card_giftcard_rounded, label: 'Earned Leave'),
-              const SizedBox(height: 12),
-              _ElAvailCard(
-                user: _myUser!,
-                loading: _elAvailLoading,
-                onRequest: _requestElAvail,
-              ),
-              SizedBox(height: narrow ? 16 : 24),
-            ],
-
             // Menu grid
             _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),
             const SizedBox(height: 12),
