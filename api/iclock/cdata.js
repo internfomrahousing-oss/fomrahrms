@@ -125,10 +125,12 @@ module.exports = async (req, res) => {
 
   // GET — device handshake / heartbeat
   if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     return res.status(200).send(
       [
         `GET OPTION FROM: ${sn}`,
-        'ATTLOGStamp=9999',
+        'ATTLOGStamp=0',
         'OPERLOGStamp=9999',
         'ATTPHOTOStamp=None',
         'ErrorDelay=30',
@@ -139,7 +141,7 @@ module.exports = async (req, res) => {
         'TimeZone=5.5',
         'Realtime=1',
         'Encrypt=0',
-      ].join('\n') + '\n'
+      ].join('\r\n') + '\r\n'
     );
   }
 
