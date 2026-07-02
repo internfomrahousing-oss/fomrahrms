@@ -154,8 +154,6 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     final filtered = _records
         .where((r) => _matches(r.employeeName))
         .toList();
-    final checkIns  = filtered.where((r) => r.checkInTime.isNotEmpty).toList();
-    final checkOuts = filtered.where((r) => r.checkOutTime.isNotEmpty).toList();
 
     return Scaffold(
       backgroundColor: null,
@@ -232,40 +230,20 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator(color: _color)),
             )
-          else ...[
-            // Check-In Records
+          else
             _Section(
-              title: 'Check-In Records',
-              icon: Icons.login_rounded,
+              title: 'Attendance Records',
+              icon: Icons.access_time_rounded,
               color: _color,
-              count: checkIns.length,
-              child: checkIns.isEmpty
+              count: filtered.length,
+              child: filtered.isEmpty
                   ? _Empty()
                   : _AttendanceTable(
-                      records: checkIns,
-                      showCheckOut: false,
+                      records: filtered,
                       color: _color,
                       onRowTap: _showDetail,
                     ),
             ),
-            const SizedBox(height: 16),
-
-            // Check-Out Records
-            _Section(
-              title: 'Check-Out Records',
-              icon: Icons.logout_rounded,
-              color: const Color(0xFF1565C0),
-              count: checkOuts.length,
-              child: checkOuts.isEmpty
-                  ? _Empty()
-                  : _AttendanceTable(
-                      records: checkOuts,
-                      showCheckOut: true,
-                      color: const Color(0xFF1565C0),
-                      onRowTap: _showDetail,
-                    ),
-            ),
-          ],
         ]),
       ),
     );
@@ -276,12 +254,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
 
 class _AttendanceTable extends StatelessWidget {
   final List<AttendanceRecord> records;
-  final bool showCheckOut;
   final Color color;
   final void Function(AttendanceRecord) onRowTap;
   const _AttendanceTable({
     required this.records,
-    required this.showCheckOut,
     required this.color,
     required this.onRowTap,
   });
@@ -299,7 +275,9 @@ class _AttendanceTable extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Text('Date',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
-          DataColumn(label: Text(showCheckOut ? 'Check-Out Time' : 'Check-In Time',
+          DataColumn(label: Text('Check-In Time',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
+          DataColumn(label: Text('Check-Out Time',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Row(children: [
             Text('Details', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color)),
@@ -307,29 +285,42 @@ class _AttendanceTable extends StatelessWidget {
             Icon(Icons.open_in_new_rounded, size: 11, color: color),
           ])),
         ],
-        rows: records.map((r) => DataRow(
-          onSelectChanged: (_) => onRowTap(r),
-          color: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.hovered)) return color.withValues(alpha: 0.04);
-            return null;
-          }),
-          cells: [
-            DataCell(Text(r.employeeName,
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
-            DataCell(Text(r.date,
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
-            DataCell(Text(showCheckOut ? r.checkOutTime : r.checkInTime,
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
-            DataCell(Row(children: [
-              Text(r.checkInTime.isNotEmpty && r.checkOutTime.isNotEmpty
-                  ? 'In & Out recorded'
-                  : r.checkInTime.isNotEmpty ? 'Checked in' : 'Checked out',
-                  style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.8))),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right_rounded, size: 14, color: color.withValues(alpha: 0.5)),
-            ])),
-          ],
-        )).toList(),
+        rows: records.map((r) {
+          final bothRecorded = r.checkInTime.isNotEmpty && r.checkOutTime.isNotEmpty;
+          final statusText = bothRecorded
+              ? 'In & Out recorded'
+              : r.checkInTime.isNotEmpty ? 'Checked in' : 'Checked out';
+          final statusColor = bothRecorded ? Colors.green.shade700 : color;
+          return DataRow(
+            onSelectChanged: (_) => onRowTap(r),
+            color: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.hovered)) return color.withValues(alpha: 0.04);
+              return null;
+            }),
+            cells: [
+              DataCell(Text(r.employeeName,
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
+              DataCell(Text(r.date,
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
+              DataCell(Text(r.checkInTime.isNotEmpty ? r.checkInTime : '—',
+                  style: TextStyle(fontSize: 12,
+                      color: r.checkInTime.isNotEmpty
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.grey.shade400))),
+              DataCell(Text(r.checkOutTime.isNotEmpty ? r.checkOutTime : '—',
+                  style: TextStyle(fontSize: 12,
+                      color: r.checkOutTime.isNotEmpty
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.grey.shade400))),
+              DataCell(Row(children: [
+                Text(statusText,
+                    style: TextStyle(fontSize: 11, color: statusColor.withValues(alpha: 0.9))),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right_rounded, size: 14, color: statusColor.withValues(alpha: 0.5)),
+              ])),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
