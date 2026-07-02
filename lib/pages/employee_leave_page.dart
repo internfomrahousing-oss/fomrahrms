@@ -126,6 +126,18 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
                   style: Theme.of(context).textTheme.headlineMedium),
             ),
 
+            // ── Compact leave balance ─────────────────────────────────────
+            if (user != null) _CompactBalance(
+              clAvail: (user.monthlyCl - _usedMonth('Casual Leave')).clamp(0, 99).toInt(),
+              mlAvail: user.isOnroll || user.isElEligible
+                  ? (user.monthlyMl - _usedMonth('Medical / Sick Leave')).clamp(0, 99).toInt()
+                  : -1,
+              elAvail: user.isElEligible
+                  ? (_elAccrued() - _usedElSinceAvail()).clamp(0, 999).toInt()
+                  : -1,
+            ),
+            const SizedBox(width: 10),
+
             // ── Apply Leave dropdown ──────────────────────────────────────
             PopupMenuButton<String>(
               offset: const Offset(0, 44),
@@ -173,34 +185,6 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    // ── Leave balance blocks ────────────────────────────
-                    if (user != null) ...[
-                      Row(children: [
-                        _LeaveBlock('CL',
-                          used:     _usedMonth('Casual Leave'),
-                          quota:    user.monthlyCl,
-                          color:    Colors.teal.shade700,
-                          subtitle: 'This month'),
-                        if (user.isOnroll || user.isElEligible) ...[
-                          const SizedBox(width: 8),
-                          _LeaveBlock('ML',
-                            used:     _usedMonth('Medical / Sick Leave'),
-                            quota:    user.monthlyMl,
-                            color:    const Color(0xFF1565C0),
-                            subtitle: 'This month'),
-                        ],
-                        if (user.isElEligible) ...[
-                          const SizedBox(width: 8),
-                          _LeaveBlock('EL',
-                            used:     _usedElSinceAvail(),
-                            quota:    _elAccrued(),
-                            color:    Colors.purple.shade700,
-                            subtitle: 'Cumulative'),
-                        ],
-                      ]),
-                      const SizedBox(height: 14),
-                    ],
-
                     // ── Status chips ────────────────────────────────────
                     Row(children: [
                       _StatusChip('Pending',  Icons.hourglass_empty_rounded,
@@ -261,62 +245,64 @@ PopupMenuItem<String> _menuItem(String val, IconData icon, String label, Color c
       ]),
     );
 
-// ── Leave balance block ────────────────────────────────────────────────────────
-class _LeaveBlock extends StatelessWidget {
-  final String type;
-  final double used;
-  final int quota;
-  final Color color;
-  final String subtitle;
-  const _LeaveBlock(this.type,
-      {required this.used, required this.quota, required this.color, required this.subtitle});
-
-  static String _fmt(double d) =>
-      d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
+// ── Compact balance (header row) ──────────────────────────────────────────────
+class _CompactBalance extends StatelessWidget {
+  final int clAvail;
+  final int mlAvail; // -1 = not applicable
+  final int elAvail; // -1 = not applicable
+  const _CompactBalance(
+      {required this.clAvail, required this.mlAvail, required this.elAvail});
 
   @override
   Widget build(BuildContext context) {
-    final available = (quota - used).clamp(0.0, quota.toDouble());
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Text(type,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
-            const Spacer(),
-            Text(subtitle,
-                style: const TextStyle(fontSize: 9, color: Color(0xFF90A4AE))),
-          ]),
-          const SizedBox(height: 6),
-          Row(children: [
-            Icon(Icons.event_available_rounded, size: 11, color: Colors.green.shade700),
-            const SizedBox(width: 3),
-            Text(_fmt(available),
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                    color: Colors.green.shade700)),
-            const SizedBox(width: 3),
-            const Text('available',
-                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
-          ]),
-          const SizedBox(height: 3),
-          Row(children: [
-            Icon(Icons.check_circle_outline_rounded, size: 11, color: Colors.orange.shade700),
-            const SizedBox(width: 3),
-            Text(_fmt(used),
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                    color: Colors.orange.shade700)),
-            const SizedBox(width: 3),
-            const Text('used',
-                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
-          ]),
-        ]),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFCFD8DC)),
       ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        _Pill('CL', clAvail, Colors.teal.shade700),
+        if (mlAvail >= 0) ...[
+          const SizedBox(width: 1),
+          Container(width: 1, height: 20, color: const Color(0xFFCFD8DC)),
+          const SizedBox(width: 1),
+          _Pill('ML', mlAvail, const Color(0xFF1565C0)),
+        ],
+        if (elAvail >= 0) ...[
+          const SizedBox(width: 1),
+          Container(width: 1, height: 20, color: const Color(0xFFCFD8DC)),
+          const SizedBox(width: 1),
+          _Pill('EL', elAvail, Colors.purple.shade700),
+        ],
+      ]),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String label;
+  final int avail;
+  final Color color;
+  const _Pill(this.label, this.avail, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: 9, fontWeight: FontWeight.w700,
+                color: color, letterSpacing: 0.5)),
+        const SizedBox(height: 2),
+        Text('${avail}d',
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+        Text('avail',
+            style: const TextStyle(fontSize: 8, color: Color(0xFF90A4AE))),
+      ]),
     );
   }
 }
