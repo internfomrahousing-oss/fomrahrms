@@ -45,7 +45,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     final now = DateTime.now();
     _selectedMonth = DateTime(now.year, now.month);
     _reload();
@@ -90,10 +90,10 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     return a.from.year == now.year && a.from.month == now.month;
   }
 
-  double _usedByType(String name, String type, {bool monthOnly = true}) =>
+  double _usedBucket(String name, String bucket, {bool monthOnly = true}) =>
       _applications.where((a) =>
           a.employeeName == name &&
-          a.leaveType == type &&
+          LeaveStore.effectiveBucket(a.leaveType) == bucket &&
           a.managerStatus == LeaveApprovalStatus.approved &&
           (!monthOnly || _isThisMonth(a)))
       .fold(0.0, (s, a) => s + a.effectiveDays);
@@ -177,8 +177,10 @@ static String _fmtD(double d) =>
                   indicatorColor: _color,
                   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   tabs: const [
-                    Tab(icon: Icon(Icons.people_rounded, size: 18), text: 'Employee Allocations'),
-                    Tab(icon: Icon(Icons.list_alt_rounded, size: 18),  text: 'All Applications'),
+                    Tab(icon: Icon(Icons.people_rounded,      size: 18), text: 'Employee Allocations'),
+                    Tab(icon: Icon(Icons.event_note_rounded,  size: 18), text: 'Leave'),
+                    Tab(icon: Icon(Icons.access_time_rounded, size: 18), text: 'Permission'),
+                    Tab(icon: Icon(Icons.swap_horiz_rounded,  size: 18), text: 'Comp Off'),
                   ],
                 ),
               ],
@@ -192,7 +194,9 @@ static String _fmtD(double d) =>
                     controller: _tabs,
                     children: [
                       _buildAllocationsTab(),
-                      _buildApplicationsTab(),
+                      _buildApplicationsTab(typeFilter: 'leave'),
+                      _buildApplicationsTab(typeFilter: 'Permission'),
+                      _buildApplicationsTab(typeFilter: 'Comp Off'),
                     ],
                   ),
           ),
@@ -258,12 +262,12 @@ static String _fmtD(double d) =>
               // ML / CL reset monthly; EL is cumulative
               Row(children: [
                 _LeaveTypeBlock('ML',
-                  used: _usedByType(user.name, 'Medical / Sick Leave'),
+                  used: _usedBucket(user.name, 'ML'),
                   quota: user.monthlyMl,
                   color: const Color(0xFF1565C0)),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('CL',
-                  used: _usedByType(user.name, 'Casual Leave'),
+                  used: _usedBucket(user.name, 'CL'),
                   quota: user.monthlyCl,
                   color: Colors.teal.shade700),
                 const SizedBox(width: 8),
@@ -279,10 +283,15 @@ static String _fmtD(double d) =>
     );
   }
 
-  // ── Tab 2: All leave applications (read-only, filtered by month) ─────────
+  // ── Tabs 2-4: Applications filtered by type ──────────────────────────────
 
-  Widget _buildApplicationsTab() {
-    final apps     = _monthApps;
+  Widget _buildApplicationsTab({required String typeFilter}) {
+    final apps = _monthApps.where((a) {
+      if (typeFilter == 'leave') {
+        return a.leaveType != 'Permission' && a.leaveType != 'Comp Off';
+      }
+      return a.leaveType == typeFilter;
+    }).toList();
     final pending  = apps.where((a) => a.managerStatus == LeaveApprovalStatus.pending).length;
     final approved = apps.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
     final denied   = apps.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length;
