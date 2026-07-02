@@ -260,7 +260,6 @@ final _router = GoRouter(
         GoRoute(path: '/manager/task-management/add',     builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/manager/performance-management',  builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/manager/salary-hike-engine',      builder: (_, __) => const SalaryHikeEnginePage()),
-        GoRoute(path: '/manager/payroll-management',      builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/manager/interview-process',       builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/manager/interview-review',        builder: (_, __) => const ManagerInterviewReviewPage()),
         GoRoute(path: '/manager/candidate-detail',        builder: (_, __) => const CandidateDetailPage()),

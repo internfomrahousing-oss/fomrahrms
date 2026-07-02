@@ -79,15 +79,33 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
   double _usedElSinceAvail() {
-    final cutoff = _appUser?.elLastAvailedAt.isNotEmpty == true
-        ? DateTime.tryParse(_appUser!.elLastAvailedAt)
-        : null;
+    final user = _appUser;
+    if (user == null) return 0;
+    final refStr = user.elLastAvailedAt.isNotEmpty
+        ? user.elLastAvailedAt
+        : user.elEligibleAt;
+    final cutoff = refStr.isNotEmpty ? DateTime.tryParse(refStr) : null;
     return _mine
         .where((a) =>
             a.managerStatus == LeaveApprovalStatus.approved &&
             a.leaveType == 'Earned Leave' &&
             (cutoff == null || a.from.isAfter(cutoff)))
         .fold(0.0, (s, a) => s + a.effectiveDays);
+  }
+
+  // Months since last avail (or since becoming EL eligible) × 1/month
+  int _elAccrued() {
+    final user = _appUser;
+    if (user == null) return 0;
+    final refStr = user.elLastAvailedAt.isNotEmpty
+        ? user.elLastAvailedAt
+        : user.elEligibleAt;
+    if (refStr.isEmpty) return 0;
+    final ref = DateTime.tryParse(refStr);
+    if (ref == null) return 0;
+    final now = DateTime.now();
+    final months = (now.year - ref.year) * 12 + (now.month - ref.month);
+    return (months * user.monthlyEl).clamp(0, 9999);
   }
 
   static String _monthName(int m) => const [
@@ -163,7 +181,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                         const SizedBox(width: 8),
                         _LeaveBlock('EL',
                           used:  _usedElSinceAvail(),
-                          quota: user.monthlyEl * 12,
+                          quota: _elAccrued(),
                           color: Colors.purple.shade700,
                           subtitle: 'Cumulative'),
                       ],

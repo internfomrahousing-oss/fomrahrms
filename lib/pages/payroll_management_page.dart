@@ -48,15 +48,24 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
   }
 
   double _elUsed(AppUser u) {
-    final cutoff = u.elLastAvailedAt.isNotEmpty
-        ? DateTime.tryParse(u.elLastAvailedAt)
-        : null;
+    final refStr = u.elLastAvailedAt.isNotEmpty ? u.elLastAvailedAt : u.elEligibleAt;
+    final cutoff = refStr.isNotEmpty ? DateTime.tryParse(refStr) : null;
     return _leaves.where((a) =>
         a.employeeName == u.name &&
         a.leaveType == 'Earned Leave' &&
         a.managerStatus == LeaveApprovalStatus.approved &&
         (cutoff == null || a.from.isAfter(cutoff)))
     .fold(0.0, (s, a) => s + a.effectiveDays);
+  }
+
+  int _elAccrued(AppUser u) {
+    final refStr = u.elLastAvailedAt.isNotEmpty ? u.elLastAvailedAt : u.elEligibleAt;
+    if (refStr.isEmpty) return 0;
+    final ref = DateTime.tryParse(refStr);
+    if (ref == null) return 0;
+    final now = DateTime.now();
+    final months = (now.year - ref.year) * 12 + (now.month - ref.month);
+    return (months * u.monthlyEl).clamp(0, 9999);
   }
 
   Future<void> _confirmAvail(AppUser user) async {
@@ -113,7 +122,8 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                       itemCount: _employees.length,
                       itemBuilder: (context, i) => _EmployeePayrollCard(
                         user: _employees[i],
-                        elUsed: _elUsed(_employees[i]),
+                        elUsed:    _elUsed(_employees[i]),
+                        elAccrued: _elAccrued(_employees[i]),
                         onConfirmAvail: () => _confirmAvail(_employees[i]),
                       ),
                     ),
@@ -127,10 +137,12 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
 class _EmployeePayrollCard extends StatefulWidget {
   final AppUser user;
   final double elUsed;
+  final int    elAccrued;
   final VoidCallback onConfirmAvail;
   const _EmployeePayrollCard({
     required this.user,
     required this.elUsed,
+    required this.elAccrued,
     required this.onConfirmAvail,
   });
 
@@ -151,7 +163,8 @@ class _EmployeePayrollCardState extends State<_EmployeePayrollCard> {
   @override
   Widget build(BuildContext context) {
     final u = widget.user;
-    final elAvailable = ((u.monthlyEl * 12) - widget.elUsed).clamp(0.0, (u.monthlyEl * 12).toDouble());
+    final elAccrued   = widget.elAccrued;
+    final elAvailable = (elAccrued - widget.elUsed).clamp(0.0, elAccrued.toDouble());
     final hasPending  = u.elAvailRequestedAt.isNotEmpty;
     final lastAvailed = u.elLastAvailedAt.isNotEmpty
         ? DateTime.tryParse(u.elLastAvailedAt)

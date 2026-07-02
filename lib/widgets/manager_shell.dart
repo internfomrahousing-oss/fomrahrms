@@ -19,7 +19,6 @@ const _hrNavItems = [
   _NavItem('Interview Review',       Icons.rate_review_rounded,            '/manager/interview-review'),
   _NavItem('Team Leave Approvals',   Icons.group_rounded,                  '/manager/leave/team-approvals'),
   _NavItem('Task Management',        Icons.task_alt_rounded,               '/manager/task-management'),
-  _NavItem('Payroll Management',     Icons.account_balance_wallet_rounded, '/manager/payroll-management'),
   _NavItem('Employee Onboarding',    Icons.how_to_reg_rounded,             '/manager/employee-onboarding'),
   _NavItem('Approvals',              Icons.approval_rounded,               '/manager/approvals'),
   _NavItem('Notifications',          Icons.notifications_rounded,          '/manager/notifications'),
