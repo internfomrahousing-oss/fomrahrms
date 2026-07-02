@@ -3,6 +3,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 
 class HrAttendanceRecordsPage extends StatefulWidget {
   const HrAttendanceRecordsPage({super.key});
@@ -19,6 +20,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
   List<AttendanceRecord> _records = [];
+  int _totalUsers = 0;
 
   @override
   void initState() {
@@ -31,8 +33,15 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
 
   Future<void> _loadRecords() async {
     setState(() => _isLoading = true);
-    final list = await SupabaseService.fetchAttendanceForDate(_dateToStr(_selectedDate));
-    if (mounted) setState(() { _records = list; _isLoading = false; });
+    final results = await Future.wait([
+      SupabaseService.fetchAttendanceForDate(_dateToStr(_selectedDate)),
+      UserStore.load(),
+    ]);
+    if (mounted) setState(() {
+      _records = results[0] as List<AttendanceRecord>;
+      _totalUsers = (results[1] as List).length;
+      _isLoading = false;
+    });
   }
 
   bool get _isToday {
@@ -230,7 +239,9 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator(color: _color)),
             )
-          else
+          else ...[
+            _AttendanceSummaryCard(records: _records, totalUsers: _totalUsers),
+            const SizedBox(height: 16),
             _Section(
               title: 'Attendance Records',
               icon: Icons.access_time_rounded,
@@ -244,8 +255,100 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                       onRowTap: _showDetail,
                     ),
             ),
+          ],
         ]),
       ),
+    );
+  }
+}
+
+// ── Attendance summary card ───────────────────────────────────────────────────
+
+class _AttendanceSummaryCard extends StatelessWidget {
+  final List<AttendanceRecord> records;
+  final int totalUsers;
+  const _AttendanceSummaryCard({required this.records, required this.totalUsers});
+
+  static const _green = Color(0xFF2E7D32);
+
+  @override
+  Widget build(BuildContext context) {
+    final present = records.where((r) => r.checkInTime.isNotEmpty).length;
+    final absent  = (totalUsers - present).clamp(0, totalUsers);
+
+    final stats = [
+      ('Present', '$present', Icons.check_circle_rounded, _green),
+      ('Absent',  '$absent',  Icons.cancel_rounded,       const Color(0xFFC62828)),
+      ('Late Arrivals', '—', Icons.schedule_rounded,      const Color(0xFFE65100)),
+      ('On Permission', '—', Icons.event_note_rounded,    const Color(0xFF1565C0)),
+      ('Comp Off',      '—', Icons.weekend_rounded,       const Color(0xFF6A1B9A)),
+      ('On Duty',       '—', Icons.work_rounded,          const Color(0xFF00695C)),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.bar_chart_rounded, color: _green, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Summary',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                    color: Color(0xFF2E7D32))),
+          ]),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: stats.map((s) => _SumStat(
+              label: s.$1,
+              value: s.$2,
+              icon:  s.$3,
+              color: s.$4,
+            )).toList(),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _SumStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _SumStat({required this.label, required this.value,
+      required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(value,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+        ]),
+      ]),
     );
   }
 }
