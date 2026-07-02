@@ -71,15 +71,11 @@ class _DashboardPageState extends State<DashboardPage> {
     final dateStr =
         '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
 
-    final results = await Future.wait([
-      UserStore.load(),
-      SupabaseService.fetchAttendanceForDate(dateStr),
-    ]);
-    final users   = results[0] as List;
-    final records = results[1] as List;
+    final users   = await UserStore.load();
+    final records = await SupabaseService.fetchAttendanceForDate(dateStr);
 
     final total   = users.length;
-    final present = records.where((r) => (r.checkInTime as String).isNotEmpty).length;
+    final present = records.where((r) => r.checkInTime.isNotEmpty).length;
     final absent  = (total - present).clamp(0, total);
 
     if (mounted) {
