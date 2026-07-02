@@ -85,16 +85,33 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
             ),
             const SizedBox(width: 8),
 
-            // ── Apply Leave button ──────────────────────────────────────
-            ElevatedButton.icon(
-              onPressed: () => context.push('${widget.prefix}/leave/apply'),
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Apply Leave', style: TextStyle(fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _purple,
-                foregroundColor: Colors.white,
+            // ── Apply Leave dropdown ────────────────────────────────────
+            PopupMenuButton<String>(
+              offset: const Offset(0, 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              onSelected: (val) {
+                if (val == 'leave')       context.push('${widget.prefix}/leave/apply');
+                else if (val == 'perm')   context.push('${widget.prefix}/leave/permission');
+                else if (val == 'compoff')context.push('${widget.prefix}/leave/compoff');
+              },
+              itemBuilder: (_) => [
+                _menuItem('leave',   Icons.event_available_rounded, 'Apply Leave',      _purple),
+                _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', const Color(0xFF00838F)),
+                _menuItem('compoff', Icons.swap_horiz_rounded,      'Apply Comp Off',   const Color(0xFF2E7D32)),
+              ],
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: _purple,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add_rounded, size: 16, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text('Apply Leave', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down_rounded, size: 16, color: Colors.white),
+                ]),
               ),
             ),
             const SizedBox(width: 4),
@@ -156,6 +173,23 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
 }
 
 // ── Leave application card ─────────────────────────────────────────────────────
+PopupMenuItem<String> _menuItem(String val, IconData icon, String label, Color color) =>
+    PopupMenuItem<String>(
+      value: val,
+      child: Row(children: [
+        Container(
+          width: 30, height: 30,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color)),
+      ]),
+    );
+
 class _AppCard extends StatelessWidget {
   final LeaveApplication app;
   const _AppCard({required this.app});

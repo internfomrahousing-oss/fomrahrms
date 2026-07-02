@@ -18,6 +18,8 @@ import 'pages/late_coming_page.dart';
 import 'pages/leave_management_page.dart';
 import 'pages/management_leave_page.dart';
 import 'pages/apply_leave_page.dart';
+import 'pages/apply_permission_page.dart';
+import 'pages/apply_comp_off_page.dart';
 import 'pages/leave_approvals_page.dart';
 import 'pages/leave_balance_page.dart';
 import 'pages/task_management_page.dart';
@@ -224,6 +226,8 @@ final _router = GoRouter(
         GoRoute(path: '/employee/attendance',              builder: (_, __) => const MyAttendancePage()),
         GoRoute(path: '/employee/leave-management',        builder: (_, __) => const EmployeeLeavePage()),
         GoRoute(path: '/employee/leave/apply',             builder: (_, __) => const ApplyLeavePage()),
+        GoRoute(path: '/employee/leave/permission',        builder: (_, __) => const ApplyPermissionPage()),
+        GoRoute(path: '/employee/leave/compoff',           builder: (_, __) => const ApplyCompOffPage()),
         GoRoute(path: '/employee/leave/approvals',         builder: (_, __) => const MyLeaveApprovalsPage()),
         GoRoute(path: '/employee/leave/balance',           builder: (_, __) => const MyLeaveBalancePage()),
         GoRoute(path: '/employee/leave',                   builder: (_, __) => const ApplyLeavePage()),
@@ -249,6 +253,8 @@ final _router = GoRouter(
         GoRoute(path: '/manager/attendance-management',   builder: (_, __) => const HrAttendanceRecordsPage()),
         GoRoute(path: '/manager/leave-management',        builder: (_, __) => const ManagerLeavePage()),
         GoRoute(path: '/manager/leave/apply',             builder: (_, __) => const ApplyLeavePage()),
+        GoRoute(path: '/manager/leave/permission',        builder: (_, __) => const ApplyPermissionPage()),
+        GoRoute(path: '/manager/leave/compoff',           builder: (_, __) => const ApplyCompOffPage()),
         GoRoute(path: '/manager/leave/approvals',         builder: (_, __) => const MyLeaveApprovalsPage()),
         GoRoute(path: '/manager/leave/balance',           builder: (_, __) => const MyLeaveBalancePage()),
         GoRoute(path: '/manager/leave/team-approvals',    builder: (_, __) => const TeamLeaveApprovalsPage()),
@@ -296,6 +302,8 @@ final _router = GoRouter(
         GoRoute(path: '/management/leave-management',       builder: (_, __) => const ManagementLeavePage()),
         GoRoute(path: '/management/leave/overview',         builder: (_, __) => const TeamLeaveApprovalsPage(isManagement: true, showAll: true)),
         GoRoute(path: '/management/leave/apply',            builder: (_, __) => const ApplyLeavePage()),
+        GoRoute(path: '/management/leave/permission',       builder: (_, __) => const ApplyPermissionPage()),
+        GoRoute(path: '/management/leave/compoff',          builder: (_, __) => const ApplyCompOffPage()),
         GoRoute(path: '/management/leave/approvals',        builder: (_, __) => const LeaveApprovalsPage()),
         GoRoute(path: '/management/leave/balance',          builder: (_, __) => const LeaveBalancePage()),
         GoRoute(path: '/management/leave/team-approvals',   builder: (_, __) => const TeamLeaveApprovalsPage(isManagement: true, showAll: false)),
