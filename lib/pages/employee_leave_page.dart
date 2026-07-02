@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 
 class EmployeeLeavePage extends StatefulWidget {
   final String prefix;
@@ -17,6 +19,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
   static const _purple = Color(0xFF6A1B9A);
 
   bool _loading = false;
+  AppUser? _appUser;
 
   @override
   void initState() {
@@ -27,16 +30,28 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
-      final fresh = await SupabaseService.fetchLeaveApplications()
-          .timeout(const Duration(seconds: 8));
-      if (fresh.isNotEmpty) {
+      final results = await Future.wait([
+        SupabaseService.fetchLeaveApplications().timeout(const Duration(seconds: 8)),
+        UserStore.load(),
+      ]);
+      final leaves = results[0] as List<LeaveApplication>;
+      final users  = results[1] as List<AppUser>;
+
+      if (leaves.isNotEmpty) {
         LeaveStore.applications
           ..clear()
-          ..addAll(fresh);
+          ..addAll(leaves);
         LeaveStore.syncCounter();
       }
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
+
+      final match = users.where((u) => u.name == UserSession.name).toList();
+      if (mounted) setState(() {
+        _appUser = match.isNotEmpty ? match.first : null;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   List<LeaveApplication> get _apps => LeaveStore.applications
@@ -47,8 +62,48 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
   int get _approved => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.approved).length;
   int get _denied   => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.denied).length;
 
+  // ── Balance helpers ────────────────────────────────────────────────────────
+  bool _isThisMonth(LeaveApplication a) {
+    final now = DateTime.now();
+    return a.from.year == now.year && a.from.month == now.month;
+  }
+
+  double _usedMonth(String type) => _apps
+      .where((a) =>
+          a.managerStatus == LeaveApprovalStatus.approved &&
+          _isThisMonth(a) &&
+          a.leaveType == type)
+      .fold(0.0, (s, a) => s + a.effectiveDays);
+
+  double _usedElSinceAvail() {
+    final user = _appUser;
+    if (user == null) return 0;
+    final refStr = user.elLastAvailedAt.isNotEmpty ? user.elLastAvailedAt : user.elEligibleAt;
+    final cutoff = refStr.isNotEmpty ? DateTime.tryParse(refStr) : null;
+    return _apps
+        .where((a) =>
+            a.managerStatus == LeaveApprovalStatus.approved &&
+            a.leaveType == 'Earned Leave' &&
+            (cutoff == null || a.from.isAfter(cutoff)))
+        .fold(0.0, (s, a) => s + a.effectiveDays);
+  }
+
+  int _elAccrued() {
+    final user = _appUser;
+    if (user == null) return 0;
+    final refStr = user.elLastAvailedAt.isNotEmpty ? user.elLastAvailedAt : user.elEligibleAt;
+    if (refStr.isEmpty) return 0;
+    final ref = DateTime.tryParse(refStr);
+    if (ref == null) return 0;
+    final now = DateTime.now();
+    final months = (now.year - ref.year) * 12 + (now.month - ref.month);
+    return (months * user.monthlyEl).clamp(0, 9999);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = _appUser;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(children: [
@@ -71,28 +126,14 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
                   style: Theme.of(context).textTheme.headlineMedium),
             ),
 
-            // ── Leave Balance button ────────────────────────────────────
-            OutlinedButton.icon(
-              onPressed: () => context.push('${widget.prefix}/leave/balance'),
-              icon: const Icon(Icons.balance_rounded, size: 15),
-              label: const Text('Leave Balance', style: TextStyle(fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _blue,
-                side: const BorderSide(color: _blue),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // ── Apply Leave dropdown ────────────────────────────────────
+            // ── Apply Leave dropdown ──────────────────────────────────────
             PopupMenuButton<String>(
               offset: const Offset(0, 44),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               onSelected: (val) {
-                if (val == 'leave')       context.push('${widget.prefix}/leave/apply');
-                else if (val == 'perm')   context.push('${widget.prefix}/leave/permission');
-                else if (val == 'compoff')context.push('${widget.prefix}/leave/compoff');
+                if (val == 'leave')        context.push('${widget.prefix}/leave/apply');
+                else if (val == 'perm')    context.push('${widget.prefix}/leave/permission');
+                else if (val == 'compoff') context.push('${widget.prefix}/leave/compoff');
               },
               itemBuilder: (_) => [
                 _menuItem('leave',   Icons.event_available_rounded, 'Apply Leave',      _purple),
@@ -108,7 +149,8 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
                 child: const Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.add_rounded, size: 16, color: Colors.white),
                   SizedBox(width: 6),
-                  Text('Apply Leave', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                  Text('Apply Leave',
+                      style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
                   SizedBox(width: 4),
                   Icon(Icons.arrow_drop_down_rounded, size: 16, color: Colors.white),
                 ]),
@@ -124,55 +166,84 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
         ),
         const Divider(height: 1),
 
-        // ── Status summary ─────────────────────────────────────────────
-        Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          child: Row(children: [
-            _StatusChip('Pending',  Icons.hourglass_empty_rounded,
-                Colors.orange.shade700, _pending),
-            const SizedBox(width: 10),
-            _StatusChip('Approved', Icons.check_circle_rounded,
-                Colors.green.shade700, _approved),
-            const SizedBox(width: 10),
-            _StatusChip('Denied',   Icons.cancel_rounded,
-                Colors.red.shade700, _denied),
-          ]),
-        ),
-        const Divider(height: 1),
-
-        // ── Leave history list ─────────────────────────────────────────
+        // ── Body ──────────────────────────────────────────────────────────
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
-              : _apps.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
-                          const SizedBox(height: 12),
-                          Text('No leave history yet',
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
-                          const SizedBox(height: 6),
-                          Text('Tap "Apply Leave" to submit your first request.',
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // ── Leave balance blocks ────────────────────────────
+                    if (user != null) ...[
+                      Row(children: [
+                        _LeaveBlock('CL',
+                          used:     _usedMonth('Casual Leave'),
+                          quota:    user.monthlyCl,
+                          color:    Colors.teal.shade700,
+                          subtitle: 'This month'),
+                        if (user.isOnroll || user.isElEligible) ...[
+                          const SizedBox(width: 8),
+                          _LeaveBlock('ML',
+                            used:     _usedMonth('Medical / Sick Leave'),
+                            quota:    user.monthlyMl,
+                            color:    const Color(0xFF1565C0),
+                            subtitle: 'This month'),
                         ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: _apps.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _AppCard(app: _apps[i]),
-                    ),
+                        if (user.isElEligible) ...[
+                          const SizedBox(width: 8),
+                          _LeaveBlock('EL',
+                            used:     _usedElSinceAvail(),
+                            quota:    _elAccrued(),
+                            color:    Colors.purple.shade700,
+                            subtitle: 'Cumulative'),
+                        ],
+                      ]),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // ── Status chips ────────────────────────────────────
+                    Row(children: [
+                      _StatusChip('Pending',  Icons.hourglass_empty_rounded,
+                          Colors.orange.shade700, _pending),
+                      const SizedBox(width: 8),
+                      _StatusChip('Approved', Icons.check_circle_rounded,
+                          Colors.green.shade700, _approved),
+                      const SizedBox(width: 8),
+                      _StatusChip('Denied',   Icons.cancel_rounded,
+                          Colors.red.shade700, _denied),
+                    ]),
+                    const SizedBox(height: 12),
+
+                    // ── Leave history ───────────────────────────────────
+                    if (_apps.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 48),
+                        child: Center(
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+                            const SizedBox(height: 12),
+                            Text('No leave history yet',
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
+                            const SizedBox(height: 6),
+                            Text('Tap "Apply Leave" to submit your first request.',
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                          ]),
+                        ),
+                      )
+                    else
+                      ..._apps.map((a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _AppCard(app: a),
+                          )),
+                  ],
+                ),
         ),
       ]),
     );
   }
 }
 
-// ── Leave application card ─────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 PopupMenuItem<String> _menuItem(String val, IconData icon, String label, Color color) =>
     PopupMenuItem<String>(
       value: val,
@@ -190,6 +261,67 @@ PopupMenuItem<String> _menuItem(String val, IconData icon, String label, Color c
       ]),
     );
 
+// ── Leave balance block ────────────────────────────────────────────────────────
+class _LeaveBlock extends StatelessWidget {
+  final String type;
+  final double used;
+  final int quota;
+  final Color color;
+  final String subtitle;
+  const _LeaveBlock(this.type,
+      {required this.used, required this.quota, required this.color, required this.subtitle});
+
+  static String _fmt(double d) =>
+      d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
+
+  @override
+  Widget build(BuildContext context) {
+    final available = (quota - used).clamp(0.0, quota.toDouble());
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Text(type,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+            const Spacer(),
+            Text(subtitle,
+                style: const TextStyle(fontSize: 9, color: Color(0xFF90A4AE))),
+          ]),
+          const SizedBox(height: 6),
+          Row(children: [
+            Icon(Icons.event_available_rounded, size: 11, color: Colors.green.shade700),
+            const SizedBox(width: 3),
+            Text(_fmt(available),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Colors.green.shade700)),
+            const SizedBox(width: 3),
+            const Text('available',
+                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+          ]),
+          const SizedBox(height: 3),
+          Row(children: [
+            Icon(Icons.check_circle_outline_rounded, size: 11, color: Colors.orange.shade700),
+            const SizedBox(width: 3),
+            Text(_fmt(used),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Colors.orange.shade700)),
+            const SizedBox(width: 3),
+            const Text('used',
+                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Leave application card ─────────────────────────────────────────────────────
 class _AppCard extends StatelessWidget {
   final LeaveApplication app;
   const _AppCard({required this.app});
@@ -224,7 +356,6 @@ class _AppCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Top row: leave type + status pill
           Row(children: [
             Expanded(
               child: Text(app.leaveType,
@@ -240,14 +371,12 @@ class _AppCard extends StatelessWidget {
                 '${_fmt(app.from)} → ${_fmt(app.to)}'),
             _InfoChip(Icons.numbers_rounded,
                 app.isHalfDay ? '½ day' : '${app.days} day${app.days == 1 ? '' : 's'}'),
-            _InfoChip(Icons.access_time_rounded,
-                'Applied: ${_fmt(app.appliedOn)}'),
+            _InfoChip(Icons.access_time_rounded, 'Applied: ${_fmt(app.appliedOn)}'),
             if (app.reason.isNotEmpty)
               _InfoChip(Icons.notes_rounded, app.reason),
           ]),
 
-          if (status == LeaveApprovalStatus.denied &&
-              app.effectiveComment.isNotEmpty) ...[
+          if (status == LeaveApprovalStatus.denied && app.effectiveComment.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -322,17 +451,17 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 6),
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 5),
         Text('$count $label',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
       ]),
     );
   }
