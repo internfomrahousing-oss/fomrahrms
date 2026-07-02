@@ -14,16 +14,30 @@ class ApplyCompOffPage extends StatefulWidget {
 class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
   static const _color = Color(0xFF2E7D32);
 
+  static const _reasons = [
+    'Public Holiday Comp Off',
+    'Week Off Comp Off',
+    'Site Visit',
+    'Leave Comp Off',
+    'On Duty',
+    'Others',
+  ];
+
   DateTime? _workedDate;
   DateTime? _claimDate;
-  final _reasonController = TextEditingController();
+  String _reason = 'Public Holiday Comp Off';
+  final _othersController = TextEditingController();
+  final _descController   = TextEditingController();
+
+  bool get _isOthers => _reason == 'Others';
 
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
   @override
   void dispose() {
-    _reasonController.dispose();
+    _othersController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
@@ -61,9 +75,13 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
     if (_workedDate == null || _claimDate == null) {
       _snack('Please select both dates.'); return;
     }
-    final reason = _reasonController.text.trim();
-    final note   = 'Worked on: ${_fmtDate(_workedDate!)}'
-        '${reason.isNotEmpty ? ' | $reason' : ''}';
+    if (_isOthers && _othersController.text.trim().isEmpty) {
+      _snack('Please specify the reason.'); return;
+    }
+    final reasonText = _isOthers ? _othersController.text.trim() : _reason;
+    final desc       = _descController.text.trim();
+    final note = 'Worked on: ${_fmtDate(_workedDate!)} | $reasonText'
+        '${desc.isNotEmpty ? ' | $desc' : ''}';
 
     final app = LeaveApplication(
       id:           LeaveStore.generateId(),
@@ -85,8 +103,13 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
   }
 
   void _clear() {
-    setState(() { _workedDate = null; _claimDate = null; });
-    _reasonController.clear();
+    setState(() {
+      _workedDate = null;
+      _claimDate  = null;
+      _reason     = 'Public Holiday Comp Off';
+    });
+    _othersController.clear();
+    _descController.clear();
   }
 
   void _snack(String msg) {
@@ -97,6 +120,24 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ));
   }
+
+  InputDecoration _deco(String label, IconData icon) => InputDecoration(
+    labelText: label,
+    prefixIcon: Icon(icon, color: _color, size: 20),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _color, width: 2),
+    ),
+    filled: true,
+    fillColor: Colors.white,
+    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -151,12 +192,36 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Reason / description ──────────────────────────────
+                  // ── Reason dropdown ───────────────────────────────────
+                  DropdownButtonFormField<String>(
+                    value: _reason,
+                    isExpanded: true,
+                    decoration: _deco('Reason for Request', Icons.label_rounded),
+                    items: _reasons
+                        .map((r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r, style: const TextStyle(fontSize: 13)),
+                            ))
+                        .toList(),
+                    onChanged: (v) { if (v != null) setState(() => _reason = v); },
+                  ),
+
+                  // ── Others text field ─────────────────────────────────
+                  if (_isOthers) ...[
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: _othersController,
+                      decoration: _deco('Specify reason', Icons.edit_rounded),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  // ── Description ───────────────────────────────────────
                   TextField(
-                    controller: _reasonController,
+                    controller: _descController,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      labelText: 'Reason / Description',
+                      labelText: 'Description',
                       alignLabelWithHint: true,
                       prefixIcon: const Padding(
                         padding: EdgeInsets.only(bottom: 72),
@@ -170,13 +235,11 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: _color, width: 2),
+                        borderSide: const BorderSide(color: _color, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      labelStyle:
-                          const TextStyle(color: Color(0xFF78909C)),
+                      labelStyle: const TextStyle(color: Color(0xFF78909C)),
                     ),
                   ),
                 ],
