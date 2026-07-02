@@ -97,18 +97,20 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     return a.from.year == now.year && a.from.month == now.month;
   }
 
-  double _usedDays(String name) => _applications
-      .where((a) =>
+  double _usedByType(String name, String type, {bool monthOnly = true}) =>
+      _applications.where((a) =>
           a.employeeName == name &&
+          a.leaveType == type &&
           a.managerStatus == LeaveApprovalStatus.approved &&
-          _isThisMonth(a))
+          (!monthOnly || _isThisMonth(a)))
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
-  double _pendingDays(String name) => _applications
-      .where((a) =>
+  double _pendingByType(String name, String type, {bool monthOnly = true}) =>
+      _applications.where((a) =>
           a.employeeName == name &&
+          a.leaveType == type &&
           a.managerStatus == LeaveApprovalStatus.pending &&
-          _isThisMonth(a))
+          (!monthOnly || _isThisMonth(a)))
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
   static String _fmtD(double d) =>
@@ -225,9 +227,6 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
       itemCount: _employees.length,
       itemBuilder: (context, i) {
         final user = _employees[i];
-        final used    = _usedDays(user.name);
-        final pending = _pendingDays(user.name);
-        final avail   = (user.leaveAllocation - used).clamp(0.0, user.leaveAllocation.toDouble());
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -266,15 +265,23 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
               const Divider(height: 1),
               const SizedBox(height: 10),
 
-              // Leave stats row (current month only)
+              // ML / CL / EL breakdown
               Row(children: [
-                _StatChip('Monthly', '${user.leaveAllocation}d', const Color(0xFF0D47A1)),
+                _LeaveTypeBlock('ML',
+                  _usedByType(user.name, 'Medical / Sick Leave'),
+                  _pendingByType(user.name, 'Medical / Sick Leave'),
+                  const Color(0xFF1565C0)),
                 const SizedBox(width: 8),
-                _StatChip('Used',    _fmtD(used),    Colors.orange.shade700),
+                _LeaveTypeBlock('CL',
+                  _usedByType(user.name, 'Casual Leave'),
+                  _pendingByType(user.name, 'Casual Leave'),
+                  Colors.teal.shade700),
                 const SizedBox(width: 8),
-                _StatChip('Pending', _fmtD(pending), Colors.deepOrange.shade600),
-                const SizedBox(width: 8),
-                _StatChip('Left',    _fmtD(avail),   Colors.green.shade700),
+                _LeaveTypeBlock('EL',
+                  _usedByType(user.name, 'Earned Leave', monthOnly: false),
+                  _pendingByType(user.name, 'Earned Leave', monthOnly: false),
+                  Colors.purple.shade700,
+                  monthOnly: false),
               ]),
             ]),
           ),
@@ -529,6 +536,70 @@ class _StatChip extends StatelessWidget {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
       Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
     ]);
+  }
+}
+
+class _LeaveTypeBlock extends StatelessWidget {
+  final String type;
+  final double used;
+  final double pending;
+  final Color color;
+  final bool monthOnly;
+  const _LeaveTypeBlock(this.type, this.used, this.pending, this.color,
+      {this.monthOnly = true});
+
+  static String _fmt(double d) =>
+      d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Text(type,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+            const Spacer(),
+            if (!monthOnly)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('cumul.',
+                    style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w600)),
+              ),
+          ]),
+          const SizedBox(height: 5),
+          Row(children: [
+            Icon(Icons.check_circle_outline_rounded, size: 11, color: Colors.orange.shade700),
+            const SizedBox(width: 3),
+            Text(_fmt(used),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                    color: Colors.orange.shade700)),
+            const SizedBox(width: 2),
+            const Text('used', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+          ]),
+          const SizedBox(height: 2),
+          Row(children: [
+            Icon(Icons.hourglass_empty_rounded, size: 11, color: Colors.deepOrange.shade600),
+            const SizedBox(width: 3),
+            Text(_fmt(pending),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                    color: Colors.deepOrange.shade600)),
+            const SizedBox(width: 2),
+            const Text('pending', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+          ]),
+        ]),
+      ),
+    );
   }
 }
 
