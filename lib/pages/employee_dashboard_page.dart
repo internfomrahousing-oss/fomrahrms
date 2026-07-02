@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/app_user.dart';
 import '../models/user_session.dart';
-import '../services/supabase_service.dart';
-import '../services/user_store.dart';
 
 class _Item {
   final String title;
@@ -15,9 +12,7 @@ class _Item {
 }
 
 const _items = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/employee/attendance-management'),
   _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF1976D2), '/employee/leave-management'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/employee/tasks'),
   _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/employee/payslips'),
   _Item('Maintenance',   Icons.build_rounded,                  Color(0xFF4E342E), '/employee/maintenance-management'),
   _Item('Onboarding',    Icons.how_to_reg_rounded,             Color(0xFF00695C), '/employee/employee-onboarding'),
@@ -37,8 +32,6 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
   Map<String, dynamic>? _onboardingForm;
   Map<String, dynamic>? _interviewApp;
   bool _loadingRecords = false;
-  AppUser? _myUser;
-  bool _elAvailLoading = false;
 
   @override
   void initState() {
@@ -80,27 +73,16 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
             .limit(1);
       }
 
-      // Load own AppUser record for EL eligibility
-      final allUsers = await UserStore.load();
-      final myUser = allUsers.where((u) => u.email == UserSession.email).firstOrNull;
-
       if (mounted) {
         setState(() {
           _onboardingForm = obRows.isNotEmpty ? (obRows.first as Map<String, dynamic>) : null;
           _interviewApp   = caRows.isNotEmpty ? (caRows.first as Map<String, dynamic>) : null;
-          _myUser         = myUser;
           _loadingRecords = false;
         });
       }
     } catch (_) {
       if (mounted) setState(() => _loadingRecords = false);
     }
-  }
-
-  Future<void> _requestElAvail() async {
-    setState(() => _elAvailLoading = true);
-    await SupabaseService.requestElAvail(UserSession.email);
-    await _fetchMyRecords();
   }
 
   @override
@@ -453,89 +435,6 @@ class _OnboardingCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── EL Avail card ─────────────────────────────────────────────────────────────
-class _ElAvailCard extends StatelessWidget {
-  final AppUser user;
-  final bool loading;
-  final VoidCallback onRequest;
-  const _ElAvailCard({required this.user, required this.loading, required this.onRequest});
-
-  static const _purple = Color(0xFF6A1B9A);
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPending = user.elAvailRequestedAt.isNotEmpty;
-    final lastAvailed = user.elLastAvailedAt.isNotEmpty
-        ? DateTime.tryParse(user.elLastAvailedAt)
-        : null;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _purple.withValues(alpha: 0.3), width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _purple.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.card_giftcard_rounded, color: _purple, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Earned Leave',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _purple)),
-              if (lastAvailed != null)
-                Text('Last availed: ${_fmt(lastAvailed)}',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
-              if (hasPending)
-                const Text('Awaiting HR confirmation',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
-            ]),
-          ),
-          if (hasPending)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade300),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.hourglass_empty_rounded, size: 13, color: Colors.orange.shade700),
-                const SizedBox(width: 4),
-                Text('Pending', style: TextStyle(fontSize: 12, color: Colors.orange.shade700, fontWeight: FontWeight.w600)),
-              ]),
-            )
-          else
-            ElevatedButton.icon(
-              onPressed: loading ? null : onRequest,
-              icon: loading
-                  ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.redeem_rounded, size: 15),
-              label: const Text('Avail EL', style: TextStyle(fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _purple,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-        ]),
-      ),
-    );
-  }
-
-  static String _fmt(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }
 
 // ── Dash card ─────────────────────────────────────────────────────────────────
