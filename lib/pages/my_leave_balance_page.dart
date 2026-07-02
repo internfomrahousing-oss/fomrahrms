@@ -6,8 +6,6 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
-const _defaultAllocation = 21; // fallback when no HR-set allocation exists
-
 class MyLeaveBalancePage extends StatefulWidget {
   const MyLeaveBalancePage({super.key});
 
@@ -18,13 +16,8 @@ class MyLeaveBalancePage extends StatefulWidget {
 class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
   static const _color = Color(0xFF1976D2);
   bool _loading = false;
-  int _totalAllocated = _defaultAllocation;
-  bool   _isOnroll        = false;
-  bool   _isElEligible    = false;
-  int    _monthlyCl       = 1;
-  int    _monthlyMl       = 0;
-  int    _monthlyEl       = 0;
-  String _elLastAvailedAt = '';
+  bool _elAvailLoading = false;
+  AppUser? _appUser;
 
   @override
   void initState() {
@@ -50,18 +43,11 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
         LeaveStore.syncCounter();
       }
 
-      // Find this employee's record set by HR
       final match = users.where((u) => u.name == UserSession.name).toList();
       final user  = match.isNotEmpty ? match.first : null;
 
       if (mounted) setState(() {
-        _totalAllocated  = user?.leaveAllocation  ?? _defaultAllocation;
-        _isOnroll        = user?.isOnroll         ?? false;
-        _isElEligible    = user?.isElEligible     ?? false;
-        _monthlyCl       = user?.monthlyCl        ?? 1;
-        _monthlyMl       = user?.monthlyMl        ?? 0;
-        _monthlyEl       = user?.monthlyEl        ?? 0;
-        _elLastAvailedAt = user?.elLastAvailedAt  ?? '';
+        _appUser = user;
         _loading = false;
       });
     } catch (_) {
@@ -69,38 +55,37 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
     }
   }
 
+  Future<void> _requestElAvail() async {
+    if (_appUser == null) return;
+    setState(() => _elAvailLoading = true);
+    await SupabaseService.requestElAvail(_appUser!.email);
+    await _load();
+  }
+
   List<LeaveApplication> get _mine => LeaveStore.applications
       .where((a) => a.employeeName == UserSession.name)
       .toList();
 
-  // Only count leaves that START in the current month — balance resets each month
   bool _isThisMonth(LeaveApplication a) {
     final now = DateTime.now();
     return a.from.year == now.year && a.from.month == now.month;
   }
 
-  double _usedDays(String? type) => _mine
+  double _usedMonth(String type) => _mine
       .where((a) =>
           a.managerStatus == LeaveApprovalStatus.approved &&
           _isThisMonth(a) &&
-          (type == null || a.leaveType == type))
+          a.leaveType == type)
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
-  double _pendingDays(String? type) => _mine
-      .where((a) =>
-          a.managerStatus == LeaveApprovalStatus.pending &&
-          _isThisMonth(a) &&
-          (type == null || a.leaveType == type))
-      .fold(0.0, (s, a) => s + a.effectiveDays);
-
-  double _usedAllTime(String type) {
-    final cutoff = _elLastAvailedAt.isNotEmpty
-        ? DateTime.tryParse(_elLastAvailedAt)
+  double _usedElSinceAvail() {
+    final cutoff = _appUser?.elLastAvailedAt.isNotEmpty == true
+        ? DateTime.tryParse(_appUser!.elLastAvailedAt)
         : null;
     return _mine
         .where((a) =>
             a.managerStatus == LeaveApprovalStatus.approved &&
-            a.leaveType == type &&
+            a.leaveType == 'Earned Leave' &&
             (cutoff == null || a.from.isAfter(cutoff)))
         .fold(0.0, (s, a) => s + a.effectiveDays);
   }
@@ -112,9 +97,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
 
   @override
   Widget build(BuildContext context) {
-    final used      = _usedDays(null);
-    final pending   = _pendingDays(null);
-    final available = (_totalAllocated - used).clamp(0.0, _totalAllocated.toDouble());
+    final user = _appUser;
 
     return Scaffold(
       backgroundColor: null,
@@ -125,6 +108,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header
                   Row(children: [
                     const NavBackButton(),
                     const SizedBox(width: 8),
@@ -140,10 +124,8 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Leave Balance',
                           style: Theme.of(context).textTheme.headlineMedium),
-                      Text(
-                        _monthName(DateTime.now().month),
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
-                      ),
+                      Text(_monthName(DateTime.now().month),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
                     ]),
                     const Spacer(),
                     IconButton(
@@ -154,48 +136,49 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                   ]),
                   const SizedBox(height: 24),
 
-                  // Overall summary card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _SummaryCircle('Monthly Limit', Icons.calendar_month_rounded,
-                              const Color(0xFF0D47A1), _totalAllocated.toDouble()),
-                          _SummaryCircle('Used', Icons.event_busy_rounded,
-                              const Color(0xFF1565C0), used),
-                          _SummaryCircle('Available', Icons.event_available_rounded,
-                              const Color(0xFF2E7D32), available),
-                          _SummaryCircle('Pending', Icons.pending_actions_rounded,
-                              Colors.orange.shade700, pending),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  if (user == null)
+                    const Text('Employee record not found.',
+                        style: TextStyle(color: Color(0xFF78909C)))
+                  else ...[
+                    // Status chip
+                    _StatusChip(user.leaveStatus),
+                    const SizedBox(height: 16),
 
-                  // Leave type blocks — CL/ML reset monthly, EL is cumulative
-                  Row(children: [
-                    _LeaveBlock('CL',
-                      used:  _usedDays('Casual Leave'),
-                      quota: _monthlyCl,
-                      color: Colors.teal.shade700),
-                    if (_isOnroll || _isElEligible) ...[
-                      const SizedBox(width: 8),
-                      _LeaveBlock('ML',
-                        used:  _usedDays('Medical / Sick Leave'),
-                        quota: _monthlyMl,
-                        color: const Color(0xFF1565C0)),
+                    // Leave type blocks — only what's applicable
+                    Row(children: [
+                      _LeaveBlock('CL',
+                        used:  _usedMonth('Casual Leave'),
+                        quota: user.monthlyCl,
+                        color: Colors.teal.shade700,
+                        subtitle: 'This month'),
+                      if (user.isOnroll || user.isElEligible) ...[
+                        const SizedBox(width: 8),
+                        _LeaveBlock('ML',
+                          used:  _usedMonth('Medical / Sick Leave'),
+                          quota: user.monthlyMl,
+                          color: const Color(0xFF1565C0),
+                          subtitle: 'This month'),
+                      ],
+                      if (user.isElEligible) ...[
+                        const SizedBox(width: 8),
+                        _LeaveBlock('EL',
+                          used:  _usedElSinceAvail(),
+                          quota: user.monthlyEl * 12,
+                          color: Colors.purple.shade700,
+                          subtitle: 'Cumulative'),
+                      ],
+                    ]),
+
+                    // EL avail card — only for EL-eligible
+                    if (user.isElEligible) ...[
+                      const SizedBox(height: 12),
+                      _ElAvailCard(
+                        user: user,
+                        loading: _elAvailLoading,
+                        onRequest: _requestElAvail,
+                      ),
                     ],
-                    if (_isElEligible) ...[
-                      const SizedBox(width: 8),
-                      _LeaveBlock('EL',
-                        used:  _usedAllTime('Earned Leave'),
-                        quota: _monthlyEl * 12,
-                        color: Colors.purple.shade700),
-                    ],
-                  ]),
+                  ],
                 ],
               ),
             ),
@@ -203,43 +186,40 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
   }
 }
 
-class _SummaryCircle extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final double value;
-  const _SummaryCircle(this.label, this.icon, this.color, this.value);
+// ── Status chip ────────────────────────────────────────────────────────────────
+class _StatusChip extends StatelessWidget {
+  final String status;
+  const _StatusChip(this.status);
 
   @override
   Widget build(BuildContext context) {
-    final display = value % 1 == 0 ? '${value.toInt()}' : value.toStringAsFixed(1);
-    return Column(children: [
-      Container(
-        width: 52, height: 52,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: color, size: 26),
+    final color = switch (status) {
+      'EL Eligible' => const Color(0xFF6A1B9A),
+      'On-Roll'     => const Color(0xFF2E7D32),
+      _             => const Color(0xFF78909C),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      const SizedBox(height: 8),
-      Text(display,
-          style: TextStyle(
-              fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-      const SizedBox(height: 2),
-      Text(label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
-    ]);
+      child: Text(status,
+          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+    );
   }
 }
 
+// ── Leave block ────────────────────────────────────────────────────────────────
 class _LeaveBlock extends StatelessWidget {
   final String type;
   final double used;
   final int quota;
   final Color color;
-  const _LeaveBlock(this.type, {required this.used, required this.quota, required this.color});
+  final String subtitle;
+  const _LeaveBlock(this.type,
+      {required this.used, required this.quota, required this.color, required this.subtitle});
 
   static String _fmt(double d) =>
       d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
@@ -249,37 +229,133 @@ class _LeaveBlock extends StatelessWidget {
     final available = (quota - used).clamp(0.0, quota.toDouble());
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.18)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(type,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
-          const SizedBox(height: 5),
+          Row(children: [
+            Text(type,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+            const Spacer(),
+            Text(subtitle,
+                style: const TextStyle(fontSize: 9, color: Color(0xFF90A4AE))),
+          ]),
+          const SizedBox(height: 6),
           Row(children: [
             Icon(Icons.event_available_rounded, size: 11, color: Colors.green.shade700),
             const SizedBox(width: 3),
             Text(_fmt(available),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                     color: Colors.green.shade700)),
-            const SizedBox(width: 2),
-            const Text('available', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+            const SizedBox(width: 3),
+            const Text('available',
+                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
           ]),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Row(children: [
             Icon(Icons.check_circle_outline_rounded, size: 11, color: Colors.orange.shade700),
             const SizedBox(width: 3),
             Text(_fmt(used),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                     color: Colors.orange.shade700)),
-            const SizedBox(width: 2),
-            const Text('used', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+            const SizedBox(width: 3),
+            const Text('used',
+                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
           ]),
         ]),
       ),
     );
   }
+}
+
+// ── EL Avail card ─────────────────────────────────────────────────────────────
+class _ElAvailCard extends StatelessWidget {
+  final AppUser user;
+  final bool loading;
+  final VoidCallback onRequest;
+  const _ElAvailCard(
+      {required this.user, required this.loading, required this.onRequest});
+
+  static const _purple = Color(0xFF6A1B9A);
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPending  = user.elAvailRequestedAt.isNotEmpty;
+    final lastAvailed = user.elLastAvailedAt.isNotEmpty
+        ? DateTime.tryParse(user.elLastAvailedAt)
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _purple.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _purple.withValues(alpha: 0.25)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.card_giftcard_rounded, color: _purple, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('EL Availed',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700, color: _purple)),
+            if (hasPending)
+              const Text('Awaiting HR confirmation',
+                  style: TextStyle(fontSize: 10, color: Colors.orange))
+            else if (lastAvailed != null)
+              Text('Last availed: ${_fmtDate(lastAvailed)}',
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF78909C)))
+            else
+              const Text('Not yet availed',
+                  style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+          ]),
+        ),
+        if (hasPending)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade300),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.hourglass_empty_rounded,
+                  size: 12, color: Colors.orange.shade700),
+              const SizedBox(width: 4),
+              Text('Pending',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.w600)),
+            ]),
+          )
+        else
+          ElevatedButton.icon(
+            onPressed: loading ? null : onRequest,
+            icon: loading
+                ? const SizedBox(
+                    width: 12, height: 12,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.redeem_rounded, size: 14),
+            label: const Text('Avail EL', style: TextStyle(fontSize: 12)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _purple,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  static String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }

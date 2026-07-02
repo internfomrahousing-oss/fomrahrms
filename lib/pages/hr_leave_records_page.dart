@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
@@ -83,12 +82,6 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  Future<void> _saveAllocation(AppUser user, int days) async {
-    user.leaveAllocation = days;
-    await UserStore.upsertOne(user);
-    if (mounted) setState(() {});
   }
 
   // Filter to current month only — leaves reset each month, no carry-over
@@ -257,10 +250,17 @@ static String _fmtD(double d) =>
                         style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
                   ]),
                 ),
-                // Editable allocation badge
-                _AllocationEditor(
-                  value: user.leaveAllocation,
-                  onSave: (days) => _saveAllocation(user, days),
+                // Allocation badge (read-only)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _color.withValues(alpha: 0.2)),
+                  ),
+                  child: Text('${user.leaveAllocation} days',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.bold, color: _color)),
                 ),
               ]),
               const SizedBox(height: 12),
@@ -404,113 +404,6 @@ static String _fmtD(double d) =>
                 child: _AppCard(app: app, fmt: _fmt),
               )),
       ],
-    );
-  }
-}
-
-// ── Allocation editor widget ─────────────────────────────────────────────────
-
-class _AllocationEditor extends StatefulWidget {
-  final int value;
-  final void Function(int) onSave;
-  const _AllocationEditor({required this.value, required this.onSave});
-
-  @override
-  State<_AllocationEditor> createState() => _AllocationEditorState();
-}
-
-class _AllocationEditorState extends State<_AllocationEditor> {
-  static const _color = Color(0xFF0D47A1);
-  bool _editing = false;
-  late final TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: '${widget.value}');
-  }
-
-  @override
-  void didUpdateWidget(_AllocationEditor old) {
-    super.didUpdateWidget(old);
-    if (!_editing) _ctrl.text = '${widget.value}';
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _save() {
-    final v = int.tryParse(_ctrl.text.trim());
-    if (v != null && v > 0) {
-      widget.onSave(v);
-      setState(() => _editing = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_editing) {
-      return Row(mainAxisSize: MainAxisSize.min, children: [
-        SizedBox(
-          width: 56,
-          child: TextField(
-            controller: _ctrl,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _color),
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: _color, width: 2),
-              ),
-            ),
-            onSubmitted: (_) => _save(),
-          ),
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: _save,
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(Icons.check_rounded, size: 16, color: Colors.green.shade700),
-          ),
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: () => setState(() { _ctrl.text = '${widget.value}'; _editing = false; }),
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(Icons.close_rounded, size: 16, color: Colors.red.shade400),
-          ),
-        ),
-      ]);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _color.withValues(alpha: 0.2)),
-      ),
-      child: Text('${widget.value} days',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _color)),
     );
   }
 }

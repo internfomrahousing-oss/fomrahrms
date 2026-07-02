@@ -159,7 +159,6 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       _error       = null;
       _all         = [];
       _filtered    = [];
-      _filterValue = 'All';
     });
     try {
       final leads = await LeadService.fetchLeads(_scriptUrl);
