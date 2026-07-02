@@ -1,7 +1,10 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "build/web",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/iclock/cdata", "destination": "/api/iclock/cdata" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/index.html",
