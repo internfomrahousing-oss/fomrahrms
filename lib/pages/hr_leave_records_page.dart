@@ -257,16 +257,16 @@ static String _fmtD(double d) =>
               const Divider(height: 1),
               const SizedBox(height: 10),
 
-              // ML / CL / EL breakdown (all cumulative)
+              // ML / CL reset monthly; EL is cumulative
               Row(children: [
                 _LeaveTypeBlock('ML',
-                  used: _usedByType(user.name, 'Medical / Sick Leave', monthOnly: false),
-                  quota: user.monthlyMl * 12,
+                  used: _usedByType(user.name, 'Medical / Sick Leave'),
+                  quota: user.monthlyMl,
                   color: const Color(0xFF1565C0)),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('CL',
-                  used: _usedByType(user.name, 'Casual Leave', monthOnly: false),
-                  quota: user.monthlyCl * 12,
+                  used: _usedByType(user.name, 'Casual Leave'),
+                  quota: user.monthlyCl,
                   color: Colors.teal.shade700),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('EL',

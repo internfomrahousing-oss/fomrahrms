@@ -167,17 +167,17 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Leave type blocks — shown based on eligibility
+                  // Leave type blocks — CL/ML reset monthly, EL is cumulative
                   Row(children: [
                     _LeaveBlock('CL',
-                      used:  _usedAllTime('Casual Leave'),
-                      quota: _monthlyCl * 12,
+                      used:  _usedDays('Casual Leave'),
+                      quota: _monthlyCl,
                       color: Colors.teal.shade700),
                     if (_isOnroll || _isElEligible) ...[
                       const SizedBox(width: 8),
                       _LeaveBlock('ML',
-                        used:  _usedAllTime('Medical / Sick Leave'),
-                        quota: _monthlyMl * 12,
+                        used:  _usedDays('Medical / Sick Leave'),
+                        quota: _monthlyMl,
                         color: const Color(0xFF1565C0)),
                     ],
                     if (_isElEligible) ...[
