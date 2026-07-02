@@ -16,6 +16,8 @@ class AppUser {
   String onrollConfirmedAt;   // ISO datetime when HR confirmed on-roll; empty = probation
   String elEligibleAt;        // ISO datetime when HR confirmed EL eligibility; empty = not eligible
   String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
+  String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
+  String elLastAvailedAt;    // ISO datetime when HR confirmed EL avail; empty = never availed
 
   AppUser({
     required this.name,
@@ -33,6 +35,8 @@ class AppUser {
     this.onrollConfirmedAt = '',
     this.elEligibleAt = '',
     this.biometricId = '',
+    this.elAvailRequestedAt = '',
+    this.elLastAvailedAt = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
@@ -69,38 +73,42 @@ class AppUser {
   }
 
   Map<String, dynamic> toJson() => {
-    'name':                name,
-    'email':               email,
-    'employeeId':          employeeId,
-    'designation':         designation,
-    'role':                role,
-    'active':              active,
-    'password':            password,
-    'leaveAllocation':     leaveAllocation,
-    'reportingManager':    reportingManager,
-    'mobile':              mobile,
-    'address':             address,
-    'dateOfJoining':       dateOfJoining,
-    'onrollConfirmedAt':   onrollConfirmedAt,
-    'elEligibleAt':        elEligibleAt,
-    'biometricId':         biometricId,
+    'name':                  name,
+    'email':                 email,
+    'employeeId':            employeeId,
+    'designation':           designation,
+    'role':                  role,
+    'active':                active,
+    'password':              password,
+    'leaveAllocation':       leaveAllocation,
+    'reportingManager':      reportingManager,
+    'mobile':                mobile,
+    'address':               address,
+    'dateOfJoining':         dateOfJoining,
+    'onrollConfirmedAt':     onrollConfirmedAt,
+    'elEligibleAt':          elEligibleAt,
+    'biometricId':           biometricId,
+    'elAvailRequestedAt':    elAvailRequestedAt,
+    'elLastAvailedAt':       elLastAvailedAt,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
-    name:              j['name']              as String? ?? '',
-    email:             j['email']             as String? ?? '',
-    employeeId:        j['employeeId']        as String? ?? '',
-    designation:       j['designation']       as String? ?? '',
-    role:              j['role']              as String? ?? 'Employee',
-    active:            j['active']            as bool?   ?? true,
-    password:          j['password']          as String? ?? '',
-    leaveAllocation:   j['leaveAllocation']   as int?    ?? 21,
-    reportingManager:  j['reportingManager']  as String? ?? '',
-    mobile:            j['mobile']            as String? ?? '',
-    address:           j['address']           as String? ?? '',
-    dateOfJoining:     j['dateOfJoining']     as String? ?? '',
-    onrollConfirmedAt: j['onrollConfirmedAt'] as String? ?? '',
-    elEligibleAt:      j['elEligibleAt']      as String? ?? '',
-    biometricId:       j['biometricId']       as String? ?? '',
+    name:                 j['name']                 as String? ?? '',
+    email:                j['email']                as String? ?? '',
+    employeeId:           j['employeeId']           as String? ?? '',
+    designation:          j['designation']          as String? ?? '',
+    role:                 j['role']                 as String? ?? 'Employee',
+    active:               j['active']               as bool?   ?? true,
+    password:             j['password']             as String? ?? '',
+    leaveAllocation:      j['leaveAllocation']      as int?    ?? 21,
+    reportingManager:     j['reportingManager']     as String? ?? '',
+    mobile:               j['mobile']               as String? ?? '',
+    address:              j['address']              as String? ?? '',
+    dateOfJoining:        j['dateOfJoining']        as String? ?? '',
+    onrollConfirmedAt:    j['onrollConfirmedAt']    as String? ?? '',
+    elEligibleAt:         j['elEligibleAt']         as String? ?? '',
+    biometricId:          j['biometricId']          as String? ?? '',
+    elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',
+    elLastAvailedAt:      j['elLastAvailedAt']       as String? ?? '',
   );
 }

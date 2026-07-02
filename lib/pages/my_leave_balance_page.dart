@@ -19,11 +19,12 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
   static const _color = Color(0xFF1976D2);
   bool _loading = false;
   int _totalAllocated = _defaultAllocation;
-  bool _isOnroll     = false;
-  bool _isElEligible = false;
-  int  _monthlyCl    = 1;
-  int  _monthlyMl    = 0;
-  int  _monthlyEl    = 0;
+  bool   _isOnroll        = false;
+  bool   _isElEligible    = false;
+  int    _monthlyCl       = 1;
+  int    _monthlyMl       = 0;
+  int    _monthlyEl       = 0;
+  String _elLastAvailedAt = '';
 
   @override
   void initState() {
@@ -54,12 +55,13 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
       final user  = match.isNotEmpty ? match.first : null;
 
       if (mounted) setState(() {
-        _totalAllocated = user?.leaveAllocation ?? _defaultAllocation;
-        _isOnroll       = user?.isOnroll        ?? false;
-        _isElEligible   = user?.isElEligible    ?? false;
-        _monthlyCl      = user?.monthlyCl       ?? 1;
-        _monthlyMl      = user?.monthlyMl       ?? 0;
-        _monthlyEl      = user?.monthlyEl       ?? 0;
+        _totalAllocated  = user?.leaveAllocation  ?? _defaultAllocation;
+        _isOnroll        = user?.isOnroll         ?? false;
+        _isElEligible    = user?.isElEligible     ?? false;
+        _monthlyCl       = user?.monthlyCl        ?? 1;
+        _monthlyMl       = user?.monthlyMl        ?? 0;
+        _monthlyEl       = user?.monthlyEl        ?? 0;
+        _elLastAvailedAt = user?.elLastAvailedAt  ?? '';
         _loading = false;
       });
     } catch (_) {
@@ -91,11 +93,17 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
           (type == null || a.leaveType == type))
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
-  double _usedAllTime(String type) => _mine
-      .where((a) =>
-          a.managerStatus == LeaveApprovalStatus.approved &&
-          a.leaveType == type)
-      .fold(0.0, (s, a) => s + a.effectiveDays);
+  double _usedAllTime(String type) {
+    final cutoff = _elLastAvailedAt.isNotEmpty
+        ? DateTime.tryParse(_elLastAvailedAt)
+        : null;
+    return _mine
+        .where((a) =>
+            a.managerStatus == LeaveApprovalStatus.approved &&
+            a.leaveType == type &&
+            (cutoff == null || a.from.isAfter(cutoff)))
+        .fold(0.0, (s, a) => s + a.effectiveDays);
+  }
 
   static String _monthName(int m) => const [
     '', 'January', 'February', 'March', 'April', 'May', 'June',

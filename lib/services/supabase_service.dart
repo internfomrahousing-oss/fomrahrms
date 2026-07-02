@@ -176,6 +176,8 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists mobile text default '';
   alter table app_users add column if not exists address text default '';
   alter table app_users add column if not exists date_of_joining text default '';
+  alter table app_users add column if not exists el_avail_requested_at text default '';
+  alter table app_users add column if not exists el_last_availed_at text default '';
 
   create table if not exists tasks (
     id text primary key,
@@ -588,21 +590,23 @@ class SupabaseService {
       final data = await _db?.from('app_users').select().order('name');
       if (data == null) return [];
       return (data as List).map((row) => AppUser(
-        name:               (row['name']                  as String?) ?? '',
-        email:              (row['email']                 as String?) ?? '',
-        employeeId:         (row['employee_id']           as String?) ?? '',
-        designation:        (row['designation']           as String?) ?? '',
-        role:               (row['role']                  as String?) ?? 'Employee',
-        active:             (row['active']                as bool?)   ?? true,
-        password:           (row['password']              as String?) ?? '',
-        leaveAllocation:    (row['leave_allocation']      as int?)    ?? 21,
-        reportingManager:   (row['reporting_manager']     as String?) ?? '',
-        mobile:             (row['mobile']                as String?) ?? '',
-        address:            (row['address']               as String?) ?? '',
-        dateOfJoining:      (row['date_of_joining']       as String?) ?? '',
-        onrollConfirmedAt:  (row['onroll_confirmed_at']   as String?) ?? '',
-        elEligibleAt:       (row['el_eligible_at']        as String?) ?? '',
-        biometricId:        (row['biometric_id']          as String?) ?? '',
+        name:                 (row['name']                    as String?) ?? '',
+        email:                (row['email']                   as String?) ?? '',
+        employeeId:           (row['employee_id']             as String?) ?? '',
+        designation:          (row['designation']             as String?) ?? '',
+        role:                 (row['role']                    as String?) ?? 'Employee',
+        active:               (row['active']                  as bool?)   ?? true,
+        password:             (row['password']                as String?) ?? '',
+        leaveAllocation:      (row['leave_allocation']        as int?)    ?? 21,
+        reportingManager:     (row['reporting_manager']       as String?) ?? '',
+        mobile:               (row['mobile']                  as String?) ?? '',
+        address:              (row['address']                 as String?) ?? '',
+        dateOfJoining:        (row['date_of_joining']         as String?) ?? '',
+        onrollConfirmedAt:    (row['onroll_confirmed_at']     as String?) ?? '',
+        elEligibleAt:         (row['el_eligible_at']          as String?) ?? '',
+        biometricId:          (row['biometric_id']            as String?) ?? '',
+        elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
+        elLastAvailedAt:      (row['el_last_availed_at']      as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -611,22 +615,42 @@ class SupabaseService {
 
   static Future<void> upsertAppUser(AppUser u) async {
     await _db?.from('app_users').upsert({
-      'email':                u.email,
-      'name':                 u.name,
-      'employee_id':          u.employeeId,
-      'designation':          u.designation,
-      'role':                 u.role,
-      'active':               u.active,
-      'password':             u.password,
-      'leave_allocation':     u.leaveAllocation,
-      'reporting_manager':    u.reportingManager,
-      'mobile':               u.mobile,
-      'address':              u.address,
-      'date_of_joining':      u.dateOfJoining,
-      'onroll_confirmed_at':  u.onrollConfirmedAt,
-      'el_eligible_at':       u.elEligibleAt,
-      'biometric_id':         u.biometricId,
+      'email':                    u.email,
+      'name':                     u.name,
+      'employee_id':              u.employeeId,
+      'designation':              u.designation,
+      'role':                     u.role,
+      'active':                   u.active,
+      'password':                 u.password,
+      'leave_allocation':         u.leaveAllocation,
+      'reporting_manager':        u.reportingManager,
+      'mobile':                   u.mobile,
+      'address':                  u.address,
+      'date_of_joining':          u.dateOfJoining,
+      'onroll_confirmed_at':      u.onrollConfirmedAt,
+      'el_eligible_at':           u.elEligibleAt,
+      'biometric_id':             u.biometricId,
+      'el_avail_requested_at':    u.elAvailRequestedAt,
+      'el_last_availed_at':       u.elLastAvailedAt,
     });
+  }
+
+  static Future<void> requestElAvail(String email) async {
+    try {
+      await _db?.from('app_users').update({
+        'el_avail_requested_at': DateTime.now().toIso8601String(),
+      }).eq('email', email);
+    } catch (_) {}
+  }
+
+  static Future<void> confirmElAvail(String email) async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      await _db?.from('app_users').update({
+        'el_last_availed_at':    now,
+        'el_avail_requested_at': '',
+      }).eq('email', email);
+    } catch (_) {}
   }
 
   static Future<void> deleteAppUser(String email) async {

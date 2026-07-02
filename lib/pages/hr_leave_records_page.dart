@@ -105,6 +105,16 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
           (!monthOnly || _isThisMonth(a)))
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
+  double _elUsedSince(String name, String since) {
+    final cutoff = since.isNotEmpty ? DateTime.tryParse(since) : null;
+    return _applications.where((a) =>
+        a.employeeName == name &&
+        a.leaveType == 'Earned Leave' &&
+        a.managerStatus == LeaveApprovalStatus.approved &&
+        (cutoff == null || a.from.isAfter(cutoff)))
+    .fold(0.0, (s, a) => s + a.effectiveDays);
+  }
+
 static String _fmtD(double d) =>
       d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
 
@@ -270,7 +280,7 @@ static String _fmtD(double d) =>
                   color: Colors.teal.shade700),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('EL',
-                  used: _usedByType(user.name, 'Earned Leave', monthOnly: false),
+                  used: _elUsedSince(user.name, user.elLastAvailedAt),
                   quota: user.monthlyEl * 12,
                   color: Colors.purple.shade700),
               ]),
