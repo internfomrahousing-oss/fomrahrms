@@ -1,113 +1,563 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'dart:async';
+import 'dart:html' as html_lib;
+import 'dart:ui_web' as ui_web;
 
-class EmployeeAttendancePage extends StatelessWidget {
-  /// Route prefix: '/employee', '/manager', or '' (HR uses root-level routes).
+import 'package:flutter/material.dart';
+import '../models/attendance_store.dart';
+import '../models/user_session.dart';
+import '../services/gps_tracking_service.dart';
+import '../services/supabase_service.dart';
+
+class EmployeeAttendancePage extends StatefulWidget {
+  // prefix kept for router compatibility; not used internally
   final String prefix;
   const EmployeeAttendancePage({super.key, this.prefix = '/employee'});
 
-  List<_Topic> get _topics => [
-    _Topic('Check In',    Icons.login_rounded,       const Color(0xFF0D47A1), '$prefix/attendance/check-in'),
-    _Topic('Check Out',   Icons.logout_rounded,      const Color(0xFF1565C0), '$prefix/attendance/check-out'),
-    _Topic('Late Coming', Icons.watch_later_rounded, const Color(0xFF283593), '$prefix/attendance/late-coming'),
-  ];
+  @override
+  State<EmployeeAttendancePage> createState() => _EmployeeAttendancePageState();
+}
+
+class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
+  static const _blue  = Color(0xFF0D47A1);
+  static const _green = Color(0xFF2E7D32);
+  static const _teal  = Color(0xFF00695C);
+
+  bool _loading = true;
+  bool _submitting = false;
+  AttendanceRecord? _record;
+  Timer? _refreshTimer;
+
+  final _checkInCtrl  = TextEditingController();
+  final _checkOutCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fillTime(_checkInCtrl);
+    _fillTime(_checkOutCtrl);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _checkInCtrl.dispose();
+    _checkOutCtrl.dispose();
+    super.dispose();
+  }
+
+  void _fillTime(TextEditingController ctrl) {
+    final now = DateTime.now();
+    ctrl.text =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    if (!mounted) return;
+    setState(() {
+      _record  = rec;
+      _loading = false;
+    });
+    if (rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) {
+      AttendanceStore.isCheckedIn = true;
+      GpsTrackingService.start();
+      _refreshTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  Future<void> _checkIn() async {
+    setState(() => _submitting = true);
+    final now  = DateTime.now();
+    final date = _fmtDate(now);
+    final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
+
+    AttendanceStore.isCheckedIn = true;
+    GpsTrackingService.start();
+    _refreshTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+
+    final lat = GpsTrackingService.latestLat;
+    final lng = GpsTrackingService.latestLng;
+    final loc = (lat != null && lng != null) ? '$lat,$lng' : '';
+
+    final err = await SupabaseService.saveCheckIn(
+      employeeName: empName,
+      employeeId:   UserSession.employeeId,
+      date:     date,
+      time:     _checkInCtrl.text,
+      location: loc,
+    );
+
+    if (!mounted) return;
+
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Sync error: $err'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+    }
+
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    if (mounted) setState(() { _record = rec; _submitting = false; });
+  }
+
+  Future<void> _checkOut() async {
+    setState(() => _submitting = true);
+    final now  = DateTime.now();
+    final date = _fmtDate(now);
+
+    GpsTrackingService.stop();
+    AttendanceStore.isCheckedIn = false;
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+
+    await SupabaseService.saveCheckOut(
+      employeeId: UserSession.employeeId,
+      date: date,
+      time: _checkOutCtrl.text,
+    );
+
+    if (!mounted) return;
+    _fillTime(_checkOutCtrl);
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    if (mounted) {
+      setState(() { _record = rec; _submitting = false; });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Checked out successfully'),
+        backgroundColor: _teal,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+    }
+  }
+
+  static String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  static String _dayLabel() {
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    return days[DateTime.now().weekday - 1];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final cs     = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rec    = _record;
+
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D47A1).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.access_time_rounded,
-                    color: Color(0xFF0D47A1), size: 22),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Header
+          Row(children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 14),
+              child: const Icon(Icons.access_time_rounded, color: _blue, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('My Attendance',
                   style: Theme.of(context).textTheme.headlineMedium),
+              Text(_dayLabel(),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
             ]),
-            const SizedBox(height: 20),
-            LayoutBuilder(builder: (context, constraints) {
-              final cols = constraints.maxWidth > 600 ? 4 : 2;
-              final rows = <Widget>[];
-              for (int i = 0; i < _topics.length; i += cols) {
-                final end = (i + cols) > _topics.length ? _topics.length : i + cols;
-                final rowItems = _topics.sublist(i, end);
-                rows.add(Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: rowItems.map((t) {
-                    final isLast = rowItems.last == t;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: isLast ? 0 : 12, bottom: 12),
-                        child: _TopicCard(topic: t),
-                      ),
-                    );
-                  }).toList(),
-                ));
-              }
-              return Column(children: rows);
-            }),
+            const Spacer(),
+            IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.refresh_rounded, color: _blue),
+              onPressed: _load,
+            ),
+          ]),
+          const SizedBox(height: 24),
+
+          if (_loading)
+            const Center(child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 60),
+              child: CircularProgressIndicator(),
+            ))
+
+          // ── Fully checked out ──
+          else if (rec != null && rec.checkOutTime.isNotEmpty)
+            _DaySummary(record: rec, isDark: isDark)
+
+          // ── Checked in, awaiting check-out ──
+          else if (rec != null && rec.checkInTime.isNotEmpty) ...[
+            _StatusBanner(
+              icon: Icons.check_circle_rounded,
+              color: Colors.green,
+              isDark: isDark,
+              child: Row(children: [
+                Icon(Icons.login_rounded,
+                    color: isDark ? Colors.green.shade300 : Colors.green.shade700,
+                    size: 16),
+                const SizedBox(width: 6),
+                Text('Checked in at ',
+                    style: TextStyle(fontSize: 13,
+                        color: isDark ? Colors.green.shade300 : Colors.green.shade700)),
+                Text(rec.checkInTime,
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace',
+                        color: isDark ? Colors.green.shade200 : Colors.green.shade800)),
+                const Spacer(),
+                Container(
+                  width: 8, height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade400, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text('GPS active',
+                    style: TextStyle(fontSize: 11,
+                        color: isDark ? Colors.green.shade400 : Colors.green.shade600)),
+              ]),
+            ),
+
+            // GPS route map (if location available)
+            if (_routePoints(rec).isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Row(children: [
+                      Icon(Icons.route_rounded, color: _blue, size: 16),
+                      SizedBox(width: 8),
+                      Text('Route', style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600)),
+                    ]),
+                    const SizedBox(height: 10),
+                    _RouteMapView(points: _routePoints(rec), recordId: rec.id),
+                  ]),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            _TimeField(
+              controller: _checkOutCtrl,
+              label:   'Check-Out Time',
+              icon:    Icons.logout_rounded,
+              color:   _teal,
+              cs:      cs,
+              onRefresh: () => _fillTime(_checkOutCtrl),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _submitting ? null : _checkOut,
+                icon: _submitting
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.logout_rounded),
+                label: const Text('Check Out'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]
+
+          // ── Not yet checked in ──
+          else ...[
+            _StatusBanner(
+              icon: Icons.schedule_rounded,
+              color: Colors.orange,
+              isDark: isDark,
+              child: Text("You haven't checked in yet today.",
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.orange.shade300 : Colors.orange.shade800)),
+            ),
+            const SizedBox(height: 16),
+            _TimeField(
+              controller: _checkInCtrl,
+              label:    'Check-In Time',
+              icon:     Icons.login_rounded,
+              color:    _blue,
+              cs:       cs,
+              onRefresh: () => _fillTime(_checkInCtrl),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _submitting ? null : _checkIn,
+                icon: _submitting
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.login_rounded),
+                label: const Text('Check In'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
           ],
+        ]),
+      ),
+    );
+  }
+
+  List<List<double>> _routePoints(AttendanceRecord rec) {
+    if (rec.gpsPoints.isNotEmpty) return rec.gpsPoints;
+    final parts = rec.location.split(',');
+    if (parts.length != 2) return [];
+    final lat = double.tryParse(parts[0].trim());
+    final lng = double.tryParse(parts[1].trim());
+    if (lat == null || lng == null) return [];
+    return [[lat, lng]];
+  }
+}
+
+// ── Shared widgets ─────────────────────────────────────────────────────────────
+
+class _StatusBanner extends StatelessWidget {
+  final IconData icon;
+  final MaterialColor color;
+  final bool isDark;
+  final Widget child;
+  const _StatusBanner(
+      {required this.icon, required this.color, required this.isDark, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? color.withValues(alpha: 0.12) : color.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? color.shade700 : color.shade300),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _TimeField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final ColorScheme cs;
+  final VoidCallback onRefresh;
+  const _TimeField({
+    required this.controller, required this.label, required this.icon,
+    required this.color, required this.cs, required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon, color: color, size: 20),
+            suffixIcon: IconButton(
+              tooltip: 'Refresh time',
+              icon: Icon(Icons.schedule_rounded, color: color),
+              onPressed: onRefresh,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: cs.outlineVariant),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: color, width: 2),
+            ),
+            filled: true,
+            fillColor: cs.surface,
+            labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+          ),
         ),
       ),
     );
   }
 }
 
-class _Topic {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String route;
-  const _Topic(this.title, this.icon, this.color, this.route);
-}
+// ── Day summary (both checked in + out) ───────────────────────────────────────
+class _DaySummary extends StatelessWidget {
+  final AttendanceRecord record;
+  final bool isDark;
+  const _DaySummary({required this.record, required this.isDark});
 
-class _TopicCard extends StatelessWidget {
-  final _Topic topic;
-  const _TopicCard({required this.topic});
+  static const _blue = Color(0xFF0D47A1);
+
+  String? get _duration {
+    try {
+      final inP  = record.checkInTime.split(':');
+      final outP = record.checkOutTime.split(':');
+      if (inP.length == 2 && outP.length == 2) {
+        final diff = (int.parse(outP[0]) * 60 + int.parse(outP[1])) -
+                     (int.parse(inP[0])  * 60 + int.parse(inP[1]));
+        if (diff > 0) {
+          final h = diff ~/ 60, m = diff % 60;
+          return h > 0 ? '${h}h ${m}m' : '${m}m';
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push(topic.route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(
-                  color: topic.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(topic.icon, color: topic.color, size: 24),
-              ),
-              const SizedBox(height: 10),
-              Text(topic.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A237E))),
-              const SizedBox(height: 4),
-              Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: topic.color.withValues(alpha: 0.6)),
-            ],
-          ),
-        ),
+    final dur = _duration;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0D47A1).withValues(alpha: 0.12)
+            : Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: isDark ? Colors.blue.shade700 : Colors.blue.shade200),
       ),
+      child: Column(children: [
+        Icon(Icons.check_circle_rounded,
+            color: isDark ? Colors.blue.shade300 : Colors.blue.shade600,
+            size: 36),
+        const SizedBox(height: 8),
+        Text('Attendance Complete',
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w700,
+                color: isDark ? Colors.blue.shade200 : Colors.blue.shade800)),
+        const SizedBox(height: 20),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          _TimeBlock(label: 'Check In',  time: record.checkInTime,  isDark: isDark),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Icon(Icons.arrow_forward_rounded,
+                color: isDark ? Colors.blue.shade400 : Colors.blue.shade400,
+                size: 20),
+          ),
+          _TimeBlock(label: 'Check Out', time: record.checkOutTime, isDark: isDark),
+        ]),
+        if (dur != null) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.shade100,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text('Duration: $dur',
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.blue.shade200 : Colors.blue.shade800)),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+class _TimeBlock extends StatelessWidget {
+  final String label;
+  final String time;
+  final bool isDark;
+  const _TimeBlock({required this.label, required this.time, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.blue.shade400 : Colors.blue.shade600)),
+      const SizedBox(height: 4),
+      Text(time,
+          style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'monospace',
+              color: isDark ? Colors.blue.shade200 : Colors.blue.shade900)),
+    ]);
+  }
+}
+
+// ── GPS Route map ──────────────────────────────────────────────────────────────
+class _RouteMapView extends StatefulWidget {
+  final List<List<double>> points;
+  final String recordId;
+  const _RouteMapView({required this.points, required this.recordId});
+
+  @override
+  State<_RouteMapView> createState() => _RouteMapViewState();
+}
+
+class _RouteMapViewState extends State<_RouteMapView> {
+  static final _registered = <String>{};
+
+  String get _viewId =>
+      'rt_${widget.recordId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${widget.points.length}';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.points.isEmpty || _registered.contains(_viewId)) return;
+    _registered.add(_viewId);
+
+    final jsPts = widget.points.map((p) => '[${p[0]},${p[1]}]').join(',');
+    final html = '''
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>body{margin:0;} #map{width:100%;height:100%;}</style>
+      <div id="map"></div>
+      <script>
+        var pts=[$jsPts],map=L.map('map',{zoomControl:true});
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
+        if(pts.length>1){
+          var r=L.polyline(pts,{color:'#1565C0',weight:4,opacity:.85}).addTo(map);
+          L.circleMarker(pts[0],{radius:8,color:'#fff',weight:2,fillColor:'#2E7D32',fillOpacity:1}).addTo(map).bindPopup('Check-in');
+          L.circleMarker(pts[pts.length-1],{radius:9,color:'#fff',weight:2,fillColor:'#C62828',fillOpacity:1}).addTo(map).bindPopup('Last location');
+          map.fitBounds(r.getBounds(),{padding:[30,30]});
+        }else{
+          L.marker(pts[0]).addTo(map).bindPopup('Check-in location').openPopup();
+          map.setView(pts[0],15);
+        }
+      </script>
+    ''';
+
+    final blob = html_lib.Blob([html], 'text/html');
+    final url  = html_lib.Url.createObjectUrl(blob);
+    ui_web.platformViewRegistry.registerViewFactory(
+      _viewId, (_) => html_lib.IFrameElement()
+        ..src = url
+        ..style.border  = 'none'
+        ..style.width   = '100%'
+        ..style.height  = '100%',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.points.isEmpty) return const SizedBox.shrink();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(height: 200, child: HtmlElementView(viewType: _viewId)),
     );
   }
 }
