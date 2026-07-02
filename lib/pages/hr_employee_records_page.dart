@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
@@ -271,6 +272,8 @@ class _UserCard extends StatelessWidget {
                     const SizedBox(width: 8),
                   ],
                   _RoleChip(user.role, c),
+                  const SizedBox(width: 6),
+                  _StatusPill(user.leaveStatus),
                 ]),
                 if (user.designation.isNotEmpty) ...[
                   const SizedBox(height: 3),
@@ -297,12 +300,23 @@ class _UserCard extends StatelessWidget {
 
 // ── Profile detail dialog ─────────────────────────────────────────────────────
 
-class _ProfileDialog extends StatelessWidget {
+class _ProfileDialog extends StatefulWidget {
   final AppUser user;
   final List<AppUser> allUsers;
   final Future<void> Function(AppUser) onSave;
   const _ProfileDialog(
       {required this.user, required this.allUsers, required this.onSave});
+
+  @override
+  State<_ProfileDialog> createState() => _ProfileDialogState();
+}
+
+class _ProfileDialogState extends State<_ProfileDialog> {
+  static const _undoWindow = Duration(minutes: 10);
+  late AppUser _user;
+  Timer? _onrollTimer;
+  Timer? _elTimer;
+  bool _saving = false;
 
   static Color _roleColor(String role) {
     switch (role) {
@@ -314,8 +328,97 @@ class _ProfileDialog extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _user = widget.user;
+    _startTimers();
+  }
+
+  @override
+  void dispose() {
+    _onrollTimer?.cancel();
+    _elTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimers() {
+    if (_canUndoOnroll) {
+      _onrollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() {});
+        if (!_canUndoOnroll) _onrollTimer?.cancel();
+      });
+    }
+    if (_canUndoEl) {
+      _elTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() {});
+        if (!_canUndoEl) _elTimer?.cancel();
+      });
+    }
+  }
+
+  bool get _canUndoOnroll {
+    if (_user.onrollConfirmedAt.isEmpty) return false;
+    try {
+      return DateTime.now().difference(DateTime.parse(_user.onrollConfirmedAt)) < _undoWindow;
+    } catch (_) { return false; }
+  }
+
+  bool get _canUndoEl {
+    if (_user.elEligibleAt.isEmpty) return false;
+    try {
+      return DateTime.now().difference(DateTime.parse(_user.elEligibleAt)) < _undoWindow;
+    } catch (_) { return false; }
+  }
+
+  String _countdown(String ts) {
+    try {
+      final remaining = _undoWindow - DateTime.now().difference(DateTime.parse(ts));
+      if (remaining.isNegative) return '';
+      final m = remaining.inMinutes;
+      final s = remaining.inSeconds % 60;
+      return '$m:${s.toString().padLeft(2, '0')}';
+    } catch (_) { return ''; }
+  }
+
+  Future<void> _confirmOnroll() async {
+    setState(() => _saving = true);
+    _user.onrollConfirmedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    _onrollTimer?.cancel();
+    if (mounted) { setState(() => _saving = false); _startTimers(); }
+  }
+
+  Future<void> _undoOnroll() async {
+    setState(() => _saving = true);
+    _onrollTimer?.cancel();
+    _elTimer?.cancel();
+    _user.onrollConfirmedAt = '';
+    _user.elEligibleAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _confirmEl() async {
+    setState(() => _saving = true);
+    _user.elEligibleAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    _elTimer?.cancel();
+    if (mounted) { setState(() => _saving = false); _startTimers(); }
+  }
+
+  Future<void> _undoEl() async {
+    setState(() => _saving = true);
+    _elTimer?.cancel();
+    _user.elEligibleAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final c = _roleColor(user.role);
+    final c = _roleColor(_user.role);
     final canEdit = UserSession.role == UserRole.hr ||
         UserSession.role == UserRole.management;
 
@@ -326,37 +429,33 @@ class _ProfileDialog extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            // Avatar + name header
+            // Header
             Row(children: [
               CircleAvatar(
                 radius: 30,
                 backgroundColor: c.withValues(alpha: 0.12),
                 child: Text(
-                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                      color: c, fontSize: 24, fontWeight: FontWeight.bold),
+                  _user.name.isNotEmpty ? _user.name[0].toUpperCase() : '?',
+                  style: TextStyle(color: c, fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(user.name,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(_user.name,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
                           color: Color(0xFF1A237E))),
-                  if (user.designation.isNotEmpty) ...[
+                  if (_user.designation.isNotEmpty) ...[
                     const SizedBox(height: 3),
-                    Text(user.designation,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF546E7A))),
+                    Text(_user.designation,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
                   ],
                   const SizedBox(height: 5),
                   Row(children: [
-                    _RoleChip(user.role, c),
-                    if (!user.active) ...[
+                    _RoleChip(_user.role, c),
+                    const SizedBox(width: 6),
+                    _StatusPill(_user.leaveStatus),
+                    if (!_user.active) ...[
                       const SizedBox(width: 6),
                       _Badge('Inactive', Colors.red.shade50,
                           Colors.red.shade200, Colors.red.shade600),
@@ -366,32 +465,140 @@ class _ProfileDialog extends StatelessWidget {
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded,
-                    color: Color(0xFF78909C)),
+                icon: const Icon(Icons.close_rounded, color: Color(0xFF78909C)),
               ),
             ]),
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 8),
 
-            _InfoRow(Icons.badge_rounded,           'Employee ID',       user.employeeId),
-            _InfoRow(Icons.email_rounded,           'Email',             user.email),
-            _InfoRow(Icons.phone_rounded,           'Mobile',            user.mobile),
-            _InfoRow(Icons.location_on_rounded,     'Address',           user.address),
-            _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   user.dateOfJoining),
-            _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', user.reportingManager),
-            _InfoRow(Icons.event_note_rounded,      'Leave Allocation',
-                user.leaveAllocation > 0
-                    ? '${user.leaveAllocation} days / year'
-                    : ''),
+            _InfoRow(Icons.badge_rounded,           'Employee ID',       _user.employeeId),
+            _InfoRow(Icons.email_rounded,           'Email',             _user.email),
+            _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
+            _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
+            _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   _user.dateOfJoining),
+            _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
 
-            const SizedBox(height: 16),
+            // ── Employment status management ──────────────────────────────
+            if (canEdit) ...[
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 10),
+              Row(children: [
+                const Icon(Icons.work_history_rounded, size: 14, color: Color(0xFF78909C)),
+                const SizedBox(width: 6),
+                const Text('Employment Status',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                        color: Color(0xFF78909C))),
+              ]),
+              const SizedBox(height: 10),
+
+              // On-Roll
+              if (!_user.isOnroll)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _saving ? null : _confirmOnroll,
+                    icon: const Icon(Icons.verified_rounded, size: 16),
+                    label: const Text('Confirm On-Roll (unlocks ML + CL)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green.shade700,
+                      side: BorderSide(color: Colors.green.shade400),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                )
+              else
+                Row(children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.verified_rounded, size: 15, color: Colors.green.shade700),
+                        const SizedBox(width: 8),
+                        Text('On-Roll confirmed',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                color: Colors.green.shade700)),
+                      ]),
+                    ),
+                  ),
+                  if (_canUndoOnroll) ...[
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: _saving ? null : _undoOnroll,
+                      icon: const Icon(Icons.undo_rounded, size: 14),
+                      label: Text('Undo (${_countdown(_user.onrollConfirmedAt)})',
+                          style: const TextStyle(fontSize: 11)),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
+                    ),
+                  ],
+                ]),
+
+              // EL Eligibility (only visible once on-roll)
+              if (_user.isOnroll) ...[
+                const SizedBox(height: 8),
+                if (!_user.isElEligible)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _confirmEl,
+                      icon: const Icon(Icons.event_available_rounded, size: 16),
+                      label: const Text('Confirm EL Eligibility (1 year on-roll)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.purple.shade700,
+                        side: BorderSide(color: Colors.purple.shade300),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  )
+                else
+                  Row(children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.purple.shade200),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.event_available_rounded, size: 15, color: Colors.purple.shade700),
+                          const SizedBox(width: 8),
+                          Text('EL eligible',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                  color: Colors.purple.shade700)),
+                        ]),
+                      ),
+                    ),
+                    if (_canUndoEl) ...[
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: _saving ? null : _undoEl,
+                        icon: const Icon(Icons.undo_rounded, size: 14),
+                        label: Text('Undo (${_countdown(_user.elEligibleAt)})',
+                            style: const TextStyle(fontSize: 11)),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
+                      ),
+                    ],
+                  ]),
+              ],
+              const SizedBox(height: 4),
+            ],
+
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => showDialog(
                   context: context,
-                  builder: (_) => _FullProfileDialog(user: user),
+                  builder: (_) => _FullProfileDialog(user: _user),
                 ),
                 icon: const Icon(Icons.folder_open_rounded, size: 16),
                 label: const Text('Interview & Onboarding Records'),
@@ -399,8 +606,7 @@ class _ProfileDialog extends StatelessWidget {
                   foregroundColor: const Color(0xFF1565C0),
                   side: const BorderSide(color: Color(0xFF1565C0)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),
@@ -410,15 +616,15 @@ class _ProfileDialog extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    user.active = !user.active;
-                    onSave(user);
+                    _user.active = !_user.active;
+                    widget.onSave(_user);
                     Navigator.pop(context);
                   },
-                  icon: Icon(user.active ? Icons.person_off_rounded : Icons.person_rounded, size: 16),
-                  label: Text(user.active ? 'Deactivate Account' : 'Activate Account'),
+                  icon: Icon(_user.active ? Icons.person_off_rounded : Icons.person_rounded, size: 16),
+                  label: Text(_user.active ? 'Deactivate Account' : 'Activate Account'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: user.active ? Colors.red : Colors.green,
-                    side: BorderSide(color: user.active ? Colors.red : Colors.green),
+                    foregroundColor: _user.active ? Colors.red : Colors.green,
+                    side: BorderSide(color: _user.active ? Colors.red : Colors.green),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
@@ -433,9 +639,9 @@ class _ProfileDialog extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (_) => _EditDialog(
-                        user: user,
-                        allUsers: allUsers,
-                        onSave: onSave,
+                        user: _user,
+                        allUsers: widget.allUsers,
+                        onSave: widget.onSave,
                       ),
                     );
                   },
@@ -445,8 +651,7 @@ class _ProfileDialog extends StatelessWidget {
                     backgroundColor: const Color(0xFF0D47A1),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
@@ -1012,6 +1217,41 @@ class _EditDialogState extends State<_EditDialog> {
 }
 
 // ── Small shared widgets ──────────────────────────────────────────────────────
+
+class _StatusPill extends StatelessWidget {
+  final String status;
+  const _StatusPill(this.status);
+
+  Color get _color => switch (status) {
+    'EL Eligible' => const Color(0xFF6A1B9A),
+    'On-Roll'     => const Color(0xFF2E7D32),
+    _             => const Color(0xFF78909C),
+  };
+
+  IconData get _icon => switch (status) {
+    'EL Eligible' => Icons.event_available_rounded,
+    'On-Roll'     => Icons.verified_rounded,
+    _             => Icons.timelapse_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(_icon, size: 11, color: c),
+        const SizedBox(width: 4),
+        Text(status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: c)),
+      ]),
+    );
+  }
+}
 
 class _RoleChip extends StatelessWidget {
   final String label;

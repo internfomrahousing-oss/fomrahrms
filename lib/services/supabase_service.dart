@@ -588,18 +588,20 @@ class SupabaseService {
       final data = await _db?.from('app_users').select().order('name');
       if (data == null) return [];
       return (data as List).map((row) => AppUser(
-        name:              (row['name']               as String?) ?? '',
-        email:             (row['email']              as String?) ?? '',
-        employeeId:        (row['employee_id']        as String?) ?? '',
-        designation:       (row['designation']        as String?) ?? '',
-        role:              (row['role']               as String?) ?? 'Employee',
-        active:            (row['active']             as bool?)   ?? true,
-        password:          (row['password']           as String?) ?? '',
-        leaveAllocation:   (row['leave_allocation']   as int?)    ?? 21,
-        reportingManager:  (row['reporting_manager']  as String?) ?? '',
-        mobile:            (row['mobile']             as String?) ?? '',
-        address:           (row['address']            as String?) ?? '',
-        dateOfJoining:     (row['date_of_joining']    as String?) ?? '',
+        name:               (row['name']                  as String?) ?? '',
+        email:              (row['email']                 as String?) ?? '',
+        employeeId:         (row['employee_id']           as String?) ?? '',
+        designation:        (row['designation']           as String?) ?? '',
+        role:               (row['role']                  as String?) ?? 'Employee',
+        active:             (row['active']                as bool?)   ?? true,
+        password:           (row['password']              as String?) ?? '',
+        leaveAllocation:    (row['leave_allocation']      as int?)    ?? 21,
+        reportingManager:   (row['reporting_manager']     as String?) ?? '',
+        mobile:             (row['mobile']                as String?) ?? '',
+        address:            (row['address']               as String?) ?? '',
+        dateOfJoining:      (row['date_of_joining']       as String?) ?? '',
+        onrollConfirmedAt:  (row['onroll_confirmed_at']   as String?) ?? '',
+        elEligibleAt:       (row['el_eligible_at']        as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -608,18 +610,20 @@ class SupabaseService {
 
   static Future<void> upsertAppUser(AppUser u) async {
     await _db?.from('app_users').upsert({
-      'email':              u.email,
-      'name':               u.name,
-      'employee_id':        u.employeeId,
-      'designation':        u.designation,
-      'role':               u.role,
-      'active':             u.active,
-      'password':           u.password,
-      'leave_allocation':   u.leaveAllocation,
-      'reporting_manager':  u.reportingManager,
-      'mobile':             u.mobile,
-      'address':            u.address,
-      'date_of_joining':    u.dateOfJoining,
+      'email':                u.email,
+      'name':                 u.name,
+      'employee_id':          u.employeeId,
+      'designation':          u.designation,
+      'role':                 u.role,
+      'active':               u.active,
+      'password':             u.password,
+      'leave_allocation':     u.leaveAllocation,
+      'reporting_manager':    u.reportingManager,
+      'mobile':               u.mobile,
+      'address':              u.address,
+      'date_of_joining':      u.dateOfJoining,
+      'onroll_confirmed_at':  u.onrollConfirmedAt,
+      'el_eligible_at':       u.elEligibleAt,
     });
   }
 

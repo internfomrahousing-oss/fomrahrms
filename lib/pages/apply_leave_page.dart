@@ -15,7 +15,7 @@ class ApplyLeavePage extends StatefulWidget {
 class _ApplyLeavePageState extends State<ApplyLeavePage> {
   static const _color = Color(0xFF0D47A1);
 
-  static const _leaveTypes = [
+  static const _allLeaveTypes = [
     'Casual Leave',
     'Medical / Sick Leave',
     'Earned Leave',
@@ -35,6 +35,23 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
 
   int    _monthlyAllocation = 0;
   double _usedThisMonth     = 0.0;
+  bool   _isOnroll          = false;
+  bool   _isElEligible      = false;
+
+  List<String> get _leaveTypes {
+    if (_isElEligible) {
+      return _allLeaveTypes; // all types
+    }
+    if (_isOnroll) {
+      return _allLeaveTypes
+          .where((t) => t != 'Earned Leave')
+          .toList();
+    }
+    // Probation: CL only (+ special types like maternity, bereavement etc.)
+    return _allLeaveTypes
+        .where((t) => t != 'Earned Leave' && t != 'Medical / Sick Leave')
+        .toList();
+  }
 
   double get _remainingThisMonth =>
       (_monthlyAllocation - _usedThisMonth).clamp(0.0, _monthlyAllocation.toDouble());
@@ -72,7 +89,8 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       final leaves = results[1] as List<LeaveApplication>;
 
       final match = users.where((u) => u.name == UserSession.name).toList();
-      final allocation = match.isNotEmpty ? (match.first.leaveAllocation as int) : 21;
+      final me = match.isNotEmpty ? match.first : null;
+      final allocation = me?.leaveAllocation ?? 21;
 
       final now = DateTime.now();
       final used = leaves
@@ -83,7 +101,17 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
               a.from.month == now.month)
           .fold(0.0, (s, a) => s + a.effectiveDays);
 
-      if (mounted) setState(() { _monthlyAllocation = allocation; _usedThisMonth = used; });
+      final isOnroll     = me?.isOnroll     ?? false;
+      final isElEligible = me?.isElEligible ?? false;
+
+      if (mounted) setState(() {
+        _monthlyAllocation = allocation;
+        _usedThisMonth     = used;
+        _isOnroll          = isOnroll;
+        _isElEligible      = isElEligible;
+        // If current leave type is no longer available, reset to CL
+        if (!_leaveTypes.contains(_leaveType)) _leaveType = 'Casual Leave';
+      });
     } catch (_) {}
   }
 
