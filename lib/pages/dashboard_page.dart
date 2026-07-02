@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -56,6 +57,8 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String _totalEmployees = '—';
+  String _present = '—';
+  String _absent  = '—';
 
   @override
   void initState() {
@@ -64,9 +67,27 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _loadCount() async {
-    final users = await UserStore.load();
+    final today = DateTime.now();
+    final dateStr =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+
+    final results = await Future.wait([
+      UserStore.load(),
+      SupabaseService.fetchAttendanceForDate(dateStr),
+    ]);
+    final users   = results[0] as List;
+    final records = results[1] as List;
+
+    final total   = users.length;
+    final present = records.where((r) => (r.checkInTime as String).isNotEmpty).length;
+    final absent  = (total - present).clamp(0, total);
+
     if (mounted) {
-      setState(() => _totalEmployees = users.length.toString());
+      setState(() {
+        _totalEmployees = '$total';
+        _present = '$present';
+        _absent  = '$absent';
+      });
     }
   }
 
@@ -93,7 +114,7 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            _StatStrip(totalEmployees: _totalEmployees),
+            _StatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(
@@ -154,11 +175,13 @@ class _SectionLabel extends StatelessWidget {
 // ── Stat strip ────────────────────────────────────────────────────────────────
 class _StatStrip extends StatelessWidget {
   final String totalEmployees;
-  const _StatStrip({required this.totalEmployees});
+  final String present;
+  final String absent;
+  const _StatStrip({required this.totalEmployees, required this.present, required this.absent});
 
   @override
   Widget build(BuildContext context) {
-    final values = [totalEmployees, '—', '—', '—'];
+    final values = [totalEmployees, present, absent, '—'];
     return LayoutBuilder(builder: (context, constraints) {
       final isNarrow = constraints.maxWidth < 500;
       if (isNarrow) {
