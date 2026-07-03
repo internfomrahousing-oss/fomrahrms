@@ -5,6 +5,7 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../utils/month_picker.dart';
 
 class EmployeeLeavePage extends StatefulWidget {
   final String prefix;
@@ -20,6 +21,8 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
 
   bool _loading = false;
   AppUser? _appUser;
+  String _typeFilter = 'all'; // 'all' | 'leave' | 'Permission' | 'Comp Off'
+  DateTime? _selectedMonth;
 
   @override
   void initState() {
@@ -58,9 +61,93 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       .where((a) => a.employeeName == UserSession.name)
       .toList();
 
-  int get _pending  => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.pending).length;
-  int get _approved => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.approved).length;
-  int get _denied   => _apps.where((a) => a.effectiveStatus == LeaveApprovalStatus.denied).length;
+  List<LeaveApplication> get _filtered {
+    return _apps.where((a) {
+      final matchType = _typeFilter == 'all'
+          ? true
+          : _typeFilter == 'leave'
+              ? (a.leaveType != 'Permission' && a.leaveType != 'Comp Off')
+              : a.leaveType == _typeFilter;
+      final matchMonth = _selectedMonth == null ||
+          (a.from.year == _selectedMonth!.year &&
+              a.from.month == _selectedMonth!.month);
+      return matchType && matchMonth;
+    }).toList();
+  }
+
+  int get _pending  => _filtered.where((a) => a.effectiveStatus == LeaveApprovalStatus.pending).length;
+  int get _approved => _filtered.where((a) => a.effectiveStatus == LeaveApprovalStatus.approved).length;
+  int get _denied   => _filtered.where((a) => a.effectiveStatus == LeaveApprovalStatus.denied).length;
+
+  Future<void> _pickMonth() async {
+    final picked = await showMonthPicker(context, _selectedMonth);
+    if (picked != null && mounted) setState(() => _selectedMonth = picked);
+  }
+
+  Widget _buildTypeChip(String label, String value, IconData icon, Color color) {
+    final active = _typeFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _typeFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? color.withValues(alpha: 0.18) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? color : color.withValues(alpha: 0.3),
+            width: active ? 1.5 : 1,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: color)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildMonthChip() {
+    final active = _selectedMonth != null;
+    return GestureDetector(
+      onTap: _pickMonth,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? _blue.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? _blue : _blue.withValues(alpha: 0.3),
+            width: active ? 1.5 : 1,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.calendar_month_rounded, size: 13, color: _blue),
+          const SizedBox(width: 5),
+          Text(
+            active ? monthLabel(_selectedMonth!) : 'Month',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: _blue),
+          ),
+          if (active) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => setState(() => _selectedMonth = null),
+              child: Icon(Icons.close_rounded, size: 12, color: _blue),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
 
   // ── Balance helpers ────────────────────────────────────────────────────────
   bool _isThisMonth(LeaveApplication a) {
@@ -196,26 +283,42 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
                       _StatusChip('Denied',   Icons.cancel_rounded,
                           Colors.red.shade700, _denied),
                     ]),
+                    const SizedBox(height: 10),
+
+                    // ── Type filter chips + month picker ─────────────────
+                    Wrap(spacing: 8, runSpacing: 6, children: [
+                      _buildTypeChip('All',        'all',        Icons.list_rounded,             _blue),
+                      _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  const Color(0xFF6A1B9A)),
+                      _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      const Color(0xFF00838F)),
+                      _buildTypeChip('Comp Off',   'Comp Off',   Icons.swap_horiz_rounded,       const Color(0xFF2E7D32)),
+                      _buildMonthChip(),
+                    ]),
                     const SizedBox(height: 12),
 
                     // ── Leave history ───────────────────────────────────
-                    if (_apps.isEmpty)
+                    if (_filtered.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 48),
                         child: Center(
                           child: Column(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
                             const SizedBox(height: 12),
-                            Text('No leave history yet',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
-                            const SizedBox(height: 6),
-                            Text('Tap "Apply Leave" to submit your first request.',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                            Text(
+                              _apps.isEmpty
+                                  ? 'No leave history yet'
+                                  : 'No records for this filter',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 15),
+                            ),
+                            if (_apps.isEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text('Tap "Apply Leave" to submit your first request.',
+                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                            ],
                           ]),
                         ),
                       )
                     else
-                      ..._apps.map((a) => Padding(
+                      ..._filtered.map((a) => Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _AppCard(app: a),
                           )),

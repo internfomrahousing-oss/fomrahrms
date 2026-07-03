@@ -60,11 +60,14 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
     }).toList();
   }
 
-  List<LeaveApplication> get _active =>
-      _filtered.where((a) => a.managerStatus == LeaveApprovalStatus.pending).toList();
+  List<LeaveApplication> get _leaves =>
+      _filtered.where((a) => a.leaveType != 'Permission' && a.leaveType != 'Comp Off').toList();
 
-  List<LeaveApplication> get _history =>
-      _filtered.where((a) => a.managerStatus != LeaveApprovalStatus.pending).toList();
+  List<LeaveApplication> get _permissions =>
+      _filtered.where((a) => a.leaveType == 'Permission').toList();
+
+  List<LeaveApplication> get _compOffs =>
+      _filtered.where((a) => a.leaveType == 'Comp Off').toList();
 
   Future<void> _pickMonth() async {
     final picked = await showMonthPicker(context, _selectedMonth);
@@ -73,12 +76,13 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final active   = _active;
-    final history  = _history;
-    final filtered = _filtered;
+    final leaves     = _leaves;
+    final permissions = _permissions;
+    final compOffs   = _compOffs;
+    final filtered   = _filtered;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: null,
         body: Column(children: [
@@ -213,7 +217,7 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
               ]),
               const SizedBox(height: 12),
 
-              // Tab bar
+              // Tab bar — Leave / Permission / Comp Off
               TabBar(
                 labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Theme.of(context)
@@ -224,8 +228,9 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                 labelStyle: const TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600),
                 tabs: [
-                  Tab(text: 'Active (${active.length})'),
-                  Tab(text: 'History (${history.length})'),
+                  Tab(text: 'Leave (${leaves.length})'),
+                  Tab(text: 'Permission (${permissions.length})'),
+                  Tab(text: 'Comp Off (${compOffs.length})'),
                 ],
               ),
             ]),
@@ -235,12 +240,16 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
           Expanded(
             child: TabBarView(children: [
               _AppList(
-                apps: active,
-                emptyMessage: 'No pending leave applications.',
+                apps: leaves,
+                emptyMessage: 'No leave applications.',
               ),
               _AppList(
-                apps: history,
-                emptyMessage: 'No leave history yet.',
+                apps: permissions,
+                emptyMessage: 'No permission applications.',
+              ),
+              _AppList(
+                apps: compOffs,
+                emptyMessage: 'No comp off applications.',
               ),
             ]),
           ),
