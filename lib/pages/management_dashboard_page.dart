@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../widgets/attendance_shortcut_card.dart';
+import '../widgets/welcome_banner.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
 const _mgmtAccent = Color(0xFF7B1FA2);
@@ -40,11 +40,11 @@ class _Item {
 }
 
 const _personalItems = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF6A1B9A), '/management/my-attendance'),
-  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF7B1FA2), '/management/my-leave'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF8E24AA), '/management/my-tasks'),
+  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/management/my-attendance'),
+  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF1976D2), '/management/my-leave'),
+  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/management/my-tasks'),
   _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/management/my-payslips'),
-  _Item('My Profile',    Icons.person_rounded,                 Color(0xFF4A148C), '/management/my-profile'),
+  _Item('My Profile',    Icons.person_rounded,                 Color(0xFF0D47A1), '/management/my-profile'),
 ];
 
 class _Stat {
@@ -93,107 +93,39 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(pad),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              if (!narrow)
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Management Dashboard',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 4),
-                  Text('FOMRA Housing & Infrastructure — Management Portal',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ]),
-              if (narrow) const SizedBox.shrink(),
-              IconButton(
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded),
-                onPressed: _loadCount,
-              ),
-            ]),
-            const SizedBox(height: 24),
+            WelcomeBanner(
+              avatarIcon: Icons.manage_accounts_rounded,
+              onRefresh: _loadCount,
+            ),
+            Padding(
+              padding: EdgeInsets.all(pad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StatStrip(totalEmployees: _totalEmployees),
+                  SizedBox(height: narrow ? 20 : 28),
 
-            // Welcome card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_mgmtColor, _mgmtAccent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: _mgmtColor.withValues(alpha: 0.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+                  const AttendanceShortcutCard(
+                    attendanceRoute: '/management/my-attendance',
+                    accentColor: Color(0xFF1565C0),
                   ),
+                  SizedBox(height: narrow ? 20 : 28),
+
+                  _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),
+                  const SizedBox(height: 12),
+                  _SectionGrid(),
+                  SizedBox(height: narrow ? 20 : 28),
+
+                  _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
+                  const SizedBox(height: 12),
+                  _PersonalGrid(),
+                  const SizedBox(height: 16),
                 ],
               ),
-              child: Row(children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.manage_accounts_rounded,
-                      color: Colors.white, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Welcome back!',
-                          style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      Text(
-                        UserSession.name.isNotEmpty
-                            ? UserSession.name
-                            : 'Management',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text('Management — Full Access',
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 11)),
-                      ),
-                    ],
-                  ),
-                ),
-              ]),
             ),
-            SizedBox(height: narrow ? 16 : 24),
-
-            _StatStrip(totalEmployees: _totalEmployees),
-            SizedBox(height: narrow ? 20 : 28),
-
-            const AttendanceShortcutCard(
-              attendanceRoute: '/management/my-attendance',
-              accentColor: Color(0xFF4A148C),
-            ),
-            SizedBox(height: narrow ? 20 : 28),
-
-            _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),
-            const SizedBox(height: 12),
-            _SectionGrid(),
-            SizedBox(height: narrow ? 20 : 28),
-
-            _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
-            const SizedBox(height: 12),
-            _PersonalGrid(),
-            const SizedBox(height: 16),
           ],
         ),
       ),
