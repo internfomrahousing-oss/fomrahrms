@@ -12,34 +12,28 @@ class DashboardInfoBlocks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final wide = constraints.maxWidth > 600;
+      final wide = constraints.maxWidth > 700;
       if (wide) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          IntrinsicHeight(
-            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              const Expanded(child: _AnnouncementsBlock()),
-              const SizedBox(width: 12),
-              const Expanded(child: _HolidaysBlock()),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          IntrinsicHeight(
-            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              const Expanded(child: _BirthdaysBlock()),
-              const SizedBox(width: 12),
-              const Expanded(child: _EmptyBlock()),
-            ]),
-          ),
-        ]);
+        return IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Expanded(child: _AnnouncementsBlock()),
+            const SizedBox(width: 12),
+            const Expanded(child: _HolidaysBlock()),
+            const SizedBox(width: 12),
+            const Expanded(child: _EmptyBlock()),
+            const SizedBox(width: 12),
+            const Expanded(child: _BirthdaysBlock()),
+          ]),
+        );
       } else {
         return const Column(children: [
           _AnnouncementsBlock(),
           SizedBox(height: 12),
           _HolidaysBlock(),
           SizedBox(height: 12),
-          _BirthdaysBlock(),
-          SizedBox(height: 12),
           _EmptyBlock(),
+          SizedBox(height: 12),
+          _BirthdaysBlock(),
         ]);
       }
     });
