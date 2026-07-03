@@ -116,7 +116,7 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
                   child: CircularProgressIndicator(strokeWidth: 2, color: accent),
                 )
               else
-                Icon(statusIcon, size: 15, color: statusColor),
+                Icon(statusIcon, size: 18, color: statusColor),
               const SizedBox(width: 7),
               Text(statusText,
                   style: TextStyle(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/user_session.dart';
 import '../widgets/attendance_shortcut_card.dart';
+import '../widgets/welcome_banner.dart';
 
 class _Item {
   final String title;
@@ -27,118 +27,56 @@ class EmployeeDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
     final pad    = narrow ? 16.0 : 24.0;
-    final name   = UserSession.name;
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(pad),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            if (!narrow) ...[
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('My Dashboard',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 4),
-                Text('FOMRA Housing & Infrastructure',
-                    style: Theme.of(context).textTheme.bodyMedium),
-              ]),
-              const SizedBox(height: 24),
-            ],
-
-            // Welcome card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0D47A1).withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+            const WelcomeBanner(
+              avatarIcon: Icons.person_rounded,
+            ),
+            Padding(
+              padding: EdgeInsets.all(pad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AttendanceShortcutCard(
+                    attendanceRoute: '/employee/attendance-management',
+                    accentColor: Color(0xFF0D47A1),
                   ),
+                  SizedBox(height: narrow ? 16 : 24),
+
+                  _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),
+                  const SizedBox(height: 12),
+                  LayoutBuilder(builder: (context, constraints) {
+                    final cols = constraints.maxWidth > 600 ? 3 : 2;
+                    final rows = <Widget>[];
+                    for (int i = 0; i < _items.length; i += cols) {
+                      final end =
+                          (i + cols) > _items.length ? _items.length : i + cols;
+                      final rowItems = _items.sublist(i, end);
+                      rows.add(Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: rowItems.map((item) {
+                          final isLast = rowItems.last == item;
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                  right: isLast ? 0 : 12, bottom: 12),
+                              child: _DashCard(item: item),
+                            ),
+                          );
+                        }).toList(),
+                      ));
+                    }
+                    return Column(children: rows);
+                  }),
+                  const SizedBox(height: 8),
                 ],
               ),
-              child: Row(children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.person_rounded,
-                      color: Colors.white, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    const Text('Welcome back!',
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 13)),
-                    Text(name.isNotEmpty ? name : 'Employee',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('Staff Member',
-                          style: TextStyle(
-                              color: Colors.white, fontSize: 11)),
-                    ),
-                  ]),
-                ),
-              ]),
             ),
-            SizedBox(height: narrow ? 16 : 24),
-
-            // Attendance shortcut
-            const AttendanceShortcutCard(
-              attendanceRoute: '/employee/attendance-management',
-              accentColor: Color(0xFF0D47A1),
-            ),
-            SizedBox(height: narrow ? 16 : 24),
-
-            // Menu grid
-            _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),
-            const SizedBox(height: 12),
-            LayoutBuilder(builder: (context, constraints) {
-              final cols = constraints.maxWidth > 600 ? 3 : 2;
-              final rows = <Widget>[];
-              for (int i = 0; i < _items.length; i += cols) {
-                final end =
-                    (i + cols) > _items.length ? _items.length : i + cols;
-                final rowItems = _items.sublist(i, end);
-                rows.add(Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: rowItems.map((item) {
-                    final isLast = rowItems.last == item;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                            right: isLast ? 0 : 12, bottom: 12),
-                        child: _DashCard(item: item),
-                      ),
-                    );
-                  }).toList(),
-                ));
-              }
-              return Column(children: rows);
-            }),
-            const SizedBox(height: 8),
           ],
         ),
       ),

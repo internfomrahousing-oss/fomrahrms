@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/attendance_shortcut_card.dart';
+import '../widgets/welcome_banner.dart';
 
 
 class _Item {
@@ -31,92 +32,33 @@ class ManagerDashboardPage extends StatelessWidget {
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(pad),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header — hide title on mobile (AppBar already shows it)
-            if (!narrow) ...[
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Dashboard',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 4),
-                Text('FOMRA Housing & Infrastructure',
-                    style: Theme.of(context).textTheme.bodyMedium),
-              ]),
-              const SizedBox(height: 24),
-            ],
-
-            // Welcome card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1A237E), Color(0xFF283593)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1A237E).withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+            const WelcomeBanner(
+              avatarIcon: Icons.manage_accounts_rounded,
+            ),
+            Padding(
+              padding: EdgeInsets.all(pad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AttendanceShortcutCard(
+                    attendanceRoute: '/manager/my-attendance',
+                    accentColor: Color(0xFF1565C0),
                   ),
+                  SizedBox(height: narrow ? 20 : 28),
+
+                  _SectionLabel(
+                    icon: Icons.person_rounded,
+                    label: 'My Space',
+                  ),
+                  const SizedBox(height: 12),
+                  _PersonalGrid(items: _personalItems),
+                  const SizedBox(height: 16),
                 ],
               ),
-              child: Row(children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.manage_accounts_rounded,
-                      color: Colors.white, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    const Text('Welcome back!',
-                        style:
-                            TextStyle(color: Colors.white70, fontSize: 13)),
-                    const Text('Manager',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('Reporting Manager',
-                          style:
-                              TextStyle(color: Colors.white, fontSize: 11)),
-                    ),
-                  ]),
-                ),
-              ]),
             ),
-            SizedBox(height: narrow ? 16 : 24),
-
-            const AttendanceShortcutCard(
-              attendanceRoute: '/manager/my-attendance',
-              accentColor: Color(0xFF1565C0),
-            ),
-            SizedBox(height: narrow ? 20 : 28),
-
-            _SectionLabel(
-              icon: Icons.person_rounded,
-              label: 'My Space',
-            ),
-            const SizedBox(height: 12),
-            _PersonalGrid(items: _personalItems),
-            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -197,28 +139,28 @@ class _DashCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.go(item.route),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 48, height: 48,
+                width: 40, height: 40,
                 decoration: BoxDecoration(
                   color: item.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(item.icon, color: item.color, size: 26),
+                child: Icon(item.icon, color: item.color, size: 22),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(item.title,
                   textAlign: TextAlign.center,
                   style: Theme.of(context)
                       .textTheme
-                      .titleLarge
-                      ?.copyWith(fontSize: 12)),
-              const SizedBox(height: 4),
+                      .bodyMedium
+                      ?.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A3A6B))),
+              const SizedBox(height: 3),
               Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: item.color.withValues(alpha: 0.6)),
+                  size: 13, color: item.color.withValues(alpha: 0.5)),
             ],
           ),
         ),

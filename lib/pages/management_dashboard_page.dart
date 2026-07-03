@@ -429,26 +429,26 @@ class _DashCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.go(item.route),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
-              width: 48, height: 48,
+              width: 40, height: 40,
               decoration: BoxDecoration(
                 color: item.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(item.icon, color: item.color, size: 26),
+              child: Icon(item.icon, color: item.color, size: 22),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(item.title,
                 textAlign: TextAlign.center,
                 style: Theme.of(context)
                     .textTheme
-                    .titleLarge
-                    ?.copyWith(fontSize: 12)),
-            const SizedBox(height: 4),
+                    .bodyMedium
+                    ?.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A3A6B))),
+            const SizedBox(height: 3),
             Icon(Icons.arrow_forward_rounded,
-                size: 14, color: item.color.withValues(alpha: 0.6)),
+                size: 13, color: item.color.withValues(alpha: 0.5)),
           ]),
         ),
       ),
