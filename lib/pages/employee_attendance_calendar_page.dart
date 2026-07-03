@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
-import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../models/attendance_store.dart';
 
-// Late-coming threshold: check-in at or after 09:30 = Late
+// Late threshold: 09:30 AM
 const _lateHour   = 9;
 const _lateMinute = 30;
 
@@ -14,18 +13,25 @@ const _green  = Color(0xFF2E7D32);
 const _purple = Color(0xFF6A1B9A);
 const _red    = Color(0xFFC62828);
 
-class MyAttendancePage extends StatefulWidget {
-  final String checkInRoute;
-  const MyAttendancePage({super.key, this.checkInRoute = '/employee/attendance/check-in-out'});
+class EmployeeAttendanceCalendarPage extends StatefulWidget {
+  final String employeeId;
+  final String employeeName;
+
+  const EmployeeAttendanceCalendarPage({
+    super.key,
+    required this.employeeId,
+    required this.employeeName,
+  });
 
   @override
-  State<MyAttendancePage> createState() => _MyAttendancePageState();
+  State<EmployeeAttendanceCalendarPage> createState() =>
+      _EmployeeAttendanceCalendarPageState();
 }
 
-class _MyAttendancePageState extends State<MyAttendancePage> {
+class _EmployeeAttendanceCalendarPageState
+    extends State<EmployeeAttendanceCalendarPage> {
   late DateTime _month;
   bool _loading = true;
-  AttendanceRecord? _todayRecord;
   Map<int, AttendanceRecord> _attendance = {};
   Set<int> _leaveDays = {};
 
@@ -39,18 +45,9 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await Future.wait([
-      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
-      SupabaseService.fetchAttendanceForMonth(UserSession.employeeId, _month.year, _month.month),
-    ]);
+    final records = await SupabaseService.fetchAttendanceForMonth(
+        widget.employeeId, _month.year, _month.month);
     if (!mounted) return;
-
-    final today   = results[0] as AttendanceRecord?;
-    final records = results[1] as List<AttendanceRecord>;
-
-    if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
-      AttendanceStore.isCheckedIn = true;
-    }
 
     final Map<int, AttendanceRecord> map = {};
     for (final r in records) {
@@ -58,10 +55,9 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       if (d != null) map[d] = r;
     }
 
-    // Approved leave days from already-loaded store
     final Set<int> leaves = {};
     for (final app in LeaveStore.applications) {
-      if (app.employeeName != UserSession.name) continue;
+      if (app.employeeName != widget.employeeName) continue;
       if (app.managerStatus != LeaveApprovalStatus.approved) continue;
       var d = app.from;
       while (!d.isAfter(app.to)) {
@@ -71,10 +67,9 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     }
 
     setState(() {
-      _todayRecord = today;
-      _attendance  = map;
-      _leaveDays   = leaves;
-      _loading     = false;
+      _attendance = map;
+      _leaveDays  = leaves;
+      _loading    = false;
     });
   }
 
@@ -90,9 +85,8 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     } catch (_) { return false; }
   }
 
-  // Returns the status color for a calendar day (null = no highlight)
   Color? _statusColor(int day) {
-    if (_leaveDays.contains(day)) return _red;       // on leave = Absent
+    if (_leaveDays.contains(day)) return _red;
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) {
       return _isLate(r.checkInTime) ? _purple : _green;
@@ -140,6 +134,12 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // ── Header ────────────────────────────────────────────────────
             Row(children: [
+              if (Navigator.of(context).canPop())
+                IconButton(
+                  tooltip: 'Back',
+                  icon: const Icon(Icons.arrow_back_rounded, color: _blue),
+                  onPressed: () => context.pop(),
+                ),
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
@@ -151,30 +151,13 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('My Attendance',
+                  Text(widget.employeeName,
                       style: Theme.of(context).textTheme.headlineMedium),
-                  const Text('Attendance records',
+                  const Text('Attendance Calendar',
                       style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
                 ]),
               ),
-              ElevatedButton.icon(
-                onPressed: () => context.go(widget.checkInRoute),
-                icon: const Icon(Icons.fingerprint_rounded, size: 16),
-                label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 2,
-                ),
-              ),
             ]),
-            const SizedBox(height: 20),
-
-            // ── Today card ─────────────────────────────────────────────────
-            _TodayCard(record: _todayRecord,
-                isDark: Theme.of(context).brightness == Brightness.dark),
             const SizedBox(height: 24),
 
             // ── Calendar card ──────────────────────────────────────────────
@@ -183,7 +166,6 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
                 child: Column(children: [
-                  // Month navigation
                   Row(children: [
                     IconButton(
                       icon: Icon(Icons.chevron_left_rounded,
@@ -212,8 +194,6 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                     ),
                   ]),
                   const SizedBox(height: 4),
-
-                  // Weekday labels
                   const Row(children: [
                     _WDay('Sun'), _WDay('Mon'), _WDay('Tue'), _WDay('Wed'),
                     _WDay('Thu'), _WDay('Fri'), _WDay('Sat'),
@@ -272,7 +252,7 @@ class _CalendarGrid extends StatelessWidget {
     final cs          = Theme.of(context).colorScheme;
     final firstDay    = DateTime(month.year, month.month, 1);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final offset      = firstDay.weekday % 7; // Sun=0 … Sat=6
+    final offset      = firstDay.weekday % 7;
 
     final cells = <Widget>[];
     for (int i = 0; i < offset; i++) {
@@ -285,7 +265,6 @@ class _CalendarGrid extends StatelessWidget {
                       today.day == day;
       final sColor = statusColor(day);
 
-      // Today → solid blue circle; status day → light tinted circle with colored border
       final decoration = isToday
           ? const BoxDecoration(color: _blue, shape: BoxShape.circle)
           : sColor != null
@@ -317,8 +296,7 @@ class _CalendarGrid extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: (isToday || sColor != null)
-                            ? FontWeight.w700
-                            : FontWeight.w400,
+                            ? FontWeight.w700 : FontWeight.w400,
                         color: textColor)),
               ),
             ),
@@ -327,7 +305,6 @@ class _CalendarGrid extends StatelessWidget {
       ));
     }
 
-    // Trailing blanks
     final rem = (offset + daysInMonth) % 7;
     if (rem != 0) {
       for (int i = 0; i < 7 - rem; i++) {
@@ -406,7 +383,6 @@ class _DaySheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-
         Row(children: [
           Expanded(
             child: Text(label,
@@ -425,7 +401,6 @@ class _DaySheet extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 20),
-
         if (isLeave) ...[
           Row(children: [
             Icon(Icons.event_busy_rounded, size: 18, color: _red),
@@ -473,133 +448,6 @@ class _DaySheet extends StatelessWidget {
       ]),
     ]);
   }
-}
-
-// ── Today's status card ───────────────────────────────────────────────────────
-class _TodayCard extends StatelessWidget {
-  final AttendanceRecord? record;
-  final bool isDark;
-  const _TodayCard({required this.record, required this.isDark});
-
-  static String? _dur(String inT, String outT) {
-    try {
-      final i = inT.split(':'), o = outT.split(':');
-      final diff = (int.parse(o[0]) * 60 + int.parse(o[1])) -
-                   (int.parse(i[0]) * 60 + int.parse(i[1]));
-      if (diff <= 0) return null;
-      final h = diff ~/ 60, m = diff % 60;
-      return h > 0 ? '${h}h ${m}m' : '${m}m';
-    } catch (_) { return null; }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs  = Theme.of(context).colorScheme;
-    final rec = record;
-
-    if (rec == null || rec.checkInTime.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.orange.withValues(alpha: 0.1) : Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isDark ? Colors.orange.shade700 : Colors.orange.shade200),
-        ),
-        child: Row(children: [
-          Icon(Icons.schedule_rounded, size: 16,
-              color: isDark ? Colors.orange.shade300 : Colors.orange.shade700),
-          const SizedBox(width: 8),
-          Text('Today — Not checked in yet',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.orange.shade200 : Colors.orange.shade800)),
-        ]),
-      );
-    }
-
-    if (rec.checkOutTime.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.green.withValues(alpha: 0.1) : Colors.green.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isDark ? Colors.green.shade700 : Colors.green.shade200),
-        ),
-        child: Row(children: [
-          Icon(Icons.check_circle_rounded, size: 16,
-              color: isDark ? Colors.green.shade300 : _green),
-          const SizedBox(width: 8),
-          Text('Checked in at ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-              color: isDark ? Colors.green.shade200 : _green)),
-          Text(rec.checkInTime, style: TextStyle(fontSize: 15,
-              fontWeight: FontWeight.w800, fontFamily: 'monospace',
-              color: isDark ? Colors.green.shade100 : Colors.green.shade900)),
-          const Spacer(),
-          Container(width: 7, height: 7,
-              decoration: BoxDecoration(color: Colors.green.shade400,
-                  shape: BoxShape.circle)),
-          const SizedBox(width: 5),
-          Text('Active', style: TextStyle(fontSize: 11,
-              color: isDark ? Colors.green.shade400 : Colors.green.shade600)),
-        ]),
-      );
-    }
-
-    final dur  = _dur(rec.checkInTime, rec.checkOutTime);
-    final blue = isDark ? Colors.blue.shade300 : _blue;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? _blue.withValues(alpha: 0.1) : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isDark ? Colors.blue.shade700 : Colors.blue.shade200),
-      ),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.check_circle_rounded, size: 14, color: blue),
-          const SizedBox(width: 6),
-          Text('Today — Attendance Complete',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: blue)),
-        ]),
-        const SizedBox(height: 12),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _tb('Check In',  rec.checkInTime,  blue),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Icon(Icons.arrow_forward_rounded, size: 18, color: blue),
-          ),
-          _tb('Check Out', rec.checkOutTime, blue),
-          if (dur != null) ...[
-            const SizedBox(width: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.blue.withValues(alpha: 0.2)
-                    : Colors.blue.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(dur, style: TextStyle(fontSize: 12,
-                  fontWeight: FontWeight.w700, color: blue)),
-            ),
-          ],
-        ]),
-      ]),
-    );
-  }
-
-  Widget _tb(String label, String time, Color color) => Column(children: [
-    Text(label, style: TextStyle(fontSize: 10,
-        color: color.withValues(alpha: 0.7))),
-    const SizedBox(height: 2),
-    Text(time, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800,
-        fontFamily: 'monospace', color: color)),
-  ]);
 }
 
 // ── Small widgets ─────────────────────────────────────────────────────────────

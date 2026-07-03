@@ -159,6 +159,12 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(children: [
+            if (Navigator.of(context).canPop())
+              IconButton(
+                tooltip: 'Back',
+                icon: const Icon(Icons.arrow_back_rounded, color: _blue),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(

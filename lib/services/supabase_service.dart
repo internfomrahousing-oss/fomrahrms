@@ -1045,6 +1045,57 @@ class SupabaseService {
     }
   }
 
+  static Future<List<AttendanceRecord>> fetchAttendanceForMonth(
+      String employeeId, int year, int month) async {
+    if (employeeId.isEmpty) return [];
+    final monthStr = '${month.toString().padLeft(2, '0')}/$year';
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('employee_id', employeeId)
+          .like('date', '%/$monthStr');
+      if (data == null) return [];
+      return (data as List).map((row) => AttendanceRecord(
+        id:           row['id']           as String,
+        employeeName: (row['employee_name'] as String?) ?? '',
+        employeeId:   (row['employee_id']   as String?) ?? '',
+        date:         (row['date']          as String?) ?? '',
+        checkInTime:  (row['check_in_time'] as String?) ?? '',
+        checkOutTime: (row['check_out_time'] as String?) ?? '',
+        location:     (row['location']       as String?) ?? '',
+        gpsPoints:    _parseGpsPoints(row['gps_points']),
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<List<AttendanceRecord>> fetchEmployeeRecentAttendance(String employeeId, {int limit = 30}) async {
+    if (employeeId.isEmpty) return [];
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('employee_id', employeeId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      if (data == null) return [];
+      return (data as List).map((row) => AttendanceRecord(
+        id:           row['id'] as String,
+        employeeName: (row['employee_name'] as String?) ?? '',
+        employeeId:   (row['employee_id']   as String?) ?? '',
+        date:         (row['date']           as String?) ?? '',
+        checkInTime:  (row['check_in_time']  as String?) ?? '',
+        checkOutTime: (row['check_out_time'] as String?) ?? '',
+        location:     (row['location']       as String?) ?? '',
+        gpsPoints:    _parseGpsPoints(row['gps_points']),
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   // Sets AttendanceStore.isCheckedIn based on today's Supabase record.
   static Future<void> restoreCheckInState() async {
     if (!UserSession.loggedIn || UserSession.employeeId.isEmpty) return;

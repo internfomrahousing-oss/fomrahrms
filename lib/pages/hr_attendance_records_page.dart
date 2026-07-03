@@ -1,12 +1,15 @@
 import 'dart:html' as html_lib;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 
 class HrAttendanceRecordsPage extends StatefulWidget {
-  const HrAttendanceRecordsPage({super.key});
+  final String routePrefix;
+  const HrAttendanceRecordsPage({super.key, this.routePrefix = ''});
 
   @override
   State<HrAttendanceRecordsPage> createState() =>
@@ -83,6 +86,18 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
       setState(() => _selectedDate = picked);
       _loadRecords();
     }
+  }
+
+  void _showEmployeeList(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EmployeeListSheet(
+        routePrefix: widget.routePrefix,
+        parentContext: context,
+      ),
+    );
   }
 
   Widget _buildDateNav() {
@@ -202,6 +217,39 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
             ),
           ]),
           const SizedBox(height: 24),
+
+          // Employee Attendance Records shortcut
+          Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _showEmployeeList(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: _color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.people_alt_rounded, color: _color, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Employee Attendance Records',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                              color: _color)),
+                      Text('View monthly attendance calendar per employee',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                    ]),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: _color),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
 
           // Search bar
           Card(
@@ -680,6 +728,187 @@ class _RouteMapState extends State<_RouteMap> {
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
       ),
     ]);
+  }
+}
+
+// ── Employee list bottom sheet ────────────────────────────────────────────────
+class _EmployeeListSheet extends StatefulWidget {
+  final String routePrefix;
+  final BuildContext parentContext;
+  const _EmployeeListSheet({required this.routePrefix, required this.parentContext});
+
+  @override
+  State<_EmployeeListSheet> createState() => _EmployeeListSheetState();
+}
+
+class _EmployeeListSheetState extends State<_EmployeeListSheet> {
+  static const _color = Color(0xFF0D47A1);
+  List<AppUser> _all = [];
+  List<AppUser> _filtered = [];
+  bool _loading = true;
+  String _search = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final users = await UserStore.load();
+    if (!mounted) return;
+    final active = users.where((u) => u.active).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    setState(() {
+      _all      = active;
+      _filtered = active;
+      _loading  = false;
+    });
+  }
+
+  void _filter(String q) {
+    setState(() {
+      _search   = q;
+      _filtered = _all
+          .where((u) => u.name.toLowerCase().contains(q.toLowerCase()) ||
+                        u.designation.toLowerCase().contains(q.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(children: [
+          // Handle + header
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: _color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.people_alt_rounded, color: _color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('Select Employee',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, color: cs.onSurface.withValues(alpha: 0.5)),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+
+          // Search
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: TextField(
+              autofocus: false,
+              onChanged: _filter,
+              decoration: InputDecoration(
+                hintText: 'Search by name or designation...',
+                prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: _color, width: 2),
+                ),
+                filled: true,
+                fillColor: cs.surface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Divider(color: cs.outlineVariant, height: 1),
+
+          // List
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: _color, strokeWidth: 2))
+                : _filtered.isEmpty
+                    ? Center(
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.search_off_rounded, size: 40,
+                              color: cs.onSurface.withValues(alpha: 0.2)),
+                          const SizedBox(height: 8),
+                          Text('No employees found',
+                              style: TextStyle(
+                                  color: cs.onSurface.withValues(alpha: 0.4),
+                                  fontSize: 13)),
+                        ]),
+                      )
+                    : ListView.separated(
+                        controller: controller,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _filtered.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
+                        itemBuilder: (_, i) {
+                          final emp = _filtered[i];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: _color.withValues(alpha: 0.1),
+                              child: Text(
+                                emp.name.isNotEmpty ? emp.name[0].toUpperCase() : '?',
+                                style: const TextStyle(
+                                    color: _color, fontWeight: FontWeight.w700, fontSize: 14),
+                              ),
+                            ),
+                            title: Text(emp.name,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            subtitle: emp.designation.isNotEmpty
+                                ? Text(emp.designation,
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)))
+                                : null,
+                            trailing: const Icon(Icons.chevron_right_rounded, color: _color),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              widget.parentContext.go(
+                                '${widget.routePrefix}/attendance/employee-attendance-calendar',
+                                extra: {
+                                  'employeeId':   emp.employeeId,
+                                  'employeeName': emp.name,
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

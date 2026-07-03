@@ -5,6 +5,8 @@ import '../models/app_user.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
 
+enum _SortOrder { newestFirst, oldestFirst, alphabetical, joinOldNew, joinNewOld }
+
 class HrEmployeeRecordsPage extends StatefulWidget {
   const HrEmployeeRecordsPage({super.key});
 
@@ -18,6 +20,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   List<AppUser> _filtered = [];
   bool _loading = true;
   String _search = '';
+  _SortOrder _sort = _SortOrder.newestFirst;
 
   @override
   void initState() {
@@ -45,19 +48,45 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
         .toList();
   }
 
+  static DateTime _parseJoin(AppUser u) {
+    try {
+      final p = u.dateOfJoining.split('/');
+      if (p.length == 3) return DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
+    } catch (_) {}
+    return DateTime(2099); // unknown → sort to end
+  }
+
   void _applyFilter() {
-    if (_search.trim().isEmpty) {
-      _filtered = List.from(_all);
-      return;
+    List<AppUser> list = List.from(_all);
+
+    // Search
+    if (_search.trim().isNotEmpty) {
+      final q = _search.toLowerCase();
+      list = list.where((u) =>
+          u.name.toLowerCase().contains(q) ||
+          u.employeeId.toLowerCase().contains(q) ||
+          u.designation.toLowerCase().contains(q) ||
+          u.email.toLowerCase().contains(q)).toList();
     }
-    final q = _search.toLowerCase();
-    _filtered = _all
-        .where((u) =>
-            u.name.toLowerCase().contains(q) ||
-            u.employeeId.toLowerCase().contains(q) ||
-            u.designation.toLowerCase().contains(q) ||
-            u.email.toLowerCase().contains(q))
-        .toList();
+
+    // Sort
+    switch (_sort) {
+      case _SortOrder.newestFirst:
+        list = list.reversed.toList();
+      case _SortOrder.oldestFirst:
+        break; // keep original insertion order
+      case _SortOrder.alphabetical:
+        list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      case _SortOrder.joinOldNew:
+        list.sort((a, b) => _parseJoin(a).compareTo(_parseJoin(b)));
+      case _SortOrder.joinNewOld:
+        list.sort((a, b) => _parseJoin(b).compareTo(_parseJoin(a)));
+    }
+
+    // Active on top, deactivated at bottom
+    final active   = list.where((u) =>  u.active).toList();
+    final inactive = list.where((u) => !u.active).toList();
+    _filtered = [...active, ...inactive];
   }
 
   Future<void> _saveUser(AppUser user) async {
@@ -169,6 +198,48 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 10),
+
+            // ── Sort chips ───────────────────────────────────────────────
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                _SortChip(
+                  label: 'Recently Added',
+                  icon: Icons.new_releases_rounded,
+                  selected: _sort == _SortOrder.newestFirst,
+                  onTap: () => setState(() { _sort = _SortOrder.newestFirst; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _SortChip(
+                  label: 'Added First',
+                  icon: Icons.history_rounded,
+                  selected: _sort == _SortOrder.oldestFirst,
+                  onTap: () => setState(() { _sort = _SortOrder.oldestFirst; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _SortChip(
+                  label: 'A → Z',
+                  icon: Icons.sort_by_alpha_rounded,
+                  selected: _sort == _SortOrder.alphabetical,
+                  onTap: () => setState(() { _sort = _SortOrder.alphabetical; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _SortChip(
+                  label: 'Join Date ↑',
+                  icon: Icons.calendar_today_rounded,
+                  selected: _sort == _SortOrder.joinOldNew,
+                  onTap: () => setState(() { _sort = _SortOrder.joinOldNew; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _SortChip(
+                  label: 'Join Date ↓',
+                  icon: Icons.calendar_month_rounded,
+                  selected: _sort == _SortOrder.joinNewOld,
+                  onTap: () => setState(() { _sort = _SortOrder.joinNewOld; _applyFilter(); }),
+                ),
+              ]),
             ),
             const SizedBox(height: 16),
 
@@ -1216,6 +1287,48 @@ class _EditDialogState extends State<_EditDialog> {
               : Text(isNew ? 'Add' : 'Save'),
         ),
       ],
+    );
+  }
+}
+
+// ── Sort chip ─────────────────────────────────────────────────────────────────
+
+class _SortChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _SortChip({required this.label, required this.icon,
+      required this.selected, required this.onTap});
+
+  static const _color = Color(0xFF0D47A1);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? _color : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? _color : Theme.of(context).colorScheme.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 13,
+              color: selected ? Colors.white : const Color(0xFF546E7A)),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? Colors.white : const Color(0xFF546E7A))),
+        ]),
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
+import '../widgets/attendance_shortcut_card.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
 const _mgmtAccent = Color(0xFF7B1FA2);
@@ -176,6 +177,12 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
             SizedBox(height: narrow ? 16 : 24),
 
             _StatStrip(totalEmployees: _totalEmployees),
+            SizedBox(height: narrow ? 20 : 28),
+
+            const AttendanceShortcutCard(
+              attendanceRoute: '/management/my-attendance',
+              accentColor: Color(0xFF4A148C),
+            ),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),

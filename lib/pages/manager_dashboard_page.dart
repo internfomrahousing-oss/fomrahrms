@@ -1,23 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/user_session.dart';
-import '../services/user_store.dart';
+import '../widgets/attendance_shortcut_card.dart';
 
-class _Section {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String route;
-  const _Section(this.title, this.icon, this.color, this.route);
-}
-
-const _hrSections = [
-  _Section('Employee Summary',   Icons.people_rounded,                 Color(0xFF0D47A1), '/manager/employee-management'),
-  _Section('Attendance Summary', Icons.access_time_rounded,            Color(0xFF2E7D32), '/manager/attendance-management'),
-  _Section('Interview Review',   Icons.rate_review_rounded,            Color(0xFF1565C0), '/manager/interview-review'),
-  _Section('Payroll Summary',    Icons.account_balance_wallet_rounded, Color(0xFF1565C0), '/manager/payroll-management'),
-  _Section('Notifications',      Icons.notifications_rounded,          Color(0xFF283593), '/manager/notifications'),
-];
 
 class _Item {
   final String title;
@@ -34,19 +18,6 @@ const _personalItems = [
   _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/manager/my-payslips'),
 ];
 
-class _Stat {
-  final String label;
-  final IconData icon;
-  final Color color;
-  const _Stat(this.label, this.icon, this.color);
-}
-
-const _stats = [
-  _Stat('Total Employees', Icons.groups_rounded,       Color(0xFF0D47A1)),
-  _Stat('Present',         Icons.check_circle_rounded, Color(0xFF1565C0)),
-  _Stat('Absent',          Icons.cancel_rounded,       Color(0xFF1976D2)),
-  _Stat('On-site',         Icons.location_on_rounded,  Color(0xFF42A5F5)),
-];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 class ManagerDashboardPage extends StatelessWidget {
@@ -133,15 +104,10 @@ class ManagerDashboardPage extends StatelessWidget {
             ),
             SizedBox(height: narrow ? 16 : 24),
 
-            _StatStrip(),
-            SizedBox(height: narrow ? 20 : 28),
-
-            _SectionLabel(
-              icon: Icons.admin_panel_settings_rounded,
-              label: 'Team Overview',
+            const AttendanceShortcutCard(
+              attendanceRoute: '/manager/my-attendance',
+              accentColor: Color(0xFF1565C0),
             ),
-            const SizedBox(height: 12),
-            _SectionGrid(sections: _hrSections),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(
@@ -185,174 +151,6 @@ class _SectionLabel extends StatelessWidget {
       const SizedBox(width: 12),
       Expanded(child: Divider(color: cs.outlineVariant)),
     ]);
-  }
-}
-
-// ── Stat strip ────────────────────────────────────────────────────────────────
-class _StatStrip extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final isNarrow = constraints.maxWidth < 500;
-      if (isNarrow) {
-        return Column(children: [
-          Row(children: [
-            Expanded(child: _StatCircle(stat: _stats[0])),
-            const SizedBox(width: 12),
-            Expanded(child: _StatCircle(stat: _stats[1])),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _StatCircle(stat: _stats[2])),
-            const SizedBox(width: 12),
-            Expanded(child: _StatCircle(stat: _stats[3])),
-          ]),
-        ]);
-      }
-      return Row(
-        children: _stats.asMap().entries.map((e) {
-          return Expanded(
-            child: Padding(
-              padding:
-                  EdgeInsets.only(right: e.key < _stats.length - 1 ? 12 : 0),
-              child: _StatCircle(stat: e.value),
-            ),
-          );
-        }).toList(),
-      );
-    });
-  }
-}
-
-class _StatCircle extends StatelessWidget {
-  final _Stat stat;
-  const _StatCircle({required this.stat});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: stat.color,
-                boxShadow: [
-                  BoxShadow(
-                    color: stat.color.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(stat.icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(height: 10),
-            Text('—',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: stat.color)),
-            const SizedBox(height: 4),
-            Text(stat.label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Section grid ──────────────────────────────────────────────────────────────
-class _SectionGrid extends StatelessWidget {
-  final List<_Section> sections;
-  const _SectionGrid({required this.sections});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth > 900
-          ? 3
-          : constraints.maxWidth > 600
-              ? 2
-              : 1;
-      final rows = <Widget>[];
-      for (int i = 0; i < sections.length; i += cols) {
-        final end =
-            (i + cols) > sections.length ? sections.length : i + cols;
-        final rowItems = sections.sublist(i, end);
-        rows.add(Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: rowItems.map((s) {
-            final isLast = rowItems.last == s;
-            return Expanded(
-              child: Padding(
-                padding:
-                    EdgeInsets.only(right: isLast ? 0 : 12, bottom: 12),
-                child: _SectionCard(section: s),
-              ),
-            );
-          }).toList(),
-        ));
-      }
-      return Column(children: rows);
-    });
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final _Section section;
-  const _SectionCard({required this.section});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.go(section.route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          child: Row(children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: section.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(section.icon, color: section.color, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(section.title,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface)),
-                    const SizedBox(height: 2),
-                    Text('View details',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: section.color.withValues(alpha: 0.8))),
-                  ]),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded,
-                size: 13,
-                color: section.color.withValues(alpha: 0.5)),
-          ]),
-        ),
-      ),
-    );
   }
 }
 
