@@ -132,10 +132,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                   _SectionGrid(),
                   SizedBox(height: narrow ? 20 : 28),
 
-                  _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
-                  const SizedBox(height: 12),
-                  _PersonalGrid(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
