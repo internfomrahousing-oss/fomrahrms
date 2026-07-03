@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
+import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
@@ -55,6 +56,81 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
     }
   }
 
+  Future<void> _showHRPolicy() async {
+    String? policyText;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final active = await SupabaseService.fetchActiveOnboardingFormVersion();
+      if (!mounted) return;
+      Navigator.pop(context);
+      final sections = active != null
+          ? OnboardingFormConfig.getSections(
+              Map<String, dynamic>.from(active['form_config'] as Map))
+          : OnboardingFormConfig.getSections(OnboardingFormConfig.defaults());
+      policyText = OnboardingFormConfig.getPolicyTextFromSections(sections);
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      policyText = OnboardingFormConfig.defaultPolicyText;
+    }
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (dlgCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D47A1),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.policy_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text('HR Policy',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                          color: Colors.white)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                  onPressed: () => Navigator.pop(dlgCtx),
+                ),
+              ]),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: SelectableText(
+                  policyText ?? '',
+                  style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF37474F)),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(dlgCtx),
+                  child: const Text('Close'),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   void _openSheet() {
     showModalBottomSheet(
       context: context,
@@ -102,44 +178,70 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: _loading ? null : _openSheet,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (_loading)
-                SizedBox(
-                  width: 14, height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-                )
-              else
-                Icon(statusIcon, size: 18, color: statusColor),
-              const SizedBox(width: 7),
-              Text(statusText,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: _loading
-                          ? cs.onSurface.withValues(alpha: 0.5)
-                          : cs.onSurface)),
-              // Active pulse when checked in
-              if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        // ── Attendance check-in/out button ───────────────────────────────
+        Card(
+          margin: EdgeInsets.zero,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: _loading ? null : _openSheet,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (_loading)
+                  SizedBox(
+                    width: 14, height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+                  )
+                else
+                  Icon(statusIcon, size: 18, color: statusColor),
                 const SizedBox(width: 7),
-                Container(
-                  width: 6, height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade400,
-                    shape: BoxShape.circle,
+                Text(statusText,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _loading
+                            ? cs.onSurface.withValues(alpha: 0.5)
+                            : cs.onSurface)),
+                if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
+                  const SizedBox(width: 7),
+                  Container(
+                    width: 6, height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade400,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-              ],
-            ]),
+                ],
+              ]),
+            ),
           ),
         ),
-      ),
+
+        const SizedBox(width: 8),
+
+        // ── HR Policy button ──────────────────────────────────────────────
+        Card(
+          margin: EdgeInsets.zero,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: _showHRPolicy,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.policy_rounded, size: 18,
+                    color: isDark ? Colors.blue.shade300 : const Color(0xFF0D47A1)),
+                const SizedBox(width: 7),
+                Text('HR Policy',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.blue.shade300 : const Color(0xFF0D47A1))),
+              ]),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 

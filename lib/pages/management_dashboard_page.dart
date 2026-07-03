@@ -16,16 +16,16 @@ class _Section {
   const _Section(this.title, this.icon, this.color, this.route);
 }
 
-const _orange = Color(0xFFE65100);
+const _teal = Color(0xFF00695C);
 
 const _sections = [
-  _Section('Employee Summary',     Icons.people_rounded,          _orange, '/management/employee-management'),
-  _Section('Attendance Summary',   Icons.access_time_rounded,     _orange, '/management/attendance-management'),
-  _Section('Leave Management',     Icons.event_available_rounded, _orange, '/management/leave-management'),
-  _Section('Team Leave Approvals', Icons.group_rounded,           _orange, '/management/leave/team-approvals'),
-  _Section('Maintenance Summary',  Icons.build_rounded,           _orange, '/management/maintenance-management'),
-  _Section('Interview Review',     Icons.rate_review_rounded,     _orange, '/management/interview-review'),
-  _Section('Approvals Summary',    Icons.approval_rounded,        _orange, '/management/approvals'),
+  _Section('Employee Summary',     Icons.people_rounded,          _teal, '/management/employee-management'),
+  _Section('Attendance Summary',   Icons.access_time_rounded,     _teal, '/management/attendance-management'),
+  _Section('Leave Management',     Icons.event_available_rounded, _teal, '/management/leave-management'),
+  _Section('Team Leave Approvals', Icons.group_rounded,           _teal, '/management/leave/team-approvals'),
+  _Section('Maintenance Summary',  Icons.build_rounded,           _teal, '/management/maintenance-management'),
+  _Section('Interview Review',     Icons.rate_review_rounded,     _teal, '/management/interview-review'),
+  _Section('Approvals Summary',    Icons.approval_rounded,        _teal, '/management/approvals'),
 ];
 
 
