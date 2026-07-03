@@ -167,19 +167,19 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
               final text = ctrl.text.trim();
               if (text.isEmpty) return;
               Navigator.pop(dlgCtx);
-              final ok = await SupabaseService.addAnnouncement(text, DateTime.now());
+              final err = await SupabaseService.addAnnouncement(text, DateTime.now());
               if (!mounted) return;
-              if (ok) {
+              if (err == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Announcement posted'), backgroundColor: Colors.green),
                 );
                 _load();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Failed to post — check Supabase table & RLS settings'),
+                  SnackBar(
+                    content: Text(err),
                     backgroundColor: Colors.red,
-                    duration: Duration(seconds: 5),
+                    duration: const Duration(seconds: 10),
                   ),
                 );
               }
