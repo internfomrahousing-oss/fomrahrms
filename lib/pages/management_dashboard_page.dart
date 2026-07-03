@@ -4,6 +4,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/stat_strip.dart';
 import '../widgets/welcome_banner.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
@@ -49,19 +50,6 @@ const _personalItems = [
   _Item('My Profile',    Icons.person_rounded,                 Color(0xFF0D47A1), '/management/my-profile'),
 ];
 
-class _Stat {
-  final String label;
-  final IconData icon;
-  final Color color;
-  const _Stat(this.label, this.icon, this.color);
-}
-
-const _stats = [
-  _Stat('Total Employees', Icons.groups_rounded,       Color(0xFF4A148C)),
-  _Stat('Present Today',   Icons.check_circle_rounded, Color(0xFF2E7D32)),
-  _Stat('Pending Leaves',  Icons.event_busy_rounded,   Color(0xFF6A1B9A)),
-  _Stat('Open Tasks',      Icons.task_alt_rounded,     Color(0xFF1565C0)),
-];
 
 class ManagementDashboardPage extends StatefulWidget {
   const ManagementDashboardPage({super.key});
@@ -119,7 +107,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _StatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
+                  _MgmtStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
                   SizedBox(height: narrow ? 20 : 28),
 
                   const AttendanceShortcutCard(
@@ -176,88 +164,49 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _StatStrip extends StatelessWidget {
+class _MgmtStatStrip extends StatelessWidget {
   final String totalEmployees;
   final String present;
   final String absent;
-  const _StatStrip({required this.totalEmployees, required this.present, required this.absent});
+  const _MgmtStatStrip(
+      {required this.totalEmployees,
+      required this.present,
+      required this.absent});
 
-  @override
-  Widget build(BuildContext context) {
-    final values = [totalEmployees, present, absent, '—'];
-    return LayoutBuilder(builder: (context, constraints) {
-      final isNarrow = constraints.maxWidth < 500;
-      if (isNarrow) {
-        return Column(children: [
-          Row(children: [
-            Expanded(child: _StatCard(stat: _stats[0], value: values[0])),
-            const SizedBox(width: 12),
-            Expanded(child: _StatCard(stat: _stats[1], value: values[1])),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _StatCard(stat: _stats[2], value: values[2])),
-            const SizedBox(width: 12),
-            Expanded(child: _StatCard(stat: _stats[3], value: values[3])),
-          ]),
-        ]);
-      }
-      return Row(
-        children: _stats.asMap().entries.map((e) {
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: e.key < _stats.length - 1 ? 12 : 0),
-              child: _StatCard(stat: e.value, value: values[e.key]),
-            ),
-          );
-        }).toList(),
-      );
-    });
+  double? _pct(String num, String denom) {
+    final n = int.tryParse(num);
+    final d = int.tryParse(denom);
+    if (n == null || d == null || d == 0) return null;
+    return (n / d).clamp(0.0, 1.0);
   }
-}
-
-class _StatCard extends StatelessWidget {
-  final _Stat stat;
-  final String value;
-  const _StatCard({required this.stat, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: stat.color,
-              boxShadow: [
-                BoxShadow(
-                  color: stat.color.withValues(alpha: 0.35),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(stat.icon, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 10),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: stat.color)),
-          const SizedBox(height: 4),
-          Text(stat.label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
-        ]),
+    return AppStatStrip(cards: [
+      AppStatCard(
+        title: 'Total Employees',
+        value: totalEmployees,
+        icon: Icons.groups_rounded,
       ),
-    );
+      AppStatCard(
+        title: 'Present Today',
+        value: present,
+        icon: Icons.check_circle_rounded,
+        gaugePercent: _pct(present, totalEmployees),
+      ),
+      AppStatCard(
+        title: 'Absent Today',
+        value: absent,
+        icon: Icons.cancel_rounded,
+        gaugePercent: _pct(absent, totalEmployees),
+      ),
+      const AppStatCard(
+        title: 'Pending Leaves',
+        value: '—',
+        icon: Icons.event_busy_rounded,
+        gaugePercent: 0,
+      ),
+    ]);
   }
 }
 
