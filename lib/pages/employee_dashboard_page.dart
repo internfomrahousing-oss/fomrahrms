@@ -51,24 +51,33 @@ class EmployeeDashboardPage extends StatelessWidget {
                   _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),
                   const SizedBox(height: 12),
                   LayoutBuilder(builder: (context, constraints) {
-                    final cols = constraints.maxWidth > 600 ? 3 : 2;
+                    final wide = constraints.maxWidth > 600;
+                    final cols = wide ? (_items.length % 4 == 0 ? 4 : 3) : 2;
                     final rows = <Widget>[];
                     for (int i = 0; i < _items.length; i += cols) {
-                      final end =
-                          (i + cols) > _items.length ? _items.length : i + cols;
+                      final end = (i + cols) > _items.length ? _items.length : i + cols;
                       final rowItems = _items.sublist(i, end);
+                      final missing = cols - rowItems.length;
                       rows.add(Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: rowItems.map((item) {
-                          final isLast = rowItems.last == item;
-                          return Expanded(
+                        children: [
+                          ...rowItems.map((item) => Expanded(
                             child: Padding(
                               padding: EdgeInsets.only(
-                                  right: isLast ? 0 : 12, bottom: 12),
+                                right: (item == rowItems.last && missing == 0) ? 0 : 12,
+                                bottom: 12,
+                              ),
                               child: _DashCard(item: item),
                             ),
-                          );
-                        }).toList(),
+                          )),
+                          for (int j = 0; j < missing; j++)
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
+                                child: const SizedBox(),
+                              ),
+                            ),
+                        ],
                       ));
                     }
                     return Column(children: rows);
@@ -126,28 +135,28 @@ class _DashCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.go(item.route),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 48, height: 48,
+                width: 40, height: 40,
                 decoration: BoxDecoration(
                   color: item.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(item.icon, color: item.color, size: 26),
+                child: Icon(item.icon, color: item.color, size: 22),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(item.title,
                   textAlign: TextAlign.center,
                   style: Theme.of(context)
                       .textTheme
-                      .titleLarge
-                      ?.copyWith(fontSize: 12)),
-              const SizedBox(height: 4),
+                      .bodyMedium
+                      ?.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF1A3A6B))),
+              const SizedBox(height: 3),
               Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: item.color.withValues(alpha: 0.6)),
+                  size: 13, color: item.color.withValues(alpha: 0.5)),
             ],
           ),
         ),

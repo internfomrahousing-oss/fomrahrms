@@ -104,23 +104,33 @@ class _PersonalGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth > 600 ? 3 : 2;
+      final wide = constraints.maxWidth > 600;
+      final cols = wide ? (items.length % 4 == 0 ? 4 : 3) : 2;
       final rows = <Widget>[];
       for (int i = 0; i < items.length; i += cols) {
         final end = (i + cols) > items.length ? items.length : i + cols;
         final rowItems = items.sublist(i, end);
+        final missing = cols - rowItems.length;
         rows.add(Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: rowItems.map((item) {
-            final isLast = rowItems.last == item;
-            return Expanded(
+          children: [
+            ...rowItems.map((item) => Expanded(
               child: Padding(
-                padding:
-                    EdgeInsets.only(right: isLast ? 0 : 12, bottom: 12),
+                padding: EdgeInsets.only(
+                  right: (item == rowItems.last && missing == 0) ? 0 : 12,
+                  bottom: 12,
+                ),
                 child: _DashCard(item: item),
               ),
-            );
-          }).toList(),
+            )),
+            for (int j = 0; j < missing; j++)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
+                  child: const SizedBox(),
+                ),
+              ),
+          ],
         ));
       }
       return Column(children: rows);
