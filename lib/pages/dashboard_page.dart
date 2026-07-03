@@ -108,7 +108,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             SizedBox(height: narrow ? 20 : 28),
 
-            const DashboardInfoBlocks(),
+            const DashboardInfoBlocks(canEdit: true),
             SizedBox(height: narrow ? 20 : 28),
 
             _SectionLabel(

@@ -1116,6 +1116,129 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  // ── Announcements ─────────────────────────────────────────────────────────
+  /*
+    create table if not exists announcements (
+      id uuid default gen_random_uuid() primary key,
+      text text not null,
+      announced_on date not null default current_date,
+      created_at timestamptz default now()
+    );
+    alter table announcements disable row level security;
+
+    create table if not exists holidays (
+      id uuid default gen_random_uuid() primary key,
+      name text not null,
+      holiday_date date not null,
+      created_at timestamptz default now()
+    );
+    alter table holidays disable row level security;
+
+    create table if not exists birthdays (
+      id uuid default gen_random_uuid() primary key,
+      name text not null,
+      birthday_date date not null,
+      created_at timestamptz default now()
+    );
+    alter table birthdays disable row level security;
+  */
+
+  static Future<List<Map<String, dynamic>>> fetchAnnouncements() async {
+    try {
+      final data = await _db
+          ?.from('announcements')
+          .select()
+          .order('announced_on', ascending: false)
+          .limit(20);
+      if (data == null) return [];
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> addAnnouncement(String text, DateTime date) async {
+    try {
+      await _db?.from('announcements').insert({
+        'text': text,
+        'announced_on': date.toIso8601String().substring(0, 10),
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> deleteAnnouncement(String id) async {
+    try {
+      await _db?.from('announcements').delete().eq('id', id);
+    } catch (_) {}
+  }
+
+  // ── Holidays ───────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchHolidays(int year) async {
+    try {
+      final data = await _db
+          ?.from('holidays')
+          .select()
+          .gte('holiday_date', '$year-01-01')
+          .lte('holiday_date', '$year-12-31')
+          .order('holiday_date', ascending: true);
+      if (data == null) return [];
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> addHoliday(String name, DateTime date) async {
+    try {
+      await _db?.from('holidays').insert({
+        'name': name,
+        'holiday_date': date.toIso8601String().substring(0, 10),
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> deleteHoliday(String id) async {
+    try {
+      await _db?.from('holidays').delete().eq('id', id);
+    } catch (_) {}
+  }
+
+  // ── Birthdays ──────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchBirthdaysForMonth(
+      int month) async {
+    try {
+      final data = await _db
+          ?.from('birthdays')
+          .select()
+          .order('birthday_date', ascending: true);
+      if (data == null) return [];
+      final all = List<Map<String, dynamic>>.from(data as List);
+      return all.where((row) {
+        final d = DateTime.tryParse(row['birthday_date'] as String? ?? '');
+        return d != null && d.month == month;
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> addBirthday(String name, DateTime date) async {
+    try {
+      await _db?.from('birthdays').insert({
+        'name': name,
+        'birthday_date': date.toIso8601String().substring(0, 10),
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> deleteBirthday(String id) async {
+    try {
+      await _db?.from('birthdays').delete().eq('id', id);
+    } catch (_) {}
+  }
+
   // ── Initial load on app start ─────────────────────────────────────────
 
   static Future<void> loadAll() async {
