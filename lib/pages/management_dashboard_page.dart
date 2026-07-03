@@ -261,26 +261,33 @@ class _SectionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth > 900
-          ? 3
-          : constraints.maxWidth > 600
-              ? 2
-              : 1;
+      final wide = constraints.maxWidth > 600;
+      final cols = wide ? 4 : 2;
       final rows = <Widget>[];
       for (int i = 0; i < _sections.length; i += cols) {
         final end = (i + cols) > _sections.length ? _sections.length : i + cols;
         final rowItems = _sections.sublist(i, end);
+        final missing = cols - rowItems.length;
         rows.add(Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: rowItems.map((s) {
-            final isLast = rowItems.last == s;
-            return Expanded(
+          children: [
+            ...rowItems.map((s) => Expanded(
               child: Padding(
-                padding: EdgeInsets.only(right: isLast ? 0 : 12, bottom: 12),
+                padding: EdgeInsets.only(
+                  right: (s == rowItems.last && missing == 0) ? 0 : 12,
+                  bottom: 12,
+                ),
                 child: _SectionCard(section: s),
               ),
-            );
-          }).toList(),
+            )),
+            for (int j = 0; j < missing; j++)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
+                  child: const SizedBox(),
+                ),
+              ),
+          ],
         ));
       }
       return Column(children: rows);
@@ -295,39 +302,31 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: section.color.withValues(alpha: 0.1),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: section.color.withValues(alpha: 0.18), width: 1),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => context.go(section.route),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          child: Row(children: [
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
-              width: 44, height: 44,
+              width: 40, height: 40,
               decoration: BoxDecoration(
-                color: section.color.withValues(alpha: 0.1),
+                color: section.color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(section.icon, color: section.color, size: 22),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(section.title,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface)),
-                    const SizedBox(height: 2),
-                    Text('View details',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: section.color.withValues(alpha: 0.8))),
-                  ]),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded,
-                size: 13, color: section.color.withValues(alpha: 0.5)),
+            const SizedBox(height: 10),
+            Text(section.title,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: section.color)),
+            const SizedBox(height: 6),
+            Icon(Icons.arrow_upward_rounded, size: 16, color: section.color.withValues(alpha: 0.55)),
           ]),
         ),
       ),
