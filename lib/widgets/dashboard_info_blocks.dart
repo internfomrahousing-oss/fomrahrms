@@ -150,7 +150,7 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
     final ctrl = TextEditingController();
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dlgCtx) => AlertDialog(
         title: const Text('New Announcement'),
         content: TextField(
           controller: ctrl,
@@ -161,12 +161,12 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
               border: OutlineInputBorder()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dlgCtx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               final text = ctrl.text.trim();
               if (text.isEmpty) return;
-              Navigator.pop(context);
+              Navigator.pop(dlgCtx);
               final ok = await SupabaseService.addAnnouncement(text, DateTime.now());
               if (!mounted) return;
               if (ok) {
@@ -201,11 +201,11 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
   Future<bool> _confirm(String msg) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dlgCtx) => AlertDialog(
         content: Text(msg),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(dlgCtx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(dlgCtx, true), child: const Text('Delete')),
         ],
       ),
     );
@@ -317,8 +317,8 @@ class _HolidaysBlockState extends State<_HolidaysBlock> {
     DateTime? picked;
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
+      builder: (dlgCtx) => StatefulBuilder(
+        builder: (sbCtx, setDlg) => AlertDialog(
           title: const Text('Add Holiday'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(
@@ -338,7 +338,7 @@ class _HolidaysBlockState extends State<_HolidaysBlock> {
               onPressed: () async {
                 final now = DateTime.now();
                 final d = await showDatePicker(
-                  context: ctx,
+                  context: sbCtx,
                   initialDate: now,
                   firstDate: DateTime(now.year, 1, 1),
                   lastDate: DateTime(now.year, 12, 31),
@@ -348,12 +348,12 @@ class _HolidaysBlockState extends State<_HolidaysBlock> {
             ),
           ]),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(dlgCtx), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
                 final name = nameCtrl.text.trim();
                 if (name.isEmpty || picked == null) return;
-                Navigator.pop(ctx);
+                Navigator.pop(dlgCtx);
                 await SupabaseService.addHoliday(name, picked!);
                 _load();
               },
@@ -483,8 +483,8 @@ class _BirthdaysBlockState extends State<_BirthdaysBlock> {
     DateTime? picked;
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
+      builder: (dlgCtx) => StatefulBuilder(
+        builder: (sbCtx, setDlg) => AlertDialog(
           title: const Text('Add Birthday'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(
@@ -504,7 +504,7 @@ class _BirthdaysBlockState extends State<_BirthdaysBlock> {
               onPressed: () async {
                 final now = DateTime.now();
                 final d = await showDatePicker(
-                  context: ctx,
+                  context: sbCtx,
                   initialDate: DateTime(now.year, now.month, 1),
                   firstDate: DateTime(now.year, 1, 1),
                   lastDate: DateTime(now.year, 12, 31),
@@ -514,12 +514,12 @@ class _BirthdaysBlockState extends State<_BirthdaysBlock> {
             ),
           ]),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(dlgCtx), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
                 final name = nameCtrl.text.trim();
                 if (name.isEmpty || picked == null) return;
-                Navigator.pop(ctx);
+                Navigator.pop(dlgCtx);
                 await SupabaseService.addBirthday(name, picked!);
                 _load();
               },
