@@ -7,8 +7,6 @@ import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/stat_strip.dart';
 import '../widgets/welcome_banner.dart';
 
-const _mgmtColor = Color(0xFF4A148C);
-const _mgmtAccent = Color(0xFF7B1FA2);
 
 class _Section {
   final String title;
@@ -18,37 +16,18 @@ class _Section {
   const _Section(this.title, this.icon, this.color, this.route);
 }
 
+const _orange = Color(0xFFE65100);
+
 const _sections = [
-  _Section('Employee Summary',      Icons.people_rounded,                 Color(0xFF4A148C), '/management/employee-management'),
-  _Section('Attendance Summary',    Icons.access_time_rounded,            Color(0xFF2E7D32), '/management/attendance-management'),
-  _Section('Leave Management',      Icons.event_available_rounded,        Color(0xFF283593), '/management/leave-management'),
-  _Section('Team Leave Approvals',  Icons.group_rounded,                  Color(0xFF00695C), '/management/leave/team-approvals'),
-  _Section('Task Summary',          Icons.task_alt_rounded,               Color(0xFF6A1B9A), '/management/task-management'),
-  _Section('Performance Summary',   Icons.trending_up_rounded,            Color(0xFF1565C0), '/management/performance-management'),
-  _Section('Payroll Summary',       Icons.account_balance_wallet_rounded, Color(0xFF4A148C), '/management/payroll-management'),
-  _Section('Lead & Marketing',      Icons.leaderboard_rounded,            Color(0xFFE65100), '/management/lead-management'),
-  _Section('Maintenance Summary',   Icons.build_rounded,                  Color(0xFF4E342E), '/management/maintenance-management'),
-  _Section('Interview Review',       Icons.rate_review_rounded,            Color(0xFF6A1B9A), '/management/interview-review'),
-  _Section('Approvals Summary',     Icons.approval_rounded,               Color(0xFFC62828), '/management/approvals'),
-  _Section('Reports & Analytics',   Icons.bar_chart_rounded,              Color(0xFF37474F), '/management/reports-analytics'),
-  _Section('Administration',        Icons.admin_panel_settings_rounded,   Color(0xFF880E4F), '/management/administration'),
+  _Section('Employee Summary',     Icons.people_rounded,          _orange, '/management/employee-management'),
+  _Section('Attendance Summary',   Icons.access_time_rounded,     _orange, '/management/attendance-management'),
+  _Section('Leave Management',     Icons.event_available_rounded, _orange, '/management/leave-management'),
+  _Section('Team Leave Approvals', Icons.group_rounded,           _orange, '/management/leave/team-approvals'),
+  _Section('Maintenance Summary',  Icons.build_rounded,           _orange, '/management/maintenance-management'),
+  _Section('Interview Review',     Icons.rate_review_rounded,     _orange, '/management/interview-review'),
+  _Section('Approvals Summary',    Icons.approval_rounded,        _orange, '/management/approvals'),
 ];
 
-class _Item {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String route;
-  const _Item(this.title, this.icon, this.color, this.route);
-}
-
-const _personalItems = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/management/my-attendance'),
-  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF1976D2), '/management/my-leave'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/management/my-tasks'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/management/my-payslips'),
-  _Item('My Profile',    Icons.person_rounded,                 Color(0xFF0D47A1), '/management/my-profile'),
-];
 
 
 class ManagementDashboardPage extends StatefulWidget {
@@ -287,79 +266,3 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _PersonalGrid extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final wide = constraints.maxWidth > 600;
-      final cols = wide ? (_personalItems.length % 4 == 0 ? 4 : 3) : 2;
-      final rows = <Widget>[];
-      for (int i = 0; i < _personalItems.length; i += cols) {
-        final end = (i + cols) > _personalItems.length ? _personalItems.length : i + cols;
-        final rowItems = _personalItems.sublist(i, end);
-        final missing = cols - rowItems.length;
-        rows.add(Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...rowItems.map((item) => Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: (item == rowItems.last && missing == 0) ? 0 : 12,
-                  bottom: 12,
-                ),
-                child: _DashCard(item: item),
-              ),
-            )),
-            for (int j = 0; j < missing; j++)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
-                  child: const SizedBox(),
-                ),
-              ),
-          ],
-        ));
-      }
-      return Column(children: rows);
-    });
-  }
-}
-
-class _DashCard extends StatelessWidget {
-  final _Item item;
-  const _DashCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: item.color.withValues(alpha: 0.1),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: item.color.withValues(alpha: 0.18), width: 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => context.go(item.route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                color: item.color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(item.icon, color: item.color, size: 22),
-            ),
-            const SizedBox(height: 10),
-            Text(item.title,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: item.color)),
-            const SizedBox(height: 6),
-            Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
-          ]),
-        ),
-      ),
-    );
-  }
-}
