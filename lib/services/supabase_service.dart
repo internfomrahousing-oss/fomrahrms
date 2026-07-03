@@ -1157,13 +1157,18 @@ class SupabaseService {
     }
   }
 
-  static Future<void> addAnnouncement(String text, DateTime date) async {
+  static Future<bool> addAnnouncement(String text, DateTime date) async {
     try {
       await _db?.from('announcements').insert({
         'text': text,
         'announced_on': date.toIso8601String().substring(0, 10),
       });
-    } catch (_) {}
+      return true;
+    } catch (e) {
+      // ignore: avoid_print
+      print('[Announcements] insert failed: $e');
+      return false;
+    }
   }
 
   static Future<void> deleteAnnouncement(String id) async {

@@ -54,6 +54,7 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final bool canEdit;
   final VoidCallback? onAdd;
+  final VoidCallback? onRefresh;
   final Widget child;
   const _InfoCard({
     required this.icon,
@@ -61,6 +62,7 @@ class _InfoCard extends StatelessWidget {
     required this.child,
     this.canEdit = false,
     this.onAdd,
+    this.onRefresh,
   });
 
   @override
@@ -101,6 +103,15 @@ class _InfoCard extends StatelessWidget {
                     message: 'Add',
                     child: Icon(Icons.add_circle_outline_rounded,
                         color: _purple, size: 20),
+                  ),
+                ),
+              if (!canEdit && onRefresh != null)
+                GestureDetector(
+                  onTap: onRefresh,
+                  child: Tooltip(
+                    message: 'Refresh',
+                    child: Icon(Icons.refresh_rounded,
+                        color: _purple.withValues(alpha: 0.55), size: 18),
                   ),
                 ),
             ]),
@@ -156,8 +167,22 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
               final text = ctrl.text.trim();
               if (text.isEmpty) return;
               Navigator.pop(context);
-              await SupabaseService.addAnnouncement(text, DateTime.now());
-              _load();
+              final ok = await SupabaseService.addAnnouncement(text, DateTime.now());
+              if (!mounted) return;
+              if (ok) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Announcement posted'), backgroundColor: Colors.green),
+                );
+                _load();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to post — check Supabase table & RLS settings'),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 5),
+                  ),
+                );
+              }
             },
             child: const Text('Post'),
           ),
@@ -195,6 +220,7 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
       title: 'Announcements',
       canEdit: widget.canEdit,
       onAdd: _showAdd,
+      onRefresh: _load,
       child: _loading
           ? const _Loader()
           : _items.isEmpty

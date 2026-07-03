@@ -21,8 +21,19 @@ const _items = [
 
 const _blue = Color(0xFF0D47A1);
 
-class EmployeeDashboardPage extends StatelessWidget {
+class EmployeeDashboardPage extends StatefulWidget {
   const EmployeeDashboardPage({super.key});
+
+  @override
+  State<EmployeeDashboardPage> createState() => _EmployeeDashboardPageState();
+}
+
+class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
+  int _refreshKey = 0;
+
+  Future<void> _refresh() async {
+    setState(() => _refreshKey++);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +42,11 @@ class EmployeeDashboardPage extends StatelessWidget {
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: SingleChildScrollView(
-        child: Column(
+      child: RefreshIndicator(
+        onRefresh: _refresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const WelcomeBanner(
@@ -49,7 +63,7 @@ class EmployeeDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(height: narrow ? 16 : 24),
 
-                  const DashboardInfoBlocks(),
+                  DashboardInfoBlocks(key: ValueKey(_refreshKey)),
                   SizedBox(height: narrow ? 16 : 24),
 
                   _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),
@@ -92,6 +106,7 @@ class EmployeeDashboardPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
