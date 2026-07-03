@@ -22,7 +22,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFCDD5E0),
+      scaffoldBackgroundColor: const Color(0xFFEEF1F6),
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryBlue,
         foregroundColor: white,

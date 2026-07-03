@@ -41,3 +41,6 @@ web/flutter_service_worker.js
 # OS
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*

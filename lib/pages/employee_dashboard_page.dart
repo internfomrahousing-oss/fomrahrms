@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/attendance_shortcut_card.dart';
+import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/welcome_banner.dart';
 
 class _Item {
@@ -46,6 +47,9 @@ class EmployeeDashboardPage extends StatelessWidget {
                     attendanceRoute: '/employee/attendance-management',
                     accentColor: Color(0xFF0D47A1),
                   ),
+                  SizedBox(height: narrow ? 16 : 24),
+
+                  const DashboardInfoBlocks(),
                   SizedBox(height: narrow ? 16 : 24),
 
                   _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),

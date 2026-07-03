@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/attendance_shortcut_card.dart';
+import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/welcome_banner.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
@@ -125,6 +126,9 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                     attendanceRoute: '/management/my-attendance',
                     accentColor: Color(0xFF1565C0),
                   ),
+                  SizedBox(height: narrow ? 20 : 28),
+
+                  const DashboardInfoBlocks(),
                   SizedBox(height: narrow ? 20 : 28),
 
                   _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),
