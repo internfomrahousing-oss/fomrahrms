@@ -96,6 +96,48 @@ class QuickActionsBody extends StatelessWidget {
   }
 }
 
+/// Vertical strip of 4 icons — for embedding next to the banner avatar.
+class QuickActionIconsVertical extends StatelessWidget {
+  const QuickActionIconsVertical({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(_qData.length, (i) {
+        final q = _qData[i];
+        return Padding(
+          padding: EdgeInsets.only(bottom: i < _qData.length - 1 ? 8 : 0),
+          child: Tooltip(
+            message: q.label,
+            child: GestureDetector(
+              onTap: () => _showBlock(context, _blockFor(i)),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: q.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: q.color.withValues(alpha: 0.45), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: q.color.withValues(alpha: 0.18),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(q.icon, size: 22, color: q.color),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
 /// Wide top-bar version: 4 colourful icon buttons with tooltips.
 class QuickActionIcons extends StatelessWidget {
   const QuickActionIcons({super.key});
