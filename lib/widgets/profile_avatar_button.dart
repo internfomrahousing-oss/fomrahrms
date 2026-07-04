@@ -66,7 +66,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
         onTap: _openMenu,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           CircleAvatar(
-            radius: 36,
+            radius: 52,
             backgroundColor: Colors.white.withValues(alpha: 0.20),
             backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
             child: photoUrl.isEmpty
@@ -74,7 +74,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                     style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 28))
+                        fontSize: 38))
                 : null,
           ),
           const SizedBox(height: 8),
