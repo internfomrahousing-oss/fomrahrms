@@ -215,7 +215,8 @@ class _ProfileDropdown extends StatelessWidget {
                   onTap: () => onNavigate(UserSession.profileRoute),
                 ),
               ),
-              if (UserSession.role == UserRole.employee) ...[
+              if (UserSession.role == UserRole.employee ||
+                  UserSession.role == UserRole.reportingManager) ...[
                 const VerticalDivider(width: 1),
                 Expanded(
                   child: ListTile(
@@ -224,7 +225,11 @@ class _ProfileDropdown extends StatelessWidget {
                         color: Color(0xFF1565C0)),
                     title: const Text('My Journey',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    onTap: () => onNavigate('/employee/my-journey'),
+                    onTap: () => onNavigate(
+                      UserSession.role == UserRole.reportingManager
+                          ? '/manager/my-journey'
+                          : '/employee/my-journey',
+                    ),
                   ),
                 ),
               ],

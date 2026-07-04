@@ -305,6 +305,7 @@ final _router = GoRouter(
         GoRoute(path: '/manager/my-tasks/add',            builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/manager/my-payslips',             builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/manager/my-profile',              builder: (_, __) => const MyProfilePage()),
+        GoRoute(path: '/manager/my-journey',              builder: (_, __) => const MyJourneyPage()),
         GoRoute(path: '/manager/settings',                builder: (_, __) => const SettingsPage()),
       ],
     ),
