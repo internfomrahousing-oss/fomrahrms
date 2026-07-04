@@ -499,36 +499,26 @@ class _QuickLinksBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
-      icon: Icons.apps_rounded,
-      title: 'Quick Access',
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: List.generate(_qLinks.length, (i) {
-          final q = _qLinks[i];
-          return GestureDetector(
-            onTap: () => _open(context, _blockFor(i)),
-            child: Container(
-              width: 100,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              decoration: BoxDecoration(
-                color: q.color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: q.color.withValues(alpha: 0.30), width: 1.2),
-              ),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(q.icon, size: 26, color: q.color),
-                const SizedBox(height: 6),
-                Text(q.label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: q.color)),
-              ]),
-            ),
-          );
-        }),
+      icon: Icons.emoji_events_rounded,
+      title: 'Employee of the Month',
+      child: const SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.emoji_events_rounded, size: 40, color: Color(0xFFFB8C00)),
+            SizedBox(height: 8),
+            Text('Coming Soon',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFFB8C00))),
+            SizedBox(height: 4),
+            Text('Employee of the month will be announced here.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
+          ]),
+        ),
       ),
     );
   }
