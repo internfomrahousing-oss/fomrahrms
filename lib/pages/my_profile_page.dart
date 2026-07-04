@@ -50,24 +50,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   const Icon(Icons.person_rounded, color: _color, size: 22),
                   const SizedBox(width: 10),
                   Text('My Profile', style: Theme.of(context).textTheme.headlineMedium),
-                  const Spacer(),
-                  if (UserSession.role == UserRole.employee ||
-                      UserSession.role == UserRole.reportingManager)
-                    OutlinedButton.icon(
-                      onPressed: () => context.go(
-                        UserSession.role == UserRole.reportingManager
-                            ? '/manager/my-journey'
-                            : '/employee/my-journey',
-                      ),
-                      icon: const Icon(Icons.timeline_rounded, size: 16),
-                      label: const Text('My Journey'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _color,
-                        side: BorderSide(color: _color.withValues(alpha: 0.5)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
                 ]),
                 const SizedBox(height: 16),
                 // Info banner
@@ -160,8 +142,88 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     ]),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Forms section
+                Row(children: [
+                  Expanded(
+                    child: _FormCard(
+                      icon: Icons.assignment_ind_rounded,
+                      title: 'Interview Form',
+                      subtitle: 'View your interview details',
+                      color: const Color(0xFF1565C0),
+                      onTap: () {
+                        final prefix = UserSession.role == UserRole.reportingManager
+                            ? '/manager'
+                            : '/employee';
+                        context.go('$prefix/interview-form');
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _FormCard(
+                      icon: Icons.how_to_reg_rounded,
+                      title: 'Onboarding Form',
+                      subtitle: 'View your onboarding details',
+                      color: const Color(0xFF00695C),
+                      onTap: () {
+                        final prefix = UserSession.role == UserRole.reportingManager
+                            ? '/manager'
+                            : '/employee';
+                        context.go('$prefix/employee-onboarding');
+                      },
+                    ),
+                  ),
+                ]),
               ]),
             ),
+    );
+  }
+}
+
+class _FormCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+  const _FormCard({required this.icon, required this.title, required this.subtitle, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+              const SizedBox(height: 2),
+              Text(subtitle,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+            ]),
+          ),
+          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color.withValues(alpha: 0.6)),
+        ]),
+      ),
     );
   }
 }

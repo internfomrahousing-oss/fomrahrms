@@ -22,7 +22,6 @@ const _empNavItems = [
   _NavItem('My Tasks',             Icons.task_alt_rounded,                '/employee/tasks'),
   _NavItem('My Payslips',          Icons.account_balance_wallet_rounded,  '/employee/payslips'),
   _NavItem('Maintenance',          Icons.build_rounded,                   '/employee/maintenance-management'),
-  _NavItem('My Journey',           Icons.timeline_rounded,                '/employee/my-journey'),
   _NavItem('My Notifications',     Icons.notifications_rounded,           '/employee/notifications'),
   _NavItem('Settings',             Icons.settings_rounded,                '/employee/settings'),
 ];
