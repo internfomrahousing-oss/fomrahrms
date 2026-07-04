@@ -19,10 +19,10 @@ class DashboardInfoBlocks extends StatelessWidget {
     return LayoutBuilder(builder: (_, constraints) {
       final wide = constraints.maxWidth > 700;
       final blocks = <Widget>[
-        _AnnouncementsBlock(canEdit: canEdit),
-        _HolidaysBlock(canEdit: canEdit),
-        _EmptyBlock(),
-        _BirthdaysBlock(canEdit: canEdit),
+        AnnouncementsBlock(canEdit: canEdit),
+        HolidaysBlock(canEdit: canEdit),
+        EmptyBlock(),
+        BirthdaysBlock(canEdit: canEdit),
       ];
       if (wide) {
         return IntrinsicHeight(
@@ -126,14 +126,14 @@ class _InfoCard extends StatelessWidget {
 
 // ── Announcements ─────────────────────────────────────────────────────────────
 
-class _AnnouncementsBlock extends StatefulWidget {
+class AnnouncementsBlock extends StatefulWidget {
   final bool canEdit;
-  const _AnnouncementsBlock({required this.canEdit});
+  const AnnouncementsBlock({super.key, required this.canEdit});
   @override
-  State<_AnnouncementsBlock> createState() => _AnnouncementsBlockState();
+  State<AnnouncementsBlock> createState() => _AnnouncementsBlockState();
 }
 
-class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
+class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   int? _expanded;
@@ -293,14 +293,14 @@ class _AnnouncementsBlockState extends State<_AnnouncementsBlock> {
 
 // ── Holidays ──────────────────────────────────────────────────────────────────
 
-class _HolidaysBlock extends StatefulWidget {
+class HolidaysBlock extends StatefulWidget {
   final bool canEdit;
-  const _HolidaysBlock({required this.canEdit});
+  const HolidaysBlock({super.key, required this.canEdit});
   @override
-  State<_HolidaysBlock> createState() => _HolidaysBlockState();
+  State<HolidaysBlock> createState() => _HolidaysBlockState();
 }
 
-class _HolidaysBlockState extends State<_HolidaysBlock> {
+class _HolidaysBlockState extends State<HolidaysBlock> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
 
@@ -429,7 +429,8 @@ class _HolidaysBlockState extends State<_HolidaysBlock> {
 
 // ── Coming Soon (empty block) ─────────────────────────────────────────────────
 
-class _EmptyBlock extends StatelessWidget {
+class EmptyBlock extends StatelessWidget {
+  const EmptyBlock({super.key});
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
@@ -458,14 +459,14 @@ class _EmptyBlock extends StatelessWidget {
 
 // ── Birthdays ─────────────────────────────────────────────────────────────────
 
-class _BirthdaysBlock extends StatefulWidget {
+class BirthdaysBlock extends StatefulWidget {
   final bool canEdit;
-  const _BirthdaysBlock({required this.canEdit});
+  const BirthdaysBlock({super.key, required this.canEdit});
   @override
-  State<_BirthdaysBlock> createState() => _BirthdaysBlockState();
+  State<BirthdaysBlock> createState() => _BirthdaysBlockState();
 }
 
-class _BirthdaysBlockState extends State<_BirthdaysBlock> {
+class _BirthdaysBlockState extends State<BirthdaysBlock> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
 
