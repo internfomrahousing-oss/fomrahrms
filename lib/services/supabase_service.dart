@@ -1409,30 +1409,106 @@ class SupabaseService {
     }
   }
 
-  // ── HR Policy ─────────────────────────────────────────────────────────────
+  // ── HR Policy (versioned, approval workflow) ──────────────────────────────
+  // Returns the content of the latest approved version, or null if none.
   static Future<String?> fetchHRPolicy() async {
     final db = _db;
     if (db == null) return null;
     try {
       final data = await db
-          .from('hr_policy')
+          .from('hr_policy_versions')
           .select('content')
-          .eq('id', 'default')
-          .maybeSingle();
-      return data?['content'] as String?;
+          .eq('status', 'approved')
+          .order('approved_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first['content'] as String?;
     } catch (_) {
       return null;
     }
   }
 
-  static Future<void> saveHRPolicy(String content, String updatedBy) async {
+  // Returns all versions (pending / approved / rejected) for the approvals page.
+  static Future<List<Map<String, dynamic>>> fetchHRPolicyVersions() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db
+          .from('hr_policy_versions')
+          .select()
+          .order('version_number', ascending: false);
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Returns the next version number.
+  static Future<int> getNextHRPolicyVersionNumber() async {
+    final db = _db;
+    if (db == null) return 1;
+    try {
+      final data = await db
+          .from('hr_policy_versions')
+          .select('version_number')
+          .order('version_number', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      if (list.isEmpty) return 1;
+      return ((list.first['version_number'] as int?) ?? 0) + 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  // HR submits a new pending policy version for Management approval.
+  static Future<void> submitHRPolicyForApproval(
+      String content, String createdBy) async {
     final db = _db;
     if (db == null) throw Exception('Database not initialized.');
-    await db.from('hr_policy').upsert({
-      'id': 'default',
+    final version = await getNextHRPolicyVersionNumber();
+    await db.from('hr_policy_versions').insert({
+      'version_number': version,
       'content': content,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-      'updated_by': updatedBy,
+      'status': 'pending',
+      'created_by': createdBy,
+      'created_at': DateTime.now().toUtc().toIso8601String(),
     });
+  }
+
+  // Management approves or rejects a pending version.
+  static Future<void> updateHRPolicyVersionStatus(
+    String id,
+    String status, {
+    String decidedBy = '',
+    String note = '',
+  }) async {
+    final db = _db;
+    if (db == null) return;
+    final update = <String, dynamic>{'status': status};
+    if (status == 'approved') {
+      update['approved_at'] = DateTime.now().toUtc().toIso8601String();
+      update['approved_by'] = decidedBy;
+    }
+    if (note.isNotEmpty) update['rejection_note'] = note;
+    await db.from('hr_policy_versions').update(update).eq('id', id);
+  }
+
+  // Returns any pending HR policy version (for showing HR a "pending" banner).
+  static Future<Map<String, dynamic>?> fetchPendingHRPolicyVersion() async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('hr_policy_versions')
+          .select()
+          .eq('status', 'pending')
+          .order('created_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
   }
 }

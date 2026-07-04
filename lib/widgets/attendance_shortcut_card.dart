@@ -55,55 +55,35 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
     }
   }
 
-  void _showHRPolicy() {
+  Future<void> _showHRPolicy() async {
+    // Load approved policy + any pending version; fall back to hardcoded default
+    if (!mounted) return;
     showDialog(
       context: context,
-      builder: (dlgCtx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 620),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D47A1),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-              ),
-              child: Row(children: [
-                const Icon(Icons.policy_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text('HR Policy – 2026',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                          color: Colors.white)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
-                  onPressed: () => Navigator.pop(dlgCtx),
-                ),
-              ]),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: SelectableText(
-                  _kHRPolicyText,
-                  style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF37474F)),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(dlgCtx),
-                  child: const Text('Close'),
-                ),
-              ),
-            ),
-          ]),
-        ),
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final results = await Future.wait([
+      SupabaseService.fetchHRPolicy(),
+      SupabaseService.fetchPendingHRPolicyVersion(),
+    ]);
+    final policyText = (results[0] as String?) ?? _kHRPolicyText;
+    final pending    = results[1] as Map<String, dynamic>?;
+    if (!mounted) return;
+    Navigator.pop(context);
+    await Future.delayed(Duration.zero);
+    if (!mounted) return;
+
+    final isHR         = UserSession.role == UserRole.hr;
+    final isManagement = UserSession.role == UserRole.management;
+
+    await showDialog(
+      context: context,
+      builder: (dlgCtx) => _HRPolicyDialog(
+        approvedText: policyText,
+        pendingVersion: pending,
+        canEdit: isHR,
+        isManagement: isManagement,
       ),
     );
   }
@@ -523,6 +503,231 @@ Approved by: Sharad Fomra, CEO & MD
       }
     } catch (_) {}
     return null;
+  }
+}
+
+// ── HR Policy dialog ─────────────────────────────────────────────────────────
+class _HRPolicyDialog extends StatefulWidget {
+  final String approvedText;
+  final Map<String, dynamic>? pendingVersion;
+  final bool canEdit;        // true for HR
+  final bool isManagement;   // true for Management
+  const _HRPolicyDialog({
+    required this.approvedText,
+    required this.pendingVersion,
+    required this.canEdit,
+    required this.isManagement,
+  });
+
+  @override
+  State<_HRPolicyDialog> createState() => _HRPolicyDialogState();
+}
+
+class _HRPolicyDialogState extends State<_HRPolicyDialog> {
+  bool _editing   = false;
+  bool _saving    = false;
+  // When Management is previewing the pending version
+  bool _previewPending = false;
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.approvedText);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitForApproval() async {
+    setState(() => _saving = true);
+    try {
+      await SupabaseService.submitHRPolicyForApproval(
+          _ctrl.text, UserSession.name);
+      if (!mounted) return;
+      setState(() { _editing = false; _saving = false; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Policy submitted to Management for approval.'),
+          backgroundColor: Color(0xFF1565C0),
+        ),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit: $e')),
+      );
+    }
+  }
+
+  String get _displayText =>
+      _previewPending && widget.pendingVersion != null
+          ? (widget.pendingVersion!['content'] as String? ?? '')
+          : (_editing ? _ctrl.text : widget.approvedText);
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPending    = widget.pendingVersion != null;
+    final pendingBy     = hasPending
+        ? (widget.pendingVersion!['created_by'] as String? ?? 'HR')
+        : '';
+    final pendingVer    = hasPending
+        ? 'v${widget.pendingVersion!['version_number'] ?? ''}'
+        : '';
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640, maxHeight: 700),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // ── Header ─────────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D47A1),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.policy_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _previewPending
+                      ? 'HR Policy – Pending ($pendingVer)'
+                      : 'HR Policy',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                      color: Colors.white),
+                ),
+              ),
+              if (widget.canEdit && !_editing && !hasPending)
+                IconButton(
+                  tooltip: 'Edit & submit for approval',
+                  icon: const Icon(Icons.edit_rounded, color: Colors.white70, size: 20),
+                  onPressed: () => setState(() => _editing = true),
+                ),
+              if (_editing)
+                IconButton(
+                  tooltip: 'Cancel edit',
+                  icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                  onPressed: () {
+                    _ctrl.text = widget.approvedText;
+                    setState(() => _editing = false);
+                  },
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                ),
+            ]),
+          ),
+
+          // ── Pending approval banner ─────────────────────────────────────
+          if (hasPending && !_editing)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: const Color(0xFFFFF8E1),
+              child: Row(children: [
+                const Icon(Icons.pending_actions_rounded,
+                    size: 16, color: Color(0xFFF57F17)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.isManagement
+                        ? '$pendingVer submitted by $pendingBy — awaiting your approval'
+                        : '$pendingVer submitted by you — awaiting Management approval',
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF7B4F00)),
+                  ),
+                ),
+                if (widget.isManagement)
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _previewPending = !_previewPending),
+                    style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0)),
+                    child: Text(
+                      _previewPending ? 'View current' : 'Preview changes',
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF1565C0)),
+                    ),
+                  ),
+              ]),
+            ),
+
+          // ── Body ───────────────────────────────────────────────────────
+          Flexible(
+            child: _editing
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: TextField(
+                      controller: _ctrl,
+                      maxLines: null,
+                      expands: true,
+                      textAlignVertical: TextAlignVertical.top,
+                      style: const TextStyle(fontSize: 13, height: 1.6,
+                          color: Color(0xFF37474F)),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: SelectableText(
+                      _displayText,
+                      style: const TextStyle(fontSize: 13, height: 1.6,
+                          color: Color(0xFF37474F)),
+                    ),
+                  ),
+          ),
+
+          // ── Footer ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: _editing
+                ? Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _saving ? null : () {
+                          _ctrl.text = widget.approvedText;
+                          setState(() => _editing = false);
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _saving ? null : _submitForApproval,
+                        child: _saving
+                            ? const SizedBox(width: 18, height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Text('Submit for Approval'),
+                      ),
+                    ),
+                  ])
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

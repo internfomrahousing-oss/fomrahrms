@@ -22,11 +22,12 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
   List<Map<String, dynamic>> _leaveVersions       = [];
   List<Map<String, dynamic>> _interviewVersions   = [];
   List<Map<String, dynamic>> _onboardingVersions  = [];
+  List<Map<String, dynamic>> _policyVersions      = [];
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     _load();
   }
 
@@ -43,11 +44,13 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
         SupabaseService.fetchLeaveFormVersions(),
         SupabaseService.fetchFormVersions(),
         SupabaseService.fetchOnboardingFormVersions(),
+        SupabaseService.fetchHRPolicyVersions(),
       ]);
       if (mounted) setState(() {
         _leaveVersions      = results[0];
         _interviewVersions  = results[1];
         _onboardingVersions = results[2];
+        _policyVersions     = results[3];
         _loading = false;
       });
     } catch (_) {
@@ -90,6 +93,18 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
 
   Future<void> _rejectOnboarding(String id, String note) async {
     await SupabaseService.updateOnboardingFormVersionStatus(
+      id, 'rejected', decidedBy: UserSession.name, note: note);
+    _load();
+  }
+
+  Future<void> _approvePolicy(String id) async {
+    await SupabaseService.updateHRPolicyVersionStatus(
+      id, 'approved', decidedBy: UserSession.name);
+    _load();
+  }
+
+  Future<void> _rejectPolicy(String id, String note) async {
+    await SupabaseService.updateHRPolicyVersionStatus(
       id, 'rejected', decidedBy: UserSession.name, note: note);
     _load();
   }
@@ -138,6 +153,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
     final pendingLeave      = _leaveVersions.where(_isPending).length;
     final pendingInterview  = _interviewVersions.where(_isPending).length;
     final pendingOnboarding = _onboardingVersions.where(_isPending).length;
+    final pendingPolicy     = _policyVersions.where(_isPending).length;
 
     return Scaffold(
       backgroundColor: null,
@@ -179,10 +195,12 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
               unselectedLabelColor: const Color(0xFF78909C),
               indicatorColor: _blue,
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              isScrollable: true,
               tabs: [
                 _PendingTab('Leave / Perm / Comp Off', Icons.event_available_rounded, pendingLeave),
                 _PendingTab('Interview Form',           Icons.assignment_rounded,       pendingInterview),
                 _PendingTab('Onboarding Form',          Icons.how_to_reg_rounded,       pendingOnboarding),
+                _PendingTab('HR Policy',                Icons.policy_rounded,           pendingPolicy),
               ],
             ),
           ]),
@@ -219,6 +237,14 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                       onReject: (id) async {
                         final note = await _rejectDialog();
                         if (note != null) _rejectOnboarding(id, note);
+                      },
+                    ),
+                    _PolicyVersionList(
+                      versions: _policyVersions,
+                      onApprove: (id) => _approvePolicy(id),
+                      onReject: (id) async {
+                        final note = await _rejectDialog();
+                        if (note != null) _rejectPolicy(id, note);
                       },
                     ),
                   ],
@@ -479,6 +505,169 @@ class _VersionCard extends StatelessWidget {
           ]),
         ],
       ]),
+    );
+  }
+}
+
+// ── HR Policy version list ────────────────────────────────────────────────────
+class _PolicyVersionList extends StatelessWidget {
+  final List<Map<String, dynamic>> versions;
+  final void Function(String id) onApprove;
+  final void Function(String id) onReject;
+
+  const _PolicyVersionList({
+    required this.versions,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (versions.isEmpty) {
+      return const Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.policy_rounded, size: 48, color: Color(0xFFBBDEFB)),
+          SizedBox(height: 12),
+          Text('No HR Policy versions yet.',
+              style: TextStyle(color: Color(0xFF78909C))),
+        ]),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: versions.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, i) {
+        final v          = versions[i];
+        final id         = v['id']?.toString() ?? '';
+        final vNum       = v['version_number'] ?? '';
+        final status     = (v['status'] as String?) ?? 'pending';
+        final createdBy  = (v['created_by'] as String?) ?? '';
+        final createdAt  = (v['created_at'] as String?) ?? '';
+        final approvedBy = (v['approved_by'] as String?) ?? '';
+        final rejNote    = (v['rejection_note'] as String?) ?? '';
+        final content    = (v['content'] as String?) ?? '';
+        final isPending  = status == 'pending';
+        final isApproved = status == 'approved';
+
+        final Color statusColor = isPending
+            ? const Color(0xFFF57F17)
+            : isApproved
+                ? _green
+                : Colors.red.shade700;
+        final String statusLabel = isPending
+            ? 'Pending'
+            : isApproved
+                ? 'Approved'
+                : 'Rejected';
+
+        return Card(
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: statusColor.withValues(alpha: 0.3)),
+          ),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.policy_rounded, color: statusColor, size: 20),
+            ),
+            title: Text('HR Policy v$vNum',
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600)),
+            subtitle: Text(
+              'By $createdBy  •  ${createdAt.length >= 10 ? createdAt.substring(0, 10) : createdAt}',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+            ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(statusLabel,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor)),
+            ),
+            children: [
+              // Preview of policy text
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  content.length > 300
+                      ? '${content.substring(0, 300)}…'
+                      : content,
+                  style: const TextStyle(fontSize: 12, height: 1.5,
+                      color: Color(0xFF546E7A)),
+                ),
+              ),
+              if (approvedBy.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Decision by: $approvedBy',
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xFF78909C))),
+              ],
+              if (rejNote.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text('Note: $rejNote',
+                    style: const TextStyle(
+                        fontSize: 11, color: Colors.red)),
+              ],
+              if (isPending) ...[
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => onReject(id),
+                      icon: const Icon(Icons.close_rounded, size: 14),
+                      label: const Text('Reject', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => onApprove(id),
+                      icon: const Icon(Icons.check_rounded, size: 14),
+                      label: const Text('Approve & Publish',
+                          style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _green,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                      ),
+                    ),
+                  ),
+                ]),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
