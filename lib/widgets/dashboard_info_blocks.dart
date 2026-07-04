@@ -21,7 +21,7 @@ class DashboardInfoBlocks extends StatelessWidget {
       final blocks = <Widget>[
         AnnouncementsBlock(canEdit: canEdit),
         HolidaysBlock(canEdit: canEdit),
-        EmptyBlock(),
+        _QuickLinksBlock(canEdit: canEdit),
         BirthdaysBlock(canEdit: canEdit),
       ];
       if (wide) {
@@ -427,31 +427,101 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
   }
 }
 
-// ── Coming Soon (empty block) ─────────────────────────────────────────────────
+// ── Coming Soon (empty block) — kept public for quick_actions_bar ────────────
 
 class EmptyBlock extends StatelessWidget {
   const EmptyBlock({super.key});
   @override
+  Widget build(BuildContext context) => const _QuickLinksBlock(canEdit: false);
+}
+
+// ── Quick Links block (replaces the old "Coming Soon" slot) ──────────────────
+
+const _qLinks = [
+  (icon: Icons.campaign_rounded,     color: Color(0xFFE53935), label: 'Announcements'),
+  (icon: Icons.event_rounded,        color: Color(0xFF43A047), label: 'Holidays'),
+  (icon: Icons.emoji_events_rounded, color: Color(0xFFFB8C00), label: 'Emp of Month'),
+  (icon: Icons.cake_rounded,         color: Color(0xFF8E24AA), label: 'Birthdays'),
+];
+
+class _QuickLinksBlock extends StatelessWidget {
+  final bool canEdit;
+  const _QuickLinksBlock({required this.canEdit});
+
+  void _open(BuildContext ctx, Widget block) {
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.55,
+        minChildSize: 0.35,
+        maxChildSize: 0.85,
+        builder: (_, ctrl) => Column(children: [
+          Container(
+            width: 40, height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+                color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: ctrl,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: block,
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _blockFor(int i) {
+    switch (i) {
+      case 0: return AnnouncementsBlock(canEdit: canEdit);
+      case 1: return HolidaysBlock(canEdit: canEdit);
+      case 3: return BirthdaysBlock(canEdit: canEdit);
+      default: return const EmptyBlock();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return _InfoCard(
-      icon: Icons.widgets_rounded,
-      title: 'Coming Soon',
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.construction_rounded,
-                size: 42, color: _purple.withValues(alpha: 0.22)),
-            const SizedBox(height: 10),
-            Text('More features coming soon',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.38))),
-          ]),
-        ),
+      icon: Icons.apps_rounded,
+      title: 'Quick Access',
+      child: GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.2,
+        children: List.generate(_qLinks.length, (i) {
+          final q = _qLinks[i];
+          return GestureDetector(
+            onTap: () => _open(context, _blockFor(i)),
+            child: Container(
+              decoration: BoxDecoration(
+                color: q.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: q.color.withValues(alpha: 0.30), width: 1.2),
+              ),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(q.icon, size: 32, color: q.color),
+                const SizedBox(height: 6),
+                Text(q.label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: q.color)),
+              ]),
+            ),
+          );
+        }),
       ),
     );
   }
