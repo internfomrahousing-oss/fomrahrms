@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/lead_model.dart';
 import '../services/lead_service.dart';
+import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF0D47A1);
 
@@ -27,98 +28,90 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   bool _showFilter = false;
 
-  // Position chip filter
-  String _positionFilter = 'All';
-  List<String> _positionOptions = ['All'];
-
-  // Range filters — values and detected bounds
-  double _expMin = 0, _expMax = 20;
-  double _relExpMin = 0, _relExpMax = 20;
-  double _ctcMin = 0, _ctcMax = 100000;
-  double _ageMin = 18, _ageMax = 60;
-  late RangeValues _expRange;
-  late RangeValues _relExpRange;
-  late RangeValues _ctcRange;
-  late RangeValues _ageRange;
-
-  // Detected column names from sheet headers
-  String? _colPosition;
-  String? _colTotalExp;
-  String? _colRelExp;
-  String? _colCtc;
-  String? _colAge;
+  // Generic filter state — auto-detected from sheet columns
+  Map<String, List<String>> _catOptions  = {}; // col → unique values
+  Map<String, String>       _catSelected = {}; // col → selected ('All' = no filter)
+  Map<String, double>       _numMin      = {};
+  Map<String, double>       _numMax      = {};
+  Map<String, RangeValues>  _numRange    = {};
 
   final _searchCtrl = TextEditingController();
 
-  // Column detection helper
-  String? _findCol(List<String> keywords) {
-    if (_all.isEmpty) return null;
-    for (final key in _all.first.fields.keys) {
-      final u = key.toUpperCase();
-      if (keywords.any((kw) => u.contains(kw))) return key;
-    }
-    return null;
-  }
-
   // Extract first numeric value from a string
   double? _parseNum(String s) {
-    final m = RegExp(r'[\d]+(?:[.,]\d+)?').firstMatch(s.replaceAll(',', ''));
+    final m = RegExp(r'\d+(?:[.]\d+)?').firstMatch(s.replaceAll(',', ''));
     if (m == null) return null;
-    return double.tryParse(m.group(0)!.replaceAll(',', ''));
+    return double.tryParse(m.group(0)!);
   }
 
-  List<double> _numericVals(String? col) {
-    if (col == null) return [];
-    return _all
-        .map((l) => _parseNum(l.fields[col] ?? ''))
-        .whereType<double>()
-        .toList();
-  }
+  // Prettify a column header for display
+  String _prettyCol(String col) => col
+      .split(RegExp(r'[\s_]+'))
+      .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+      .join(' ');
 
-  void _computeRanges() {
-    _colPosition = _findCol(['APPLIED POSITION', 'POSITION', 'APPLIED']);
-    _colTotalExp = _findCol(['TOTAL EXP', 'TOTAL EXPERIENCE', 'EXPERIENCE']);
-    _colRelExp   = _findCol(['RELEVANT EXP', 'RELEVANT EXPERIENCE', 'RELAVANT']);
-    _colCtc      = _findCol(['EXPECTED CTC', 'EXPECTED SALARY', 'CTC']);
-    _colAge      = _findCol(['AGE']);
-
-    // Position options
-    if (_colPosition != null) {
-      final vals = _all.map((l) => l.fields[_colPosition!] ?? '').where((v) => v.isNotEmpty).toSet().toList()..sort();
-      _positionOptions = ['All', ...vals];
-    } else {
-      _positionOptions = ['All'];
+  // Format a numeric value for a given column (adds units/currency where obvious)
+  String _fmtNum(String col, double v) {
+    final u = col.toUpperCase();
+    if (u.contains('CTC') || u.contains('SALARY') || u.contains('WAGE') || u.contains('PAY')) {
+      return '₹${_fmtCtc(v)}';
     }
-    _positionFilter = 'All';
-
-    _setRange(_numericVals(_colTotalExp), 0, 20, (mn, mx) { _expMin = mn; _expMax = mx; _expRange = RangeValues(mn, mx); });
-    _setRange(_numericVals(_colRelExp),   0, 20, (mn, mx) { _relExpMin = mn; _relExpMax = mx; _relExpRange = RangeValues(mn, mx); });
-    _setRange(_numericVals(_colCtc),      0, 100000, (mn, mx) { _ctcMin = mn; _ctcMax = mx; _ctcRange = RangeValues(mn, mx); });
-    _setRange(_numericVals(_colAge),      18, 60, (mn, mx) { _ageMin = mn; _ageMax = mx; _ageRange = RangeValues(mn, mx); });
+    final suffix = (u.contains('EXP') || u.contains('AGE') || u.contains('YEAR')) ? ' yrs' : '';
+    return '${v == v.roundToDouble() ? v.toInt() : v.toStringAsFixed(1)}$suffix';
   }
 
-  void _setRange(List<double> vals, double defMin, double defMax, void Function(double, double) apply) {
-    if (vals.isEmpty) { apply(defMin, defMax); return; }
-    final mn = vals.reduce((a, b) => a < b ? a : b);
-    final mx = vals.reduce((a, b) => a > b ? a : b);
-    apply(mn == mx ? defMin : mn, mn == mx ? defMax : mx);
+  void _computeFilters() {
+    _catOptions.clear();
+    _catSelected.clear();
+    _numMin.clear();
+    _numMax.clear();
+    _numRange.clear();
+    if (_all.isEmpty) return;
+
+    // Skip the first column (row key / serial number)
+    final skipCol = _all.first.fields.keys.isNotEmpty ? _all.first.fields.keys.first : '';
+
+    for (final col in _all.first.fields.keys) {
+      if (col == skipCol) continue;
+      final vals = _all
+          .map((l) => (l.fields[col] ?? '').trim())
+          .where((v) => v.isNotEmpty)
+          .toList();
+      if (vals.isEmpty) continue;
+
+      // Numeric detection: >70% of non-empty values parse as numbers
+      final nums = vals.map(_parseNum).whereType<double>().toList();
+      if (nums.length >= vals.length * 0.7 && nums.length >= 3) {
+        final mn = nums.reduce((a, b) => a < b ? a : b);
+        final mx = nums.reduce((a, b) => a > b ? a : b);
+        if (mx > mn) {
+          _numMin[col] = mn;
+          _numMax[col] = mx;
+          _numRange[col] = RangeValues(mn, mx);
+        }
+      } else {
+        // Categorical: 2–8 unique short-text values (exclude free-text/comment columns)
+        final unique = vals.toSet().toList()..sort();
+        final avgLen = vals.fold<double>(0, (s, v) => s + v.length) / vals.length;
+        if (unique.length >= 2 && unique.length <= 8 && avgLen <= 22) {
+          _catOptions[col] = unique;
+          _catSelected[col] = 'All';
+        }
+      }
+    }
   }
 
-  bool get _hasActiveFilter {
-    return _positionFilter != 'All' ||
-        (_colTotalExp != null && (_expRange.start > _expMin || _expRange.end < _expMax)) ||
-        (_colRelExp   != null && (_relExpRange.start > _relExpMin || _relExpRange.end < _relExpMax)) ||
-        (_colCtc      != null && (_ctcRange.start > _ctcMin || _ctcRange.end < _ctcMax)) ||
-        (_colAge      != null && (_ageRange.start > _ageMin || _ageRange.end < _ageMax));
-  }
+  bool get _hasActiveFilter =>
+      _catSelected.values.any((v) => v != 'All') ||
+      _numRange.entries.any((e) =>
+          e.value.start > _numMin[e.key]! || e.value.end < _numMax[e.key]!);
 
   void _clearFilters() {
     setState(() {
-      _positionFilter = 'All';
-      _expRange    = RangeValues(_expMin, _expMax);
-      _relExpRange = RangeValues(_relExpMin, _relExpMax);
-      _ctcRange    = RangeValues(_ctcMin, _ctcMax);
-      _ageRange    = RangeValues(_ageMin, _ageMax);
+      for (final col in _catSelected.keys) _catSelected[col] = 'All';
+      for (final col in _numRange.keys) {
+        _numRange[col] = RangeValues(_numMin[col]!, _numMax[col]!);
+      }
     });
     _applyFilter();
   }
@@ -129,10 +122,6 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   @override
   void initState() {
     super.initState();
-    _expRange    = RangeValues(_expMin, _expMax);
-    _relExpRange = RangeValues(_relExpMin, _relExpMax);
-    _ctcRange    = RangeValues(_ctcMin, _ctcMax);
-    _ageRange    = RangeValues(_ageMin, _ageMax);
     _searchCtrl.addListener(_applyFilter);
     _fetch();
   }
@@ -164,7 +153,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       final leads = await LeadService.fetchLeads(_scriptUrl);
       setState(() {
         _all = leads;
-        _computeRanges();
+        _computeFilters();
         _filtered = _computeFilter(leads);
         _loading = false;
       });
@@ -179,30 +168,16 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   List<Lead> _computeFilter(List<Lead> source) {
     final q = _searchCtrl.text.trim().toLowerCase();
     return source.where((lead) {
-      // Search
-      if (q.isNotEmpty && !lead.fields.values.any((v) => v.toLowerCase().contains(q))) return false;
-      // Position chip
-      if (_positionFilter != 'All' && _colPosition != null &&
-          (lead.fields[_colPosition!] ?? '') != _positionFilter) return false;
-      // Range: total exp
-      if (_colTotalExp != null) {
-        final v = _parseNum(lead.fields[_colTotalExp!] ?? '');
-        if (v != null && (v < _expRange.start || v > _expRange.end)) return false;
+      if (q.isNotEmpty &&
+          !lead.fields.values.any((v) => v.toLowerCase().contains(q))) return false;
+      for (final col in _catSelected.keys) {
+        final sel = _catSelected[col]!;
+        if (sel != 'All' && (lead.fields[col] ?? '') != sel) return false;
       }
-      // Range: relevant exp
-      if (_colRelExp != null) {
-        final v = _parseNum(lead.fields[_colRelExp!] ?? '');
-        if (v != null && (v < _relExpRange.start || v > _relExpRange.end)) return false;
-      }
-      // Range: expected CTC
-      if (_colCtc != null) {
-        final v = _parseNum(lead.fields[_colCtc!] ?? '');
-        if (v != null && (v < _ctcRange.start || v > _ctcRange.end)) return false;
-      }
-      // Range: age
-      if (_colAge != null) {
-        final v = _parseNum(lead.fields[_colAge!] ?? '');
-        if (v != null && (v < _ageRange.start || v > _ageRange.end)) return false;
+      for (final col in _numRange.keys) {
+        final r = _numRange[col]!;
+        final v = _parseNum(lead.fields[col] ?? '');
+        if (v != null && (v < r.start || v > r.end)) return false;
       }
       return true;
     }).toList();
@@ -623,13 +598,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: _blue),
-                    onPressed: () => context.pop(),
-                    tooltip: 'Back',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                  const NavBackButton(),
                   const SizedBox(width: 8),
                   Container(
                     width: 36,
@@ -651,11 +620,19 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: _blue)),
-                        Text(
-                          '${_all.length} lead${_all.length == 1 ? '' : 's'} total',
-                          style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF78909C)),
-                        ),
+                        RichText(text: TextSpan(
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                          children: [
+                            if (_hasActiveFilter) ...[
+                              TextSpan(
+                                text: '${_filtered.length}',
+                                style: const TextStyle(fontWeight: FontWeight.w700, color: _blue),
+                              ),
+                              TextSpan(text: ' of ${_all.length} leads'),
+                            ] else
+                              TextSpan(text: '${_all.length} lead${_all.length == 1 ? '' : 's'} total'),
+                          ],
+                        )),
                         if (_scriptUrl.isNotEmpty)
                           Text(
                             'Sheet: ${_shortUrl(_scriptUrl)}',
@@ -762,119 +739,151 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
                 // Filter panel
                 if (_showFilter && _all.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F7FA),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                      border: Border.all(color: const Color(0xFFE8EDF5)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
                     ),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      // Header row with Clear All
-                      Row(children: [
-                        const Text('Filters',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
-                        const Spacer(),
-                        if (_hasActiveFilter)
-                          GestureDetector(
-                            onTap: _clearFilters,
-                            child: const Text('Clear All',
-                                style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w600)),
+                      // ── Panel header ──────────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                        child: Row(children: [
+                          const Icon(Icons.tune_rounded, size: 15, color: _blue),
+                          const SizedBox(width: 6),
+                          const Text('Filters',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _filtered.length < _all.length
+                                  ? Colors.orange.withValues(alpha: 0.12)
+                                  : const Color(0xFFF0F4FF),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${_filtered.length} / ${_all.length}',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w700,
+                                  color: _filtered.length < _all.length
+                                      ? Colors.orange.shade800 : _blue),
+                            ),
                           ),
-                      ]),
-                      const SizedBox(height: 12),
+                          const Spacer(),
+                          if (_hasActiveFilter)
+                            TextButton.icon(
+                              onPressed: _clearFilters,
+                              icon: const Icon(Icons.restart_alt_rounded, size: 14),
+                              label: const Text('Reset', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.orange.shade700,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                        ]),
+                      ),
+                      const Divider(height: 1),
 
-                      // Applied Position chips
-                      if (_colPosition != null) ...[
-                        const Text('Applied Position',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF546E7A))),
-                        const SizedBox(height: 6),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: _positionOptions.map((v) {
-                              final isSelected = _positionFilter == v;
-                              final count = v == 'All'
-                                  ? _all.length
-                                  : _all.where((l) => (l.fields[_colPosition!] ?? '') == v).length;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: GestureDetector(
-                                  onTap: () { setState(() => _positionFilter = v); _applyFilter(); },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 120),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? _blue : Colors.white,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: isSelected ? _blue : const Color(0xFFCCCCCC)),
-                                    ),
-                                    child: Text(
-                                      count > 0 ? '$v ($count)' : v,
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: isSelected ? Colors.white : const Color(0xFF546E7A)),
-                                    ),
-                                  ),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 360),
+                        child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+                          // ── Categorical chip filters (one group per column)
+                          ..._catOptions.entries.map((entry) {
+                            final col = entry.key;
+                            final vals = entry.value;
+                            final sel = _catSelected[col]!;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(_prettyCol(col).toUpperCase(),
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                                        color: Color(0xFF90A4AE), letterSpacing: 0.8)),
+                                const SizedBox(height: 8),
+                                Wrap(spacing: 6, runSpacing: 6,
+                                  children: ['All', ...vals].map((v) {
+                                    final isAll = v == 'All';
+                                    final active = sel == v;
+                                    final count = isAll
+                                        ? _all.length
+                                        : _all.where((l) => (l.fields[col] ?? '') == v).length;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() => _catSelected[col] = v);
+                                        _applyFilter();
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 120),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                        decoration: BoxDecoration(
+                                          color: active ? _blue : const Color(0xFFF5F7FA),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: active ? _blue : const Color(0xFFDDE3ED)),
+                                        ),
+                                        child: Text('$v  $count',
+                                            style: TextStyle(
+                                                fontSize: 12, fontWeight: FontWeight.w600,
+                                                color: active ? Colors.white : const Color(0xFF546E7A))),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                      ],
+                                if (entry.key != _catOptions.keys.last || _numRange.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                ],
+                              ]),
+                            );
+                          }),
 
-                      // Range sliders
-                      if (_colTotalExp != null) ...[
-                        _RangeLabel('Total Experience',
-                            '${_expRange.start.toStringAsFixed(1)} – ${_expRange.end.toStringAsFixed(1)} yrs'),
-                        RangeSlider(
-                          values: _expRange,
-                          min: _expMin, max: _expMax,
-                          activeColor: _blue,
-                          inactiveColor: const Color(0xFFBBDEFB),
-                          onChanged: (v) { setState(() => _expRange = v); _applyFilter(); },
+                          // ── Numeric range sliders (one per column) ─────────
+                          ..._numRange.keys.map((col) {
+                            final r = _numRange[col]!;
+                            final mn = _numMin[col]!;
+                            final mx = _numMax[col]!;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: _RangeRow(
+                                label: _prettyCol(col),
+                                value: '${_fmtNum(col, r.start)} – ${_fmtNum(col, r.end)}',
+                                slider: RangeSlider(
+                                  values: r, min: mn, max: mx,
+                                  activeColor: _blue,
+                                  inactiveColor: const Color(0xFFBBDEFB),
+                                  onChanged: (v) {
+                                    setState(() => _numRange[col] = v);
+                                    _applyFilter();
+                                  },
+                                ),
+                              ),
+                            );
+                          }),
+
+                          // ── No filterable columns ─────────────────────────
+                          if (_catOptions.isEmpty && _numRange.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Text('No filterable columns detected in this sheet.',
+                                    style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE))),
+                              ),
+                            ),
+                        ]),
                         ),
-                        const SizedBox(height: 8),
-                      ],
-                      if (_colRelExp != null) ...[
-                        _RangeLabel('Relevant Experience',
-                            '${_relExpRange.start.toStringAsFixed(1)} – ${_relExpRange.end.toStringAsFixed(1)} yrs'),
-                        RangeSlider(
-                          values: _relExpRange,
-                          min: _relExpMin, max: _relExpMax,
-                          activeColor: _blue,
-                          inactiveColor: const Color(0xFFBBDEFB),
-                          onChanged: (v) { setState(() => _relExpRange = v); _applyFilter(); },
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      if (_colCtc != null) ...[
-                        _RangeLabel('Expected CTC',
-                            '₹${_fmtCtc(_ctcRange.start)} – ₹${_fmtCtc(_ctcRange.end)}'),
-                        RangeSlider(
-                          values: _ctcRange,
-                          min: _ctcMin, max: _ctcMax,
-                          activeColor: _blue,
-                          inactiveColor: const Color(0xFFBBDEFB),
-                          onChanged: (v) { setState(() => _ctcRange = v); _applyFilter(); },
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      if (_colAge != null) ...[
-                        _RangeLabel('Age',
-                            '${_ageRange.start.toInt()} – ${_ageRange.end.toInt()} yrs'),
-                        RangeSlider(
-                          values: _ageRange,
-                          min: _ageMin, max: _ageMax,
-                          divisions: (_ageMax - _ageMin).toInt().clamp(1, 100),
-                          activeColor: _blue,
-                          inactiveColor: const Color(0xFFBBDEFB),
-                          onChanged: (v) { setState(() => _ageRange = v); _applyFilter(); },
-                        ),
-                      ],
+                      ),
                     ]),
                   ),
                 ],
@@ -918,16 +927,33 @@ String _fmtCtc(double v) {
   return v.toInt().toString();
 }
 
-class _RangeLabel extends StatelessWidget {
+class _RangeRow extends StatelessWidget {
   final String label;
   final String value;
-  const _RangeLabel(this.label, this.value);
+  final Widget slider;
+  const _RangeRow({required this.label, required this.value, required this.slider});
   @override
-  Widget build(BuildContext context) => Row(children: [
-    Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF546E7A))),
-    const Spacer(),
-    Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
-  ]);
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(children: [
+        Text(label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: Color(0xFF546E7A))),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F4FF),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(value,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
+        ),
+      ]),
+      slider,
+    ],
+  );
 }
 
 // ── Lead Card (compact — tap to view full details) ───────────────────────────

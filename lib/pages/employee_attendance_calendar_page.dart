@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../models/attendance_store.dart';
+import '../widgets/back_button.dart';
 
 // Late threshold: 09:30 AM
 const _lateHour   = 9;
@@ -134,12 +135,8 @@ class _EmployeeAttendanceCalendarPageState
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // ── Header ────────────────────────────────────────────────────
             Row(children: [
-              if (Navigator.of(context).canPop())
-                IconButton(
-                  tooltip: 'Back',
-                  icon: const Icon(Icons.arrow_back_rounded, color: _blue),
-                  onPressed: () => context.pop(),
-                ),
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(

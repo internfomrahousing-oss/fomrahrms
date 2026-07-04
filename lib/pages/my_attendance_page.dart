@@ -4,6 +4,7 @@ import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../widgets/back_button.dart';
 
 // Late-coming threshold: check-in at or after 09:30 = Late
 const _lateHour   = 9;
@@ -13,6 +14,7 @@ const _blue   = Color(0xFF0D47A1);
 const _green  = Color(0xFF2E7D32);
 const _purple = Color(0xFF6A1B9A);
 const _red    = Color(0xFFC62828);
+const _yellow = Color(0xFFF9A825);
 
 class MyAttendancePage extends StatefulWidget {
   final String checkInRoute;
@@ -28,6 +30,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   AttendanceRecord? _todayRecord;
   Map<int, AttendanceRecord> _attendance = {};
   Set<int> _leaveDays = {};
+  Set<int> _holidayDays = {};
 
   @override
   void initState() {
@@ -42,11 +45,13 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final results = await Future.wait([
       SupabaseService.fetchTodayAttendance(UserSession.employeeId),
       SupabaseService.fetchAttendanceForMonth(UserSession.employeeId, _month.year, _month.month),
+      SupabaseService.fetchHolidays(_month.year),
     ]);
     if (!mounted) return;
 
-    final today   = results[0] as AttendanceRecord?;
-    final records = results[1] as List<AttendanceRecord>;
+    final today    = results[0] as AttendanceRecord?;
+    final records  = results[1] as List<AttendanceRecord>;
+    final holidays = results[2] as List<Map<String, dynamic>>;
 
     if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
       AttendanceStore.isCheckedIn = true;
@@ -58,14 +63,34 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       if (d != null) map[d] = r;
     }
 
-    // Approved leave days from already-loaded store
+    // Build holiday set for current month (HR-entered holidays + all Sundays)
+    final Set<int> holidayDays = {};
+    for (final h in holidays) {
+      final date = DateTime.tryParse(h['holiday_date'] as String? ?? '');
+      if (date != null && date.year == _month.year && date.month == _month.month) {
+        holidayDays.add(date.day);
+      }
+    }
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+    for (int d = 1; d <= daysInMonth; d++) {
+      if (DateTime(_month.year, _month.month, d).weekday == DateTime.sunday) {
+        holidayDays.add(d);
+      }
+    }
+
+    // Approved leave days — exclude weekends and holidays
     final Set<int> leaves = {};
     for (final app in LeaveStore.applications) {
       if (app.employeeName != UserSession.name) continue;
       if (app.managerStatus != LeaveApprovalStatus.approved) continue;
       var d = app.from;
       while (!d.isAfter(app.to)) {
-        if (d.year == _month.year && d.month == _month.month) leaves.add(d.day);
+        if (d.year == _month.year && d.month == _month.month) {
+          final wd = d.weekday;
+          if (wd != DateTime.saturday && wd != DateTime.sunday && !holidayDays.contains(d.day)) {
+            leaves.add(d.day);
+          }
+        }
         d = d.add(const Duration(days: 1));
       }
     }
@@ -74,6 +99,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       _todayRecord = today;
       _attendance  = map;
       _leaveDays   = leaves;
+      _holidayDays = holidayDays;
       _loading     = false;
     });
   }
@@ -92,11 +118,13 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
 
   // Returns the status color for a calendar day (null = no highlight)
   Color? _statusColor(int day) {
-    if (_leaveDays.contains(day)) return _red;       // on leave = Absent
+    // Attendance takes visual priority (worked on holiday → show attendance color)
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) {
       return _isLate(r.checkInTime) ? _purple : _green;
     }
+    if (_leaveDays.contains(day)) return _red;
+    if (_holidayDays.contains(day)) return _yellow;
     return null;
   }
 
@@ -140,6 +168,8 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // ── Header ────────────────────────────────────────────────────
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
@@ -204,18 +234,23 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                     ),
                     IconButton(
                       icon: Icon(Icons.chevron_right_rounded,
-                          color: cs.onSurface.withValues(alpha: 0.6)),
-                      onPressed: () {
-                        _month = DateTime(_month.year, _month.month + 1);
-                        _load();
-                      },
+                          color: (_month.year == now.year && _month.month == now.month)
+                              ? cs.onSurface.withValues(alpha: 0.18)
+                              : cs.onSurface.withValues(alpha: 0.6)),
+                      onPressed: (_month.year == now.year && _month.month == now.month)
+                          ? null
+                          : () {
+                              _month = DateTime(_month.year, _month.month + 1);
+                              _load();
+                            },
                     ),
                   ]),
                   const SizedBox(height: 4),
 
                   // Weekday labels
                   const Row(children: [
-                    _WDay('Sun'), _WDay('Mon'), _WDay('Tue'), _WDay('Wed'),
+                    _WDay('Sun', color: _yellow),
+                    _WDay('Mon'), _WDay('Tue'), _WDay('Wed'),
                     _WDay('Thu'), _WDay('Fri'), _WDay('Sat'),
                   ]),
                   const SizedBox(height: 4),
@@ -232,6 +267,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                       month: _month,
                       today: now,
                       statusColor: _statusColor,
+                      holidayDays: _holidayDays,
                       onTap: _onTap,
                     ),
                 ]),
@@ -244,6 +280,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
               _Legend(color: _green,  label: 'Present'),
               _Legend(color: _purple, label: 'Late Coming'),
               _Legend(color: _red,    label: 'Absent'),
+              _Legend(color: _yellow, label: 'Holiday'),
             ]),
             const SizedBox(height: 24),
           ]),
@@ -258,12 +295,14 @@ class _CalendarGrid extends StatelessWidget {
   final DateTime month;
   final DateTime today;
   final Color? Function(int day) statusColor;
+  final Set<int> holidayDays;
   final void Function(int day) onTap;
 
   const _CalendarGrid({
     required this.month,
     required this.today,
     required this.statusColor,
+    required this.holidayDays,
     required this.onTap,
   });
 
@@ -285,22 +324,26 @@ class _CalendarGrid extends StatelessWidget {
                       today.day == day;
       final sColor = statusColor(day);
 
-      // Today → solid blue circle; status day → light tinted circle with colored border
-      final decoration = isToday
-          ? const BoxDecoration(color: _blue, shape: BoxShape.circle)
-          : sColor != null
-              ? BoxDecoration(
-                  color: sColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: sColor, width: 1.5),
-                )
-              : null;
-
-      final textColor = isToday
-          ? Colors.white
-          : sColor != null
-              ? sColor
-              : cs.onSurface.withValues(alpha: 0.35);
+      // Status ring (green/purple/red) around the number regardless of today.
+      // Today gets a small blue dot above the number instead of a solid blue circle.
+      final numWidget = Container(
+        width: 32, height: 32,
+        decoration: sColor != null
+            ? BoxDecoration(
+                color: sColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                border: Border.all(color: sColor, width: 1.8),
+              )
+            : null,
+        alignment: Alignment.center,
+        child: Text('$day',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: (isToday || sColor != null) ? FontWeight.w700 : FontWeight.w400,
+                color: isToday && sColor == null
+                    ? _blue
+                    : sColor ?? cs.onSurface.withValues(alpha: 0.35))),
+      );
 
       cells.add(Expanded(
         child: GestureDetector(
@@ -309,18 +352,24 @@ class _CalendarGrid extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
             child: Center(
-              child: Container(
-                width: 32, height: 32,
-                decoration: decoration,
-                alignment: Alignment.center,
-                child: Text('$day',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: (isToday || sColor != null)
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        color: textColor)),
-              ),
+              child: isToday
+                  ? Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        numWidget,
+                        // Small dot above the number
+                        Positioned(
+                          top: -5,
+                          child: Container(
+                            width: 5, height: 5,
+                            decoration: const BoxDecoration(
+                                color: _blue, shape: BoxShape.circle),
+                          ),
+                        ),
+                      ],
+                    )
+                  : numWidget,
             ),
           ),
         ),
@@ -605,14 +654,15 @@ class _TodayCard extends StatelessWidget {
 // ── Small widgets ─────────────────────────────────────────────────────────────
 class _WDay extends StatelessWidget {
   final String label;
-  const _WDay(this.label, {super.key});
+  final Color? color;
+  const _WDay(this.label, {super.key, this.color});
 
   @override
   Widget build(BuildContext context) => Expanded(
     child: Text(label,
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45))),
+            color: color ?? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45))),
   );
 }
 

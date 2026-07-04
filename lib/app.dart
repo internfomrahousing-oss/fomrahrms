@@ -61,7 +61,9 @@ import 'pages/candidate_detail_page.dart';
 import 'pages/manager_interview_review_page.dart';
 import 'pages/management_interview_review_page.dart';
 import 'pages/edit_form_page.dart';
+import 'pages/edit_leave_form_page.dart';
 import 'pages/edit_onboarding_form_page.dart';
+import 'pages/form_approvals_page.dart';
 import 'pages/my_journey_page.dart';
 import 'pages/employee_attendance_calendar_page.dart';
 
@@ -195,6 +197,7 @@ final _router = GoRouter(
         GoRoute(path: '/payroll-management',              builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/edit-form',                       builder: (_, __) => const EditFormPage()),
+        GoRoute(path: '/edit-leave-form',                 builder: (_, __) => const EditLeaveFormPage()),
         GoRoute(path: '/edit-onboarding-form',            builder: (_, __) => const EditOnboardingFormPage()),
         GoRoute(path: '/candidate-detail',                builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
@@ -343,6 +346,8 @@ final _router = GoRouter(
         GoRoute(path: '/management/interview-process',      builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/management/interview-review',       builder: (_, __) => const ManagementInterviewReviewPage()),
         GoRoute(path: '/management/edit-form',              builder: (_, __) => const EditFormPage()),
+        GoRoute(path: '/management/edit-leave-form',        builder: (_, __) => const EditLeaveFormPage()),
+        GoRoute(path: '/management/form-approvals',         builder: (_, __) => const FormApprovalsPage()),
         GoRoute(path: '/management/candidate-detail',       builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/management/edit-onboarding-form',   builder: (_, __) => const EditOnboardingFormPage()),

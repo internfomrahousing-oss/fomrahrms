@@ -9,6 +9,7 @@ import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../widgets/back_button.dart';
 
 Future<List<AppUser>> _loadAllUsers() async {
   try { return await UserStore.load(); } catch (_) { return []; }
@@ -292,6 +293,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(

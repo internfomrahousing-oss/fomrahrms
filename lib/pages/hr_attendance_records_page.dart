@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../widgets/back_button.dart';
 
 class HrAttendanceRecordsPage extends StatefulWidget {
   final String routePrefix;
@@ -186,6 +187,8 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
             Container(
               width: 48,
               height: 48,

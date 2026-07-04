@@ -4,6 +4,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/month_picker.dart';
+import '../widgets/back_button.dart';
 
 class MaintenanceManagementPage extends StatefulWidget {
   const MaintenanceManagementPage({super.key});
@@ -385,6 +386,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
   Widget _buildHeaderRow(BuildContext context) {
     return Row(children: [
+      const NavBackButton(),
+      const SizedBox(width: 8),
       Container(
         width: 44, height: 44,
         decoration: BoxDecoration(
@@ -420,6 +423,8 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
+          const NavBackButton(),
+          const SizedBox(width: 8),
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(

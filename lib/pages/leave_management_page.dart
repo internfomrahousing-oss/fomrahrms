@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../utils/month_picker.dart';
+import '../widgets/back_button.dart';
 
 class LeaveManagementPage extends StatefulWidget {
   const LeaveManagementPage({super.key});
@@ -93,6 +94,8 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // Header row
               Row(children: [
+                const NavBackButton(),
+                const SizedBox(width: 8),
                 Container(
                   width: 44, height: 44,
                   decoration: BoxDecoration(

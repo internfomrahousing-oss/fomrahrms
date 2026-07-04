@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/profile_store.dart';
+import '../widgets/back_button.dart';
 
 class MyDetailsPage extends StatelessWidget {
   const MyDetailsPage({super.key});
@@ -30,6 +31,8 @@ class MyDetailsPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(

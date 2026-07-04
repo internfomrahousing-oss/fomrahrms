@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../models/form_config.dart';
 import '../models/user_session.dart';
+import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF0D47A1);
 
@@ -552,6 +553,8 @@ class _EditFormPageState extends State<EditFormPage> {
           color: Colors.white,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
           child: Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(

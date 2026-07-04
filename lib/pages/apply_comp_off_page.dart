@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/leave_form_config.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -14,14 +15,8 @@ class ApplyCompOffPage extends StatefulWidget {
 class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
   static const _color = Color(0xFF2E7D32);
 
-  static const _reasons = [
-    'Public Holiday Comp Off',
-    'Week Off Comp Off',
-    'Site Visit',
-    'Leave Comp Off',
-    'On Duty',
-    'Others',
-  ];
+  // Populated from Supabase config; falls back to LeaveFormConfig defaults.
+  List<String> _reasons = List<String>.from(LeaveFormConfig.defaultCompOffReasons);
 
   DateTime? _workedDate;
   DateTime? _claimDate;
@@ -30,6 +25,32 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
   final _descController   = TextEditingController();
 
   bool get _isOthers => _reason == 'Others';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFormConfig();
+  }
+
+  Future<void> _loadFormConfig() async {
+    try {
+      Map<String, dynamic> cfg;
+      if (LeaveFormConfig.cached != null) {
+        cfg = LeaveFormConfig.cached!;
+      } else {
+        final active = await SupabaseService.fetchActiveLeaveFormConfig();
+        cfg = active != null
+            ? Map<String, dynamic>.from(active['form_config'] as Map)
+            : LeaveFormConfig.defaults();
+        LeaveFormConfig.setCache(cfg);
+      }
+      final reasons = LeaveFormConfig.getCompOffReasons(cfg);
+      if (mounted) setState(() {
+        _reasons = reasons;
+        if (!_reasons.contains(_reason)) _reason = _reasons.first;
+      });
+    } catch (_) {}
+  }
 
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -106,7 +127,7 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
     setState(() {
       _workedDate = null;
       _claimDate  = null;
-      _reason     = 'Public Holiday Comp Off';
+      _reason     = _reasons.first;
     });
     _othersController.clear();
     _descController.clear();

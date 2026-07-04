@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/theme_notifier.dart';
+import '../widgets/back_button.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -26,6 +27,8 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 // Header
                 Row(children: [
+                  const NavBackButton(),
+                  const SizedBox(width: 8),
                   Container(
                     width: 44, height: 44,
                     decoration: BoxDecoration(

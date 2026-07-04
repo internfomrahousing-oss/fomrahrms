@@ -14,6 +14,17 @@ class _NavItem {
   const _NavItem(this.label, this.icon, this.route);
 }
 
+typedef _SubItem = ({String label, IconData icon, String route});
+
+const _editFormItems = <_SubItem>[
+  (label: 'Form Approvals',       icon: Icons.approval_rounded,         route: '/management/form-approvals'),
+  (label: 'Edit Leave Form',      icon: Icons.event_available_rounded,  route: '/management/edit-leave-form'),
+  (label: 'Edit Permission Form', icon: Icons.access_time_rounded,      route: '/management/edit-leave-form'),
+  (label: 'Edit Comp Off Form',   icon: Icons.swap_horiz_rounded,       route: '/management/edit-leave-form'),
+  (label: 'Edit Interview Form',  icon: Icons.assignment_rounded,       route: '/management/edit-form'),
+  (label: 'Edit Onboarding Form', icon: Icons.how_to_reg_rounded,       route: '/management/edit-onboarding-form'),
+];
+
 const _mgmtColor = AppTheme.primaryBlueDark;
 
 const _navItems = [
@@ -189,6 +200,13 @@ class _Sidebar extends StatelessWidget {
                       item: item,
                       selected: location == item.route ||
                           location.startsWith('${item.route}/'))),
+                  const _SectionDivider(label: 'Edit Forms'),
+                  _ExpandableNavGroup(
+                    label: 'Edit Forms',
+                    icon: Icons.edit_note_rounded,
+                    items: _editFormItems,
+                    location: location,
+                  ),
                   const _SectionDivider(label: 'My Space'),
                   ..._personalNavItems.map((item) => _SidebarTile(
                       item: item,
@@ -367,6 +385,100 @@ class _SidebarFooter extends StatelessWidget {
   }
 }
 
+// ── Expandable nav group ───────────────────────────────────────────────────
+class _ExpandableNavGroup extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final List<_SubItem> items;
+  final String location;
+  final bool closeDrawer;
+  const _ExpandableNavGroup({
+    required this.label,
+    required this.icon,
+    required this.items,
+    required this.location,
+    this.closeDrawer = false,
+  });
+
+  @override
+  State<_ExpandableNavGroup> createState() => _ExpandableNavGroupState();
+}
+
+class _ExpandableNavGroupState extends State<_ExpandableNavGroup> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.items.any((i) => widget.location == i.route);
+  }
+
+  @override
+  void didUpdateWidget(_ExpandableNavGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) {
+      final active = widget.items.any((i) => widget.location == i.route);
+      if (active && !_expanded) setState(() => _expanded = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: _expanded ? Colors.white10 : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ListTile(
+          dense: true,
+          leading: Icon(widget.icon,
+              color: _expanded ? Colors.white : const Color(0xFFBBDEFB),
+              size: 20),
+          title: Text(widget.label,
+              style: TextStyle(
+                  color: _expanded ? Colors.white : const Color(0xFFBBDEFB),
+                  fontSize: 13,
+                  fontWeight: _expanded ? FontWeight.w600 : FontWeight.normal)),
+          trailing: Icon(
+              _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+              color: const Color(0xFFBBDEFB),
+              size: 18),
+          onTap: () => setState(() => _expanded = !_expanded),
+        ),
+      ),
+      if (_expanded)
+        ...widget.items.map((item) {
+          final selected = widget.location == item.route;
+          return Container(
+            margin: const EdgeInsets.only(left: 20, right: 8, bottom: 2),
+            decoration: BoxDecoration(
+              color: selected ? AppTheme.sidebarSelectedBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              dense: true,
+              leading: Icon(item.icon,
+                  color: selected ? Colors.white : const Color(0xFFBBDEFB),
+                  size: 17),
+              title: Text(item.label,
+                  style: TextStyle(
+                      color: selected ? Colors.white : const Color(0xFFBBDEFB),
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              onTap: () {
+                if (widget.closeDrawer) Navigator.of(context).pop();
+                GoRouter.of(context).go(item.route);
+              },
+            ),
+          );
+        }),
+    ]);
+  }
+}
+
 class _DrawerContent extends StatelessWidget {
   final String location;
   const _DrawerContent({required this.location});
@@ -387,6 +499,14 @@ class _DrawerContent extends StatelessWidget {
                     item: item,
                     selected: location == item.route,
                     closeDrawer: true)),
+                const _SectionDivider(label: 'Edit Forms'),
+                _ExpandableNavGroup(
+                  label: 'Edit Forms',
+                  icon: Icons.edit_note_rounded,
+                  items: _editFormItems,
+                  location: location,
+                  closeDrawer: true,
+                ),
                 const _SectionDivider(label: 'My Space'),
                 ..._personalNavItems.map((item) => _SidebarTile(
                     item: item,

@@ -7,6 +7,7 @@ import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
+import '../widgets/back_button.dart';
 
 class EmployeeAttendancePage extends StatefulWidget {
   // prefix kept for router compatibility; not used internally
@@ -159,12 +160,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(children: [
-            if (Navigator.of(context).canPop())
-              IconButton(
-                tooltip: 'Back',
-                icon: const Icon(Icons.arrow_back_rounded, color: _blue),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+            const NavBackButton(),
+            const SizedBox(width: 8),
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(

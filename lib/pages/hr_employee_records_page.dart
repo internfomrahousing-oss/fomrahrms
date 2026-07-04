@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
+import '../widgets/back_button.dart';
 
 enum _SortOrder { newestFirst, oldestFirst, alphabetical, joinOldNew, joinNewOld }
 
@@ -128,6 +129,8 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
           children: [
             // ── Header ────────────────────────────────────────────────────
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(

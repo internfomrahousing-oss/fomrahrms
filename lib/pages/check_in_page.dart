@@ -306,15 +306,52 @@ class _RouteMapViewState extends State<_RouteMapView> {
       <script>
         var pts = [$jsPts];
         var map = L.map('map', {zoomControl:true});
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          {attribution:'© OpenStreetMap'}).addTo(map);
-        if (pts.length > 1) {
-          var route = L.polyline(pts, {color:'#1565C0', weight:4, opacity:0.85}).addTo(map);
+        L.tileLayer(
+          'https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=FemA7ny3aB6IXHhm2x3R',
+          {
+            attribution: '\\u00a9 <a href="https://www.maptiler.com/copyright/">MapTiler</a> \\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 20
+          }
+        ).addTo(map);
+
+        function addMarkers() {
           L.circleMarker(pts[0], {radius:8,color:'#fff',weight:2,fillColor:'#2E7D32',fillOpacity:1})
             .addTo(map).bindPopup('Check-in');
-          L.circleMarker(pts[pts.length-1], {radius:9,color:'#fff',weight:2,fillColor:'#C62828',fillOpacity:1})
-            .addTo(map).bindPopup('Last location');
-          map.fitBounds(route.getBounds(), {padding:[30,30]});
+          if (pts.length > 1) {
+            L.circleMarker(pts[pts.length-1], {radius:9,color:'#fff',weight:2,fillColor:'#C62828',fillOpacity:1})
+              .addTo(map).bindPopup('Last location');
+          }
+        }
+
+        if (pts.length > 1) {
+          map.setView(pts[0], 13);
+          // Reduce to max 25 waypoints for OSRM
+          var wp = pts;
+          if (pts.length > 25) {
+            var step = Math.floor(pts.length / 24);
+            wp = [pts[0]];
+            for (var i = step; i < pts.length - 1; i += step) wp.push(pts[i]);
+            wp.push(pts[pts.length - 1]);
+          }
+          var coords = wp.map(function(p){ return p[1]+','+p[0]; }).join(';');
+          fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson')
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+              var latLngs;
+              if (data.routes && data.routes.length > 0) {
+                latLngs = data.routes[0].geometry.coordinates.map(function(c){ return [c[1],c[0]]; });
+              } else {
+                latLngs = pts;
+              }
+              var route = L.polyline(latLngs, {color:'#1565C0',weight:4,opacity:0.85}).addTo(map);
+              map.fitBounds(route.getBounds(), {padding:[30,30]});
+              addMarkers();
+            })
+            .catch(function(){
+              var route = L.polyline(pts, {color:'#1565C0',weight:4,opacity:0.85}).addTo(map);
+              map.fitBounds(route.getBounds(), {padding:[30,30]});
+              addMarkers();
+            });
         } else {
           L.marker(pts[0]).addTo(map).bindPopup('Check-in location').openPopup();
           map.setView(pts[0], 15);

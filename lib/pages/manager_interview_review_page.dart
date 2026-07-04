@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
 import '../models/candidate_store.dart';
 import '../models/user_session.dart';
+import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF1A237E);
 
@@ -244,6 +245,8 @@ class _ManagerInterviewReviewPageState
           color: Colors.white,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
           child: Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(

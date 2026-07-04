@@ -7,6 +7,7 @@ import '../models/employee_store.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../services/supabase_service.dart';
+import '../widgets/back_button.dart';
 
 class AddTaskPage extends StatefulWidget {
   final bool selfAssign;
@@ -35,14 +36,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   // Assign Task fields
   Employee? _assignedEmployee;
   final List<Employee> _teamMembers = [];
-  final List<String> _selectedDepartments = [];
-
-  static const _allDepartments = [
-    'Engineering', 'Sales', 'HR', 'Finance', 'Marketing',
-    'Operations', 'Legal', 'Administration',
-  ];
-
-  static const _priorities = [
+static const _priorities = [
     (TaskPriority.low,      'Low',      Color(0xFF2E7D32)),
     (TaskPriority.medium,   'Medium',   Color(0xFFE65100)),
     (TaskPriority.high,     'High',     Color(0xFFBF360C)),
@@ -150,24 +144,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     );
   }
 
-  void _pickDepartment() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _DepartmentPickerSheet(
-        all: _allDepartments,
-        selected: List.from(_selectedDepartments),
-        onConfirm: (list) => setState(() {
-          _selectedDepartments.clear();
-          _selectedDepartments.addAll(list);
-        }),
-      ),
-    );
-  }
-
-  void _pickTeam() {
+void _pickTeam() {
     if (_users.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No employees found. Add users via Administration first.')),
@@ -207,7 +184,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
     }
 
     final teamNames = _teamMembers.map((e) => e.name).toList();
-    final dept      = _selectedDepartments.join(', ');
 
     // Generate ID only at submission — prevents counter drift from opening/closing the form
     final taskId = await TaskStore.generateId();
@@ -229,7 +205,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       assignedEmployee: _assignedEmployee?.name ?? '',
       teamMembers: teamNames,
       teamMemberStatuses: memberStatuses,
-      department: dept,
+      department: '',
       isSelfAssigned: widget.selfAssign,
     );
 
@@ -253,15 +229,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
             children: [
               // Header
               Row(children: [
-                IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF1A237E),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                const NavBackButton(),
+                const SizedBox(width: 8),
                 Container(
                   width: 44, height: 44,
                   decoration: BoxDecoration(
@@ -431,45 +400,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
                         style: const TextStyle(fontSize: 12)),
                     onDeleted: () =>
                         setState(() => _teamMembers.remove(e)),
-                    deleteIconColor: Colors.grey.shade500,
-                  )).toList(),
-                ),
-              ],
-              const SizedBox(height: 12),
-
-              // Department Assignment
-              _AssignCard(
-                icon: Icons.business_rounded,
-                label: 'Department Assignment',
-                subtitle: _selectedDepartments.isEmpty
-                    ? 'Tap to select one or more departments'
-                    : '${_selectedDepartments.length} department${_selectedDepartments.length == 1 ? '' : 's'} selected',
-                onTap: _pickDepartment,
-                trailing: _selectedDepartments.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
-                        onPressed: () =>
-                            setState(() => _selectedDepartments.clear()),
-                      )
-                    : null,
-              ),
-
-              if (_selectedDepartments.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6, runSpacing: 6,
-                  children: _selectedDepartments.map((d) => Chip(
-                    avatar: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6A1B9A).withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.business_rounded,
-                          size: 12, color: Color(0xFF6A1B9A)),
-                    ),
-                    label: Text(d, style: const TextStyle(fontSize: 12)),
-                    onDeleted: () =>
-                        setState(() => _selectedDepartments.remove(d)),
                     deleteIconColor: Colors.grey.shade500,
                   )).toList(),
                 ),

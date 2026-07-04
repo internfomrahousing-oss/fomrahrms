@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
+import '../widgets/back_button.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
 const _mgmtLight = Color(0xFFF3E5F5);
@@ -102,8 +103,10 @@ class _AdministrationPageState extends State<AdministrationPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!narrow) ...[
-                  Row(children: [
+                Row(children: [
+                  const NavBackButton(),
+                  const SizedBox(width: 8),
+                  if (!narrow) ...[
                     Container(
                       width: 36, height: 36,
                       decoration: BoxDecoration(
@@ -123,9 +126,9 @@ class _AdministrationPageState extends State<AdministrationPage>
                       const Text('Management access only',
                           style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
                     ]),
-                  ]),
-                  const SizedBox(height: 20),
-                ],
+                  ],
+                ]),
+                if (!narrow) const SizedBox(height: 20),
                 TabBar(
                   controller: _tabs,
                   labelColor: _mgmtColor,

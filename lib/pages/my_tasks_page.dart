@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../widgets/back_button.dart';
 
 class MyTasksPage extends StatefulWidget {
   const MyTasksPage({super.key});
@@ -141,6 +142,8 @@ class _MyTasksPageState extends State<MyTasksPage> {
           children: [
             // Header
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(

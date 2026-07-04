@@ -6,6 +6,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
+import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF0D47A1);
 
@@ -720,6 +721,8 @@ Fomra Housing & Infrastructure Pvt Ltd''';
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
+                  const NavBackButton(),
+                  const SizedBox(width: 8),
                   Container(
                     width: 36, height: 36,
                     decoration: BoxDecoration(

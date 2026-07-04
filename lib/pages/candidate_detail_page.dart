@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/candidate_store.dart';
+import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF0D47A1);
 
@@ -50,11 +51,7 @@ class CandidateDetailPage extends StatelessWidget {
           color: Colors.white,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 20, pad, 16),
           child: Row(children: [
-            IconButton(
-              onPressed: () => context.pop(),
-              icon: const Icon(Icons.arrow_back_rounded, color: _blue),
-              tooltip: 'Back',
-            ),
+            const NavBackButton(),
             const SizedBox(width: 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

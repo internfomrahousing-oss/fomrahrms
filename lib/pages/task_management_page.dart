@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../widgets/back_button.dart';
 
 class TaskManagementPage extends StatefulWidget {
   const TaskManagementPage({super.key});
@@ -90,6 +91,8 @@ class _TaskManagementPageState extends State<TaskManagementPage>
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
             child: Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 44,
                 height: 44,

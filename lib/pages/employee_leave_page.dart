@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/month_picker.dart';
+import '../widgets/back_button.dart';
 
 class EmployeeLeavePage extends StatefulWidget {
   final String prefix;
@@ -199,6 +200,8 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
           color: Theme.of(context).scaffoldBackgroundColor,
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
           child: Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
             Container(
               width: 42, height: 42,
               decoration: BoxDecoration(
@@ -540,17 +543,24 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: 5),
-        Text('$count $label',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+        Icon(icon, size: 15, color: color),
+        const SizedBox(width: 8),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          Text('$count',
+              style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w800,
+                  color: color, height: 1.0)),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w500,
+                  color: color.withValues(alpha: 0.75), height: 1.3)),
+        ]),
       ]),
     );
   }

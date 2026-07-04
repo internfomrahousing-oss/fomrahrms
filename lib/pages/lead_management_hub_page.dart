@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../services/lead_service.dart';
+import '../widgets/back_button.dart';
 
 class LeadManagementHubPage extends StatefulWidget {
   final String basePath; // e.g. '/lead-management' or '/management/lead-management'
@@ -387,6 +388,8 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                 children: [
                   // Header
                   Row(children: [
+                    const NavBackButton(),
+                    const SizedBox(width: 8),
                     Container(
                       width: 48, height: 48,
                       decoration: BoxDecoration(

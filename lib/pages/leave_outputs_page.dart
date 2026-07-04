@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/back_button.dart';
 
 class LeaveOutputsPage extends StatelessWidget {
   const LeaveOutputsPage({super.key});
@@ -15,6 +16,8 @@ class LeaveOutputsPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(

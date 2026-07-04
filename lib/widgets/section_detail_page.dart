@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'back_button.dart';
 
 class SectionDetailPage extends StatelessWidget {
   final String title;
@@ -30,6 +31,8 @@ class SectionDetailPage extends StatelessWidget {
           children: [
             Row(
               children: [
+                const NavBackButton(),
+                const SizedBox(width: 8),
                 Container(
                   width: 48,
                   height: 48,

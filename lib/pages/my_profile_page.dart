@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/user_session.dart' show UserSession;
 import '../services/user_store.dart';
+import '../widgets/back_button.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -41,6 +42,15 @@ class _MyProfilePageState extends State<MyProfilePage> {
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // Header
+                Row(children: [
+                  const NavBackButton(),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.person_rounded, color: _color, size: 22),
+                  const SizedBox(width: 10),
+                  Text('My Profile', style: Theme.of(context).textTheme.headlineMedium),
+                ]),
+                const SizedBox(height: 16),
                 // Info banner
                 Container(
                   width: double.infinity,

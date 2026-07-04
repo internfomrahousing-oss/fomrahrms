@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/leave_form_config.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -14,22 +15,9 @@ class ApplyPermissionPage extends StatefulWidget {
 class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
   static const _color = Color(0xFF00838F);
 
-  static const _durations = [
-    '30 Minutes',
-    '1 Hour',
-    '1½ Hours',
-    '2 Hours',
-  ];
-
-  static const _reasons = [
-    'Doctor / Medical',
-    'Bank Work',
-    'Government / Official Work',
-    'Personal Work',
-    'Family Emergency',
-    'School / College',
-    'Other',
-  ];
+  // Populated from Supabase config; falls back to LeaveFormConfig defaults.
+  List<String> _durations = List<String>.from(LeaveFormConfig.defaultPermissionDurations);
+  List<String> _reasons   = List<String>.from(LeaveFormConfig.defaultPermissionReasons);
 
   DateTime? _date;
   String _duration = '1 Hour';
@@ -38,6 +26,35 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
   final _descController  = TextEditingController();
 
   bool get _isOther => _reason == 'Other';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFormConfig();
+  }
+
+  Future<void> _loadFormConfig() async {
+    try {
+      Map<String, dynamic> cfg;
+      if (LeaveFormConfig.cached != null) {
+        cfg = LeaveFormConfig.cached!;
+      } else {
+        final active = await SupabaseService.fetchActiveLeaveFormConfig();
+        cfg = active != null
+            ? Map<String, dynamic>.from(active['form_config'] as Map)
+            : LeaveFormConfig.defaults();
+        LeaveFormConfig.setCache(cfg);
+      }
+      final durations = LeaveFormConfig.getPermissionDurations(cfg);
+      final reasons   = LeaveFormConfig.getPermissionReasons(cfg);
+      if (mounted) setState(() {
+        _durations = durations;
+        _reasons   = reasons;
+        if (!_durations.contains(_duration)) _duration = _durations.first;
+        if (!_reasons.contains(_reason))     _reason   = _reasons.first;
+      });
+    } catch (_) {}
+  }
 
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/back_button.dart';
 
 class ManagerLeavePage extends StatefulWidget {
   const ManagerLeavePage({super.key});
@@ -64,6 +65,8 @@ class _ManagerLeavePageState extends State<ManagerLeavePage> {
           children: [
             // Page header
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(

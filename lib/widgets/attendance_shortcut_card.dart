@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
-import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
@@ -56,35 +55,13 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
     }
   }
 
-  Future<void> _showHRPolicy() async {
-    String? policyText;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final active = await SupabaseService.fetchActiveOnboardingFormVersion();
-      if (!mounted) return;
-      Navigator.pop(context);
-      final sections = active != null
-          ? OnboardingFormConfig.getSections(
-              Map<String, dynamic>.from(active['form_config'] as Map))
-          : OnboardingFormConfig.getSections(OnboardingFormConfig.defaults());
-      policyText = OnboardingFormConfig.getPolicyTextFromSections(sections);
-    } catch (_) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      policyText = OnboardingFormConfig.defaultPolicyText;
-    }
-
-    if (!mounted) return;
+  void _showHRPolicy() {
     showDialog(
       context: context,
       builder: (dlgCtx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 620),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
@@ -96,7 +73,7 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
                 const Icon(Icons.policy_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 const Expanded(
-                  child: Text('HR Policy',
+                  child: Text('HR Policy – 2026',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
                           color: Colors.white)),
                 ),
@@ -110,7 +87,7 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: SelectableText(
-                  policyText ?? '',
+                  _kHRPolicyText,
                   style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF37474F)),
                 ),
               ),
@@ -130,6 +107,290 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
       ),
     );
   }
+
+  static const String _kHRPolicyText = '''
+FOMRA HOUSING & INFRASTRUCTURE PVT LTD
+Human Resource Policy – 2026 (Version 1.0)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. WORKING HOURS & ATTENDANCE
+
+1.1 Work Days & Timings
+• The company follows a 6-day work week (Monday to Saturday).
+• Employee working hours: 9:30 AM to 6:30 PM.
+• Property Sourcing employees: 9:00 AM to 6:30 PM.
+• Sales employees work Monday to Sunday depending on project requirements. They receive a weekly off on either Tuesday or Thursday, predefined by the Reporting Manager / Head of Operations / MD — this cannot be changed on a need basis.
+
+Example:
+  Sales Employees: If a client or office meeting falls on their weekly off (Tue/Thu), they cannot avail an alternative off — the weekly off lapses.
+  Other Employees: If a client or office meeting falls on their weekly off (Sunday), they can avail comp off for an alternative day with prior approval from their Reporting Manager / Head of Operations / MD.
+
+1.2 Attendance Requirements
+• All office employees must record attendance using the biometric system from their date of joining.
+• Field employees must mark attendance by sharing their current location in the designated WhatsApp group daily. Land Acquisition employees must keep their live location active at all times during working hours.
+• Failure to record or mark attendance will be treated as Absent, resulting in Loss of Pay (LOP).
+• Any employee leaving work premises during working hours must obtain prior approval from the Reporting Manager. Failure to do so will result in LOP. Repeated violations lead to formal warnings or termination.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2. LATE ARRIVAL & PERMISSIONS POLICY
+
+2.1 Late Arrival Policy
+• Employees are permitted a maximum of 3 late arrivals per month.
+• A grace period of up to 10 minutes is allowed per late arrival.
+• Beyond 3 late arrivals in a month, each subsequent instance is treated as Half-Day LOP or adjusted against available leave balance.
+
+2.2 Permission Policy
+• Maximum of 2 hours of permission per month (applicable for Confirmed employees and Probationers).
+• Permission can be availed in a single instance or split (minimum 30 minutes per instance, up to 4 occasions).
+  - 30+ minutes = counted as 1 hour
+  - 1+ hours = counted as 1.5 hours
+  - 1.5+ hours = counted as 2 hours
+• Beyond monthly limit, further permissions are adjusted against Casual Leave balance.
+• Permissions cannot be clubbed with late arrival / early departure.
+• Permission requests must be submitted in the pre-determined format provided by HR, or via WhatsApp approval from the Reporting Manager — one day prior, or immediately after the permission day in case of urgency.
+
+2.3 Lunch Hours
+• 30-minute lunch break between 1:00 PM and 2:00 PM.
+• 15-minute bio break, once in the morning and once in the evening.
+• Exceeding the lunch or bio break limit repeatedly will lead to 4 formal warnings per month; if it exceeds Half-Day, it results in LOP or termination.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3. HOLIDAYS
+
+• Maximum of 9 paid holidays annually, covering national holidays and major festivals.
+• The holiday list is published by the HR Department before the start of each year.
+• Employees required to work on public holidays are eligible for compensatory off with prior written / WhatsApp approval from their Reporting Manager / Head of Operations / MD.
+
+Sales Employees (weekly off on Tue/Thu):
+  If a public holiday falls on the same day as their weekly off, no additional comp off is provided.
+
+Other Employees (excluding Sales):
+  If a public holiday falls on a weekday, employees who work on that day are eligible for compensatory off with Reporting Manager approval.
+
+Holidays – 2026:
+  1 Jan   – New Year's Day
+  14 Jan  – Pongal
+  15 Jan  – Thiruvalluvar Day
+  26 Jan  – Republic Day
+  14 Apr  – Tamil New Year's Day
+  15 Aug  – Independence Day
+  2 Oct   – Gandhi Jayanthi
+  20 Oct  – Ayutha Pooja
+  8 Nov   – Diwali
+  25 Dec  – Christmas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4. LEAVE POLICY
+
+4.1 General Leave Rules
+• Leave can be availed in half-day units.
+• Leave cannot be adjusted against future leave credits (CL, ML, EL).
+• CL, ML, and EL cannot be combined / clubbed together.
+• All leave requests must be approved by the Reporting Manager and forwarded to HR at least one day in advance.
+• Reporting Managers can approve up to 2 days. Beyond 2 days requires MD & Head of Operations approval.
+• Sales Team: Reporting Manager approves up to 1 day; beyond 1 day requires MD approval.
+
+4.2 Form Submission
+• All Permission, Leave, Comp Off, and On-Duty (OD) forms must be approved by the Reporting Manager and submitted to HR — one day before leave, or on the day of return.
+• Failure to submit approved forms results in LOP.
+
+4.3 Leave Types (On-Role Employees)
+
+Casual Leave (CL):
+• 12 days per year (1 per month).
+• Can be availed up to 2 days at a time.
+• Cannot be carried forward; unused CL lapses at year-end and upon resignation.
+• Cannot be clubbed with any other leave type.
+
+Medical Leave (ML):
+• 12 days per year.
+• Beyond 3 consecutive days requires a medical certificate, else treated as LOP.
+• Cannot be carried forward; lapses upon resignation.
+
+Employees on Probation:
+• Eligible for 1 day of leave per month (emergencies only).
+• No CL, ML, or EL until probation is completed.
+• Leave cannot be accumulated or carried forward.
+• Eligible for permissions as per the Permission Policy.
+
+Earned Leave (EL):
+• For employees who have completed probation and 1 year of continuous service from the date of confirmation.
+• 12 days EL per year (accrued at 1 day per completed month).
+• Maximum accumulation: 20 days.
+• EL balance exceeding 20 days can be encashed by employees with 2+ years of continuous service. Minimum 10 EL days must remain after encashment. Unavailed and unencashed EL lapses.
+• Encashment formula: (Last Drawn Basic Salary ÷ Total days of month) × No. of days.
+
+4.4 Sandwich Leave Policy
+If leave is taken immediately before AND after a weekly off (Sunday) or declared holiday, the weekly off / holiday is also counted as leave.
+
+Rules:
+1. Leave on both sides of Sunday/holiday → Sunday/holiday counted as leave.
+2. Leave only before OR after Sunday/holiday → Sunday/holiday not counted.
+3. Leave type (CL/ML/EL/LOP) depends on available balance.
+4. Leave on Sat+Sun or Sun+Mon is allowed once a month; twice or more = both days LOP.
+
+Examples:
+  Sat leave + Mon leave → Sun also becomes leave = 3 days total (sandwich).
+  Fri leave + Sat leave, resumed Mon → only 2 days counted (Sun not counted).
+  Mon leave only → 1 day (Sun not counted).
+  Sat leave only → 1 day (Sun not counted).
+  Fri leave + Mon leave, with Sat holiday → 4 days total (Fri + Sat + Sun + Mon).
+
+4.5 Compensatory Off (Comp Off)
+• Must be availed within the subsequent month of working on an approved holiday; else it lapses.
+• Prior approval from Reporting Manager is mandatory.
+• Sales team (rotational weekly offs) are not eligible for comp off on Saturdays & Sundays.
+• Cannot be clubbed with weekly off or other leave types.
+• Worked < 6 hours → Not eligible for comp off.
+• Worked > 6 hours → Eligible for comp off.
+• No prior approval → Comp off request rejected.
+
+4.6 Wedding Leave
+• Confirmed employees with minimum 2 years of continuous service are entitled to 7 days paid leave for their first legal marriage.
+• Employees with more than 2 years of continuous service also receive a wedding gift of ₹25,000 from the company.
+
+4.7 Maternity Leave
+• Female employees with 3+ years of continuous service: 60 days (2 months) paid Maternity Leave.
+• Miscarriage / medical termination of pregnancy (3+ years service): 42 days (6 weeks) with valid medical documents.
+• May be availed up to 2 months before or after delivery, as per medical advice.
+• Written notification and medical certificate are mandatory.
+• Cannot be clubbed with CL / ML / EL.
+
+4.8 Paternity Leave
+• Male employees with 3+ years of continuous service: up to 3 days paid Paternity Leave, to be availed within one month of childbirth.
+• Cannot be accumulated, carried forward, or encashed.
+• Cannot be clubbed with CL / ML / EL.
+
+4.9 Leave During Notice Period
+• Permitted: 1 day of leave during notice period (with prior Reporting Manager approval).
+• CL / ML balance lapses upon resignation.
+• Available EL can be encashed with Full & Final Settlement as per policy.
+• Unapproved leave during notice period is treated as LOP.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5. GRATUITY POLICY
+
+• Minimum 5 years of continuous service required to qualify.
+• Formula: (Basic Salary × 15 × Completed Years of Service) ÷ 30
+• Payment processed within 30 days from the official relieving date.
+• May be partially or fully forfeited in cases of termination due to disciplinary action, misconduct, or unauthorized exit.
+• Five-year requirement waived in cases of death or permanent disability; amount paid to legal nominee or beneficiary.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6. OPERATIONAL POLICY
+
+6.1 Dress Code
+General:
+• Employees must be clean, neat, and well-groomed at all times.
+• Clothing must be professional, modest, and appropriate.
+• Casual, workout, or outdoor attire is not permitted.
+• Revealing, tight, or inappropriate clothing is strictly prohibited.
+• Clothing must be clean, pressed, and free from visible damage.
+• Clothing with offensive, political, or inappropriate messages is not allowed.
+
+Male Employees: Formal attire with formal shoes; neat and well-groomed appearance.
+Female Employees: Formal Indian or Western wear; sarees / traditional attire must be formal, sober, and professional.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7. SEPARATION POLICY
+
+7.1 Resignation
+• Voluntary separation; Reporting Manager must discuss reasons and explore retention.
+• Resignation must be submitted in writing or email and forwarded to HR.
+• CL / ML balance lapses upon resignation.
+
+7.2 Notice Period
+• Employees must serve the applicable notice period or pay salary in lieu of shortfall.
+• The company may relieve an employee earlier based on business needs.
+
+Notice Period Structure:
+  Deputy General Manager & Above : 60 Days
+  Jr. Executive to Senior Manager : 30 Days
+  Probationers                    : 15 Days
+
+7.3 Full & Final Settlement (F&F)
+• Salary not released during notice period on the regular salary date.
+• F&F processed within 3 days after exit.
+• All company property must be returned and clearances completed.
+• Deductions apply for loss or damage beyond normal wear and tear.
+• Final settlement held until all dues are cleared.
+
+7.4 Termination
+• May occur due to non-performance, misconduct, unethical behaviour, or falsification of information.
+• Termination authority rests with the Reporting Manager.
+• Salary paid only for actual days worked up to the date of termination.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+8. WORKPLACE CONDUCT & SAFETY
+
+8.1 Visitors on Office Premises
+• All visitors must sign in and provide identification at reception.
+• Visitors must be escorted at all times by an authorized employee.
+• Visitors are not permitted in restricted zones without authorization.
+• Employees allowing unauthorized entry face disciplinary action.
+• Dangerous items (weapons, explosives, hazardous materials) are strictly prohibited.
+
+8.2 Drug, Alcohol & Smoke-Free Workplace
+• Possession or consumption of alcohol, tobacco, or illegal substances on company premises or during work hours is strictly prohibited.
+• Violation will lead to disciplinary action, including possible termination.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+9. HARASSMENT & DISCRIMINATION POLICY
+
+9.1 Harassment Policy
+Prohibited behaviour includes: demeaning remarks, unwelcome sexual advances, sexist / racist / religious slurs, offensive jokes or gestures, actions that create a hostile work environment, verbal or physical innuendoes, comments about appearance or attire, circulating offensive content, unwanted physical proximity, and spreading malicious rumours.
+
+9.2 Discrimination Policy
+The company strictly prohibits discrimination based on: gender or sexual orientation, race, caste or community, religion or nationality, age or disability, or marital / family status.
+
+Retaliation against any employee who files a complaint or participates in an investigation is strictly forbidden.
+
+9.3 Reporting & Redressal
+If you experience harassment:
+1. Clearly communicate that the behaviour is unwelcome.
+2. If it continues, report to the ICC or HR.
+3. Maintain records of incidents where possible.
+4. Submit a written complaint within 15 days.
+
+HR will maintain a confidential register, meet the complainant within 5 working days, record allegations, collect evidence, and provide the accused an opportunity to respond. Enquiry follows standard disciplinary procedures. Findings are reviewed by HOD & HR.
+
+9.4 Confidentiality
+Confidential information (personnel data, financial reports, client information) must be handled securely and shared only with authorized personnel. Breach of confidentiality may result in disciplinary or legal action.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10. VIOLATION POLICY
+
+The following (not exhaustive) may lead to disciplinary action, including termination:
+• Falsifying documents, records, or timesheets
+• Using threatening, abusive, or coercive language
+• Violating safety protocols
+• Mistreating colleagues, clients, or vendors
+• Unauthorized overtime or off-duty work
+• Consumption of alcohol, drugs, or tobacco during work hours
+• Insubordination or refusal to follow instructions
+• Theft, fraud, or misuse of company property
+• Repeated absenteeism, tardiness, or negligence
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This policy is subject to revision at the sole discretion of the management of Fomra Housing & Infrastructure Pvt Ltd. From the date of revision, the new policy becomes applicable.
+
+For any queries, please reach out to the HR Department.
+
+Prepared by: Jose Jenin Jeevi J, HR Manager
+Verified by:  Ronak Surana, Head of Operations
+Approved by: Sharad Fomra, CEO & MD
+''';
 
   void _openSheet() {
     showModalBottomSheet(
@@ -176,13 +437,12 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
       statusText  = 'Check In / Out';
     }
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
+    return Row(children: [
         // ── Attendance check-in/out button ───────────────────────────────
-        Card(
-          margin: EdgeInsets.zero,
-          child: InkWell(
+        Flexible(
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: _loading ? null : _openSheet,
             child: Padding(
@@ -196,13 +456,17 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
                 else
                   Icon(statusIcon, size: 18, color: statusColor),
                 const SizedBox(width: 7),
-                Text(statusText,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _loading
-                            ? cs.onSurface.withValues(alpha: 0.5)
-                            : cs.onSurface)),
+                Flexible(
+                  child: Text(statusText,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _loading
+                              ? cs.onSurface.withValues(alpha: 0.5)
+                              : cs.onSurface)),
+                ),
                 if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
                   const SizedBox(width: 7),
                   Container(
@@ -216,6 +480,7 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
               ]),
             ),
           ),
+        ),
         ),
 
         const SizedBox(width: 8),
@@ -241,8 +506,7 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
             ),
           ),
         ),
-      ]),
-    );
+      ]);
   }
 
   static String? _durationStr(AttendanceRecord rec) {

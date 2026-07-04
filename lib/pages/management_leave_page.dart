@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/back_button.dart';
 
 class ManagementLeavePage extends StatelessWidget {
   const ManagementLeavePage({super.key});
@@ -21,6 +22,13 @@ class ManagementLeavePage extends StatelessWidget {
       '/management/leave/team-approvals',
       'Leave requests from employees reporting directly to you.',
     ),
+    _Topic(
+      'Edit Leave Forms',
+      Icons.edit_note_rounded,
+      Color(0xFF6A1B9A),
+      '/management/edit-leave-form',
+      'Approve HR requests or directly update Leave, Permission & Comp Off form options.',
+    ),
   ];
 
   @override
@@ -33,6 +41,8 @@ class ManagementLeavePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(

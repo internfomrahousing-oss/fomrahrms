@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
+import '../widgets/back_button.dart';
 
 class MyJourneyPage extends StatefulWidget {
   const MyJourneyPage({super.key});
@@ -77,6 +78,8 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Header
             Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(

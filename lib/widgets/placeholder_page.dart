@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'back_button.dart';
 
 class PlaceholderPage extends StatelessWidget {
   final String title;
@@ -22,6 +23,8 @@ class PlaceholderPage extends StatelessWidget {
           children: [
             Row(
               children: [
+                const NavBackButton(),
+                const SizedBox(width: 8),
                 Container(
                   width: 48,
                   height: 48,

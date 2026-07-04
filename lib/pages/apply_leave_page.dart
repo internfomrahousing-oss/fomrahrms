@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
+import '../models/leave_form_config.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -16,17 +17,8 @@ class ApplyLeavePage extends StatefulWidget {
 class _ApplyLeavePageState extends State<ApplyLeavePage> {
   static const _color = Color(0xFF0D47A1);
 
-  static const _allLeaveTypes = [
-    'Casual Leave',
-    'Medical / Sick Leave',
-    'Earned Leave',
-    'Maternity Leave',
-    'Paternity Leave',
-    'To Vote',
-    'Personal Leave',
-    'Funeral / Bereavement',
-    'LOP or Others',
-  ];
+  // Populated from Supabase config; falls back to LeaveFormConfig defaults.
+  List<String> _allLeaveTypes = List<String>.from(LeaveFormConfig.defaultLeaveTypes);
 
   DateTime? _fromDate;
   DateTime? _toDate;
@@ -107,6 +99,22 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   }
 
   Future<void> _loadBalance() async {
+    // Load form config first (uses in-memory cache after first fetch).
+    try {
+      Map<String, dynamic> cfg;
+      if (LeaveFormConfig.cached != null) {
+        cfg = LeaveFormConfig.cached!;
+      } else {
+        final active = await SupabaseService.fetchActiveLeaveFormConfig();
+        cfg = active != null
+            ? Map<String, dynamic>.from(active['form_config'] as Map)
+            : LeaveFormConfig.defaults();
+        LeaveFormConfig.setCache(cfg);
+      }
+      final types = LeaveFormConfig.getLeaveTypes(cfg);
+      if (mounted) setState(() => _allLeaveTypes = types);
+    } catch (_) {}
+
     try {
       final results = await Future.wait([
         UserStore.load(),

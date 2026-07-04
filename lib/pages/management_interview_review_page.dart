@@ -4,6 +4,7 @@ import '../services/supabase_service.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../models/user_session.dart';
+import '../widgets/back_button.dart';
 
 const _mgmtColor = Color(0xFF4A148C);
 
@@ -483,6 +484,8 @@ class _ManagementInterviewReviewPageState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
+                const NavBackButton(),
+                const SizedBox(width: 8),
                 Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
