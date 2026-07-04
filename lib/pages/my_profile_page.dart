@@ -152,12 +152,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       title: 'Interview Form',
                       subtitle: 'View your interview details',
                       color: const Color(0xFF1565C0),
-                      onTap: () {
-                        final prefix = UserSession.role == UserRole.reportingManager
-                            ? '/manager'
-                            : '/employee';
-                        context.go('$prefix/interview-form');
-                      },
+                      onTap: () => context.go('${_rolePrefix()}/interview-form'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -167,18 +162,21 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       title: 'Onboarding Form',
                       subtitle: 'View your onboarding details',
                       color: const Color(0xFF00695C),
-                      onTap: () {
-                        final prefix = UserSession.role == UserRole.reportingManager
-                            ? '/manager'
-                            : '/employee';
-                        context.go('$prefix/employee-onboarding');
-                      },
+                      onTap: () => context.go('${_rolePrefix()}/employee-onboarding'),
                     ),
                   ),
                 ]),
               ]),
             ),
     );
+  }
+}
+
+String _rolePrefix() {
+  switch (UserSession.role) {
+    case UserRole.hr:         return '/hr';
+    case UserRole.reportingManager: return '/manager';
+    default:                  return '/employee';
   }
 }
 
