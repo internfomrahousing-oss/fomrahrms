@@ -143,7 +143,16 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
 
   Future<void> _load() async {
     final data = await SupabaseService.fetchAnnouncements();
-    if (mounted) setState(() { _items = data; _loading = false; });
+    if (!mounted) return;
+    // Employees only see announcements from the past 7 days; HR sees all
+    final filtered = widget.canEdit
+        ? data
+        : data.where((item) {
+            final d = DateTime.tryParse(item['announced_on'] as String? ?? '');
+            return d != null &&
+                d.isAfter(DateTime.now().subtract(const Duration(days: 7)));
+          }).toList();
+    setState(() { _items = filtered; _loading = false; });
   }
 
   Future<void> _showAdd() async {
@@ -492,30 +501,28 @@ class _QuickLinksBlock extends StatelessWidget {
     return _InfoCard(
       icon: Icons.apps_rounded,
       title: 'Quick Access',
-      child: GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.2,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: List.generate(_qLinks.length, (i) {
           final q = _qLinks[i];
           return GestureDetector(
             onTap: () => _open(context, _blockFor(i)),
             child: Container(
+              width: 100,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               decoration: BoxDecoration(
                 color: q.color.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: q.color.withValues(alpha: 0.30), width: 1.2),
               ),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(q.icon, size: 32, color: q.color),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(q.icon, size: 26, color: q.color),
                 const SizedBox(height: 6),
                 Text(q.label,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: q.color)),
               ]),

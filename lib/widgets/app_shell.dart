@@ -174,10 +174,7 @@ class _NarrowLayout extends StatelessWidget {
       drawer: Drawer(
         child: _DrawerContent(location: location),
       ),
-      body: Column(children: [
-        const QuickActionsBar(),
-        Expanded(child: child),
-      ]),
+      body: QuickActionsBody(child: child),
     );
   }
 }

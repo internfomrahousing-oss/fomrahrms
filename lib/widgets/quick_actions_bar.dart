@@ -18,9 +18,7 @@ void _showBlock(BuildContext context, Widget block) {
           width: 40, height: 4,
           margin: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.black12,
-            borderRadius: BorderRadius.circular(2),
-          ),
+              color: Colors.black12, borderRadius: BorderRadius.circular(2)),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -34,7 +32,6 @@ void _showBlock(BuildContext context, Widget block) {
   );
 }
 
-// Data for the 4 quick-action buttons
 const _qData = [
   (icon: Icons.campaign_rounded,     color: Color(0xFFE53935), label: 'Announcements'),
   (icon: Icons.event_rounded,        color: Color(0xFF43A047), label: 'Holidays'),
@@ -42,54 +39,59 @@ const _qData = [
   (icon: Icons.cake_rounded,         color: Color(0xFF8E24AA), label: 'Birthdays'),
 ];
 
-Widget _blockFor(int index) {
-  switch (index) {
+Widget _blockFor(int i) {
+  switch (i) {
     case 0: return AnnouncementsBlock(canEdit: false);
     case 1: return HolidaysBlock(canEdit: false);
-    case 2: return const EmptyBlock();
-    default: return BirthdaysBlock(canEdit: false);
+    case 3: return BirthdaysBlock(canEdit: false);
+    default: return const EmptyBlock();
   }
 }
 
-/// Narrow-layout strip: appears below the AppBar, 4 large colourful icons.
-class QuickActionsBar extends StatelessWidget {
-  const QuickActionsBar({super.key});
+/// Wraps the narrow-layout body with a floating vertical strip of 4 icons
+/// pinned to the top-right — visually below the bell and star in the AppBar.
+class QuickActionsBody extends StatelessWidget {
+  final Widget child;
+  const QuickActionsBody({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF0D2177),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: List.generate(_qData.length, (i) {
-          final q = _qData[i];
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => _showBlock(context, _blockFor(i)),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    color: q.color.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: q.color.withValues(alpha: 0.35), width: 1.2),
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          top: 10,
+          right: 10,
+          child: Column(
+            children: List.generate(_qData.length, (i) {
+              final q = _qData[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GestureDetector(
+                  onTap: () => _showBlock(context, _blockFor(i)),
+                  child: Container(
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: q.color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(
+                          color: q.color.withValues(alpha: 0.45), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: q.color.withValues(alpha: 0.18),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Icon(q.icon, size: 24, color: q.color),
                   ),
-                  child: Icon(q.icon, size: 28, color: q.color),
                 ),
-                const SizedBox(height: 4),
-                Text(q.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 9,
-                        color: q.color.withValues(alpha: 0.85),
-                        fontWeight: FontWeight.w600)),
-              ]),
-            ),
-          );
-        }),
-      ),
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -116,7 +118,8 @@ class QuickActionIcons extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: q.color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: q.color.withValues(alpha: 0.35), width: 1),
+                  border: Border.all(
+                      color: q.color.withValues(alpha: 0.35), width: 1),
                 ),
                 child: Icon(q.icon, color: q.color, size: 20),
               ),
