@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_session.dart';
 import 'profile_avatar_button.dart';
-import 'quick_actions_bar.dart';
 
 class WelcomeBanner extends StatefulWidget {
   final String subtitle;
@@ -136,15 +135,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                 ],
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const QuickActionIconsVertical(),
-                const SizedBox(width: 16),
-                const ProfileAvatarButton(large: true),
-              ],
-            ),
+            const ProfileAvatarButton(large: true),
             if (widget.onRefresh != null) ...[
               const SizedBox(width: 8),
               Tooltip(
