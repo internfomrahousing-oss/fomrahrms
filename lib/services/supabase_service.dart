@@ -1451,6 +1451,56 @@ class SupabaseService {
     }
   }
 
+  // Uploads a new profile photo and stores it as the current user's attachment
+  // on their latest onboarding form (the same place fetchCurrentUserPhotoUrl
+  // reads from). Returns the new public URL, or null on failure.
+  static Future<String?> updateCurrentUserPhoto(
+      String employeeId, Uint8List bytes, String fileName, String mimeType) async {
+    final db = _db;
+    if (db == null || employeeId.isEmpty) return null;
+    final safe = fileName.replaceAll(RegExp(r'[^\w.\-]'), '_');
+    final path =
+        'profile_photos/${employeeId}_${DateTime.now().millisecondsSinceEpoch}_$safe';
+    final String url;
+    try {
+      await db.storage.from('RESUME').uploadBinary(
+        path, bytes,
+        fileOptions: FileOptions(
+            contentType: mimeType.isNotEmpty ? mimeType : 'image/jpeg'),
+      );
+      url = db.storage.from('RESUME').getPublicUrl(path);
+    } catch (_) {
+      return null;
+    }
+
+    try {
+      final rows = await db
+          .from('onboarding_forms')
+          .select('id, attachments')
+          .eq('assigned_emp_id', employeeId)
+          .order('submitted_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(rows as List);
+      if (list.isNotEmpty) {
+        final row = list.first;
+        final attachments = row['attachments'] is List
+            ? List<Map<String, dynamic>>.from(row['attachments'])
+            : <Map<String, dynamic>>[];
+        attachments.removeWhere((a) {
+          final docType = (a['doc_type'] ?? '').toString().toLowerCase();
+          return docType.contains('photo') || docType.contains('passport');
+        });
+        attachments.insert(
+            0, {'doc_type': 'photo_upload', 'url': url, 'file_name': fileName});
+        await db
+            .from('onboarding_forms')
+            .update({'attachments': attachments}).eq('id', row['id']);
+      }
+    } catch (_) {}
+
+    return url;
+  }
+
   // ── HR Policy (versioned, approval workflow) ──────────────────────────────
   // Returns the content of the latest approved version, or null if none.
   static Future<String?> fetchHRPolicy() async {

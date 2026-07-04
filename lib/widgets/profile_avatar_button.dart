@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user_session.dart';
 import '../models/theme_notifier.dart';
 import '../services/session_storage.dart';
+import '../services/supabase_service.dart';
 
 /// Circular avatar + name/ID that opens a profile dropdown on tap.
 /// Use [large] = true for the welcome banner (bigger avatar, vertical layout).
@@ -16,6 +18,33 @@ class ProfileAvatarButton extends StatefulWidget {
 
 class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
   final _key = GlobalKey();
+  bool _uploadingPhoto = false;
+
+  Future<void> _editPhoto() async {
+    final empId = UserSession.employeeId;
+    if (empId.isEmpty || _uploadingPhoto) return;
+
+    XFile? picked;
+    try {
+      picked = await ImagePicker()
+          .pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 85);
+    } catch (_) {
+      return;
+    }
+    if (picked == null) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final url = await SupabaseService.updateCurrentUserPhoto(
+          empId, bytes, picked.name, picked.mimeType ?? '');
+      if (url != null && mounted) {
+        setState(() => UserSession.photoUrl = url);
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
 
   void _openMenu() {
     final box = _key.currentContext?.findRenderObject() as RenderBox?;
@@ -65,18 +94,43 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
         key: _key,
         onTap: _openMenu,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          CircleAvatar(
-            radius: 52,
-            backgroundColor: Colors.white.withValues(alpha: 0.20),
-            backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-            child: photoUrl.isEmpty
-                ? Text(initial,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 38))
-                : null,
-          ),
+          Stack(clipBehavior: Clip.none, children: [
+            CircleAvatar(
+              radius: 52,
+              backgroundColor: Colors.white.withValues(alpha: 0.20),
+              backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+              child: _uploadingPhoto
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : (photoUrl.isEmpty
+                      ? Text(initial,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 38))
+                      : null),
+            ),
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: GestureDetector(
+                onTap: _editPhoto,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D47A1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded,
+                      size: 14, color: Colors.white),
+                ),
+              ),
+            ),
+          ]),
           const SizedBox(height: 8),
           Text(
             name.isEmpty ? 'User' : name,
