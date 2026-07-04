@@ -21,7 +21,7 @@ class DashboardInfoBlocks extends StatelessWidget {
       final blocks = <Widget>[
         AnnouncementsBlock(canEdit: canEdit),
         HolidaysBlock(canEdit: canEdit),
-        _QuickLinksBlock(canEdit: canEdit),
+        _EmployeeOfMonthBlock(canEdit: canEdit),
         BirthdaysBlock(canEdit: canEdit),
       ];
       if (wide) {
@@ -436,90 +436,155 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
   }
 }
 
-// ── Coming Soon (empty block) — kept public for quick_actions_bar ────────────
+// ── Employee of the Month ─────────────────────────────────────────────────────
 
 class EmptyBlock extends StatelessWidget {
   const EmptyBlock({super.key});
   @override
-  Widget build(BuildContext context) => const _QuickLinksBlock(canEdit: false);
+  Widget build(BuildContext context) =>
+      const _EmployeeOfMonthBlock(canEdit: false);
 }
 
-// ── Quick Links block (replaces the old "Coming Soon" slot) ──────────────────
-
-const _qLinks = [
-  (icon: Icons.campaign_rounded,     color: Color(0xFFE53935), label: 'Announcements'),
-  (icon: Icons.event_rounded,        color: Color(0xFF43A047), label: 'Holidays'),
-  (icon: Icons.emoji_events_rounded, color: Color(0xFFFB8C00), label: 'Emp of Month'),
-  (icon: Icons.cake_rounded,         color: Color(0xFF8E24AA), label: 'Birthdays'),
-];
-
-class _QuickLinksBlock extends StatelessWidget {
+class _EmployeeOfMonthBlock extends StatefulWidget {
   final bool canEdit;
-  const _QuickLinksBlock({required this.canEdit});
+  const _EmployeeOfMonthBlock({required this.canEdit});
 
-  void _open(BuildContext ctx, Widget block) {
-    showModalBottomSheet(
-      context: ctx,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.55,
-        minChildSize: 0.35,
-        maxChildSize: 0.85,
-        builder: (_, ctrl) => Column(children: [
-          Container(
-            width: 40, height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-                color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+  @override
+  State<_EmployeeOfMonthBlock> createState() => _EmployeeOfMonthBlockState();
+}
+
+class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
+  Map<String, dynamic>? _data;
+  bool _loading = true;
+
+  static const _orange = Color(0xFFFB8C00);
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final data = await SupabaseService.fetchEmployeeOfMonth();
+    if (mounted) setState(() { _data = data; _loading = false; });
+  }
+
+  Future<void> _showEdit() async {
+    final now = DateTime.now();
+    final monthYear =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+    final nameCtrl = TextEditingController(
+        text: _data?['employee_name'] as String? ?? '');
+    final reasonCtrl = TextEditingController(
+        text: _data?['reason'] as String? ?? '');
+
+    await showDialog(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        title: const Text('Employee of the Month'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: nameCtrl,
+            autofocus: true,
+            decoration: const InputDecoration(
+                labelText: 'Employee Name',
+                border: OutlineInputBorder()),
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: ctrl,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: block,
-            ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: reasonCtrl,
+            maxLines: 3,
+            decoration: const InputDecoration(
+                labelText: 'Reason / Achievement',
+                border: OutlineInputBorder()),
           ),
         ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dlgCtx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              final reason = reasonCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(dlgCtx);
+              final err = await SupabaseService.upsertEmployeeOfMonth(
+                  name, reason, monthYear);
+              if (!mounted) return;
+              if (err == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Saved'), backgroundColor: Colors.green));
+                _load();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(err), backgroundColor: Colors.red));
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _blockFor(int i) {
-    switch (i) {
-      case 0: return AnnouncementsBlock(canEdit: canEdit);
-      case 1: return HolidaysBlock(canEdit: canEdit);
-      case 3: return BirthdaysBlock(canEdit: canEdit);
-      default: return const EmptyBlock();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final name   = _data?['employee_name'] as String?;
+    final reason = _data?['reason'] as String?;
+    final my     = _data?['month_year'] as String?;
+
+    String? monthLabel;
+    if (my != null) {
+      final parts = my.split('-');
+      if (parts.length == 2) {
+        final m = int.tryParse(parts[1]);
+        if (m != null && m >= 1 && m <= 12) {
+          monthLabel = '${_months[m - 1]} ${parts[0]}';
+        }
+      }
+    }
+
     return _InfoCard(
       icon: Icons.emoji_events_rounded,
       title: 'Employee of the Month',
-      child: const SizedBox(
-        width: double.infinity,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 16),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.emoji_events_rounded, size: 40, color: Color(0xFFFB8C00)),
-            SizedBox(height: 8),
-            Text('Coming Soon',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFFB8C00))),
-            SizedBox(height: 4),
-            Text('Employee of the month will be announced here.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
-          ]),
-        ),
-      ),
+      canEdit: widget.canEdit,
+      onAdd: widget.canEdit ? _showEdit : null,
+      onRefresh: _load,
+      child: _loading
+          ? const _Loader()
+          : name == null
+              ? _Empty('Not announced yet')
+              : SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.emoji_events_rounded,
+                          size: 36, color: _orange),
+                      const SizedBox(height: 8),
+                      if (monthLabel != null)
+                        Text(monthLabel,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _orange)),
+                      const SizedBox(height: 4),
+                      Text(name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF37474F))),
+                      if (reason != null && reason.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(reason,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 12, color: Color(0xFF607D8B))),
+                      ],
+                    ],
+                  ),
+                ),
     );
   }
 }

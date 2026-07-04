@@ -1329,6 +1329,48 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  // ── Employee of the Month ──────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>?> fetchEmployeeOfMonth() async {
+    try {
+      final data = await _db
+          ?.from('employee_of_month')
+          .select()
+          .order('month_year', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<String?> upsertEmployeeOfMonth(
+      String name, String reason, String monthYear) async {
+    try {
+      final existing = await _db
+          ?.from('employee_of_month')
+          .select('id')
+          .eq('month_year', monthYear)
+          .maybeSingle();
+      if (existing != null) {
+        await _db?.from('employee_of_month').update({
+          'employee_name': name,
+          'reason': reason,
+        }).eq('month_year', monthYear);
+      } else {
+        await _db?.from('employee_of_month').insert({
+          'employee_name': name,
+          'reason': reason,
+          'month_year': monthYear,
+        });
+      }
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
   // ── Initial load on app start ─────────────────────────────────────────
 
   static Future<void> loadAll() async {
