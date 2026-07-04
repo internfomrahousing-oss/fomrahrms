@@ -5,9 +5,10 @@ import '../models/theme_notifier.dart';
 import '../services/session_storage.dart';
 
 /// Circular avatar + name/ID that opens a profile dropdown on tap.
-/// Shown in the top bar of every shell.
+/// Use [large] = true for the welcome banner (bigger avatar, vertical layout).
 class ProfileAvatarButton extends StatefulWidget {
-  const ProfileAvatarButton({super.key});
+  final bool large;
+  const ProfileAvatarButton({super.key, this.large = false});
 
   @override
   State<ProfileAvatarButton> createState() => _ProfileAvatarButtonState();
@@ -58,6 +59,47 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
     final photoUrl  = UserSession.photoUrl;
     final initial   = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
+    if (widget.large) {
+      // ── Banner variant: big avatar on top, name/ID below ─────────────
+      return GestureDetector(
+        key: _key,
+        onTap: _openMenu,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          CircleAvatar(
+            radius: 36,
+            backgroundColor: Colors.white.withValues(alpha: 0.20),
+            backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+            child: photoUrl.isEmpty
+                ? Text(initial,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28))
+                : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            name.isEmpty ? 'User' : name,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700),
+          ),
+          if (empId.isNotEmpty)
+            Text(
+              empId,
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontSize: 11),
+            ),
+          const SizedBox(height: 4),
+          Icon(Icons.keyboard_arrow_down_rounded,
+              color: Colors.white.withValues(alpha: 0.70), size: 18),
+        ]),
+      );
+    }
+
+    // ── Top-bar variant: compact horizontal ──────────────────────────────
     return GestureDetector(
       key: _key,
       onTap: _openMenu,
@@ -69,7 +111,6 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
           border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          // Avatar
           CircleAvatar(
             radius: 16,
             backgroundColor: Colors.white.withValues(alpha: 0.20),
@@ -83,7 +124,6 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                 : null,
           ),
           const SizedBox(width: 8),
-          // Name + ID
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -132,11 +132,10 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                       ),
                     ]),
                   ),
-                  const SizedBox(height: 14),
-                  const ProfileAvatarButton(),
                 ],
               ),
             ),
+            const ProfileAvatarButton(large: true),
             if (widget.onRefresh != null) ...[
               const SizedBox(width: 8),
               Tooltip(
