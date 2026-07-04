@@ -1377,4 +1377,62 @@ class SupabaseService {
       ..clear()
       ..addAll(list);
   }
+
+  // ── Profile photo ─────────────────────────────────────────────────────────
+  // Looks up the onboarding form for the given employee ID and returns the
+  // URL of the first image attachment (Passport Photo / photo_upload type).
+  static Future<String?> fetchCurrentUserPhotoUrl(String employeeId) async {
+    final db = _db;
+    if (db == null || employeeId.isEmpty) return null;
+    try {
+      final rows = await db
+          .from('onboarding_forms')
+          .select('attachments')
+          .eq('assigned_emp_id', employeeId)
+          .order('submitted_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(rows as List);
+      if (list.isEmpty) return null;
+      final attachments = list.first['attachments'];
+      if (attachments is! List) return null;
+      for (final item in attachments) {
+        final docType = (item['doc_type'] ?? '').toString().toLowerCase();
+        final url = (item['url'] ?? '').toString();
+        if (url.isNotEmpty &&
+            (docType.contains('photo') || docType.contains('passport'))) {
+          return url;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── HR Policy ─────────────────────────────────────────────────────────────
+  static Future<String?> fetchHRPolicy() async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('hr_policy')
+          .select('content')
+          .eq('id', 'default')
+          .maybeSingle();
+      return data?['content'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveHRPolicy(String content, String updatedBy) async {
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized.');
+    await db.from('hr_policy').upsert({
+      'id': 'default',
+      'content': content,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+      'updated_by': updatedBy,
+    });
+  }
 }

@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../models/theme_notifier.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
+import 'profile_avatar_button.dart';
 
 class _NavItem {
   final String label;
@@ -162,12 +163,8 @@ class _NarrowLayout extends StatelessWidget {
             onPressed: () => context.go('/management/notifications'),
           ),
           const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              backgroundColor: AppTheme.primaryBlue,
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 18),
-            ),
+            padding: EdgeInsets.only(right: 8),
+            child: ProfileAvatarButton(),
           ),
         ],
       ),

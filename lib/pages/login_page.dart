@@ -5,6 +5,7 @@ import '../models/app_user.dart';
 import '../models/theme_notifier.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
+import '../services/supabase_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -72,7 +73,9 @@ class _LoginPageState extends State<LoginPage> {
       }
       _completeLogin(AppUser.userRoleFor(dynamicUser.role), dynamicUser.name,
           dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
-          email: dynamicUser.email);
+          email: dynamicUser.email,
+          designation: dynamicUser.designation,
+          reportingManager: dynamicUser.reportingManager);
       return;
     }
 
@@ -113,14 +116,24 @@ class _LoginPageState extends State<LoginPage> {
         email: user.email);
   }
 
-  void _completeLogin(UserRole role, String name, String employeeId, {String email = ''}) {
-    UserSession.loggedIn   = true;
-    UserSession.role       = role;
-    UserSession.name       = name;
-    UserSession.employeeId = employeeId;
-    UserSession.email      = email;
+  void _completeLogin(UserRole role, String name, String employeeId, {
+    String email = '',
+    String designation = '',
+    String reportingManager = '',
+  }) {
+    UserSession.loggedIn         = true;
+    UserSession.role             = role;
+    UserSession.name             = name;
+    UserSession.employeeId       = employeeId;
+    UserSession.email            = email;
+    UserSession.designation      = designation;
+    UserSession.reportingManager = reportingManager;
     SessionStorage.save();
     themeNotifier.loadForUser(employeeId);
+    // Fetch photo URL in background — widgets listen via ValueNotifier pattern
+    SupabaseService.fetchCurrentUserPhotoUrl(employeeId).then((url) {
+      if (url != null) UserSession.photoUrl = url;
+    });
     setState(() => _loading = false);
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/user_session.dart';
-import 'live_clock.dart';
 import 'theme_toggle.dart';
+import 'profile_avatar_button.dart';
 
 class ShellTopBar extends StatelessWidget {
   final bool sidebarOpen;
@@ -20,10 +19,6 @@ class ShellTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = UserSession.name.isNotEmpty
-        ? UserSession.name[0].toUpperCase()
-        : 'A';
-
     return Container(
       height: 60,
       decoration: const BoxDecoration(
@@ -115,7 +110,10 @@ class ShellTopBar extends StatelessWidget {
         const SizedBox(width: 8),
         // Theme toggle
         const ThemeToggle(),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
+        // Profile avatar + dropdown
+        const ProfileAvatarButton(),
+        const SizedBox(width: 12),
       ]),
     );
   }
