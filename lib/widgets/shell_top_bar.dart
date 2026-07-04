@@ -9,6 +9,7 @@ class ShellTopBar extends StatelessWidget {
   final VoidCallback onToggle;
   final String homeRoute;
   final String notificationsRoute;
+  final bool hideProfile;
 
   const ShellTopBar({
     super.key,
@@ -16,6 +17,7 @@ class ShellTopBar extends StatelessWidget {
     required this.onToggle,
     required this.homeRoute,
     required this.notificationsRoute,
+    this.hideProfile = false,
   });
 
   @override
@@ -116,8 +118,8 @@ class ShellTopBar extends StatelessWidget {
         const ThemeToggle(),
         const SizedBox(width: 8),
         // Profile avatar + dropdown
-        const ProfileAvatarButton(),
-        const SizedBox(width: 12),
+        if (!hideProfile) const ProfileAvatarButton(),
+        if (!hideProfile) const SizedBox(width: 12),
       ]),
     );
   }
