@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
+import 'quick_actions_bar.dart';
 
 class ShellTopBar extends StatelessWidget {
   final bool sidebarOpen;
@@ -90,6 +91,9 @@ class ShellTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        // Quick actions
+        const QuickActionIcons(),
+        const SizedBox(width: 8),
         // Notifications bell
         Tooltip(
           message: 'Notifications',

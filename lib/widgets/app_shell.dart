@@ -7,6 +7,7 @@ import '../models/theme_notifier.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
+import 'quick_actions_bar.dart';
 
 class _NavItem {
   final String label;
@@ -173,7 +174,10 @@ class _NarrowLayout extends StatelessWidget {
       drawer: Drawer(
         child: _DrawerContent(location: location),
       ),
-      body: child,
+      body: Column(children: [
+        const QuickActionsBar(),
+        Expanded(child: child),
+      ]),
     );
   }
 }
