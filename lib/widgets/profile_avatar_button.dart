@@ -202,38 +202,14 @@ class _ProfileDropdown extends StatelessWidget {
 
           const Divider(height: 1),
 
-          // ── My Profile + My Journey (side by side) ───────────────────
-          IntrinsicHeight(
-            child: Row(children: [
-              Expanded(
-                child: ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.person_rounded, size: 18,
-                      color: Color(0xFF0D47A1)),
-                  title: const Text('My Profile',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                  onTap: () => onNavigate(UserSession.profileRoute),
-                ),
-              ),
-              if (UserSession.role == UserRole.employee ||
-                  UserSession.role == UserRole.reportingManager) ...[
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.timeline_rounded, size: 18,
-                        color: Color(0xFF1565C0)),
-                    title: const Text('My Journey',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    onTap: () => onNavigate(
-                      UserSession.role == UserRole.reportingManager
-                          ? '/manager/my-journey'
-                          : '/employee/my-journey',
-                    ),
-                  ),
-                ),
-              ],
-            ]),
+          // ── My Profile ───────────────────────────────────────────────
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.person_rounded, size: 18,
+                color: Color(0xFF0D47A1)),
+            title: const Text('My Profile',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            onTap: () => onNavigate(UserSession.profileRoute),
           ),
 
           const Divider(height: 1),

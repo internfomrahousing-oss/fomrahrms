@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
-import '../models/user_session.dart' show UserSession;
+import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
@@ -49,6 +50,24 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   const Icon(Icons.person_rounded, color: _color, size: 22),
                   const SizedBox(width: 10),
                   Text('My Profile', style: Theme.of(context).textTheme.headlineMedium),
+                  const Spacer(),
+                  if (UserSession.role == UserRole.employee ||
+                      UserSession.role == UserRole.reportingManager)
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(
+                        UserSession.role == UserRole.reportingManager
+                            ? '/manager/my-journey'
+                            : '/employee/my-journey',
+                      ),
+                      icon: const Icon(Icons.timeline_rounded, size: 16),
+                      label: const Text('My Journey'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _color,
+                        side: BorderSide(color: _color.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                 ]),
                 const SizedBox(height: 16),
                 // Info banner
