@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_session.dart';
+import 'profile_avatar_button.dart';
 
 class WelcomeBanner extends StatefulWidget {
   final String subtitle;
@@ -131,6 +132,8 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                       ),
                     ]),
                   ),
+                  const SizedBox(height: 14),
+                  const ProfileAvatarButton(),
                 ],
               ),
             ),
