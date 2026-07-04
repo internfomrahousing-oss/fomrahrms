@@ -137,6 +137,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
               ),
             ),
             Row(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const QuickActionIconsVertical(),
