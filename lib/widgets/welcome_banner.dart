@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_session.dart';
-import 'live_clock.dart';
 
 class WelcomeBanner extends StatefulWidget {
   final String subtitle;
@@ -135,10 +134,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                 ],
               ),
             ),
-            if (wide) ...[
-              const SizedBox(width: 16),
-              const LiveClock(horizontal: true),
-            ],
             if (widget.onRefresh != null) ...[
               const SizedBox(width: 8),
               Tooltip(
