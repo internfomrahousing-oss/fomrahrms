@@ -56,34 +56,28 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
   }
 
   Future<void> _showHRPolicy() async {
-    // Load approved policy + any pending version; fall back to hardcoded default
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    final results = await Future.wait([
-      SupabaseService.fetchHRPolicy(),
-      SupabaseService.fetchPendingHRPolicyVersion(),
-    ]);
-    final policyText = (results[0] as String?) ?? _kHRPolicyText;
-    final pending    = results[1] as Map<String, dynamic>?;
-    if (!mounted) return;
-    Navigator.pop(context);
-    await Future.delayed(Duration.zero);
     if (!mounted) return;
 
-    final isHR         = UserSession.role == UserRole.hr;
-    final isManagement = UserSession.role == UserRole.management;
+    String policyText = _kHRPolicyText;
+    Map<String, dynamic>? pending;
+    try {
+      final results = await Future.wait([
+        SupabaseService.fetchHRPolicy(),
+        SupabaseService.fetchPendingHRPolicyVersion(),
+      ]).timeout(const Duration(seconds: 6), onTimeout: () => [null, null]);
+      policyText = (results[0] as String?) ?? _kHRPolicyText;
+      pending    = results[1] as Map<String, dynamic>?;
+    } catch (_) {}
+
+    if (!mounted) return;
 
     await showDialog(
       context: context,
       builder: (dlgCtx) => _HRPolicyDialog(
         approvedText: policyText,
         pendingVersion: pending,
-        canEdit: isHR,
-        isManagement: isManagement,
+        canEdit: UserSession.role == UserRole.hr,
+        isManagement: UserSession.role == UserRole.management,
       ),
     );
   }
