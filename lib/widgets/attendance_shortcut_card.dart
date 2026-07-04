@@ -584,7 +584,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640, maxHeight: 700),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: Column(children: [
           // ── Header ─────────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
@@ -663,7 +663,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
             ),
 
           // ── Body ───────────────────────────────────────────────────────
-          Flexible(
+          Expanded(
             child: _editing
                 ? Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
