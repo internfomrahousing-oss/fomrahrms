@@ -5,13 +5,10 @@
 .packages
 .pub-cache/
 .pub/
-# Exclude all build outputs EXCEPT build/web (committed for Vercel deployment)
-build/android/
-build/ios/
-build/macos/
-build/linux/
-build/windows/
-build/app/
+# Exclude all build outputs. Vercel now builds fresh in CI (see
+# .github/workflows/flutter.yml's deploy-vercel job) rather than serving a
+# pre-built build/web committed to git.
+build/
 *.iml
 
 # Android
