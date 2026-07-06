@@ -2126,8 +2126,10 @@ file_selector_linux
 file_selector_platform_interface
 file_selector_windows
 flutter_plugin_android_lifecycle
+google_fonts
 image_picker_for_web
 image_picker_platform_interface
+path_provider_android
 url_launcher_linux
 url_launcher_windows
 
@@ -5241,6 +5243,8 @@ go_router
 image_picker_linux
 image_picker_macos
 image_picker_windows
+path_provider
+path_provider_foundation
 path_provider_linux
 path_provider_platform_interface
 path_provider_windows
