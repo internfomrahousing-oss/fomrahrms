@@ -271,6 +271,9 @@ import '../models/user_session.dart';
   alter table candidate_applications disable row level security;
   alter table app_users           disable row level security;
   alter table tasks               disable row level security;
+  alter table app_settings        disable row level security;
+  alter table payslip_requests    disable row level security;
+  alter table payslips            disable row level security;
 
   -- Onboarding workflow columns (run if table already exists):
   alter table onboarding_forms add column if not exists status text default 'pending';
