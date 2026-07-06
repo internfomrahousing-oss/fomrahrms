@@ -12,7 +12,7 @@ class AddEmployeePage extends StatefulWidget {
 }
 
 class _AddEmployeePageState extends State<AddEmployeePage> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   final _formKey = GlobalKey<FormState>();
   final _employeeIdCtrl    = TextEditingController();
@@ -222,14 +222,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF0D47A1)),
+      Icon(icon, size: 16, color: const Color(0xFF2563EB)),
       const SizedBox(width: 8),
       Text(title,
           style: const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w700,
-              color: Color(0xFF0D47A1), letterSpacing: 0.3)),
+              color: Color(0xFF2563EB), letterSpacing: 0.3)),
       const SizedBox(width: 10),
-      Expanded(child: Divider(color: const Color(0xFF0D47A1).withValues(alpha: 0.2))),
+      Expanded(child: Divider(color: const Color(0xFF2563EB).withValues(alpha: 0.2))),
     ]);
   }
 }
@@ -261,15 +261,15 @@ class _Field extends StatelessWidget {
             : null,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: const Color(0xFF0D47A1), size: 20),
+          prefixIcon: Icon(icon, color: const Color(0xFF2563EB), size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF0D47A1), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -280,7 +280,7 @@ class _Field extends StatelessWidget {
             borderSide: const BorderSide(color: Colors.red, width: 2),
           ),
           filled: true, fillColor: Colors.white,
-          labelStyle: const TextStyle(color: Color(0xFF78909C)),
+          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
@@ -310,20 +310,20 @@ Widget _DateField(TextEditingController ctrl, String label, BuildContext ctx) {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: const Icon(Icons.calendar_today_rounded,
-            color: Color(0xFF0D47A1), size: 20),
+            color: Color(0xFF2563EB), size: 20),
         suffixIcon: const Icon(Icons.arrow_drop_down_rounded,
-            color: Color(0xFF78909C)),
+            color: Color(0xFF6B7280)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF0D47A1), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
         ),
         filled: true, fillColor: Colors.white,
-        labelStyle: const TextStyle(color: Color(0xFF78909C)),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),

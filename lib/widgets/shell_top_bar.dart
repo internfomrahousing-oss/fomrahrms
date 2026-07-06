@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/color_theme_notifier.dart';
+import '../theme/app_theme.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
 import 'quick_actions_bar.dart';
@@ -22,12 +24,22 @@ class ShellTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: colorThemeNotifier,
+      builder: (context, _) => _bar(context),
+    );
+  }
+
+  Widget _bar(BuildContext context) {
+    final dark = AppTheme.primaryBlueDark;
+    final mid = Color.lerp(dark, AppTheme.primaryBlue, 0.55)!;
+    final toggleAccent = AppTheme.accentBlue;
     return Container(
       height: 60,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF060F1E), Color(0xFF0A2472), Color(0xFF0E52AE)],
-          stops: [0.0, 0.55, 1.0],
+          colors: [dark, mid, AppTheme.primaryBlue],
+          stops: const [0.0, 0.55, 1.0],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -41,16 +53,16 @@ class ShellTopBar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF90CAF9).withValues(alpha: 0.15),
+              color: toggleAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: const Color(0xFF90CAF9).withValues(alpha: 0.25),
+                  color: toggleAccent.withValues(alpha: 0.25),
                   width: 0.8),
             ),
             child: Icon(
               sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
               size: 22,
-              color: const Color(0xFF90CAF9),
+              color: toggleAccent,
             ),
           ),
         ),

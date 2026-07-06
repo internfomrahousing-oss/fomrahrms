@@ -17,10 +17,10 @@ class _Item {
 }
 
 const _personalItems = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/hr/my-attendance'),
-  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF1976D2), '/hr/my-leave'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/hr/my-tasks'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/hr/my-payslips'),
+  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF3B82F6), '/hr/my-attendance'),
+  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF2563EB), '/hr/my-leave'),
+  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF3B82F6), '/hr/my-tasks'),
+  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF111827), '/hr/my-payslips'),
 ];
 
 
@@ -92,7 +92,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
             const AttendanceShortcutCard(
               attendanceRoute: '/hr/my-attendance',
-              accentColor: Color(0xFF1565C0),
+              accentColor: Color(0xFF3B82F6),
             ),
             SizedBox(height: narrow ? 20 : 28),
 

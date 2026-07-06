@@ -15,7 +15,7 @@ class ApplyLeavePage extends StatefulWidget {
 }
 
 class _ApplyLeavePageState extends State<ApplyLeavePage> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   // Populated from Supabase config; falls back to LeaveFormConfig defaults.
   List<String> _allLeaveTypes = List<String>.from(LeaveFormConfig.defaultLeaveTypes);
@@ -390,14 +390,14 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: _color, width: 2),
                         ),
                         filled: true, fillColor: Colors.white,
-                        labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                       items: _leaveTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
@@ -500,14 +500,14 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                       Builder(builder: (ctx) {
                         final hasBalance = _remaining > 0;
                         final fg = hasBalance
-                            ? const Color(0xFF2E7D32)
-                            : const Color(0xFFC62828);
+                            ? const Color(0xFF22C55E)
+                            : const Color(0xFFEF4444);
                         final bg = hasBalance
-                            ? const Color(0xFFE8F5E9)
-                            : const Color(0xFFFFEBEE);
+                            ? const Color(0xFFDCFCE7)
+                            : const Color(0xFFFEE2E2);
                         final border = hasBalance
-                            ? const Color(0xFFA5D6A7)
-                            : const Color(0xFFEF9A9A);
+                            ? const Color(0xFF86EFAC)
+                            : const Color(0xFFFCA5A5);
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
@@ -553,14 +553,14 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: _color, width: 2),
                         ),
                         filled: true, fillColor: Colors.white,
-                        labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                       ),
                     ),
                   ],
@@ -649,12 +649,12 @@ class _DateTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
           color: disabled
-              ? const Color(0xFFF5F5F5)
+              ? const Color(0xFFF8FAFC)
               : (date != null ? color.withValues(alpha: 0.05) : Colors.white),
           border: Border.all(
             color: disabled
-                ? const Color(0xFFE0E0E0)
-                : (date != null ? color.withValues(alpha: 0.4) : const Color(0xFFE0E0E0)),
+                ? const Color(0xFFE5E7EB)
+                : (date != null ? color.withValues(alpha: 0.4) : const Color(0xFFE5E7EB)),
             width: date != null && !disabled ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
@@ -663,19 +663,19 @@ class _DateTile extends StatelessWidget {
           Text(label,
               style: TextStyle(
                   fontSize: 11,
-                  color: date != null ? color : const Color(0xFF78909C),
+                  color: date != null ? color : const Color(0xFF6B7280),
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Row(children: [
             Icon(Icons.calendar_today_rounded,
-                size: 16, color: date != null ? color : const Color(0xFF90A4AE)),
+                size: 16, color: date != null ? color : const Color(0xFF6B7280)),
             const SizedBox(width: 8),
             Text(
               date != null ? _fmt(date!) : 'Select date',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: date != null ? FontWeight.w600 : FontWeight.normal,
-                color: date != null ? const Color(0xFF1A237E) : const Color(0xFF90A4AE),
+                color: date != null ? const Color(0xFF111827) : const Color(0xFF6B7280),
               ),
             ),
           ]),

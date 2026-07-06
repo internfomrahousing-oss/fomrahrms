@@ -198,7 +198,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                   _ActionBtn(
                     label: 'Send to Management',
                     icon: Icons.upload_rounded,
-                    color: const Color(0xFF6A1B9A),
+                    color: const Color(0xFF2563EB),
                     onTap: () => _sendToManagement(t),
                   ),
                   const SizedBox(width: 8),
@@ -327,7 +327,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                 DropdownButtonFormField<String>(
                   value: _selectedIssueType,
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.build_circle_rounded,
+                    prefixIcon: Icon(Icons.build_circle_rounded,
                         color: AppTheme.primaryBlue, size: 20),
                     hintText: 'Select issue type',
                     border: OutlineInputBorder(
@@ -491,11 +491,11 @@ class _TicketCard extends StatelessWidget {
   const _TicketCard({required this.ticket, required this.actions});
 
   static Color _statusColor(MaintenanceStatus s) => switch (s) {
-        MaintenanceStatus.open       => const Color(0xFFE65100),
-        MaintenanceStatus.assigned   => const Color(0xFF0D47A1),
-        MaintenanceStatus.inProgress => const Color(0xFF6A1B9A),
-        MaintenanceStatus.resolved   => const Color(0xFF2E7D32),
-        MaintenanceStatus.closed     => const Color(0xFF546E7A),
+        MaintenanceStatus.open       => const Color(0xFFF59E0B),
+        MaintenanceStatus.assigned   => const Color(0xFF2563EB),
+        MaintenanceStatus.inProgress => const Color(0xFF2563EB),
+        MaintenanceStatus.resolved   => const Color(0xFF22C55E),
+        MaintenanceStatus.closed     => const Color(0xFF6B7280),
       };
 
   @override
@@ -526,14 +526,14 @@ class _TicketCard extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text('Sent to Mgmt',
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF6A1B9A))),
+                        color: Color(0xFF2563EB))),
               ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

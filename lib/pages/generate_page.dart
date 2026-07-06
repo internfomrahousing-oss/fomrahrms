@@ -9,7 +9,7 @@ class GeneratePage extends StatelessWidget {
     return const fd.FormDetailPage(
       title: 'Generate',
       icon: Icons.summarize_rounded,
-      color: Color(0xFF1976D2),
+      color: Color(0xFF2563EB),
       fields: [
         fd.FormField(label: 'Working Hours',  icon: Icons.schedule_rounded,  keyboardType: TextInputType.number),
         fd.FormField(label: 'Overtime Hours', icon: Icons.more_time_rounded, keyboardType: TextInputType.number),

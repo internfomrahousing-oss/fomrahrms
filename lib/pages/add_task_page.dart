@@ -18,7 +18,7 @@ class AddTaskPage extends StatefulWidget {
 }
 
 class _AddTaskPageState extends State<AddTaskPage> {
-  static const _accent = Color(0xFF6A1B9A);
+  static const _accent = Color(0xFF2563EB);
 
   final _formKey = GlobalKey<FormState>();
 
@@ -37,10 +37,10 @@ class _AddTaskPageState extends State<AddTaskPage> {
   Employee? _assignedEmployee;
   final List<Employee> _teamMembers = [];
 static const _priorities = [
-    (TaskPriority.low,      'Low',      Color(0xFF2E7D32)),
-    (TaskPriority.medium,   'Medium',   Color(0xFFE65100)),
+    (TaskPriority.low,      'Low',      Color(0xFF22C55E)),
+    (TaskPriority.medium,   'Medium',   Color(0xFFF59E0B)),
     (TaskPriority.high,     'High',     Color(0xFFBF360C)),
-    (TaskPriority.critical, 'Critical', Color(0xFFB71C1C)),
+    (TaskPriority.critical, 'Critical', Color(0xFFB91C1C)),
   ];
 
   @override
@@ -389,11 +389,11 @@ void _pickTeam() {
                   children: _teamMembers.map((e) => Chip(
                     avatar: CircleAvatar(
                       backgroundColor:
-                          const Color(0xFF6A1B9A).withValues(alpha: 0.15),
+                          const Color(0xFF2563EB).withValues(alpha: 0.15),
                       child: Text(e.name[0],
                           style: const TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF6A1B9A),
+                              color: Color(0xFF2563EB),
                               fontWeight: FontWeight.bold)),
                     ),
                     label: Text(e.name,
@@ -468,7 +468,7 @@ class _EmployeePickerSheet extends StatelessWidget {
             const Text('Select Employee',
                 style: TextStyle(
                     fontSize: 16, fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A237E))),
+                    color: Color(0xFF111827))),
             const Spacer(),
             IconButton(
                 icon: const Icon(Icons.close_rounded),
@@ -486,10 +486,10 @@ class _EmployeePickerSheet extends StatelessWidget {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor:
-                      const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+                      const Color(0xFF2563EB).withValues(alpha: 0.1),
                   child: Text(e.name[0],
                       style: const TextStyle(
-                          color: Color(0xFF6A1B9A),
+                          color: Color(0xFF2563EB),
                           fontWeight: FontWeight.bold)),
                 ),
                 title: Text(e.name,
@@ -499,7 +499,7 @@ class _EmployeePickerSheet extends StatelessWidget {
                     style: const TextStyle(fontSize: 12)),
                 trailing: isSelected
                     ? const Icon(Icons.check_circle_rounded,
-                        color: Color(0xFF6A1B9A))
+                        color: Color(0xFF2563EB))
                     : null,
                 onTap: () {
                   onPick(e);
@@ -560,7 +560,7 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
             Text('Select Team Members (${_picked.length})',
                 style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A237E))),
+                    color: Color(0xFF111827))),
             const Spacer(),
             TextButton(
               onPressed: () {
@@ -569,7 +569,7 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
               },
               child: const Text('Done',
                   style: TextStyle(
-                      color: Color(0xFF6A1B9A),
+                      color: Color(0xFF2563EB),
                       fontWeight: FontWeight.w700)),
             ),
           ]),
@@ -593,10 +593,10 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
                 }),
                 secondary: CircleAvatar(
                   backgroundColor:
-                      const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+                      const Color(0xFF2563EB).withValues(alpha: 0.1),
                   child: Text(e.name[0],
                       style: const TextStyle(
-                          color: Color(0xFF6A1B9A),
+                          color: Color(0xFF2563EB),
                           fontWeight: FontWeight.bold)),
                 ),
                 title: Text(e.name,
@@ -604,7 +604,7 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
                         fontWeight: FontWeight.w600, fontSize: 14)),
                 subtitle: Text('${e.designation} • ${e.department}',
                     style: const TextStyle(fontSize: 12)),
-                activeColor: const Color(0xFF6A1B9A),
+                activeColor: const Color(0xFF2563EB),
                 controlAffinity: ListTileControlAffinity.trailing,
               );
             },
@@ -663,7 +663,7 @@ class _DepartmentPickerSheetState extends State<_DepartmentPickerSheet> {
                 style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A237E))),
+                    color: Color(0xFF111827))),
             const Spacer(),
             TextButton(
               onPressed: () {
@@ -672,7 +672,7 @@ class _DepartmentPickerSheetState extends State<_DepartmentPickerSheet> {
               },
               child: const Text('Done',
                   style: TextStyle(
-                      color: Color(0xFF6A1B9A),
+                      color: Color(0xFF2563EB),
                       fontWeight: FontWeight.w700)),
             ),
           ]),
@@ -697,16 +697,16 @@ class _DepartmentPickerSheetState extends State<_DepartmentPickerSheet> {
                 secondary: Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.business_rounded,
-                      size: 18, color: Color(0xFF6A1B9A)),
+                      size: 18, color: Color(0xFF2563EB)),
                 ),
                 title: Text(d,
                     style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 14)),
-                activeColor: const Color(0xFF6A1B9A),
+                activeColor: const Color(0xFF2563EB),
                 controlAffinity: ListTileControlAffinity.trailing,
               );
             },
@@ -728,20 +728,20 @@ class _EmployeeDetailCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF6A1B9A).withValues(alpha: 0.04),
+        color: const Color(0xFF2563EB).withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: const Color(0xFF6A1B9A).withValues(alpha: 0.15)),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.15)),
       ),
       child: Row(children: [
         CircleAvatar(
           radius: 24,
           backgroundColor:
-              const Color(0xFF6A1B9A).withValues(alpha: 0.12),
+              const Color(0xFF2563EB).withValues(alpha: 0.12),
           child: Text(
             employee.name.isNotEmpty ? employee.name[0].toUpperCase() : '?',
             style: const TextStyle(
-                color: Color(0xFF6A1B9A),
+                color: Color(0xFF2563EB),
                 fontWeight: FontWeight.bold,
                 fontSize: 18),
           ),
@@ -755,28 +755,28 @@ class _EmployeeDetailCard extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A237E))),
+                    color: Color(0xFF111827))),
             const SizedBox(height: 2),
             Text(employee.designation,
                 style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF78909C))),
+                    fontSize: 12, color: Color(0xFF6B7280))),
             const SizedBox(height: 2),
             Row(children: [
               const Icon(Icons.business_rounded,
-                  size: 12, color: Color(0xFF78909C)),
+                  size: 12, color: Color(0xFF6B7280)),
               const SizedBox(width: 4),
               Text(employee.department,
                   style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF546E7A))),
+                      fontSize: 12, color: Color(0xFF6B7280))),
               if (employee.email.isNotEmpty) ...[
                 const SizedBox(width: 12),
                 const Icon(Icons.email_rounded,
-                    size: 12, color: Color(0xFF78909C)),
+                    size: 12, color: Color(0xFF6B7280)),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(employee.email,
                       style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF546E7A)),
+                          fontSize: 12, color: Color(0xFF6B7280)),
                       overflow: TextOverflow.ellipsis),
                 ),
               ],
@@ -801,19 +801,19 @@ class _SectionHeader extends StatelessWidget {
       Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: const Color(0xFF6A1B9A), size: 18),
+        child: Icon(icon, color: const Color(0xFF2563EB), size: 18),
       ),
       const SizedBox(width: 10),
       Text(label,
           style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1A237E))),
+              color: Color(0xFF111827))),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
     ]);
   }
 }
@@ -844,10 +844,10 @@ class _Field extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: Icon(icon, size: 18, color: const Color(0xFF6A1B9A)),
+            prefixIcon: Icon(icon, size: 18, color: const Color(0xFF2563EB)),
             border: InputBorder.none,
             labelStyle: const TextStyle(
-                fontSize: 13, color: Color(0xFF78909C)),
+                fontSize: 13, color: Color(0xFF6B7280)),
           ),
         ),
       ),
@@ -869,30 +869,30 @@ class _ReadOnlyField extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(children: [
-          Icon(icon, size: 18, color: const Color(0xFF6A1B9A)),
+          Icon(icon, size: 18, color: const Color(0xFF2563EB)),
           const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label,
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF78909C))),
+                    fontSize: 11, color: Color(0xFF6B7280))),
             const SizedBox(height: 2),
             Text(value,
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A237E))),
+                    color: Color(0xFF111827))),
           ]),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Text('Auto-generated',
                 style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF6A1B9A),
+                    color: Color(0xFF2563EB),
                     fontWeight: FontWeight.w600)),
           ),
         ]),
@@ -923,12 +923,12 @@ class _DateField extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(children: [
-            Icon(icon, size: 18, color: const Color(0xFF6A1B9A)),
+            Icon(icon, size: 18, color: const Color(0xFF2563EB)),
             const SizedBox(width: 10),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(label,
                   style: const TextStyle(
-                      fontSize: 11, color: Color(0xFF78909C))),
+                      fontSize: 11, color: Color(0xFF6B7280))),
               const SizedBox(height: 2),
               Text(
                 date != null ? _fmt(date!) : 'Select date',
@@ -936,7 +936,7 @@ class _DateField extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: date != null
-                      ? const Color(0xFF1A237E)
+                      ? const Color(0xFF111827)
                       : const Color(0xFFBDBDBD),
                 ),
               ),
@@ -969,23 +969,23 @@ class _AssignCard extends StatelessWidget {
         leading: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
-            color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child:
-              Icon(icon, color: const Color(0xFF6A1B9A), size: 20),
+              Icon(icon, color: const Color(0xFF2563EB), size: 20),
         ),
         title: Text(label,
             style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A237E))),
+                color: Color(0xFF111827))),
         subtitle: Text(subtitle,
             style: const TextStyle(
-                fontSize: 12, color: Color(0xFF78909C))),
+                fontSize: 12, color: Color(0xFF6B7280))),
         trailing: trailing ??
             const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: Color(0xFF78909C)),
+                size: 14, color: Color(0xFF6B7280)),
         onTap: onTap,
       ),
     );
@@ -1000,13 +1000,13 @@ class _DropdownLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF6A1B9A)),
+      Icon(icon, size: 16, color: const Color(0xFF2563EB)),
       const SizedBox(width: 8),
       Text(label,
           style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF546E7A))),
+              color: Color(0xFF6B7280))),
     ]);
   }
 }

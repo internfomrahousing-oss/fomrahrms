@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../models/color_theme_notifier.dart';
 import '../models/user_session.dart';
+import '../theme/app_theme.dart';
 import 'profile_avatar_button.dart';
 
 class WelcomeBanner extends StatefulWidget {
@@ -56,12 +58,21 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
   Widget build(BuildContext context) {
     final name = UserSession.name.isNotEmpty ? UserSession.name : 'Admin';
     final wide = MediaQuery.of(context).size.width > 500;
+    return ListenableBuilder(
+      listenable: colorThemeNotifier,
+      builder: (context, _) => _bannerBody(name, wide),
+    );
+  }
+
+  Widget _bannerBody(String name, bool wide) {
+    final dark = AppTheme.primaryBlueDark;
+    final mid = Color.lerp(dark, AppTheme.primaryBlue, 0.55)!;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF060F1E), Color(0xFF0A2472), Color(0xFF0E52AE)],
-          stops: [0.0, 0.55, 1.0],
+          colors: [dark, mid, AppTheme.primaryBlue],
+          stops: const [0.0, 0.55, 1.0],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),

@@ -16,7 +16,7 @@ class HrEmployeeRecordsPage extends StatefulWidget {
 }
 
 class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
   List<AppUser> _all = [];
   List<AppUser> _filtered = [];
   bool _loading = true;
@@ -187,7 +187,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide:
-                          const BorderSide(color: Color(0xFFE0E0E0)),
+                          const BorderSide(color: Color(0xFFE5E7EB)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -296,10 +296,10 @@ class _UserCard extends StatelessWidget {
 
   static Color _roleColor(String role) {
     switch (role) {
-      case 'HR':         return const Color(0xFF0D47A1);
-      case 'Manager':    return const Color(0xFF1A237E);
-      case 'Management': return const Color(0xFF4A148C);
-      default:           return const Color(0xFF2E7D32);
+      case 'HR':         return const Color(0xFF2563EB);
+      case 'Manager':    return const Color(0xFF111827);
+      case 'Management': return const Color(0xFF1D4ED8);
+      default:           return const Color(0xFF22C55E);
     }
   }
 
@@ -333,7 +333,7 @@ class _UserCard extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A237E))),
+                            color: Color(0xFF111827))),
                   ),
                   if (!user.active)
                     _Badge('Inactive', Colors.red.shade50,
@@ -353,13 +353,13 @@ class _UserCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(user.designation,
                       style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF78909C))),
+                          fontSize: 12, color: Color(0xFF6B7280))),
                 ],
                 if (user.email.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(user.email,
                       style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF90A4AE))),
+                          fontSize: 11, color: Color(0xFF6B7280))),
                 ],
               ]),
             ),
@@ -394,10 +394,10 @@ class _ProfileDialogState extends State<_ProfileDialog> {
 
   static Color _roleColor(String role) {
     switch (role) {
-      case 'HR':         return const Color(0xFF0D47A1);
-      case 'Manager':    return const Color(0xFF1A237E);
-      case 'Management': return const Color(0xFF4A148C);
-      default:           return const Color(0xFF2E7D32);
+      case 'HR':         return const Color(0xFF2563EB);
+      case 'Manager':    return const Color(0xFF111827);
+      case 'Management': return const Color(0xFF1D4ED8);
+      default:           return const Color(0xFF22C55E);
     }
   }
 
@@ -518,11 +518,11 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(_user.name,
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A237E))),
+                          color: Color(0xFF111827))),
                   if (_user.designation.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(_user.designation,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ],
                   const SizedBox(height: 5),
                   Row(children: [
@@ -539,7 +539,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, color: Color(0xFF78909C)),
+                icon: const Icon(Icons.close_rounded, color: Color(0xFF6B7280)),
               ),
             ]),
             const SizedBox(height: 16),
@@ -559,11 +559,11 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               const Divider(),
               const SizedBox(height: 10),
               Row(children: [
-                const Icon(Icons.work_history_rounded, size: 14, color: Color(0xFF78909C)),
+                const Icon(Icons.work_history_rounded, size: 14, color: Color(0xFF6B7280)),
                 const SizedBox(width: 6),
                 const Text('Employment Status',
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                        color: Color(0xFF78909C))),
+                        color: Color(0xFF6B7280))),
               ]),
               const SizedBox(height: 10),
 
@@ -677,8 +677,8 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                 icon: const Icon(Icons.folder_open_rounded, size: 16),
                 label: const Text('Interview & Onboarding Records'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1565C0),
-                  side: const BorderSide(color: Color(0xFF1565C0)),
+                  foregroundColor: const Color(0xFF3B82F6),
+                  side: const BorderSide(color: Color(0xFF3B82F6)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -722,7 +722,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                   icon: const Icon(Icons.edit_rounded, size: 16),
                   label: const Text('Edit Profile'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0D47A1),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -748,7 +748,7 @@ class _FullProfileDialog extends StatefulWidget {
 
 class _FullProfileDialogState extends State<_FullProfileDialog>
     with SingleTickerProviderStateMixin {
-  static const _c = Color(0xFF0D47A1);
+  static const _c = Color(0xFF2563EB);
   late final TabController _tabs;
   Map<String, dynamic>? _onboarding;
   Map<String, dynamic>? _interview;
@@ -787,8 +787,8 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
         SizedBox(
             width: 170,
             child: Text(label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF546E7A)))),
-        Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)))),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)))),
+        Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF111827)))),
       ]),
     );
   }
@@ -940,7 +940,7 @@ class _EditDialog extends StatefulWidget {
 }
 
 class _EditDialogState extends State<_EditDialog> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
   static const _domain = '@fomrahousing.in';
 
   late final TextEditingController _nameCtrl;
@@ -1073,7 +1073,7 @@ class _EditDialogState extends State<_EditDialog> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -1081,7 +1081,7 @@ class _EditDialogState extends State<_EditDialog> {
           ),
           filled: true,
           fillColor: fillColor ?? Colors.white,
-          labelStyle: const TextStyle(color: Color(0xFF78909C)),
+          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         ),
       ),
     );
@@ -1101,7 +1101,7 @@ class _EditDialogState extends State<_EditDialog> {
     ),
     filled: true,
     fillColor: Theme.of(context).colorScheme.surface,
-    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+    labelStyle: const TextStyle(color: Color(0xFF6B7280)),
   );
 
   @override
@@ -1142,7 +1142,7 @@ class _EditDialogState extends State<_EditDialog> {
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide:
-                        const BorderSide(color: Color(0xFFE0E0E0)),
+                        const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -1151,9 +1151,9 @@ class _EditDialogState extends State<_EditDialog> {
                   ),
                   filled: true,
                   fillColor:
-                      isNew ? Colors.white : const Color(0xFFF5F5F5),
+                      isNew ? Colors.white : const Color(0xFFF8FAFC),
                   labelStyle:
-                      const TextStyle(color: Color(0xFF78909C)),
+                      const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
             ),
@@ -1172,7 +1172,7 @@ class _EditDialogState extends State<_EditDialog> {
               Icons.calendar_today_rounded,
               readOnly: true,
               suffix: const Icon(Icons.arrow_drop_down_rounded,
-                  color: Color(0xFF78909C)),
+                  color: Color(0xFF6B7280)),
               onTap: () async {
                 DateTime initial = DateTime.now();
                 if (_joiningCtrl.text.isNotEmpty) {
@@ -1246,7 +1246,7 @@ class _EditDialogState extends State<_EditDialog> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side:
-                    const BorderSide(color: Color(0xFFE0E0E0)),
+                    const BorderSide(color: Color(0xFFE5E7EB)),
               ),
               child: SwitchListTile(
                 value: _active,
@@ -1270,7 +1270,7 @@ class _EditDialogState extends State<_EditDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel',
-              style: TextStyle(color: Color(0xFF78909C))),
+              style: TextStyle(color: Color(0xFF6B7280))),
         ),
         ElevatedButton(
           onPressed: _saving ? null : _save,
@@ -1304,7 +1304,7 @@ class _SortChip extends StatelessWidget {
   const _SortChip({required this.label, required this.icon,
       required this.selected, required this.onTap});
 
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {
@@ -1323,13 +1323,13 @@ class _SortChip extends StatelessWidget {
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, size: 13,
-              color: selected ? Colors.white : const Color(0xFF546E7A)),
+              color: selected ? Colors.white : const Color(0xFF6B7280)),
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? Colors.white : const Color(0xFF546E7A))),
+                  color: selected ? Colors.white : const Color(0xFF6B7280))),
         ]),
       ),
     );
@@ -1343,9 +1343,9 @@ class _StatusPill extends StatelessWidget {
   const _StatusPill(this.status);
 
   Color get _color => switch (status) {
-    'EL Eligible' => const Color(0xFF6A1B9A),
-    'On-Roll'     => const Color(0xFF2E7D32),
-    _             => const Color(0xFF78909C),
+    'EL Eligible' => const Color(0xFF2563EB),
+    'On-Roll'     => const Color(0xFF22C55E),
+    _             => const Color(0xFF6B7280),
   };
 
   IconData get _icon => switch (status) {
@@ -1403,14 +1403,14 @@ class _IdChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D47A1).withValues(alpha: 0.08),
+        color: const Color(0xFF2563EB).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(id,
           style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF0D47A1))),
+              color: Color(0xFF2563EB))),
     );
   }
 }
@@ -1450,13 +1450,13 @@ class _InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(children: [
-        Icon(icon, size: 16, color: const Color(0xFF0D47A1)),
+        Icon(icon, size: 16, color: const Color(0xFF2563EB)),
         const SizedBox(width: 10),
         SizedBox(
           width: 140,
           child: Text(label,
               style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF78909C))),
+                  fontSize: 12, color: Color(0xFF6B7280))),
         ),
         Expanded(
           child: Text(value,

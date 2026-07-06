@@ -6,7 +6,7 @@ import '../models/form_config.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
 
-const _mgmtColor = Color(0xFF4A148C);
+const _mgmtColor = Color(0xFF1D4ED8);
 
 class ManagementInterviewReviewPage extends StatefulWidget {
   const ManagementInterviewReviewPage({super.key});
@@ -89,13 +89,13 @@ class _ManagementInterviewReviewPageState
     switch (status) {
       case 'accepted':
         return _badge('Approved', Icons.verified_rounded,
-            const Color(0xFF2E7D32), const Color(0xFFE8F5E9));
+            const Color(0xFF22C55E), const Color(0xFFDCFCE7));
       case 'rejected':
         return _badge('Rejected', Icons.cancel_rounded,
-            const Color(0xFFC62828), const Color(0xFFFFEBEE));
+            const Color(0xFFEF4444), const Color(0xFFFEE2E2));
       default:
         return _badge('Pending Review', Icons.hourglass_empty_rounded,
-            const Color(0xFFE65100), const Color(0xFFFFF3E0));
+            const Color(0xFFF59E0B), const Color(0xFFFEF3C7));
     }
   }
 
@@ -125,14 +125,14 @@ class _ManagementInterviewReviewPageState
                 color: _mgmtColor)),
         content: const Text(
             'This will mark the candidate as approved by Management.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: const Color(0xFF22C55E),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -157,10 +157,10 @@ class _ManagementInterviewReviewPageState
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFC62828))),
+                color: Color(0xFFEF4444))),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Add a comment (optional):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           const SizedBox(height: 12),
           TextField(
             controller: commentCtrl,
@@ -178,7 +178,7 @@ class _ManagementInterviewReviewPageState
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828),
+              backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -258,7 +258,7 @@ class _ManagementInterviewReviewPageState
         ]),
         content: Text(
           'Permanently delete "$name"\'s application?\n\nThis cannot be undone.',
-          style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
@@ -356,14 +356,14 @@ class _ManagementInterviewReviewPageState
         content: const Text(
             'Approving this version will update the live Application Form immediately. '
             'A new versioned link will be generated.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: const Color(0xFF22C55E),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -387,7 +387,7 @@ class _ManagementInterviewReviewPageState
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               'Form v$vNum approved! Link: ${FormConfig.versionedLink(vNum)}'),
-          backgroundColor: const Color(0xFF2E7D32),
+          backgroundColor: const Color(0xFF22C55E),
           duration: const Duration(seconds: 4),
         ));
         await _fetchFormVersions();
@@ -410,10 +410,10 @@ class _ManagementInterviewReviewPageState
             style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFC62828))),
+                color: Color(0xFFEF4444))),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Add a reason (optional):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           const SizedBox(height: 12),
           TextField(
             controller: noteCtrl,
@@ -432,7 +432,7 @@ class _ManagementInterviewReviewPageState
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828),
+              backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -507,7 +507,7 @@ class _ManagementInterviewReviewPageState
                               color: _mgmtColor)),
                       Text('Review candidates and form edit requests',
                           style: TextStyle(
-                              fontSize: 12, color: Color(0xFF78909C))),
+                              fontSize: 12, color: Color(0xFF6B7280))),
                     ],
                   ),
                 ),
@@ -531,7 +531,7 @@ class _ManagementInterviewReviewPageState
               TabBar(
                 controller: _tabController,
                 labelColor: _mgmtColor,
-                unselectedLabelColor: const Color(0xFF78909C),
+                unselectedLabelColor: const Color(0xFF6B7280),
                 indicatorColor: _mgmtColor,
                 tabs: [
                   Tab(
@@ -666,10 +666,10 @@ class _CandidateList extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: mgmtStatus == 'accepted'
-                  ? const Color(0xFFA5D6A7)
+                  ? const Color(0xFF86EFAC)
                   : mgmtStatus == 'rejected'
-                      ? const Color(0xFFEF9A9A)
-                      : const Color(0xFFE0E0E0),
+                      ? const Color(0xFFFCA5A5)
+                      : const Color(0xFFE5E7EB),
               width: mgmtStatus != 'pending' ? 1.5 : 1,
             ),
           ),
@@ -684,7 +684,7 @@ class _CandidateList extends StatelessWidget {
                     CircleAvatar(
                       radius: 22,
                       backgroundColor:
-                          const Color(0xFF4A148C).withValues(alpha: 0.1),
+                          const Color(0xFF1D4ED8).withValues(alpha: 0.1),
                       child: Text(
                         name.isNotEmpty ? name[0].toUpperCase() : '?',
                         style: const TextStyle(
@@ -707,24 +707,24 @@ class _CandidateList extends StatelessWidget {
                             Text('Submitted: $date',
                                 style: const TextStyle(
                                     fontSize: 11,
-                                    color: Color(0xFF78909C))),
+                                    color: Color(0xFF6B7280))),
                             if (post.isNotEmpty) ...[
                               const SizedBox(height: 2),
                               Text(post,
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color: Color(0xFF546E7A))),
+                                      color: Color(0xFF6B7280))),
                             ],
                             if (manager.isNotEmpty) ...[
                               const SizedBox(height: 2),
                               Row(children: [
                                 const Icon(Icons.person_outline_rounded,
-                                    size: 11, color: Color(0xFF78909C)),
+                                    size: 11, color: Color(0xFF6B7280)),
                                 const SizedBox(width: 4),
                                 Text('Reviewed by Manager: $manager',
                                     style: const TextStyle(
                                         fontSize: 11,
-                                        color: Color(0xFF78909C))),
+                                        color: Color(0xFF6B7280))),
                               ]),
                             ],
                           ]),
@@ -740,17 +740,17 @@ class _CandidateList extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(children: [
                       Icon(Icons.verified_rounded,
-                          size: 15, color: Color(0xFF2E7D32)),
+                          size: 15, color: Color(0xFF22C55E)),
                       SizedBox(width: 6),
                       Text('Approved by Management and Manager',
                           style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF2E7D32),
+                              color: Color(0xFF22C55E),
                               fontWeight: FontWeight.w600)),
                     ]),
                   ),
@@ -760,7 +760,7 @@ class _CandidateList extends StatelessWidget {
                     managerComment.isNotEmpty ||
                     mgmtComment.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
                   const SizedBox(height: 6),
                   if (hrComment.isNotEmpty)
                     _CommentRow(label: 'HR', text: hrComment),
@@ -771,27 +771,27 @@ class _CandidateList extends StatelessWidget {
                 ],
 
                 const SizedBox(height: 10),
-                const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 6, children: [
                   if (isPending) ...[
                     _ActionBtn(
                       label: 'Approve',
                       icon: Icons.verified_rounded,
-                      color: const Color(0xFF2E7D32),
+                      color: const Color(0xFF22C55E),
                       onTap: () => onApprove(row),
                     ),
                     _ActionBtn(
                       label: 'Reject',
                       icon: Icons.cancel_outlined,
-                      color: const Color(0xFFC62828),
+                      color: const Color(0xFFEF4444),
                       onTap: () => onReject(row),
                     ),
                   ],
                   _ActionBtn(
                     label: 'Comment',
                     icon: Icons.comment_outlined,
-                    color: const Color(0xFF546E7A),
+                    color: const Color(0xFF6B7280),
                     onTap: () => onComment(row),
                   ),
                   _ActionBtn(
@@ -990,7 +990,7 @@ class _AFPendingCardState extends State<_AFPendingCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFCE93D8), width: 1.5),
+        border: Border.all(color: const Color(0xFF3B82F6), width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -999,7 +999,7 @@ class _AFPendingCardState extends State<_AFPendingCard> {
         Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
           decoration: const BoxDecoration(
-            color: Color(0xFFF3E5F5),
+            color: Color(0xFFEFF6FF),
             borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
           ),
           child: Row(children: [
@@ -1016,22 +1016,22 @@ class _AFPendingCardState extends State<_AFPendingCard> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Submitted by $createdBy',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
                 if (dateStr.isNotEmpty)
-                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
               ]),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
+                color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFFF9800)),
               ),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.pending_actions_rounded, size: 12, color: Color(0xFFE65100)),
+                Icon(Icons.pending_actions_rounded, size: 12, color: Color(0xFFF59E0B)),
                 SizedBox(width: 4),
-                Text('Pending Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFE65100))),
+                Text('Pending Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B))),
               ]),
             ),
           ]),
@@ -1042,14 +1042,14 @@ class _AFPendingCardState extends State<_AFPendingCard> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(children: [
             const Text('Changes vs current live form:',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
             const SizedBox(width: 8),
             if (!hasChanges)
-              _AFDiffPill('No Changes', const Color(0xFF546E7A), const Color(0xFFF5F5F5))
+              _AFDiffPill('No Changes', const Color(0xFF6B7280), const Color(0xFFF8FAFC))
             else ...[
-              if (addedCount    > 0) ...[_AFDiffPill('+$addedCount New',      const Color(0xFF2E7D32), const Color(0xFFE8F5E9)), const SizedBox(width: 4)],
-              if (modifiedCount > 0) ...[_AFDiffPill('~$modifiedCount Changed', const Color(0xFFE65100), const Color(0xFFFFF3E0)), const SizedBox(width: 4)],
-              if (removedCount  > 0)   _AFDiffPill('-$removedCount Removed',  const Color(0xFFC62828), const Color(0xFFFFEBEE)),
+              if (addedCount    > 0) ...[_AFDiffPill('+$addedCount New',      const Color(0xFF22C55E), const Color(0xFFDCFCE7)), const SizedBox(width: 4)],
+              if (modifiedCount > 0) ...[_AFDiffPill('~$modifiedCount Changed', const Color(0xFFF59E0B), const Color(0xFFFEF3C7)), const SizedBox(width: 4)],
+              if (removedCount  > 0)   _AFDiffPill('-$removedCount Removed',  const Color(0xFFEF4444), const Color(0xFFFEE2E2)),
             ],
           ]),
         ),
@@ -1061,7 +1061,7 @@ class _AFPendingCardState extends State<_AFPendingCard> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Form Structure Preview',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
             const SizedBox(height: 10),
             ...diffs.map((diff) {
               final id = (diff.section['id'] as String?) ?? '';
@@ -1124,21 +1124,21 @@ class _AFPendingCardState extends State<_AFPendingCard> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: const Text('Approve & Publish',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF22C55E))),
                       content: Column(mainAxisSize: MainAxisSize.min, children: [
                         Text('Publish application form v$vNum?',
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(8)),
                           child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF2E7D32)),
+                            Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF22C55E)),
                             SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 'This will immediately become the live application form. A versioned link will be generated that candidates can use to apply.',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32), height: 1.5),
+                                style: TextStyle(fontSize: 11, color: Color(0xFF22C55E), height: 1.5),
                               ),
                             ),
                           ]),
@@ -1147,7 +1147,7 @@ class _AFPendingCardState extends State<_AFPendingCard> {
                       actions: [
                         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), foregroundColor: Colors.white),
                           onPressed: () => Navigator.pop(ctx, true),
                           child: const Text('Approve & Publish'),
                         ),
@@ -1161,7 +1161,7 @@ class _AFPendingCardState extends State<_AFPendingCard> {
                     : const Icon(Icons.check_circle_rounded, size: 16),
                 label: const Text('Approve & Publish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: const Color(0xFF22C55E),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1199,9 +1199,9 @@ class _AFHistoryCard extends StatelessWidget {
     } catch (_) {}
 
     final isApproved = status == 'approved';
-    final borderColor = isApproved ? const Color(0xFFA5D6A7) : const Color(0xFFEF9A9A);
-    final bgColor     = isApproved ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
-    final fgColor     = isApproved ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final borderColor = isApproved ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5);
+    final bgColor     = isApproved ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
+    final fgColor     = isApproved ? const Color(0xFF22C55E) : const Color(0xFFEF4444);
     final statusLabel = isApproved ? 'Approved' : 'Rejected';
     final statusIcon  = isApproved ? Icons.check_circle_rounded : Icons.cancel_rounded;
 
@@ -1224,9 +1224,9 @@ class _AFHistoryCard extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (createdBy.isNotEmpty)
-                Text('By $createdBy', style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                Text('By $createdBy', style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               if (dateStr.isNotEmpty)
-                Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             ]),
           ),
           Container(
@@ -1242,20 +1242,20 @@ class _AFHistoryCard extends StatelessWidget {
         if (isApproved && approvedBy.isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(children: [
-            const Icon(Icons.verified_rounded, size: 13, color: Color(0xFF2E7D32)),
+            const Icon(Icons.verified_rounded, size: 13, color: Color(0xFF22C55E)),
             const SizedBox(width: 6),
             Expanded(
               child: Text('Approved by $approvedBy  •  ${FormConfig.versionedLink(vNum)}',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32))),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF22C55E))),
             ),
           ]),
         ],
         if (!isApproved && rejectionNote.isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(children: [
-            const Icon(Icons.cancel_rounded, size: 13, color: Color(0xFFC62828)),
+            const Icon(Icons.cancel_rounded, size: 13, color: Color(0xFFEF4444)),
             const SizedBox(width: 6),
-            Expanded(child: Text('Reason: $rejectionNote', style: const TextStyle(fontSize: 11, color: Color(0xFFC62828)))),
+            Expanded(child: Text('Reason: $rejectionNote', style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444)))),
           ]),
         ],
       ]),
@@ -1299,20 +1299,20 @@ class _AFSectionTile extends StatelessWidget {
 
     switch (diff.status) {
       case _AFDiffStatus.added:
-        borderColor = const Color(0xFF66BB6A); bgColor = const Color(0xFFE8F5E9); textColor = const Color(0xFF1B5E20);
-        badge = 'NEW'; badgeColor = const Color(0xFF1B5E20); badgeBg = const Color(0xFFA5D6A7);
+        borderColor = const Color(0xFF66BB6A); bgColor = const Color(0xFFDCFCE7); textColor = const Color(0xFF15803D);
+        badge = 'NEW'; badgeColor = const Color(0xFF15803D); badgeBg = const Color(0xFF86EFAC);
       case _AFDiffStatus.removed:
-        borderColor = const Color(0xFFEF9A9A); bgColor = const Color(0xFFFFEBEE); textColor = const Color(0xFFB71C1C);
-        badge = 'REMOVED'; badgeColor = const Color(0xFFB71C1C); badgeBg = const Color(0xFFFFCDD2); strikethrough = true;
+        borderColor = const Color(0xFFFCA5A5); bgColor = const Color(0xFFFEE2E2); textColor = const Color(0xFFB91C1C);
+        badge = 'REMOVED'; badgeColor = const Color(0xFFB91C1C); badgeBg = const Color(0xFFFFCDD2); strikethrough = true;
       case _AFDiffStatus.disabled:
-        borderColor = const Color(0xFFE0E0E0); bgColor = const Color(0xFFF5F5F5); textColor = const Color(0xFF9E9E9E);
-        badge = 'DISABLED'; badgeColor = const Color(0xFF757575); badgeBg = const Color(0xFFEEEEEE); strikethrough = true;
+        borderColor = const Color(0xFFE5E7EB); bgColor = const Color(0xFFF8FAFC); textColor = const Color(0xFF9E9E9E);
+        badge = 'DISABLED'; badgeColor = const Color(0xFF757575); badgeBg = const Color(0xFFE5E7EB); strikethrough = true;
       case _AFDiffStatus.modified:
-        borderColor = const Color(0xFFFFB74D); bgColor = const Color(0xFFFFF8E1); textColor = const Color(0xFFE65100);
-        badge = 'CHANGED'; badgeColor = const Color(0xFFE65100); badgeBg = const Color(0xFFFFE0B2);
+        borderColor = const Color(0xFFFFB74D); bgColor = const Color(0xFFFEF3C7); textColor = const Color(0xFFF59E0B);
+        badge = 'CHANGED'; badgeColor = const Color(0xFFF59E0B); badgeBg = const Color(0xFFFFE0B2);
       case _AFDiffStatus.unchanged:
-        borderColor = const Color(0xFFCE93D8); bgColor = const Color(0xFFF3E5F5); textColor = _mgmtColor;
-        badge = null; badgeColor = _mgmtColor; badgeBg = const Color(0xFFCE93D8);
+        borderColor = const Color(0xFF3B82F6); bgColor = const Color(0xFFEFF6FF); textColor = _mgmtColor;
+        badge = null; badgeColor = _mgmtColor; badgeBg = const Color(0xFF3B82F6);
     }
 
     final builtInDefs = FormConfig.builtInFieldDefs[id] ?? [];
@@ -1370,7 +1370,7 @@ class _AFSectionTile extends StatelessWidget {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: hidChg ? const Color(0xFFFFF9C4) : (isHidden ? const Color(0xFFEEEEEE) : bgColor),
+                          color: hidChg ? const Color(0xFFFFF9C4) : (isHidden ? const Color(0xFFE5E7EB) : bgColor),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: hidChg ? const Color(0xFFFFEB3B) : borderColor),
                         ),
@@ -1392,21 +1392,21 @@ class _AFSectionTile extends StatelessWidget {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isNew ? const Color(0xFFE8F5E9) : bgColor,
+                        color: isNew ? const Color(0xFFDCFCE7) : bgColor,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: isNew ? const Color(0xFF66BB6A) : borderColor),
                       ),
                       child: Text(isNew ? '$lbl ✦' : lbl,
-                          style: TextStyle(fontSize: 10, color: isNew ? const Color(0xFF1B5E20) : textColor,
+                          style: TextStyle(fontSize: 10, color: isNew ? const Color(0xFF15803D) : textColor,
                               fontWeight: isNew ? FontWeight.w700 : FontWeight.normal)),
                     );
                   }),
                   ...diff.removedFields.map((fId) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFEF9A9A))),
+                    decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFCA5A5))),
                     child: Text('$fId (removed)',
-                        style: const TextStyle(fontSize: 10, color: Color(0xFFB71C1C), decoration: TextDecoration.lineThrough)),
+                        style: const TextStyle(fontSize: 10, color: Color(0xFFB91C1C), decoration: TextDecoration.lineThrough)),
                   )),
                 ]),
               ],
@@ -1440,12 +1440,12 @@ class _CommentRow extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF546E7A))),
+                  color: Color(0xFF6B7280))),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(text,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis),
         ),
@@ -1496,14 +1496,14 @@ class _EmptyCandidates extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFCE93D8)),
+        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFF3B82F6)),
         SizedBox(height: 12),
         Text('No candidates pending approval',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _mgmtColor)),
         SizedBox(height: 6),
         Text('Candidates accepted by a Manager will appear here.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
     );
   }
@@ -1516,14 +1516,14 @@ class _EmptyFormVersions extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.edit_document, size: 52, color: Color(0xFFCE93D8)),
+        Icon(Icons.edit_document, size: 52, color: Color(0xFF3B82F6)),
         SizedBox(height: 12),
         Text('No form edit requests',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _mgmtColor)),
         SizedBox(height: 6),
         Text('Form versions submitted by HR will appear here for approval.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
     );
   }
@@ -1539,7 +1539,7 @@ class _ErrorView extends StatelessWidget {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.cloud_off_rounded,
-            size: 52, color: Color(0xFFCE93D8)),
+            size: 52, color: Color(0xFF3B82F6)),
         const SizedBox(height: 12),
         const Text('Could not load data',
             style: TextStyle(
@@ -1550,7 +1550,7 @@ class _ErrorView extends StatelessWidget {
         Text(error,
             textAlign: TextAlign.center,
             style: const TextStyle(
-                fontSize: 12, color: Color(0xFF78909C))),
+                fontSize: 12, color: Color(0xFF6B7280))),
         const SizedBox(height: 20),
         ElevatedButton.icon(
           onPressed: onRetry,

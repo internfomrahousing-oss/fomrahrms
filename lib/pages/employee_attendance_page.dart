@@ -19,9 +19,9 @@ class EmployeeAttendancePage extends StatefulWidget {
 }
 
 class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
-  static const _blue  = Color(0xFF0D47A1);
-  static const _green = Color(0xFF2E7D32);
-  static const _teal  = Color(0xFF00695C);
+  static const _blue  = Color(0xFF2563EB);
+  static const _green = Color(0xFF22C55E);
+  static const _teal  = Color(0xFF15803D);
 
   bool _loading = true;
   bool _submitting = false;
@@ -175,7 +175,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               Text('My Attendance',
                   style: Theme.of(context).textTheme.headlineMedium),
               Text(_dayLabel(),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             ]),
             const Spacer(),
             IconButton(
@@ -408,7 +408,7 @@ class _DaySummary extends StatelessWidget {
   final bool isDark;
   const _DaySummary({required this.record, required this.isDark});
 
-  static const _blue = Color(0xFF0D47A1);
+  static const _blue = Color(0xFF2563EB);
 
   String? get _duration {
     try {
@@ -434,7 +434,7 @@ class _DaySummary extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF0D47A1).withValues(alpha: 0.12)
+            ? const Color(0xFF2563EB).withValues(alpha: 0.12)
             : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(

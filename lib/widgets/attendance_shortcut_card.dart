@@ -398,12 +398,12 @@ Approved by: Sharad Fomra, CEO & MD
       statusText  = 'Attendance';
     } else if (rec != null && rec.checkOutTime.isNotEmpty) {
       statusIcon  = Icons.check_circle_rounded;
-      statusColor = isDark ? Colors.blue.shade300 : const Color(0xFF1565C0);
+      statusColor = isDark ? Colors.blue.shade300 : const Color(0xFF3B82F6);
       final dur   = _durationStr(rec);
       statusText  = 'Done · ${rec.checkInTime} – ${rec.checkOutTime}${dur != null ? ' ($dur)' : ''}';
     } else if (rec != null && rec.checkInTime.isNotEmpty) {
       statusIcon  = Icons.check_circle_rounded;
-      statusColor = isDark ? Colors.green.shade300 : const Color(0xFF2E7D32);
+      statusColor = isDark ? Colors.green.shade300 : const Color(0xFF22C55E);
       statusText  = 'Checked in at ${rec.checkInTime}';
     } else {
       statusIcon  = Icons.fingerprint_rounded;
@@ -471,13 +471,13 @@ Approved by: Sharad Fomra, CEO & MD
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.policy_rounded, size: 18,
-                    color: isDark ? Colors.blue.shade300 : const Color(0xFF0D47A1)),
+                    color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB)),
                 const SizedBox(width: 7),
                 Text('HR Policy',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.blue.shade300 : const Color(0xFF0D47A1))),
+                        color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))),
               ]),
             ),
           ),
@@ -548,7 +548,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Policy submitted to Management for approval.'),
-          backgroundColor: Color(0xFF1565C0),
+          backgroundColor: Color(0xFF3B82F6),
         ),
       );
       Navigator.pop(context);
@@ -585,7 +585,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF0D47A1),
+              color: const Color(0xFF2563EB),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(children: [
@@ -628,7 +628,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: const Color(0xFFFFF8E1),
+              color: const Color(0xFFFEF3C7),
               child: Row(children: [
                 const Icon(Icons.pending_actions_rounded,
                     size: 16, color: Color(0xFFF57F17)),
@@ -652,7 +652,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
                     child: Text(
                       _previewPending ? 'View current' : 'Preview changes',
                       style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF1565C0)),
+                          fontSize: 11, color: Color(0xFF3B82F6)),
                     ),
                   ),
               ]),
@@ -669,7 +669,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
                       expands: true,
                       textAlignVertical: TextAlignVertical.top,
                       style: const TextStyle(fontSize: 13, height: 1.6,
-                          color: Color(0xFF37474F)),
+                          color: Color(0xFF6B7280)),
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -682,7 +682,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
                     child: SelectableText(
                       _displayText,
                       style: const TextStyle(fontSize: 13, height: 1.6,
-                          color: Color(0xFF37474F)),
+                          color: Color(0xFF6B7280)),
                     ),
                   ),
           ),
@@ -746,8 +746,8 @@ class _AttendanceSheet extends StatefulWidget {
 }
 
 class _AttendanceSheetState extends State<_AttendanceSheet> {
-  static const _green = Color(0xFF2E7D32);
-  static const _teal  = Color(0xFF00695C);
+  static const _green = Color(0xFF22C55E);
+  static const _teal  = Color(0xFF15803D);
 
   late final TextEditingController _timeCtrl;
   bool _submitting = false;
@@ -1013,12 +1013,12 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
 
   Widget _doneBanner(AttendanceRecord rec, bool isDark) {
     final dur  = _AttendanceShortcutCardState._durationStr(rec);
-    final blue = isDark ? Colors.blue.shade300 : const Color(0xFF1565C0);
+    final blue = isDark ? Colors.blue.shade300 : const Color(0xFF3B82F6);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0D47A1).withValues(alpha: 0.12) : Colors.blue.shade50,
+        color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.12) : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: isDark ? Colors.blue.shade700 : Colors.blue.shade200),
       ),

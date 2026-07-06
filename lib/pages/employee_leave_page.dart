@@ -20,8 +20,8 @@ class EmployeeLeavePage extends StatefulWidget {
 }
 
 class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
-  static const _blue   = Color(0xFF0D47A1);
-  static const _purple = Color(0xFF6A1B9A);
+  static const _blue   = Color(0xFF2563EB);
+  static const _purple = Color(0xFF2563EB);
 
   bool _loading = false;
   AppUser? _appUser;
@@ -219,8 +219,8 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
         },
         itemBuilder: (_) => [
           _menuItem('leave',   Icons.event_available_rounded, 'Apply Leave',      _purple),
-          _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', const Color(0xFF00838F)),
-          _menuItem('compoff', Icons.swap_horiz_rounded,      'Apply Comp Off',   const Color(0xFF2E7D32)),
+          _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', const Color(0xFF3B82F6)),
+          _menuItem('compoff', Icons.swap_horiz_rounded,      'Apply Comp Off',   const Color(0xFF22C55E)),
         ],
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -300,9 +300,9 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       // ── Type filter chips + month picker ─────────────────
       Wrap(spacing: 8, runSpacing: 6, children: [
         _buildTypeChip('All',        'all',        Icons.list_rounded,             _blue),
-        _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  const Color(0xFF6A1B9A)),
-        _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      const Color(0xFF00838F)),
-        _buildTypeChip('Comp Off',   'Comp Off',   Icons.swap_horiz_rounded,       const Color(0xFF2E7D32)),
+        _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  const Color(0xFF2563EB)),
+        _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      const Color(0xFF3B82F6)),
+        _buildTypeChip('Comp Off',   'Comp Off',   Icons.swap_horiz_rounded,       const Color(0xFF22C55E)),
         _buildMonthChip(),
       ]),
       const SizedBox(height: 12),
@@ -416,7 +416,7 @@ class _CompactBalance extends StatelessWidget {
           const SizedBox(width: 1),
           Container(width: 1, height: 20, color: const Color(0xFFCFD8DC)),
           const SizedBox(width: 1),
-          _Pill('ML', mlAvail, const Color(0xFF1565C0)),
+          _Pill('ML', mlAvail, const Color(0xFF3B82F6)),
         ],
         if (elAvail >= 0) ...[
           const SizedBox(width: 1),
@@ -449,7 +449,7 @@ class _Pill extends StatelessWidget {
             style: TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w800, color: color)),
         Text('avail',
-            style: const TextStyle(fontSize: 8, color: Color(0xFF90A4AE))),
+            style: const TextStyle(fontSize: 8, color: Color(0xFF6B7280))),
       ]),
     );
   }
@@ -494,7 +494,7 @@ class _AppCard extends StatelessWidget {
             Expanded(
               child: Text(app.leaveType,
                   style: const TextStyle(fontSize: 13,
-                      fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+                      fontWeight: FontWeight.w700, color: Color(0xFF111827))),
             ),
             _StatusPill(_statusLabel(status), sColor, _statusIcon(status)),
           ]),
@@ -568,9 +568,9 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: const Color(0xFF78909C)),
+      Icon(icon, size: 12, color: const Color(0xFF6B7280)),
       const SizedBox(width: 4),
-      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
     ]);
   }
 }

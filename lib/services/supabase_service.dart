@@ -81,6 +81,11 @@ import '../models/user_session.dart';
   -- If table already exists without sent_to_management:
   alter table maintenance_tickets add column if not exists sent_to_management boolean default false;
 
+  create table if not exists app_settings (
+    id text primary key default 'global',
+    color_theme text default 'midnightBlue'
+  );
+
   create table if not exists employee_profiles (
     employee_id text primary key,
     full_name text default '',
@@ -1369,6 +1374,30 @@ class SupabaseService {
     } catch (e) {
       return e.toString();
     }
+  }
+
+  // ── App settings (global color theme) ───────────────────────────────────────
+
+  static Future<String?> fetchColorTheme() async {
+    try {
+      final data = await _db
+          ?.from('app_settings')
+          .select('color_theme')
+          .eq('id', 'global')
+          .maybeSingle();
+      return data?['color_theme'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> setColorTheme(String themeKey) async {
+    try {
+      await _db?.from('app_settings').upsert({
+        'id': 'global',
+        'color_theme': themeKey,
+      });
+    } catch (_) {}
   }
 
   // ── Initial load on app start ─────────────────────────────────────────

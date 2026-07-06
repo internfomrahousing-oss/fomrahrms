@@ -53,7 +53,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     border: Border.all(
                       color: isDark
                           ? const Color(0xFF2E2E4A)
-                          : const Color(0xFFE8EAF6),
+                          : const Color(0xFFEFF6FF),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -79,9 +79,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             label: 'Light',
                             icon: Icons.light_mode_rounded,
                             selected: !isDark,
-                            previewBg: const Color(0xFFF5F7FA),
+                            previewBg: const Color(0xFFF8FAFC),
                             previewCard: Colors.white,
-                            previewText: const Color(0xFF0D47A1),
+                            previewText: const Color(0xFF2563EB),
                             onTap: () {
                               themeNotifier.setMode(ThemeMode.light);
                               setState(() {});

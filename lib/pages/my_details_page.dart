@@ -5,7 +5,7 @@ import '../widgets/back_button.dart';
 class MyDetailsPage extends StatelessWidget {
   const MyDetailsPage({super.key});
 
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +63,7 @@ class MyDetailsPage extends StatelessWidget {
                       p.fullName.isEmpty ? '—' : p.fullName,
                       style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A237E)),
+                          color: Color(0xFF111827)),
                     ),
                     const SizedBox(height: 4),
                     Container(
@@ -120,16 +120,16 @@ class _DetailRow extends StatelessWidget {
         Container(
           width: 36, height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFF0D47A1).withValues(alpha: 0.08),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(field.icon, color: const Color(0xFF0D47A1), size: 18),
+          child: Icon(field.icon, color: const Color(0xFF2563EB), size: 18),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(field.label,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             const SizedBox(height: 2),
             Text(
               field.value.isEmpty ? '—' : field.value,

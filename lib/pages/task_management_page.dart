@@ -86,11 +86,11 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.task_alt_rounded,
-                    color: Color(0xFF6A1B9A), size: 22),
+                    color: Color(0xFF2563EB), size: 22),
               ),
               const SizedBox(width: 14),
               Text('Task Management',
@@ -100,7 +100,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                 IconButton(
                   tooltip: 'Refresh',
                   icon: const Icon(Icons.refresh_rounded,
-                      color: Color(0xFF6A1B9A)),
+                      color: Color(0xFF2563EB)),
                   onPressed: _load,
                 ),
                 const SizedBox(width: 4),
@@ -112,7 +112,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('Add Task'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A1B9A),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 18, vertical: 10),
@@ -129,9 +129,9 @@ class _TaskManagementPageState extends State<TaskManagementPage>
           // Tab bar
           TabBar(
             controller: _tabController,
-            labelColor: const Color(0xFF6A1B9A),
+            labelColor: const Color(0xFF2563EB),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF6A1B9A),
+            indicatorColor: const Color(0xFF2563EB),
             labelStyle: const TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w600),
             unselectedLabelStyle:
@@ -215,21 +215,21 @@ class _TasksTab extends StatelessWidget {
                     label: Text(f.$2),
                     selected: active,
                     onSelected: (_) => onFilterChanged(f.$1),
-                    selectedColor: const Color(0xFF6A1B9A),
+                    selectedColor: const Color(0xFF2563EB),
                     checkmarkColor: Colors.white,
                     labelStyle: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color:
-                          active ? Colors.white : const Color(0xFF546E7A),
+                          active ? Colors.white : const Color(0xFF6B7280),
                     ),
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                       side: BorderSide(
                         color: active
-                            ? const Color(0xFF6A1B9A)
-                            : const Color(0xFFE0E0E0),
+                            ? const Color(0xFF2563EB)
+                            : const Color(0xFFE5E7EB),
                       ),
                     ),
                     showCheckmark: false,
@@ -248,7 +248,7 @@ class _TasksTab extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -256,7 +256,7 @@ class _TasksTab extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF6A1B9A)),
+                    color: Color(0xFF2563EB)),
               ),
             ),
           ]),
@@ -328,10 +328,10 @@ class _PlaceholderTab extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(icon, color: const Color(0xFF6A1B9A), size: 40),
+            child: Icon(icon, color: const Color(0xFF2563EB), size: 40),
           ),
           const SizedBox(height: 20),
           Text(title,
@@ -386,9 +386,9 @@ class _TaskCardState extends State<_TaskCard> {
       };
 
   Color _statusColor(TaskStatus s) => switch (s) {
-        TaskStatus.assigned => const Color(0xFF1565C0),
+        TaskStatus.assigned => const Color(0xFF3B82F6),
         TaskStatus.pending => Colors.orange.shade700,
-        TaskStatus.inProgress => const Color(0xFF6A1B9A),
+        TaskStatus.inProgress => const Color(0xFF2563EB),
         TaskStatus.completed => Colors.green.shade700,
         TaskStatus.delayed => Colors.red.shade700,
       };
@@ -462,7 +462,7 @@ class _TaskCardState extends State<_TaskCard> {
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF78909C))),
+                          color: Color(0xFF6B7280))),
                   const SizedBox(height: 4),
                   Text(t.description,
                       style: TextStyle(

@@ -4,10 +4,10 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 
-const _blue   = Color(0xFF0D47A1);
-const _purple = Color(0xFF6A1B9A);
-const _teal   = Color(0xFF00838F);
-const _green  = Color(0xFF2E7D32);
+const _blue   = Color(0xFF2563EB);
+const _purple = Color(0xFF2563EB);
+const _teal   = Color(0xFF3B82F6);
+const _green  = Color(0xFF22C55E);
 
 class _Section {
   final String key;
@@ -120,7 +120,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
             'This will immediately update the Leave, Permission, and Comp Off forms for all employees.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -170,7 +170,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
           content: const Text(
               'There is already a version waiting for Management approval. '
               'Please wait for it to be reviewed before submitting another.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -195,7 +195,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         content: const Text(
             'The updated form options will be sent to Management for approval. '
             'The current live options remain active until the new version is approved.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -241,7 +241,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _green)),
         content: const Text(
             'This will approve and immediately apply these form changes for all employees.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -343,7 +343,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Hold and drag to reorder · tap × to remove',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                    style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                 const SizedBox(height: 10),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 240),
@@ -361,7 +361,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                       dense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                       leading: const Icon(Icons.drag_handle_rounded,
-                          size: 16, color: Color(0xFFBBBBBB)),
+                          size: 16, color: Color(0xFFE5E7EB)),
                       title: Text(e.value, style: const TextStyle(fontSize: 13)),
                       trailing: IconButton(
                         icon: const Icon(Icons.close_rounded, size: 16, color: Colors.red),
@@ -462,7 +462,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                 Text('Edit Leave Forms',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
                 Text('Customise dropdown options for Leave, Permission & Comp Off',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                    style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
               ]),
             ),
             if (!_loading) ...[
@@ -514,9 +514,9 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE3F2FD),
+                              color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFBBDEFB)),
+                              border: Border.all(color: const Color(0xFFDBEAFE)),
                             ),
                             child: Row(children: [
                               const Icon(Icons.info_outline_rounded, color: _blue, size: 18),
@@ -526,7 +526,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                                   _isManagement
                                       ? 'You can edit and publish changes directly, or approve/reject versions sent by HR.'
                                       : 'Edit dropdown options for each form and tap "Send for Approval". Management will review your changes.',
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF37474F)),
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                                 ),
                               ),
                             ]),
@@ -578,17 +578,17 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFE0E0E0)),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
     ),
     child: const Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.history_rounded, size: 38, color: Color(0xFFBBDEFB)),
+        Icon(Icons.history_rounded, size: 38, color: Color(0xFFDBEAFE)),
         SizedBox(height: 10),
         Text('No versions yet',
-            style: TextStyle(fontSize: 13, color: Color(0xFF78909C))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         SizedBox(height: 4),
         Text('Submitted versions will appear here.',
-            style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
+            style: TextStyle(fontSize: 11, color: Color(0xFFE5E7EB))),
       ]),
     ),
   );
@@ -666,7 +666,7 @@ class _FormGroupCard extends StatelessWidget {
                       Text(s.label,
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c)),
                       Text(s.hint,
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF90A4AE))),
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
                     ]),
                   ),
                   TextButton.icon(
@@ -742,13 +742,13 @@ class _VersionCard extends StatelessWidget {
     String statusLabel;
     switch (status) {
       case 'approved':
-        statusBg = const Color(0xFFE8F5E9); statusFg = const Color(0xFF2E7D32);
+        statusBg = const Color(0xFFDCFCE7); statusFg = const Color(0xFF22C55E);
         statusIcon = Icons.check_circle_rounded; statusLabel = 'Approved';
       case 'rejected':
-        statusBg = const Color(0xFFFFEBEE); statusFg = const Color(0xFFC62828);
+        statusBg = const Color(0xFFFEE2E2); statusFg = const Color(0xFFEF4444);
         statusIcon = Icons.cancel_rounded; statusLabel = 'Rejected';
       default:
-        statusBg = const Color(0xFFFFF3E0); statusFg = const Color(0xFFE65100);
+        statusBg = const Color(0xFFFEF3C7); statusFg = const Color(0xFFF59E0B);
         statusIcon = Icons.hourglass_empty_rounded; statusLabel = 'Pending Approval';
     }
 
@@ -758,7 +758,7 @@ class _VersionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -776,9 +776,9 @@ class _VersionCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (createdBy.isNotEmpty)
                 Text('By $createdBy',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               if (dateStr.isNotEmpty)
-                Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             ]),
           ),
           Container(
@@ -796,19 +796,19 @@ class _VersionCard extends StatelessWidget {
         if (approvedBy.isNotEmpty && status == 'approved') ...[
           const SizedBox(height: 6),
           Text('Approved by $approvedBy',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32))),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF22C55E))),
         ],
 
         if (rejection.isNotEmpty && status == 'rejected') ...[
           const SizedBox(height: 6),
           Text('Reason: $rejection',
-              style: const TextStyle(fontSize: 11, color: Color(0xFFC62828))),
+              style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444))),
         ],
 
         // Management can approve or reject pending versions
         if (isManagement && status == 'pending') ...[
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
           const SizedBox(height: 10),
           Row(children: [
             OutlinedButton.icon(
@@ -828,7 +828,7 @@ class _VersionCard extends StatelessWidget {
               icon: const Icon(Icons.check_rounded, size: 14),
               label: const Text('Approve & Publish', style: TextStyle(fontSize: 12)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32),
+                backgroundColor: const Color(0xFF22C55E),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -863,9 +863,9 @@ class _HeadingRow extends StatelessWidget {
       const SizedBox(width: 8),
       Text(label,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-              color: Color(0xFF1A237E))),
+              color: Color(0xFF111827))),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
     ]);
   }
 }

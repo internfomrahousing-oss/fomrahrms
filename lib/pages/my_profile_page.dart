@@ -13,7 +13,7 @@ class MyProfilePage extends StatefulWidget {
 }
 
 class _MyProfilePageState extends State<MyProfilePage> {
-  static const _color = Color(0xFF1565C0);
+  static const _color = Color(0xFF3B82F6);
   AppUser? _user;
   bool _loading = true;
 
@@ -89,7 +89,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     child: Row(children: [
                       CircleAvatar(
                         radius: 32,
-                        backgroundColor: const Color(0xFF283593),
+                        backgroundColor: const Color(0xFF111827),
                         child: Text(
                           (_user?.name.isNotEmpty == true)
                               ? _user!.name[0].toUpperCase()
@@ -102,24 +102,24 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(
                             _user?.name.isEmpty != false ? 'Employee' : _user!.name,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             _user?.designation.isEmpty != false ? '—' : _user!.designation,
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
                           ),
                           if (_user?.role.isNotEmpty == true) ...[
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF283593).withValues(alpha: 0.1),
+                                color: const Color(0xFF111827).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(_user!.role,
                                   style: const TextStyle(
-                                      color: Color(0xFF283593), fontSize: 11, fontWeight: FontWeight.w600)),
+                                      color: Color(0xFF111827), fontSize: 11, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ]),
@@ -151,7 +151,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       icon: Icons.assignment_ind_rounded,
                       title: 'Interview Form',
                       subtitle: 'View your interview details',
-                      color: const Color(0xFF1565C0),
+                      color: const Color(0xFF3B82F6),
                       onTap: () => context.go('${_rolePrefix()}/interview-form'),
                     ),
                   ),
@@ -161,7 +161,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       icon: Icons.how_to_reg_rounded,
                       title: 'Onboarding Form',
                       subtitle: 'View your onboarding details',
-                      color: const Color(0xFF00695C),
+                      color: const Color(0xFF15803D),
                       onTap: () => context.go('${_rolePrefix()}/employee-onboarding'),
                     ),
                   ),
@@ -216,7 +216,7 @@ class _FormCard extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
               const SizedBox(height: 2),
               Text(subtitle,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             ]),
           ),
           Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color.withValues(alpha: 0.6)),
@@ -240,19 +240,19 @@ class _Row extends StatelessWidget {
         Container(
           width: 36, height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFF283593).withValues(alpha: 0.08),
+            color: const Color(0xFF111827).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: const Color(0xFF283593), size: 18),
+          child: Icon(icon, color: const Color(0xFF111827), size: 18),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             const SizedBox(height: 2),
             Text(
               value.isEmpty ? '—' : value,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF1A237E)),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
             ),
           ]),
         ),

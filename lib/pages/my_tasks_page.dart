@@ -131,11 +131,11 @@ class _MyTasksPageState extends State<MyTasksPage> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0288D1).withValues(alpha: 0.1),
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.task_alt_rounded,
-                    color: Color(0xFF0288D1), size: 22),
+                    color: Color(0xFF3B82F6), size: 22),
               ),
               const SizedBox(width: 14),
               Text('My Tasks',
@@ -143,7 +143,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
               const Spacer(),
               IconButton(
                 tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0288D1)),
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3B82F6)),
                 onPressed: _load,
               ),
               if (UserSession.role == UserRole.employee ||
@@ -160,7 +160,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('Add Task'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0288D1),
+                    backgroundColor: const Color(0xFF3B82F6),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 10),
@@ -186,22 +186,22 @@ class _MyTasksPageState extends State<MyTasksPage> {
                       selected: active,
                       onSelected: (_) =>
                           setState(() => _filter = f.$1),
-                      selectedColor: const Color(0xFF0288D1),
+                      selectedColor: const Color(0xFF3B82F6),
                       checkmarkColor: Colors.white,
                       labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: active
                             ? Colors.white
-                            : const Color(0xFF546E7A),
+                            : const Color(0xFF6B7280),
                       ),
                       backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
                           color: active
-                              ? const Color(0xFF0288D1)
-                              : const Color(0xFFE0E0E0),
+                              ? const Color(0xFF3B82F6)
+                              : const Color(0xFFE5E7EB),
                         ),
                       ),
                       showCheckmark: false,
@@ -219,7 +219,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF0288D1).withValues(alpha: 0.08),
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -227,7 +227,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF0288D1)),
+                    color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(height: 16),
@@ -318,7 +318,7 @@ class _MyTaskCard extends StatefulWidget {
 class _MyTaskCardState extends State<_MyTaskCard> {
   bool _expanded = false;
 
-  static const _color = Color(0xFF0288D1);
+  static const _color = Color(0xFF3B82F6);
 
   Color _priorityColor(TaskPriority p) => switch (p) {
         TaskPriority.low      => Colors.green.shade600,
@@ -335,9 +335,9 @@ class _MyTaskCardState extends State<_MyTaskCard> {
       };
 
   Color _statusColor(TaskStatus s) => switch (s) {
-        TaskStatus.assigned   => const Color(0xFF1565C0),
+        TaskStatus.assigned   => const Color(0xFF3B82F6),
         TaskStatus.pending    => Colors.orange.shade700,
-        TaskStatus.inProgress => const Color(0xFF6A1B9A),
+        TaskStatus.inProgress => const Color(0xFF2563EB),
         TaskStatus.completed  => Colors.green.shade700,
         TaskStatus.delayed    => Colors.red.shade700,
       };
@@ -386,7 +386,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                         style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A237E))),
+                            color: Color(0xFF111827))),
                   ]),
                 ),
                 const SizedBox(width: 8),
@@ -413,14 +413,14 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                 _InfoChip(
                   Icons.event_rounded,
                   'Due: ${_fmt(t.dueDate)}',
-                  isOverdue ? Colors.red.shade600 : const Color(0xFF78909C),
+                  isOverdue ? Colors.red.shade600 : const Color(0xFF6B7280),
                 ),
                 if (t.weightage > 0)
                   _InfoChip(Icons.star_rounded,
                       '${t.weightage} pts', _color),
                 if (t.department.isNotEmpty)
                   _InfoChip(Icons.business_rounded,
-                      t.department, const Color(0xFF78909C)),
+                      t.department, const Color(0xFF6B7280)),
               ]),
 
               if (isOverdue && ds != TaskStatus.completed) ...[
@@ -456,11 +456,11 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF78909C))),
+                          color: Color(0xFF6B7280))),
                   const SizedBox(height: 4),
                   Text(t.description,
                       style: const TextStyle(
-                          fontSize: 13, color: Color(0xFF1A237E))),
+                          fontSize: 13, color: Color(0xFF111827))),
                   const SizedBox(height: 12),
                 ],
 
@@ -484,7 +484,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                     label: const Text('Mark as Received',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1565C0),
+                      backgroundColor: const Color(0xFF3B82F6),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -581,13 +581,13 @@ class _DetailItem extends StatelessWidget {
       Text(label,
           style: const TextStyle(
               fontSize: 10,
-              color: Color(0xFF78909C),
+              color: Color(0xFF6B7280),
               fontWeight: FontWeight.w500)),
       const SizedBox(height: 2),
       Text(value,
           style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF1A237E),
+              color: Color(0xFF111827),
               fontWeight: FontWeight.w600)),
     ]);
   }

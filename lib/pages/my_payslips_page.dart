@@ -14,8 +14,8 @@ class MyPayslipsPage extends StatefulWidget {
 }
 
 class _MyPayslipsPageState extends State<MyPayslipsPage> {
-  static const _color  = Color(0xFF0D47A1);
-  static const _purple = Color(0xFF6A1B9A);
+  static const _color  = Color(0xFF2563EB);
+  static const _purple = Color(0xFF2563EB);
 
   bool _loading = false;
   bool _elAvailLoading = false;
@@ -129,7 +129,7 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
 
                   if (user == null)
                     const Text('Employee record not found.',
-                        style: TextStyle(color: Color(0xFF78909C)))
+                        style: TextStyle(color: Color(0xFF6B7280)))
                   else if (user.isElEligible) ...[
                     // ── EL section ──────────────────────────────────────────
                     _ElBalanceCard(
@@ -177,7 +177,7 @@ class _ElBalanceCard extends StatelessWidget {
     required this.onRequest,
   });
 
-  static const _purple = Color(0xFF6A1B9A);
+  static const _purple = Color(0xFF2563EB);
 
   static String _fmt(double d) =>
       d % 1 == 0 ? '${d.toInt()}' : d.toStringAsFixed(1);
@@ -232,7 +232,7 @@ class _ElBalanceCard extends StatelessWidget {
                       color: Colors.green.shade700)),
               const SizedBox(height: 2),
               Text('day${available == 1 ? '' : 's'} available',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             ]),
           ),
           Container(width: 1, height: 48, color: _purple.withValues(alpha: 0.15)),
@@ -242,10 +242,10 @@ class _ElBalanceCard extends StatelessWidget {
               Text('$accrued',
                   style: const TextStyle(
                       fontSize: 36, fontWeight: FontWeight.w800,
-                      color: Color(0xFF546E7A))),
+                      color: Color(0xFF6B7280))),
               const SizedBox(height: 2),
               const Text('days accrued',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             ]),
           ),
           Container(width: 1, height: 48, color: _purple.withValues(alpha: 0.15)),
@@ -259,7 +259,7 @@ class _ElBalanceCard extends StatelessWidget {
                       color: Colors.orange.shade700)),
               const SizedBox(height: 2),
               const Text('days used',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             ]),
           ),
         ]),
@@ -267,7 +267,7 @@ class _ElBalanceCard extends StatelessWidget {
         if (lastAvailed != null) ...[
           const SizedBox(height: 12),
           Text('Last encashed: ${_fmtDate(lastAvailed)}',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
         ],
 
         const SizedBox(height: 20),
@@ -305,7 +305,7 @@ class _ElBalanceCard extends StatelessWidget {
                 available > 0
                     ? 'You have ${_fmt(available)} EL day${available == 1 ? '' : 's'} to encash. Once confirmed by HR, your balance will reset.'
                     : 'No EL days available to encash yet.',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
               ),
             ),
             const SizedBox(width: 12),

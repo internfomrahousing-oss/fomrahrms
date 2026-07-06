@@ -9,7 +9,7 @@ import '../services/supabase_service.dart';
 import '../models/form_config.dart';
 import '../widgets/web_file_picker.dart';
 
-const _blue  = Color(0xFF0D47A1);
+const _blue  = Color(0xFF2563EB);
 
 class CandidateApplicationFormPage extends StatefulWidget {
   final String? version;
@@ -180,7 +180,7 @@ class _CandidateApplicationFormPageState
           ..clearSnackBars()
           ..showSnackBar(SnackBar(
             content: Text('File added: ${rawFile.name}'),
-            backgroundColor: const Color(0xFF2E7D32),
+            backgroundColor: const Color(0xFF22C55E),
             duration: const Duration(seconds: 3),
           ));
       }
@@ -278,7 +278,7 @@ class _CandidateApplicationFormPageState
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: checked ? _blue : const Color(0xFFE0E0E0),
+                color: checked ? _blue : const Color(0xFFE5E7EB),
               ),
             ),
             child: Row(children: [
@@ -286,7 +286,7 @@ class _CandidateApplicationFormPageState
                 checked
                     ? Icons.check_box_rounded
                     : Icons.check_box_outline_blank_rounded,
-                color: checked ? _blue : const Color(0xFFBBBBBB),
+                color: checked ? _blue : const Color(0xFFE5E7EB),
                 size: 22,
               ),
               const SizedBox(width: 10),
@@ -294,7 +294,7 @@ class _CandidateApplicationFormPageState
                 child: Text(
                   isRequired ? '$label *' : label,
                   style: const TextStyle(
-                      fontSize: 13, color: Color(0xFF37474F)),
+                      fontSize: 13, color: Color(0xFF6B7280)),
                 ),
               ),
             ]),
@@ -533,7 +533,7 @@ class _CandidateApplicationFormPageState
           ]),
           content: Text(
             'Error: ${e.toString()}\n\nPlease make sure the database table is set up correctly.',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF37474F)),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
           actions: [
             ElevatedButton(
@@ -565,7 +565,7 @@ class _CandidateApplicationFormPageState
         ]),
         content: const Text(
           'Your application has been submitted successfully. We will get back to you soon.',
-          style: TextStyle(color: Color(0xFF37474F)),
+          style: TextStyle(color: Color(0xFF6B7280)),
         ),
         actions: [
           ElevatedButton(
@@ -619,7 +619,7 @@ class _CandidateApplicationFormPageState
       return Theme(
         data: ThemeData.light(),
         child: const Scaffold(
-          backgroundColor: Color(0xFFF5F7FA),
+          backgroundColor: Color(0xFFF8FAFC),
           body: Center(child: CircularProgressIndicator(color: _blue)),
         ),
       );
@@ -649,14 +649,14 @@ class _CandidateApplicationFormPageState
                 Text('Candidate Application Form',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
                 Text('Fill in all details carefully',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),
             TextButton.icon(
               onPressed: _resetForm,
               icon: const Icon(Icons.clear_all_rounded, size: 16),
               label: const Text('Clear'),
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFF78909C)),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280)),
             ),
           ]),
         ),
@@ -858,7 +858,7 @@ class _CandidateApplicationFormPageState
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: _resumeFileName != null ? _blue : const Color(0xFFE0E0E0),
+                              color: _resumeFileName != null ? _blue : const Color(0xFFE5E7EB),
                               width: _resumeFileName != null ? 1.5 : 1,
                             ),
                           ),
@@ -875,21 +875,21 @@ class _CandidateApplicationFormPageState
                                 ),
                                 const SizedBox(width: 10),
                                 const Expanded(child: Text('Resume',
-                                  style: TextStyle(fontSize: 13, color: Color(0xFF37474F), fontWeight: FontWeight.w500))),
+                                  style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w500))),
                               ]),
                             ),
                             if (_resumeFileName != null) ...[
-                              const Divider(height: 1, color: Color(0xFFE8EAF6)),
+                              const Divider(height: 1, color: Color(0xFFEFF6FF)),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                  decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(7)),
+                                  decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(7)),
                                   child: Row(children: [
-                                    const Icon(Icons.insert_drive_file_rounded, size: 16, color: Color(0xFF2E7D32)),
+                                    const Icon(Icons.insert_drive_file_rounded, size: 16, color: Color(0xFF22C55E)),
                                     const SizedBox(width: 8),
                                     Expanded(child: Text(_resumeFileName!,
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF1B5E20), fontWeight: FontWeight.w500),
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFF15803D), fontWeight: FontWeight.w500),
                                       overflow: TextOverflow.ellipsis)),
                                     const SizedBox(width: 6),
                                     GestureDetector(
@@ -973,7 +973,7 @@ class _CandidateApplicationFormPageState
                       _FormSection(icon: Icons.verified_rounded, title: _secTitle('declaration', 'Declaration'), children: [
                         RichText(
                           text: const TextSpan(
-                            style: TextStyle(fontSize: 13, color: Color(0xFF37474F), height: 1.6),
+                            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), height: 1.6),
                             children: [
                               TextSpan(text: 'I, '),
                               TextSpan(text: '___________________________',
@@ -1002,8 +1002,8 @@ class _CandidateApplicationFormPageState
                             duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
                               color: _declarationAgreed
-                                  ? const Color(0xFFE8F5E9)
-                                  : const Color(0xFFFFF8E1),
+                                  ? const Color(0xFFDCFCE7)
+                                  : const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: _declarationAgreed
@@ -1020,7 +1020,7 @@ class _CandidateApplicationFormPageState
                               controlAffinity: ListTileControlAffinity.leading,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                               title: const Text('I AGREE TO THE ABOVE DECLARATION  *',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
                             ),
                           ),
                         ..._renderCustomFields(_sectionCustomFields('declaration'), narrow),
@@ -1141,7 +1141,7 @@ class _EducationTableState extends State<_EducationTable> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Sub-header: Standing Arrears
@@ -1150,12 +1150,12 @@ class _EducationTableState extends State<_EducationTable> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: const BoxDecoration(
             color: Color(0xFFF8F9FA),
-            border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0))),
+            border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
           ),
           child: Row(children: [
             const Text('Standing Arrears in Degree, if any',
                 style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic,
-                    color: Color(0xFF37474F))),
+                    color: Color(0xFF6B7280))),
             const SizedBox(width: 16),
             _arrearOption('Yes'),
             const SizedBox(width: 12),
@@ -1168,7 +1168,7 @@ class _EducationTableState extends State<_EducationTable> {
           scrollDirection: Axis.horizontal,
           child: Column(children: [
             Container(
-              color: const Color(0xFFE3F2FD),
+              color: const Color(0xFFEFF6FF),
               child: Row(
                 children: List.generate(headers.length, (i) => Container(
                   width: colWidths[i],
@@ -1176,7 +1176,7 @@ class _EducationTableState extends State<_EducationTable> {
                   decoration: BoxDecoration(
                     border: Border(
                       right: i < headers.length - 1
-                          ? const BorderSide(color: Color(0xFFCCCCCC))
+                          ? const BorderSide(color: Color(0xFFE5E7EB))
                           : BorderSide.none,
                     ),
                   ),
@@ -1186,7 +1186,7 @@ class _EducationTableState extends State<_EducationTable> {
                 )),
               ),
             ),
-            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             // Data rows
             ...widget.rows.asMap().entries.map((e) {
               final idx = e.key;
@@ -1198,10 +1198,10 @@ class _EducationTableState extends State<_EducationTable> {
                     width: colWidths[0],
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                     decoration: const BoxDecoration(
-                      border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+                      border: Border(right: BorderSide(color: Color(0xFFE5E7EB))),
                     ),
                     child: Text(row.academics,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ),
                   _eCell(row.degree,  colWidths[1]),
                   _eCell(row.college, colWidths[2]),
@@ -1221,7 +1221,7 @@ class _EducationTableState extends State<_EducationTable> {
                   ),
                 ]),
                 if (idx < widget.rows.length - 1)
-                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
               ]);
             }),
           ]),
@@ -1240,7 +1240,7 @@ class _EducationTableState extends State<_EducationTable> {
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
       ),
-      Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
+      Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
     ]);
   }
 
@@ -1254,7 +1254,7 @@ class _EducationTableState extends State<_EducationTable> {
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
       ),
-      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF37474F))),
+      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
     ]);
   }
 
@@ -1265,7 +1265,7 @@ class _EducationTableState extends State<_EducationTable> {
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: const BoxDecoration(
-        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+        border: Border(right: BorderSide(color: Color(0xFFE5E7EB))),
       ),
       child: TextField(
         controller: ctrl,
@@ -1274,16 +1274,16 @@ class _EducationTableState extends State<_EducationTable> {
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+          hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFE5E7EB)),
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
@@ -1373,13 +1373,13 @@ class _EmpHistoryTable extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Column(
           children: [
             // Header row
             Container(
-              color: const Color(0xFFE3F2FD),
+              color: const Color(0xFFEFF6FF),
               child: Row(
                 children: List.generate(headers.length, (i) => Container(
                   width: widths[i],
@@ -1387,7 +1387,7 @@ class _EmpHistoryTable extends StatelessWidget {
                   decoration: BoxDecoration(
                     border: Border(
                       right: i < headers.length - 1
-                          ? const BorderSide(color: Color(0xFFCCCCCC))
+                          ? const BorderSide(color: Color(0xFFE5E7EB))
                           : BorderSide.none,
                     ),
                   ),
@@ -1397,7 +1397,7 @@ class _EmpHistoryTable extends StatelessWidget {
                 )),
               ),
             ),
-            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             // Data rows
             ...rows.asMap().entries.map((e) => Column(children: [
               Row(
@@ -1413,7 +1413,7 @@ class _EmpHistoryTable extends StatelessWidget {
                 ],
               ),
               if (e.key < rows.length - 1)
-                const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
             ])),
           ],
         ),
@@ -1432,7 +1432,7 @@ class _EmpHistoryTable extends StatelessWidget {
         border: Border(
           right: last
               ? BorderSide.none
-              : const BorderSide(color: Color(0xFFEEEEEE)),
+              : const BorderSide(color: Color(0xFFE5E7EB)),
         ),
       ),
       child: TextField(
@@ -1442,16 +1442,16 @@ class _EmpHistoryTable extends StatelessWidget {
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+          hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFE5E7EB)),
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
@@ -1481,11 +1481,11 @@ class _ReferralTable extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Column(children: [
           Container(
-            color: const Color(0xFFE3F2FD),
+            color: const Color(0xFFEFF6FF),
             child: Row(
               children: List.generate(headers.length, (i) => Container(
                 width: widths[i],
@@ -1493,7 +1493,7 @@ class _ReferralTable extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border(
                     right: i < headers.length - 1
-                        ? const BorderSide(color: Color(0xFFCCCCCC))
+                        ? const BorderSide(color: Color(0xFFE5E7EB))
                         : BorderSide.none,
                   ),
                 ),
@@ -1503,7 +1503,7 @@ class _ReferralTable extends StatelessWidget {
               )),
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
           ...rows.asMap().entries.map((e) => Column(children: [
             Row(children: [
               _rCell(e.value.name,         widths[0], last: false),
@@ -1514,7 +1514,7 @@ class _ReferralTable extends StatelessWidget {
                   keyboard: TextInputType.phone),
             ]),
             if (e.key < rows.length - 1)
-              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const Divider(height: 1, color: Color(0xFFE5E7EB)),
           ])),
         ]),
       ),
@@ -1530,7 +1530,7 @@ class _ReferralTable extends StatelessWidget {
         border: Border(
           right: last
               ? BorderSide.none
-              : const BorderSide(color: Color(0xFFEEEEEE)),
+              : const BorderSide(color: Color(0xFFE5E7EB)),
         ),
       ),
       child: TextField(
@@ -1542,11 +1542,11 @@ class _ReferralTable extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
@@ -1575,7 +1575,7 @@ class _FormSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8EAF6)),
+        border: Border.all(color: const Color(0xFFEFF6FF)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1616,10 +1616,10 @@ class _SectionHeader extends StatelessWidget {
       Flexible(
         child: Text(title,
             style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+                fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
       ),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
     ]);
   }
 }
@@ -1653,14 +1653,14 @@ class _Field extends StatelessWidget {
       decoration: InputDecoration(
         labelText: required ? '$label *' : label,
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 12, color: Color(0xFFBBBBBB)),
-        labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+        hintStyle: const TextStyle(fontSize: 12, color: Color(0xFFE5E7EB)),
+        labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
         filled: true, fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -1694,14 +1694,14 @@ class _DateField extends StatelessWidget {
           validator: required ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
           decoration: InputDecoration(
             labelText: required ? '$label *' : label,
-            labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+            labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
             suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: _blue),
             filled: true, fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -1766,7 +1766,7 @@ class _CustomFileUploader extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: fileName != null ? _blue : const Color(0xFFE0E0E0),
+          color: fileName != null ? _blue : const Color(0xFFE5E7EB),
         ),
       ),
       child: Column(
@@ -1777,7 +1777,7 @@ class _CustomFileUploader extends StatelessWidget {
             style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF37474F)),
+                color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 10),
           Row(children: [
@@ -1805,7 +1805,7 @@ class _CustomFileUploader extends StatelessWidget {
                         fontSize: 12,
                         color: fileName != null
                             ? _blue
-                            : const Color(0xFF78909C),
+                            : const Color(0xFF6B7280),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1815,7 +1815,7 @@ class _CustomFileUploader extends StatelessWidget {
                           ? 'JPG / PNG — auto-compressed to ≤200 KB'
                           : 'PDF, DOC, DOCX, XLS, XLSX accepted',
                       style: const TextStyle(
-                          fontSize: 11, color: Color(0xFFBBBBBB))),
+                          fontSize: 11, color: Color(0xFFE5E7EB))),
                   ]),
             ),
             const SizedBox(width: 12),
@@ -1858,7 +1858,7 @@ class _CustomDateField extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: value != null ? _blue : const Color(0xFFE0E0E0),
+            color: value != null ? _blue : const Color(0xFFE5E7EB),
           ),
         ),
         child: Row(children: [
@@ -1868,14 +1868,14 @@ class _CustomDateField extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 color: formatted != null
-                    ? const Color(0xFF37474F)
-                    : const Color(0xFF78909C),
+                    ? const Color(0xFF6B7280)
+                    : const Color(0xFF6B7280),
               ),
             ),
           ),
           Icon(Icons.calendar_today_rounded,
               size: 18,
-              color: value != null ? _blue : const Color(0xFFBBBBBB)),
+              color: value != null ? _blue : const Color(0xFFE5E7EB)),
         ]),
       ),
     );
@@ -1899,12 +1899,12 @@ class _RadioGroup extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(required ? '$label *' : label,
             style: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF37474F))),
+                fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
         const SizedBox(height: 8),
         wrap
             ? Wrap(children: options.map((opt) => SizedBox(

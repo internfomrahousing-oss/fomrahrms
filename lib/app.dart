@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
+import 'models/color_theme_notifier.dart';
 import 'models/user_session.dart';
 import 'models/theme_notifier.dart';
 import 'pages/settings_page.dart';
@@ -113,7 +114,7 @@ final _router = GoRouter(
   errorBuilder: (context, state) => Scaffold(
     body: Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline, size: 48, color: Color(0xFF0D47A1)),
+        const Icon(Icons.error_outline, size: 48, color: Color(0xFF2563EB)),
         const SizedBox(height: 16),
         const Text('Page not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
@@ -164,19 +165,19 @@ final _router = GoRouter(
         GoRoute(path: '/attendance/late-coming',           builder: (_, __) => const LateComingPage()),
         GoRoute(path: '/attendance/employee-records', builder: (_, __) => const HrAttendanceRecordsPage(routePrefix: '')),
         GoRoute(path: '/attendance/hr/check-in',      builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'Check In', icon: Icons.login_rounded, color: Color(0xFF0D47A1),
+          title: 'Check In', icon: Icons.login_rounded, color: Color(0xFF2563EB),
           columns: ['Employee', 'Date', 'Check-In Time', 'GPS Location', 'Status'],
         )),
         GoRoute(path: '/attendance/hr/check-out',     builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'Check Out', icon: Icons.logout_rounded, color: Color(0xFF1565C0),
+          title: 'Check Out', icon: Icons.logout_rounded, color: Color(0xFF3B82F6),
           columns: ['Employee', 'Date', 'Check-Out Time', 'GPS Location', 'Status'],
         )),
         GoRoute(path: '/attendance/hr/gps-tracking',  builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'GPS Tracking', icon: Icons.location_on_rounded, color: Color(0xFF0288D1),
+          title: 'GPS Tracking', icon: Icons.location_on_rounded, color: Color(0xFF3B82F6),
           columns: ['Employee', 'Date', 'Last Location', 'Route Points', 'Time'],
         )),
         GoRoute(path: '/attendance/hr/late-coming',   builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'Late Coming', icon: Icons.watch_later_rounded, color: Color(0xFF283593),
+          title: 'Late Coming', icon: Icons.watch_later_rounded, color: Color(0xFF111827),
           columns: ['Employee', 'Date', 'Arrival Time', 'Late By', 'Deduction'],
         )),
         GoRoute(path: '/employee-management/records', builder: (_, __) => const HrEmployeeRecordsPage()),
@@ -392,7 +393,7 @@ class FomraHrmsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: themeNotifier,
+      listenable: Listenable.merge([themeNotifier, colorThemeNotifier]),
       builder: (_, __) => MaterialApp.router(
         title: 'FOMRA HRMS',
         debugShowCheckedModeBanner: false,

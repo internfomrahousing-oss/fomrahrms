@@ -5,7 +5,7 @@ import '../models/candidate_store.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
 
-const _blue = Color(0xFF1A237E);
+const _blue = Color(0xFF111827);
 
 class ManagerInterviewReviewPage extends StatefulWidget {
   const ManagerInterviewReviewPage({super.key});
@@ -62,13 +62,13 @@ class _ManagerInterviewReviewPageState
     switch (status) {
       case 'accepted':
         return _badge('Accepted', Icons.check_circle_rounded,
-            const Color(0xFF2E7D32), const Color(0xFFE8F5E9));
+            const Color(0xFF22C55E), const Color(0xFFDCFCE7));
       case 'rejected':
         return _badge('Rejected', Icons.cancel_rounded,
-            const Color(0xFFC62828), const Color(0xFFFFEBEE));
+            const Color(0xFFEF4444), const Color(0xFFFEE2E2));
       default:
         return _badge('Pending Review', Icons.hourglass_empty_rounded,
-            const Color(0xFFE65100), const Color(0xFFFFF3E0));
+            const Color(0xFFF59E0B), const Color(0xFFFEF3C7));
     }
   }
 
@@ -96,14 +96,14 @@ class _ManagerInterviewReviewPageState
                 fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
             'This will forward the candidate to Management for final approval.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: const Color(0xFF22C55E),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -128,10 +128,10 @@ class _ManagerInterviewReviewPageState
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFC62828))),
+                color: Color(0xFFEF4444))),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Add a comment (optional):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           const SizedBox(height: 12),
           TextField(
             controller: commentCtrl,
@@ -150,7 +150,7 @@ class _ManagerInterviewReviewPageState
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828),
+              backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -269,7 +269,7 @@ class _ManagerInterviewReviewPageState
                   Text(
                     '${_items.length} candidate${_items.length == 1 ? '' : 's'} assigned to you',
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF78909C)),
+                        fontSize: 12, color: Color(0xFF6B7280)),
                   ),
                 ],
               ),
@@ -322,10 +322,10 @@ class _ManagerInterviewReviewPageState
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
                                   color: mStatus == 'accepted'
-                                      ? const Color(0xFFA5D6A7)
+                                      ? const Color(0xFF86EFAC)
                                       : mStatus == 'rejected'
-                                          ? const Color(0xFFEF9A9A)
-                                          : const Color(0xFFE0E0E0),
+                                          ? const Color(0xFFFCA5A5)
+                                          : const Color(0xFFE5E7EB),
                                   width: mStatus != 'pending' ? 1.5 : 1,
                                 ),
                               ),
@@ -397,7 +397,7 @@ class _ManagerInterviewReviewPageState
                                       const SizedBox(height: 8),
                                       const Divider(
                                           height: 1,
-                                          color: Color(0xFFEEEEEE)),
+                                          color: Color(0xFFE5E7EB)),
                                       const SizedBox(height: 6),
                                       if (hrComment.isNotEmpty)
                                         _CommentRow(
@@ -413,7 +413,7 @@ class _ManagerInterviewReviewPageState
                                     const SizedBox(height: 10),
                                     const Divider(
                                         height: 1,
-                                        color: Color(0xFFEEEEEE)),
+                                        color: Color(0xFFE5E7EB)),
                                     const SizedBox(height: 8),
                                     Wrap(
                                         spacing: 8,
@@ -425,7 +425,7 @@ class _ManagerInterviewReviewPageState
                                               icon: Icons
                                                   .check_circle_outline_rounded,
                                               color:
-                                                  const Color(0xFF2E7D32),
+                                                  const Color(0xFF22C55E),
                                               onTap: () =>
                                                   _showAcceptDialog(row),
                                             ),
@@ -433,7 +433,7 @@ class _ManagerInterviewReviewPageState
                                               label: 'Reject',
                                               icon: Icons.cancel_outlined,
                                               color:
-                                                  const Color(0xFFC62828),
+                                                  const Color(0xFFEF4444),
                                               onTap: () =>
                                                   _showRejectDialog(row),
                                             ),
@@ -442,7 +442,7 @@ class _ManagerInterviewReviewPageState
                                             label: 'Comment',
                                             icon: Icons.comment_outlined,
                                             color:
-                                                const Color(0xFF546E7A),
+                                                const Color(0xFF6B7280),
                                             onTap: () =>
                                                 _showCommentDialog(row),
                                           ),
@@ -491,13 +491,13 @@ class _CommentRow extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF546E7A))),
+                  color: Color(0xFF6B7280))),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(text,
               style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF546E7A)),
+                  fontSize: 12, color: Color(0xFF6B7280)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis),
         ),
@@ -550,7 +550,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFBBDEFB)),
+        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFDBEAFE)),
         SizedBox(height: 12),
         Text('No candidates assigned to you',
             style: TextStyle(
@@ -560,7 +560,7 @@ class _EmptyState extends StatelessWidget {
         SizedBox(height: 6),
         Text('HR will assign candidates here for your review.',
             style:
-                TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
     );
   }
@@ -575,7 +575,7 @@ class _ErrorView extends StatelessWidget {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.cloud_off_rounded,
-            size: 52, color: Color(0xFFBBDEFB)),
+            size: 52, color: Color(0xFFDBEAFE)),
         const SizedBox(height: 12),
         const Text('Could not load applications',
             style: TextStyle(
@@ -586,7 +586,7 @@ class _ErrorView extends StatelessWidget {
         Text(error,
             textAlign: TextAlign.center,
             style:
-                const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         const SizedBox(height: 20),
         ElevatedButton.icon(
           onPressed: onRetry,

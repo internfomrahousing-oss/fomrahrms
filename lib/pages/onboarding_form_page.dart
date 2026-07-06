@@ -25,7 +25,7 @@ class OnboardingFormPage extends StatefulWidget {
 }
 
 class _OnboardingFormPageState extends State<OnboardingFormPage> {
-  static const _primary = Color(0xFF0D47A1);
+  static const _primary = Color(0xFF2563EB);
   final _formKey = GlobalKey<FormState>();
   bool _submitted = false;
   bool _saving = false;
@@ -375,8 +375,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: fileName != null
-                  ? const Color(0xFF0D47A1)
-                  : const Color(0xFFE0E0E0),
+                  ? const Color(0xFF2563EB)
+                  : const Color(0xFFE5E7EB),
               width: fileName != null ? 1.5 : 1,
             ),
           ),
@@ -387,7 +387,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 Container(
                   width: 22, height: 22,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D47A1),
+                    color: const Color(0xFF2563EB),
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: const Center(
@@ -401,31 +401,31 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     '$label${isRequired ? ' *' : ''}',
                     style: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF37474F),
+                        color: Color(0xFF6B7280),
                         fontWeight: FontWeight.w500),
                   ),
                 ),
               ]),
             ),
             if (fileName != null) ...[
-              const Divider(height: 1, color: Color(0xFFE8EAF6)),
+              const Divider(height: 1, color: Color(0xFFEFF6FF)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Row(children: [
                     const Icon(Icons.insert_drive_file_rounded,
-                        size: 16, color: Color(0xFF2E7D32)),
+                        size: 16, color: Color(0xFF22C55E)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(fileName,
                           style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF1B5E20),
+                              color: Color(0xFF15803D),
                               fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis),
                     ),
@@ -473,7 +473,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                         ..clearSnackBars()
                         ..showSnackBar(SnackBar(
                           content: Text('File added: ${f.name}'),
-                          backgroundColor: const Color(0xFF2E7D32),
+                          backgroundColor: const Color(0xFF22C55E),
                           duration: const Duration(seconds: 3),
                         ));
                     }
@@ -497,8 +497,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     style: const TextStyle(fontSize: 12),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0D47A1),
-                    side: const BorderSide(color: Color(0xFF0D47A1)),
+                    foregroundColor: const Color(0xFF2563EB),
+                    side: const BorderSide(color: Color(0xFF2563EB)),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -522,7 +522,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('$label${isRequired ? ' *' : ''}',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF37474F),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280),
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
             ...options.map((opt) => RadioListTile<String>(
@@ -533,7 +533,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   groupValue: _customMcqValues[id],
                   onChanged: (v) =>
                       setState(() => _customMcqValues[id] = v),
-                  activeColor: const Color(0xFF0D47A1),
+                  activeColor: const Color(0xFF2563EB),
                   contentPadding: EdgeInsets.zero,
                 )),
           ]),
@@ -561,16 +561,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(9),
-                  borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
               enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(9),
-                  borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(9),
                   borderSide:
-                      const BorderSide(color: Color(0xFF0D47A1), width: 1.5)),
+                      const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
               labelStyle:
-                  const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+                  const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
             ),
           ),
         );
@@ -602,8 +602,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderRadius: BorderRadius.circular(9),
                 border: Border.all(
                   color: picked != null
-                      ? const Color(0xFF0D47A1)
-                      : const Color(0xFFE0E0E0),
+                      ? const Color(0xFF2563EB)
+                      : const Color(0xFFE5E7EB),
                 ),
               ),
               child: Row(children: [
@@ -613,16 +613,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     style: TextStyle(
                       fontSize: 13,
                       color: formatted != null
-                          ? const Color(0xFF37474F)
-                          : const Color(0xFF78909C),
+                          ? const Color(0xFF6B7280)
+                          : const Color(0xFF6B7280),
                     ),
                   ),
                 ),
                 Icon(Icons.calendar_today_rounded,
                     size: 18,
                     color: picked != null
-                        ? const Color(0xFF0D47A1)
-                        : const Color(0xFFBBBBBB)),
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFFE5E7EB)),
               ]),
             ),
           ),
@@ -644,8 +644,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderRadius: BorderRadius.circular(9),
                 border: Border.all(
                   color: checked
-                      ? const Color(0xFF0D47A1)
-                      : const Color(0xFFE0E0E0),
+                      ? const Color(0xFF2563EB)
+                      : const Color(0xFFE5E7EB),
                 ),
               ),
               child: Row(children: [
@@ -654,8 +654,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                       ? Icons.check_box_rounded
                       : Icons.check_box_outline_blank_rounded,
                   color: checked
-                      ? const Color(0xFF0D47A1)
-                      : const Color(0xFFBBBBBB),
+                      ? const Color(0xFF2563EB)
+                      : const Color(0xFFE5E7EB),
                   size: 22,
                 ),
                 const SizedBox(width: 10),
@@ -663,7 +663,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   child: Text(
                     '$label${isRequired ? ' *' : ''}',
                     style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF37474F)),
+                        fontSize: 13, color: Color(0xFF6B7280)),
                   ),
                 ),
               ]),
@@ -689,16 +689,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
                 borderSide: const BorderSide(
-                    color: Color(0xFF0D47A1), width: 1.5)),
+                    color: Color(0xFF2563EB), width: 1.5)),
             labelStyle:
-                const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+                const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
           ),
         ),
       );
@@ -712,7 +712,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     if (_cfgEnabled('hr_policy') && !_policyAgreed) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please read and agree to the HR Policy before submitting.'),
-        backgroundColor: Color(0xFFB71C1C),
+        backgroundColor: Color(0xFFB91C1C),
       ));
       return;
     }
@@ -963,14 +963,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16)],
           ),
           child: const Column(children: [
-            Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 64),
+            Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 64),
             SizedBox(height: 16),
             Text('Form Submitted Successfully!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111827))),
             SizedBox(height: 8),
             Text('Your joining form has been submitted.\nHR will review your details.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF546E7A), fontSize: 14)),
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 14)),
           ]),
         ),
       ]),
@@ -983,7 +983,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-          colors: [_primary, Color(0xFF1565C0)],
+          colors: [_primary, Color(0xFF3B82F6)],
           begin: Alignment.topLeft, end: Alignment.bottomRight),
       borderRadius: BorderRadius.circular(16),
     ),
@@ -1069,9 +1069,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FF),
+      color: const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFE0E0E0)),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -1154,9 +1154,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FF),
+      color: const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFE0E0E0)),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -1217,9 +1217,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FF),
+      color: const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFE0E0E0)),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -1337,7 +1337,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         padding: const EdgeInsets.only(top: 4, bottom: 4),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Aadhar Copy',
-              style: TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
           const SizedBox(height: 6),
           _fileUploadTile(
             label: 'Upload Aadhar Copy (PDF / image · max 1 MB)',
@@ -1371,8 +1371,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: files.isNotEmpty
-                  ? const Color(0xFF0D47A1)
-                  : const Color(0xFFE0E0E0),
+                  ? const Color(0xFF2563EB)
+                  : const Color(0xFFE5E7EB),
               width: files.isNotEmpty ? 1.5 : 1,
             ),
           ),
@@ -1384,7 +1384,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 Container(
                   width: 22, height: 22,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D47A1),
+                    color: const Color(0xFF2563EB),
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: Center(
@@ -1400,7 +1400,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   child: Text(_docLabels[i],
                       style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF37474F),
+                          color: Color(0xFF6B7280),
                           fontWeight: FontWeight.w500)),
                 ),
               ]),
@@ -1408,7 +1408,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
             // Uploaded files list
             if (files.isNotEmpty) ...[
-              const Divider(height: 1, color: Color(0xFFE8EAF6)),
+              const Divider(height: 1, color: Color(0xFFEFF6FF)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                 child: Column(
@@ -1417,18 +1417,18 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 7),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Row(children: [
                       const Icon(Icons.insert_drive_file_rounded,
-                          size: 16, color: Color(0xFF2E7D32)),
+                          size: 16, color: Color(0xFF22C55E)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(e.value.name,
                             style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF1B5E20),
+                                color: Color(0xFF15803D),
                                 fontWeight: FontWeight.w500),
                             overflow: TextOverflow.ellipsis),
                       ),
@@ -1479,8 +1479,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                       files.isEmpty ? 'Add File' : 'Add More',
                       style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0D47A1),
-                    side: const BorderSide(color: Color(0xFF0D47A1)),
+                    foregroundColor: const Color(0xFF2563EB),
+                    side: const BorderSide(color: Color(0xFF2563EB)),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
                     minimumSize: Size.zero,
@@ -1514,14 +1514,14 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           decoration: BoxDecoration(
             color: const Color(0xFFF1F8E9),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFA5D6A7)),
+            border: Border.all(color: const Color(0xFF86EFAC)),
           ),
           child: Column(children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: const BoxDecoration(
-                color: Color(0xFF1B5E20),
+                color: Color(0xFF15803D),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
               ),
               child: const Row(children: [
@@ -1560,12 +1560,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: _policyAgreed
-                  ? const Color(0xFFE8F5E9)
-                  : const Color(0xFFFFF3E0),
+                  ? const Color(0xFFDCFCE7)
+                  : const Color(0xFFFEF3C7),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: _policyAgreed
-                    ? const Color(0xFF2E7D32)
+                    ? const Color(0xFF22C55E)
                     : const Color(0xFFF57C00),
                 width: 1.5,
               ),
@@ -1576,7 +1576,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     ? Icons.check_box_rounded
                     : Icons.check_box_outline_blank_rounded,
                 color: _policyAgreed
-                    ? const Color(0xFF2E7D32)
+                    ? const Color(0xFF22C55E)
                     : const Color(0xFFF57C00),
                 size: 22,
               ),
@@ -1588,12 +1588,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF37474F)),
+                        color: Color(0xFF6B7280)),
                   ),
                   SizedBox(height: 2),
                   Text(
                     'This is mandatory. You must accept before submitting the form.',
-                    style: TextStyle(fontSize: 10, color: Color(0xFF78909C)),
+                    style: TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
                   ),
                 ]),
               ),
@@ -1647,7 +1647,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         ),
         const Expanded(
           child: Text('I agree to the above declaration',
-              style: TextStyle(fontSize: 13, color: Color(0xFF37474F))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         ),
       ]),
       ..._renderCustomFields(_cfgCustomFields('declaration')),
@@ -1687,7 +1687,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0xFFE8EAF6)),
+          side: const BorderSide(color: Color(0xFFEFF6FF)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -1710,11 +1710,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A237E))),
+                          color: Color(0xFF111827))),
                   if (subtitle != null)
                     Text(subtitle,
                         style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF78909C))),
+                            fontSize: 11, color: Color(0xFF6B7280))),
                 ]),
               ),
             ]),
@@ -1755,10 +1755,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 10 : 14),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
                 borderSide: const BorderSide(color: _primary, width: 1.5)),
@@ -1766,7 +1766,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderRadius: BorderRadius.circular(9),
                 borderSide: const BorderSide(color: Colors.red)),
             labelStyle:
-                const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+                const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
           ),
         ),
       );
@@ -1797,16 +1797,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     horizontal: 12, vertical: compact ? 10 : 14),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(9),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
                 enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(9),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(9),
                     borderSide:
                         const BorderSide(color: _primary, width: 1.5)),
                 labelStyle:
-                    const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+                    const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
               ),
             ),
           ),
@@ -1834,17 +1834,17 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
                 borderSide: const BorderSide(color: _primary, width: 1.5)),
             labelStyle:
-                const TextStyle(color: Color(0xFF546E7A), fontSize: 13),
+                const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
           ),
-          style: const TextStyle(fontSize: 13, color: Color(0xFF37474F)),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           items: items
               .map((item) => DropdownMenuItem<String>(
                     value: item,
@@ -1868,19 +1868,19 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9),
+          color: const Color(0xFFDCFCE7),
           borderRadius: BorderRadius.circular(9),
           border: Border.all(color: const Color(0xFF4CAF50)),
         ),
         child: Row(children: [
           const Icon(Icons.insert_drive_file_rounded,
-              size: 15, color: Color(0xFF2E7D32)),
+              size: 15, color: Color(0xFF22C55E)),
           const SizedBox(width: 6),
           Expanded(
             child: Text(file.name,
                 style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF1B5E20),
+                    color: Color(0xFF15803D),
                     fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis),
           ),
@@ -1938,5 +1938,5 @@ class _SectionLabel extends StatelessWidget {
       style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: Color(0xFF546E7A)));
+          color: Color(0xFF6B7280)));
 }

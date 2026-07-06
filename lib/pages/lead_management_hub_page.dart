@@ -13,7 +13,7 @@ class LeadManagementHubPage extends StatefulWidget {
 }
 
 class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
-  static const _blue   = Color(0xFF0D47A1);
+  static const _blue   = Color(0xFF2563EB);
 
   List<LeadSource> _sources = [];
   bool _loading = true;
@@ -64,7 +64,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A237E))),
+                            color: Color(0xFF111827))),
                     const SizedBox(height: 8),
                     ...[
                       '1. Create a Google Sheet with column headers in row 1',
@@ -75,7 +75,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(step,
                               style: const TextStyle(
-                                  fontSize: 11.5, color: Color(0xFF283593))),
+                                  fontSize: 11.5, color: Color(0xFF111827))),
                         )),
                   ],
                 ),
@@ -243,7 +243,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0D47A1),
+                  color: Color(0xFF2563EB),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Row(children: [
@@ -278,7 +278,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A237E)),
+                            color: Color(0xFF111827)),
                       ),
                       const SizedBox(height: 14),
                       _guideStep('1', 'Create the Google Sheet',
@@ -324,7 +324,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
           Container(
             width: 26, height: 26,
             decoration: const BoxDecoration(
-              color: Color(0xFF0D47A1),
+              color: Color(0xFF2563EB),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -344,11 +344,11 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A237E))),
+                        color: Color(0xFF111827))),
                 const SizedBox(height: 3),
                 Text(body,
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF546E7A), height: 1.4)),
+                        fontSize: 12, color: Color(0xFF6B7280), height: 1.4)),
               ],
             ),
           ),
@@ -409,7 +409,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                             Text(
                               '${_sources.length} source${_sources.length == 1 ? '' : 's'}',
                               style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF78909C)),
+                                  fontSize: 12, color: Color(0xFF6B7280)),
                             ),
                           ]),
                     ),
@@ -436,7 +436,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                           const SizedBox(height: 6),
                           const Text('Tap "Add New" to connect a Google Sheet',
                               style: TextStyle(
-                                  fontSize: 12, color: Color(0xFF78909C))),
+                                  fontSize: 12, color: Color(0xFF6B7280))),
                         ]),
                       ),
                     )
@@ -562,10 +562,10 @@ class _SourceCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A237E))),
+                          color: Color(0xFF111827))),
                   const SizedBox(height: 3),
                   const Text('Tap to view leads',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                 ],
               ),
             ),
@@ -573,7 +573,7 @@ class _SourceCard extends StatelessWidget {
             // Options menu
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded,
-                  size: 20, color: Color(0xFF78909C)),
+                  size: 20, color: Color(0xFF6B7280)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               onSelected: (v) {
@@ -760,7 +760,7 @@ function respond(data) {
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: _copied
-                        ? const Color(0xFF2E7D32)
+                        ? const Color(0xFF22C55E)
                         : const Color(0xFF3A3A3A),
                     borderRadius: BorderRadius.circular(5),
                   ),
@@ -772,7 +772,7 @@ function respond(data) {
                       size: 12,
                       color: _copied
                           ? Colors.white
-                          : const Color(0xFFCCCCCC),
+                          : const Color(0xFFE5E7EB),
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -781,7 +781,7 @@ function respond(data) {
                           fontSize: 11,
                           color: _copied
                               ? Colors.white
-                              : const Color(0xFFCCCCCC)),
+                              : const Color(0xFFE5E7EB)),
                     ),
                   ]),
                 ),

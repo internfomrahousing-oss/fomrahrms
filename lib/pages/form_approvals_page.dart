@@ -4,8 +4,8 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 
-const _blue  = Color(0xFF0D47A1);
-const _green = Color(0xFF2E7D32);
+const _blue  = Color(0xFF2563EB);
+const _green = Color(0xFF22C55E);
 
 class FormApprovalsPage extends StatefulWidget {
   const FormApprovalsPage({super.key});
@@ -179,7 +179,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                   Text('Form Change Approvals',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
                   Text('Approve or reject HR requests to update employee-facing forms',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                 ]),
               ),
               IconButton(
@@ -192,7 +192,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
             TabBar(
               controller: _tabs,
               labelColor: _blue,
-              unselectedLabelColor: const Color(0xFF78909C),
+              unselectedLabelColor: const Color(0xFF6B7280),
               indicatorColor: _blue,
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               isScrollable: true,
@@ -334,14 +334,14 @@ class _VersionList extends StatelessWidget {
           const SizedBox(height: 20),
         ],
         if (resolved.isNotEmpty) ...[
-          const _SectionLabel('History', Color(0xFF78909C), Icons.history_rounded),
+          const _SectionLabel('History', Color(0xFF6B7280), Icons.history_rounded),
           const SizedBox(height: 8),
           ...resolved.map((v) => _VersionCard(version: v)),
         ],
         if (pending.isEmpty && resolved.isEmpty)
           Center(
             child: Text('No versions yet for $formLabel',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF90A4AE))),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           ),
       ],
     );
@@ -401,13 +401,13 @@ class _VersionCard extends StatelessWidget {
     String statusLabel;
     switch (status) {
       case 'approved':
-        statusBg = const Color(0xFFE8F5E9); statusFg = const Color(0xFF2E7D32);
+        statusBg = const Color(0xFFDCFCE7); statusFg = const Color(0xFF22C55E);
         statusIcon = Icons.check_circle_rounded; statusLabel = 'Approved';
       case 'rejected':
-        statusBg = const Color(0xFFFFEBEE); statusFg = const Color(0xFFC62828);
+        statusBg = const Color(0xFFFEE2E2); statusFg = const Color(0xFFEF4444);
         statusIcon = Icons.cancel_rounded; statusLabel = 'Rejected';
       default:
-        statusBg = const Color(0xFFFFF3E0); statusFg = const Color(0xFFE65100);
+        statusBg = const Color(0xFFFEF3C7); statusFg = const Color(0xFFF59E0B);
         statusIcon = Icons.hourglass_empty_rounded; statusLabel = 'Pending';
     }
 
@@ -420,7 +420,7 @@ class _VersionCard extends StatelessWidget {
         border: Border.all(
           color: status == 'pending'
               ? Colors.orange.shade200
-              : const Color(0xFFE0E0E0),
+              : const Color(0xFFE5E7EB),
           width: status == 'pending' ? 1.5 : 1,
         ),
       ),
@@ -441,10 +441,10 @@ class _VersionCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (createdBy.isNotEmpty)
                 Text('By $createdBy',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               if (dateStr.isNotEmpty)
                 Text(dateStr,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             ]),
           ),
           Container(
@@ -464,18 +464,18 @@ class _VersionCard extends StatelessWidget {
         if (approvedBy.isNotEmpty && status == 'approved') ...[
           const SizedBox(height: 5),
           Text('Approved by $approvedBy',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32))),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF22C55E))),
         ],
 
         if (rejection.isNotEmpty && status == 'rejected') ...[
           const SizedBox(height: 5),
           Text('Reason: $rejection',
-              style: const TextStyle(fontSize: 11, color: Color(0xFFC62828))),
+              style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444))),
         ],
 
         if (status == 'pending' && onApprove != null) ...[
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
           const SizedBox(height: 10),
           Row(children: [
             OutlinedButton.icon(
@@ -526,10 +526,10 @@ class _PolicyVersionList extends StatelessWidget {
     if (versions.isEmpty) {
       return const Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.policy_rounded, size: 48, color: Color(0xFFBBDEFB)),
+          Icon(Icons.policy_rounded, size: 48, color: Color(0xFFDBEAFE)),
           SizedBox(height: 12),
           Text('No HR Policy versions yet.',
-              style: TextStyle(color: Color(0xFF78909C))),
+              style: TextStyle(color: Color(0xFF6B7280))),
         ]),
       );
     }
@@ -583,7 +583,7 @@ class _PolicyVersionList extends StatelessWidget {
                     fontSize: 13, fontWeight: FontWeight.w600)),
             subtitle: Text(
               'By $createdBy  •  ${createdAt.length >= 10 ? createdAt.substring(0, 10) : createdAt}',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
             ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -603,7 +603,7 @@ class _PolicyVersionList extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -611,14 +611,14 @@ class _PolicyVersionList extends StatelessWidget {
                       ? '${content.substring(0, 300)}…'
                       : content,
                   style: const TextStyle(fontSize: 12, height: 1.5,
-                      color: Color(0xFF546E7A)),
+                      color: Color(0xFF6B7280)),
                 ),
               ),
               if (approvedBy.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text('Decision by: $approvedBy',
                     style: const TextStyle(
-                        fontSize: 11, color: Color(0xFF78909C))),
+                        fontSize: 11, color: Color(0xFF6B7280))),
               ],
               if (rejNote.isNotEmpty) ...[
                 const SizedBox(height: 4),

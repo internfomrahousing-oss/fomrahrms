@@ -15,37 +15,37 @@ final _sectionMap = {
   'employee': const _SectionData(
     'Employee Summary',
     Icons.people_rounded,
-    Color(0xFF0D47A1),
+    Color(0xFF2563EB),
     ['Total Employees', 'Active Employees', 'Employees on Leave', 'Employees on Permission', 'Employees Working Remotely'],
   ),
   'attendance': const _SectionData(
     'Attendance Summary',
     Icons.access_time_rounded,
-    Color(0xFF2E7D32),
+    Color(0xFF22C55E),
     ['Present Today', 'Absent Today', 'Late Arrivals', 'On Permission', 'Comp Off', 'On Duty'],
   ),
   'task': const _SectionData(
     'Task Summary',
     Icons.task_alt_rounded,
-    Color(0xFF6A1B9A),
+    Color(0xFF2563EB),
     ['Tasks Assigned', 'Tasks In Progress', 'Tasks Completed', 'Overdue Tasks', 'Productivity Percentage'],
   ),
   'performance': const _SectionData(
     'Performance Summary',
     Icons.trending_up_rounded,
-    Color(0xFF00695C),
+    Color(0xFF15803D),
     ['Top Performers', 'Low Performers', 'Department Performance Score', 'Employee Ranking'],
   ),
   'payroll': const _SectionData(
     'Payroll Summary',
     Icons.account_balance_wallet_rounded,
-    Color(0xFF1565C0),
+    Color(0xFF3B82F6),
     ['Payroll Processed', 'Pending Payroll', 'Total Salary Expense', 'Incentives Generated'],
   ),
   'lead': const _SectionData(
     'Lead & Marketing Summary',
     Icons.leaderboard_rounded,
-    Color(0xFFE65100),
+    Color(0xFFF59E0B),
     ['Total Leads', 'New Leads', 'Converted Leads', 'Active Campaigns', 'Campaign ROI'],
   ),
   'maintenance': const _SectionData(
@@ -57,13 +57,13 @@ final _sectionMap = {
   'approvals': const _SectionData(
     'Approvals Summary',
     Icons.approval_rounded,
-    Color(0xFFC62828),
+    Color(0xFFEF4444),
     ['Leave Approvals Pending', 'Task Approvals Pending', 'Payroll Approvals Pending'],
   ),
   'notifications': const _SectionData(
     'Notifications',
     Icons.notifications_rounded,
-    Color(0xFF283593),
+    Color(0xFF111827),
     ['Alerts', 'Announcements', 'Policy Updates'],
   ),
 };

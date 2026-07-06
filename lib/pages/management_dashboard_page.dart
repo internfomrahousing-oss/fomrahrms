@@ -5,6 +5,7 @@ import '../services/user_store.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/stat_strip.dart';
+import '../widgets/theme_picker_block.dart';
 import '../widgets/welcome_banner.dart';
 
 
@@ -16,7 +17,7 @@ class _Section {
   const _Section(this.title, this.icon, this.color, this.route);
 }
 
-const _teal = Color(0xFF00695C);
+const _teal = Color(0xFF15803D);
 
 const _sections = [
   _Section('Employee Summary',     Icons.people_rounded,          _teal, '/management/employee-management'),
@@ -91,11 +92,14 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
 
                   const AttendanceShortcutCard(
                     attendanceRoute: '/management/my-attendance',
-                    accentColor: Color(0xFF1565C0),
+                    accentColor: Color(0xFF3B82F6),
                   ),
                   SizedBox(height: narrow ? 20 : 28),
 
                   const DashboardInfoBlocks(canEdit: true),
+                  SizedBox(height: narrow ? 20 : 28),
+
+                  const ThemePickerBlock(),
                   SizedBox(height: narrow ? 20 : 28),
 
                   _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),

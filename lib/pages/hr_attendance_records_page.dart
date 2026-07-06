@@ -18,7 +18,7 @@ class HrAttendanceRecordsPage extends StatefulWidget {
 }
 
 class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   String _search = '';
   DateTime _selectedDate = DateTime.now();
@@ -244,7 +244,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                               color: _color)),
                       Text('View monthly attendance calendar per employee',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                          style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                     ]),
                   ),
                   const Icon(Icons.chevron_right_rounded, color: _color),
@@ -266,7 +266,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -320,7 +320,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
   final int totalUsers;
   const _AttendanceSummaryCard({required this.records, required this.totalUsers});
 
-  static const _green = Color(0xFF2E7D32);
+  static const _green = Color(0xFF22C55E);
 
   @override
   Widget build(BuildContext context) {
@@ -329,11 +329,11 @@ class _AttendanceSummaryCard extends StatelessWidget {
 
     final stats = [
       ('Present', '$present', Icons.check_circle_rounded, _green),
-      ('Absent',  '$absent',  Icons.cancel_rounded,       const Color(0xFFC62828)),
-      ('Late Arrivals', '—', Icons.schedule_rounded,      const Color(0xFFE65100)),
-      ('On Permission', '—', Icons.event_note_rounded,    const Color(0xFF1565C0)),
-      ('Comp Off',      '—', Icons.weekend_rounded,       const Color(0xFF6A1B9A)),
-      ('On Duty',       '—', Icons.work_rounded,          const Color(0xFF00695C)),
+      ('Absent',  '$absent',  Icons.cancel_rounded,       const Color(0xFFEF4444)),
+      ('Late Arrivals', '—', Icons.schedule_rounded,      const Color(0xFFF59E0B)),
+      ('On Permission', '—', Icons.event_note_rounded,    const Color(0xFF3B82F6)),
+      ('Comp Off',      '—', Icons.weekend_rounded,       const Color(0xFF2563EB)),
+      ('On Duty',       '—', Icons.work_rounded,          const Color(0xFF15803D)),
     ];
 
     return Card(
@@ -352,7 +352,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
             const SizedBox(width: 10),
             const Text('Summary',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                    color: Color(0xFF2E7D32))),
+                    color: Color(0xFF22C55E))),
           ]),
           const SizedBox(height: 14),
           const Divider(height: 1),
@@ -397,7 +397,7 @@ class _SumStat extends StatelessWidget {
           Text(value,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
           Text(label,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+              style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
         ]),
       ]),
     );
@@ -486,7 +486,7 @@ class _AttendanceDetailDialog extends StatelessWidget {
   final AttendanceRecord record;
   const _AttendanceDetailDialog({required this.record});
 
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {
@@ -597,19 +597,19 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF0D47A1)),
+      Icon(icon, size: 16, color: const Color(0xFF2563EB)),
       const SizedBox(width: 10),
       Text('$label:',
           style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF78909C))),
+              color: Color(0xFF6B7280))),
       const SizedBox(width: 8),
       Text(value,
           style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1A237E))),
+              color: Color(0xFF111827))),
     ]);
   }
 }
@@ -708,7 +708,7 @@ class _RouteMapState extends State<_RouteMap> {
     final last = pts.last;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Icon(Icons.route_rounded, size: 15, color: Color(0xFF1565C0)),
+        const Icon(Icons.route_rounded, size: 15, color: Color(0xFF3B82F6)),
         const SizedBox(width: 6),
         Text(
           pts.length > 1 ? 'Route (${pts.length} points)' : 'Last Known Location',
@@ -745,7 +745,7 @@ class _EmployeeListSheet extends StatefulWidget {
 }
 
 class _EmployeeListSheetState extends State<_EmployeeListSheet> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
   List<AppUser> _all = [];
   List<AppUser> _filtered = [];
   bool _loading = true;
@@ -840,7 +840,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -892,7 +892,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                             subtitle: emp.designation.isNotEmpty
                                 ? Text(emp.designation,
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)))
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)))
                                 : null,
                             trailing: const Icon(Icons.chevron_right_rounded, color: _color),
                             onTap: () {
@@ -1026,7 +1026,7 @@ class _Table extends StatelessWidget {
                             Text(cell,
                                 style: const TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF37474F))),
+                                    color: Color(0xFF6B7280))),
                           ))
                       .toList(),
                 ))

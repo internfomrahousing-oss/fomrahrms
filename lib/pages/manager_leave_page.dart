@@ -37,13 +37,13 @@ class _LeaveRequest {
 // ── Page state ─────────────────────────────────────────────────────────────
 
 class _ManagerLeavePageState extends State<ManagerLeavePage> {
-  static const _accentColor = Color(0xFF1A237E);
+  static const _accentColor = Color(0xFF111827);
 
   static const _topics = [
-    _Topic('Apply Leave',         Icons.event_available_rounded, Color(0xFF0D47A1), '/manager/leave/apply'),
-    _Topic('My Approvals',        Icons.approval_rounded,        Color(0xFF1565C0), '/manager/leave/approvals'),
-    _Topic('Leave Balance',       Icons.balance_rounded,         Color(0xFF1976D2), '/manager/leave/balance'),
-    _Topic('Team Leave Approvals',Icons.group_rounded,           Color(0xFF283593), '/manager/leave/team-approvals'),
+    _Topic('Apply Leave',         Icons.event_available_rounded, Color(0xFF2563EB), '/manager/leave/apply'),
+    _Topic('My Approvals',        Icons.approval_rounded,        Color(0xFF3B82F6), '/manager/leave/approvals'),
+    _Topic('Leave Balance',       Icons.balance_rounded,         Color(0xFF2563EB), '/manager/leave/balance'),
+    _Topic('Team Leave Approvals',Icons.group_rounded,           Color(0xFF111827), '/manager/leave/team-approvals'),
   ];
 
   // Empty — populated from backend when connected
@@ -100,7 +100,7 @@ class _ManagerLeavePageState extends State<ManagerLeavePage> {
               const SizedBox(width: 12),
               Text('Team Leave Records',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: const Color(0xFF1A237E),
+                        color: const Color(0xFF111827),
                         fontWeight: FontWeight.w700,
                       )),
             ]),
@@ -109,7 +109,7 @@ class _ManagerLeavePageState extends State<ManagerLeavePage> {
               padding: EdgeInsets.only(left: 52),
               child: Text(
                 'Employees under your wing',
-                style: TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
               ),
             ),
             const SizedBox(height: 16),
@@ -130,7 +130,7 @@ class _ManagerLeavePageState extends State<ManagerLeavePage> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide:
-                              const BorderSide(color: Color(0xFFE0E0E0)),
+                              const BorderSide(color: Color(0xFFE5E7EB)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -300,7 +300,7 @@ class _TopicCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A237E),
+                  color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 4),
@@ -411,13 +411,13 @@ class _RequestCardState extends State<_RequestCard> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Employee + overall status
           Row(children: [
-            const Icon(Icons.person_rounded, color: Color(0xFF1A237E), size: 20),
+            const Icon(Icons.person_rounded, color: Color(0xFF111827), size: 20),
             const SizedBox(width: 8),
             Text(req.employee,
                 style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E))),
+                    color: Color(0xFF111827))),
             const Spacer(),
             _StatusPill(sl, sc, si),
           ]),
@@ -439,10 +439,10 @@ class _RequestCardState extends State<_RequestCard> {
           // Manager approval row
           Row(children: [
             const Icon(Icons.manage_accounts_rounded,
-                size: 16, color: Color(0xFF78909C)),
+                size: 16, color: Color(0xFF6B7280)),
             const SizedBox(width: 6),
             const Text('Your Decision:',
-                style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             const SizedBox(width: 8),
             _StatusPill(sl, sc, si),
             const Spacer(),
@@ -503,11 +503,11 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 13, color: const Color(0xFF78909C)),
+      Icon(icon, size: 13, color: const Color(0xFF6B7280)),
       const SizedBox(width: 4),
       Text(label,
           style:
-              const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+              const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
     ]);
   }
 }

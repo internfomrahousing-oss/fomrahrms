@@ -15,9 +15,9 @@ class _Item {
 }
 
 const _personalItems = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/manager/my-attendance'),
-  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF1976D2), '/manager/my-leave'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/manager/my-payslips'),
+  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF3B82F6), '/manager/my-attendance'),
+  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF2563EB), '/manager/my-leave'),
+  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF111827), '/manager/my-payslips'),
 ];
 
 
@@ -46,7 +46,7 @@ class ManagerDashboardPage extends StatelessWidget {
                 children: [
                   const AttendanceShortcutCard(
                     attendanceRoute: '/manager/my-attendance',
-                    accentColor: Color(0xFF1565C0),
+                    accentColor: Color(0xFF3B82F6),
                   ),
                   SizedBox(height: narrow ? 20 : 28),
 

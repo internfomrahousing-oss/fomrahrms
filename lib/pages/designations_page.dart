@@ -9,7 +9,7 @@ class DesignationsPage extends StatelessWidget {
     return const fd.FormDetailPage(
       title: 'Designations',
       icon: Icons.badge_rounded,
-      color: Color(0xFF6A1B9A),
+      color: Color(0xFF2563EB),
       fields: [
         fd.FormField(label: 'Create Designation', icon: Icons.add_circle_outline_rounded),
         fd.FormField(label: 'Define Hierarchy',   icon: Icons.account_tree_rounded),

@@ -91,11 +91,11 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor = isDark ? Colors.white12 : const Color(0xFFF0F0F0);
+    final dividerColor = isDark ? Colors.white12 : const Color(0xFFE5E7EB);
     final textColor = isDark
         ? Theme.of(context).colorScheme.onSurface
-        : const Color(0xFF37474F);
-    final badgeBorder = isDark ? Colors.white24 : const Color(0xFFE0E0E0);
+        : const Color(0xFF6B7280);
+    final badgeBorder = isDark ? Colors.white24 : const Color(0xFFE5E7EB);
     final dashColor = isDark ? Colors.white54 : Colors.grey.shade500;
 
     return Container(

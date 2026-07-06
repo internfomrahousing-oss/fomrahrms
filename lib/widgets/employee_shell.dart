@@ -125,7 +125,7 @@ class _NarrowLayout extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentTitle),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: const Color(0xFF3B82F6),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           const ThemeToggle(),
@@ -134,12 +134,12 @@ class _NarrowLayout extends StatelessWidget {
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () => context.go('/employee/notifications'),
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
             child: CircleAvatar(
               backgroundColor: AppTheme.accentBlue,
               radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 18),
+              child: const Icon(Icons.person, color: Colors.white, size: 18),
             ),
           ),
         ],
@@ -188,7 +188,7 @@ class _SidebarHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
-      decoration: const BoxDecoration(color: AppTheme.primaryBlueDark),
+      decoration: BoxDecoration(color: AppTheme.primaryBlueDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -202,7 +202,7 @@ class _SidebarHeader extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.apartment_rounded,
+                child: Icon(Icons.apartment_rounded,
                     color: AppTheme.primaryBlue, size: 26),
               ),
               const SizedBox(width: 12),
@@ -217,7 +217,7 @@ class _SidebarHeader extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5)),
                     Text('Employee Portal',
-                        style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 10)),
+                        style: TextStyle(color: Color(0xFFDBEAFE), fontSize: 10)),
                   ],
                 ),
               ),
@@ -230,13 +230,13 @@ class _SidebarHeader extends StatelessWidget {
               color: Colors.white10,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Row(children: [
+            child: Row(children: [
               CircleAvatar(
                 radius: 16,
                 backgroundColor: AppTheme.accentBlue,
-                child: Icon(Icons.person, color: Colors.white, size: 18),
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +248,7 @@ class _SidebarHeader extends StatelessWidget {
                             fontWeight: FontWeight.w600)),
                     Text('Staff Member',
                         style:
-                            TextStyle(color: Color(0xFFBBDEFB), fontSize: 11)),
+                            TextStyle(color: Color(0xFFDBEAFE), fontSize: 11)),
                   ],
                 ),
               ),
@@ -278,11 +278,11 @@ class _SidebarTile extends StatelessWidget {
       child: ListTile(
         dense: true,
         leading: Icon(item.icon,
-            color: selected ? Colors.white : const Color(0xFFBBDEFB), size: 20),
+            color: selected ? Colors.white : const Color(0xFFDBEAFE), size: 20),
         title: Text(
           item.label,
           style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFFBBDEFB),
+            color: selected ? Colors.white : const Color(0xFFDBEAFE),
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -310,10 +310,10 @@ class _SidebarFooter extends StatelessWidget {
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFBBDEFB), size: 18),
+            Icon(Icons.logout_rounded, color: Color(0xFFDBEAFE), size: 18),
             SizedBox(width: 10),
             Text('Sign Out',
-                style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 13)),
+                style: TextStyle(color: Color(0xFFDBEAFE), fontSize: 13)),
           ]),
         ),
       ),

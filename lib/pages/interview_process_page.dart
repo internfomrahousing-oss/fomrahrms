@@ -8,7 +8,7 @@ import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../widgets/back_button.dart';
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 class InterviewProcessPage extends StatefulWidget {
   const InterviewProcessPage({super.key});
@@ -130,25 +130,25 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     late IconData icon;
     switch (status) {
       case 'approved':
-        bg = const Color(0xFFE8F5E9); fg = const Color(0xFF2E7D32);
+        bg = const Color(0xFFDCFCE7); fg = const Color(0xFF22C55E);
         label = 'Approved'; icon = Icons.check_circle_rounded; break;
       case 'rejected_mgmt':
-        bg = const Color(0xFFFFEBEE); fg = const Color(0xFFC62828);
+        bg = const Color(0xFFFEE2E2); fg = const Color(0xFFEF4444);
         label = 'Rejected by Management'; icon = Icons.cancel_rounded; break;
       case 'rejected_manager':
-        bg = const Color(0xFFFFEBEE); fg = const Color(0xFFC62828);
+        bg = const Color(0xFFFEE2E2); fg = const Color(0xFFEF4444);
         label = 'Rejected by Manager'; icon = Icons.cancel_rounded; break;
       case 'rejected_hr':
-        bg = const Color(0xFFFFEBEE); fg = const Color(0xFFC62828);
+        bg = const Color(0xFFFEE2E2); fg = const Color(0xFFEF4444);
         label = 'Rejected'; icon = Icons.cancel_rounded; break;
       case 'with_management':
-        bg = const Color(0xFFF3E5F5); fg = const Color(0xFF6A1B9A);
+        bg = const Color(0xFFEFF6FF); fg = const Color(0xFF2563EB);
         label = 'With Management'; icon = Icons.business_rounded; break;
       case 'with_manager':
-        bg = const Color(0xFFE3F2FD); fg = _blue;
+        bg = const Color(0xFFEFF6FF); fg = _blue;
         label = 'With Manager'; icon = Icons.person_rounded; break;
       default:
-        bg = const Color(0xFFFFF3E0); fg = const Color(0xFFE65100);
+        bg = const Color(0xFFFEF3C7); fg = const Color(0xFFF59E0B);
         label = 'Pending Review'; icon = Icons.hourglass_empty_rounded;
     }
     return Container(
@@ -177,7 +177,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text('Choose which manager should review this candidate:',
-                style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: selected,
@@ -194,7 +194,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF22C55E), foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: selected == null ? null : () async {
@@ -242,10 +242,10 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reject Application',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFC62828))),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Add a comment (optional):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           const SizedBox(height: 12),
           TextField(
             controller: commentCtrl,
@@ -261,7 +261,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828), foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
@@ -347,7 +347,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
         ]),
         content: Text(
           'This will hide "$name" from your Interview Process dashboard.\n\nManagement will still be able to see this application.',
-          style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
@@ -470,10 +470,10 @@ Fomra Housing & Infrastructure Pvt Ltd''';
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withValues(alpha: 0.1),
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.mail_outline_rounded, color: Color(0xFF1565C0), size: 18),
+                child: const Icon(Icons.mail_outline_rounded, color: Color(0xFF3B82F6), size: 18),
               ),
               const SizedBox(width: 10),
               const Text('Send Offer Letter',
@@ -495,7 +495,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                       flex: 2,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const Text('Title / Designation',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                         const SizedBox(height: 4),
                         TextField(
                           controller: titleCtrl,
@@ -517,7 +517,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                       flex: 3,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const Text('Position',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                         const SizedBox(height: 4),
                         DropdownButtonFormField<String>(
                           value: selectedPosition,
@@ -547,7 +547,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const Text('Joining Date',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                         const SizedBox(height: 4),
                         InkWell(
                           onTap: () async {
@@ -569,10 +569,10 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(children: [
-                              const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF1565C0)),
+                              const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF3B82F6)),
                               const SizedBox(width: 8),
                               Text(_fmtDate(joiningDate),
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E))),
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF111827))),
                             ]),
                           ),
                         ),
@@ -583,7 +583,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const Text('Joining Time',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                         const SizedBox(height: 4),
                         InkWell(
                           onTap: () async {
@@ -603,10 +603,10 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(children: [
-                              const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF1565C0)),
+                              const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF3B82F6)),
                               const SizedBox(width: 8),
                               Text(_fmtTime(joiningTime),
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E))),
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF111827))),
                             ]),
                           ),
                         ),
@@ -618,14 +618,14 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   // ── Edit Letter ────────────────────────────────────────
                   Row(children: [
                     const Text('Edit Letter',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: () => _refreshLetter(setDlgState),
                       icon: const Icon(Icons.refresh_rounded, size: 13),
                       label: const Text('Reset to template', style: TextStyle(fontSize: 11)),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF78909C),
+                        foregroundColor: const Color(0xFF6B7280),
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -636,7 +636,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   TextField(
                     controller: letterCtrl,
                     maxLines: 18,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF37474F), height: 1.6),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280), height: 1.6),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.all(12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -650,15 +650,15 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3E0),
+                        color: const Color(0xFFFEF3C7),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Row(children: [
-                        Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFE65100)),
+                        Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFF59E0B)),
                         SizedBox(width: 6),
                         Expanded(child: Text(
                             'No email address on file for this candidate.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFFE65100)))),
+                            style: TextStyle(fontSize: 11, color: Color(0xFFF59E0B)))),
                       ]),
                     ),
                   ],
@@ -678,7 +678,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 icon: const Icon(Icons.open_in_new_rounded, size: 15),
                 label: const Text('Send Offer Letter'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0),
+                  backgroundColor: const Color(0xFF3B82F6),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -743,7 +743,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                         Text(
                           '${_all.length} application${_all.length == 1 ? '' : 's'} received',
                           style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF78909C)),
+                              fontSize: 12, color: Color(0xFF6B7280)),
                         ),
                       ],
                     ),
@@ -755,7 +755,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('Form link copied to clipboard'),
                         duration: Duration(seconds: 2),
-                        backgroundColor: Color(0xFF2E7D32),
+                        backgroundColor: Color(0xFF22C55E),
                       ));
                     },
                     icon: const Icon(Icons.copy_rounded, size: 15),
@@ -794,7 +794,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     label: const Text('Edit Form',
                         style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6A1B9A),
+                      backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
@@ -821,43 +821,43 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   // Filter chips
                   Wrap(spacing: 8, runSpacing: 6, children: [
                     FilterChip(
-                      avatar: const Icon(Icons.hourglass_empty_rounded, size: 13, color: Color(0xFFE65100)),
+                      avatar: const Icon(Icons.hourglass_empty_rounded, size: 13, color: Color(0xFFF59E0B)),
                       label: Text('Interview Pending ($_pendingCount)'),
                       selected: _filter == 'pending',
                       onSelected: (_) => setState(() { _filter = 'pending'; _applyFilter(); }),
-                      selectedColor: const Color(0xFFFFF3E0),
-                      checkmarkColor: const Color(0xFFE65100),
+                      selectedColor: const Color(0xFFFEF3C7),
+                      checkmarkColor: const Color(0xFFF59E0B),
                       labelStyle: TextStyle(
-                          color: _filter == 'pending' ? const Color(0xFFE65100) : Colors.grey.shade600,
+                          color: _filter == 'pending' ? const Color(0xFFF59E0B) : Colors.grey.shade600,
                           fontWeight: _filter == 'pending' ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12),
-                      side: BorderSide(color: _filter == 'pending' ? const Color(0xFFE65100) : Colors.grey.shade300),
+                      side: BorderSide(color: _filter == 'pending' ? const Color(0xFFF59E0B) : Colors.grey.shade300),
                     ),
                     FilterChip(
-                      avatar: const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF2E7D32)),
+                      avatar: const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF22C55E)),
                       label: Text('Interview Done ($_doneCount)'),
                       selected: _filter == 'done',
                       onSelected: (_) => setState(() { _filter = 'done'; _applyFilter(); }),
-                      selectedColor: const Color(0xFFE8F5E9),
-                      checkmarkColor: const Color(0xFF2E7D32),
+                      selectedColor: const Color(0xFFDCFCE7),
+                      checkmarkColor: const Color(0xFF22C55E),
                       labelStyle: TextStyle(
-                          color: _filter == 'done' ? const Color(0xFF2E7D32) : Colors.grey.shade600,
+                          color: _filter == 'done' ? const Color(0xFF22C55E) : Colors.grey.shade600,
                           fontWeight: _filter == 'done' ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12),
-                      side: BorderSide(color: _filter == 'done' ? const Color(0xFF2E7D32) : Colors.grey.shade300),
+                      side: BorderSide(color: _filter == 'done' ? const Color(0xFF22C55E) : Colors.grey.shade300),
                     ),
                     FilterChip(
-                      avatar: const Icon(Icons.mark_email_read_rounded, size: 13, color: Color(0xFF6A1B9A)),
+                      avatar: const Icon(Icons.mark_email_read_rounded, size: 13, color: Color(0xFF2563EB)),
                       label: Text('Pre Offer & Onboarding Sent ($_preOfferCount)'),
                       selected: _filter == 'pre_offer',
                       onSelected: (_) => setState(() { _filter = 'pre_offer'; _applyFilter(); }),
                       selectedColor: const Color(0xFFEDE7F6),
-                      checkmarkColor: const Color(0xFF6A1B9A),
+                      checkmarkColor: const Color(0xFF2563EB),
                       labelStyle: TextStyle(
-                          color: _filter == 'pre_offer' ? const Color(0xFF6A1B9A) : Colors.grey.shade600,
+                          color: _filter == 'pre_offer' ? const Color(0xFF2563EB) : Colors.grey.shade600,
                           fontWeight: _filter == 'pre_offer' ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12),
-                      side: BorderSide(color: _filter == 'pre_offer' ? const Color(0xFF6A1B9A) : Colors.grey.shade300),
+                      side: BorderSide(color: _filter == 'pre_offer' ? const Color(0xFF2563EB) : Colors.grey.shade300),
                     ),
                     FilterChip(
                       label: Text('All Applications (${_all.length})'),
@@ -987,10 +987,10 @@ class _ApplicationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isApproved
-              ? const Color(0xFFA5D6A7)
+              ? const Color(0xFF86EFAC)
               : status.startsWith('rejected')
-                  ? const Color(0xFFEF9A9A)
-                  : const Color(0xFFE0E0E0),
+                  ? const Color(0xFFFCA5A5)
+                  : const Color(0xFFE5E7EB),
           width: isApproved || status.startsWith('rejected') ? 1.5 : 1,
         ),
       ),
@@ -1003,7 +1003,7 @@ class _ApplicationCard extends StatelessWidget {
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+                backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
                 child: Text(
                   name.isNotEmpty ? name[0].toUpperCase() : '?',
                   style: const TextStyle(
@@ -1020,12 +1020,12 @@ class _ApplicationCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text('Submitted: $dateStr',
                       style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF78909C))),
+                          fontSize: 11, color: Color(0xFF6B7280))),
                   if (post.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       post + (exp.isNotEmpty ? '  •  $exp yrs exp.' : ''),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                     ),
                   ],
                 ],
@@ -1037,14 +1037,14 @@ class _ApplicationCard extends StatelessWidget {
             // ── Extra info: manager assignment / approval message ──────
             if (manager.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const Divider(height: 1, color: Color(0xFFE5E7EB)),
               const SizedBox(height: 8),
               Row(children: [
                 const Icon(Icons.person_outline_rounded,
-                    size: 14, color: Color(0xFF78909C)),
+                    size: 14, color: Color(0xFF6B7280)),
                 const SizedBox(width: 6),
                 Text('Assigned to: $manager',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                 const SizedBox(width: 16),
                 if (managerStatus != 'pending') ...[
                   Icon(
@@ -1053,8 +1053,8 @@ class _ApplicationCard extends StatelessWidget {
                         : Icons.cancel_outlined,
                     size: 14,
                     color: managerStatus == 'accepted'
-                        ? const Color(0xFF2E7D32)
-                        : const Color(0xFFC62828),
+                        ? const Color(0xFF22C55E)
+                        : const Color(0xFFEF4444),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -1062,8 +1062,8 @@ class _ApplicationCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: managerStatus == 'accepted'
-                          ? const Color(0xFF2E7D32)
-                          : const Color(0xFFC62828),
+                          ? const Color(0xFF22C55E)
+                          : const Color(0xFFEF4444),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1076,17 +1076,17 @@ class _ApplicationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Row(children: [
                   Icon(Icons.verified_rounded,
-                      size: 15, color: Color(0xFF2E7D32)),
+                      size: 15, color: Color(0xFF22C55E)),
                   SizedBox(width: 6),
                   Text('Approved by Management and Manager',
                       style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF2E7D32),
+                          color: Color(0xFF22C55E),
                           fontWeight: FontWeight.w600)),
                 ]),
               ),
@@ -1100,12 +1100,12 @@ class _ApplicationCard extends StatelessWidget {
                   ),
                   child: const Row(children: [
                     Icon(Icons.mark_email_read_rounded,
-                        size: 15, color: Color(0xFF6A1B9A)),
+                        size: 15, color: Color(0xFF2563EB)),
                     SizedBox(width: 6),
                     Text('Pre Offer & Onboarding Sent',
                         style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF6A1B9A),
+                            color: Color(0xFF2563EB),
                             fontWeight: FontWeight.w600)),
                   ]),
                 ),
@@ -1117,16 +1117,16 @@ class _ApplicationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
+                  color: const Color(0xFFFEE2E2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Row(children: [
-                  Icon(Icons.cancel_rounded, size: 15, color: Color(0xFFC62828)),
+                  Icon(Icons.cancel_rounded, size: 15, color: Color(0xFFEF4444)),
                   SizedBox(width: 6),
                   Text('Rejected by Management',
                       style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFC62828),
+                          color: Color(0xFFEF4444),
                           fontWeight: FontWeight.w600)),
                 ]),
               ),
@@ -1135,7 +1135,7 @@ class _ApplicationCard extends StatelessWidget {
             // ── Comments ───────────────────────────────────────────────
             if (hrComment.isNotEmpty || managerComment.isNotEmpty || mgmtComment.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const Divider(height: 1, color: Color(0xFFE5E7EB)),
               const SizedBox(height: 6),
               if (hrComment.isNotEmpty)
                 _CommentChip(label: 'HR', comment: hrComment),
@@ -1147,27 +1147,27 @@ class _ApplicationCard extends StatelessWidget {
 
             // ── Action buttons ─────────────────────────────────────────
             const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 6, children: [
               if (isPending) ...[
                 _ActionButton(
                   label: 'Accept',
                   icon: Icons.check_circle_outline_rounded,
-                  color: const Color(0xFF2E7D32),
+                  color: const Color(0xFF22C55E),
                   onTap: onAccept,
                 ),
                 _ActionButton(
                   label: 'Reject',
                   icon: Icons.cancel_outlined,
-                  color: const Color(0xFFC62828),
+                  color: const Color(0xFFEF4444),
                   onTap: onReject,
                 ),
               ],
               _ActionButton(
                 label: 'Comment',
                 icon: Icons.comment_outlined,
-                color: const Color(0xFF546E7A),
+                color: const Color(0xFF6B7280),
                 onTap: onComment,
               ),
               _ActionButton(
@@ -1180,7 +1180,7 @@ class _ApplicationCard extends StatelessWidget {
                 _ActionButton(
                   label: 'Send Email',
                   icon: Icons.mail_outline_rounded,
-                  color: const Color(0xFF1565C0),
+                  color: const Color(0xFF3B82F6),
                   onTap: onSendEmail!,
                   highlight: true,
                 ),
@@ -1218,13 +1218,13 @@ class _CommentChip extends StatelessWidget {
           child: Text(label,
               style: const TextStyle(
                   fontSize: 10, fontWeight: FontWeight.w600,
-                  color: Color(0xFF546E7A))),
+                  color: Color(0xFF6B7280))),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(comment,
               style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF546E7A)),
+                  fontSize: 12, color: Color(0xFF6B7280)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis),
         ),
@@ -1286,11 +1286,11 @@ class _EmailField extends StatelessWidget {
         width: 60,
         child: Text('$label:',
             style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+                fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
       ),
       Expanded(
         child: Text(value,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E))),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF111827))),
       ),
     ]);
   }
@@ -1304,14 +1304,14 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFBBDEFB)),
+        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFDBEAFE)),
         SizedBox(height: 12),
         Text('No applications yet',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _blue)),
         SizedBox(height: 6),
         Text('Submitted forms will appear here instantly.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
     );
   }
@@ -1325,7 +1325,7 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFBBDEFB)),
+        const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFDBEAFE)),
         const SizedBox(height: 12),
         const Text('Could not load applications',
             style: TextStyle(
@@ -1333,7 +1333,7 @@ class _ErrorView extends StatelessWidget {
         const SizedBox(height: 6),
         Text(error,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         const SizedBox(height: 20),
         ElevatedButton.icon(
           onPressed: onRetry,

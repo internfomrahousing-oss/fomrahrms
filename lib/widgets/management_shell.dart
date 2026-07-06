@@ -27,7 +27,7 @@ const _editFormItems = <_SubItem>[
   (label: 'Edit Onboarding Form', icon: Icons.how_to_reg_rounded,       route: '/management/edit-onboarding-form'),
 ];
 
-const _mgmtColor = AppTheme.primaryBlueDark;
+Color get _mgmtColor => AppTheme.primaryBlueDark;
 
 const _navItems = [
   _NavItem('Dashboard',              Icons.dashboard_rounded,              '/management/dashboard'),
@@ -226,7 +226,7 @@ class _SidebarHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
-      decoration: const BoxDecoration(color: _mgmtColor),
+      decoration: BoxDecoration(color: _mgmtColor),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -240,7 +240,7 @@ class _SidebarHeader extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.apartment_rounded,
+                child: Icon(Icons.apartment_rounded,
                     color: AppTheme.primaryBlue, size: 26),
               ),
               const SizedBox(width: 12),
@@ -255,7 +255,7 @@ class _SidebarHeader extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5)),
                     Text('Management Portal',
-                        style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 10)),
+                        style: TextStyle(color: Color(0xFFDBEAFE), fontSize: 10)),
                   ],
                 ),
               ),
@@ -269,10 +269,10 @@ class _SidebarHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 16,
                 backgroundColor: AppTheme.primaryBlue,
-                child: Icon(Icons.person, color: Colors.white, size: 18),
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -287,7 +287,7 @@ class _SidebarHeader extends StatelessWidget {
                           fontWeight: FontWeight.w600),
                     ),
                     const Text('Management',
-                        style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 11)),
+                        style: TextStyle(color: Color(0xFFDBEAFE), fontSize: 11)),
                   ],
                 ),
               ),
@@ -317,12 +317,12 @@ class _SidebarTile extends StatelessWidget {
       child: ListTile(
         dense: true,
         leading: Icon(item.icon,
-            color: selected ? Colors.white : const Color(0xFFBBDEFB),
+            color: selected ? Colors.white : const Color(0xFFDBEAFE),
             size: 20),
         title: Text(
           item.label,
           style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFFBBDEFB),
+            color: selected ? Colors.white : const Color(0xFFDBEAFE),
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -351,7 +351,7 @@ class _SectionDivider extends StatelessWidget {
         const SizedBox(width: 8),
         Text(label,
             style: const TextStyle(
-                color: Color(0xFF78909C), fontSize: 10, letterSpacing: 1)),
+                color: Color(0xFF6B7280), fontSize: 10, letterSpacing: 1)),
         const SizedBox(width: 8),
         const Expanded(child: Divider(color: Colors.white12, height: 1)),
       ]),
@@ -372,10 +372,10 @@ class _SidebarFooter extends StatelessWidget {
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFBBDEFB), size: 18),
+            Icon(Icons.logout_rounded, color: Color(0xFFDBEAFE), size: 18),
             SizedBox(width: 10),
             Text('Sign Out',
-                style: TextStyle(color: Color(0xFFBBDEFB), fontSize: 13)),
+                style: TextStyle(color: Color(0xFFDBEAFE), fontSize: 13)),
           ]),
         ),
       ),
@@ -432,16 +432,16 @@ class _ExpandableNavGroupState extends State<_ExpandableNavGroup> {
         child: ListTile(
           dense: true,
           leading: Icon(widget.icon,
-              color: _expanded ? Colors.white : const Color(0xFFBBDEFB),
+              color: _expanded ? Colors.white : const Color(0xFFDBEAFE),
               size: 20),
           title: Text(widget.label,
               style: TextStyle(
-                  color: _expanded ? Colors.white : const Color(0xFFBBDEFB),
+                  color: _expanded ? Colors.white : const Color(0xFFDBEAFE),
                   fontSize: 13,
                   fontWeight: _expanded ? FontWeight.w600 : FontWeight.normal)),
           trailing: Icon(
               _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-              color: const Color(0xFFBBDEFB),
+              color: const Color(0xFFDBEAFE),
               size: 18),
           onTap: () => setState(() => _expanded = !_expanded),
         ),
@@ -458,11 +458,11 @@ class _ExpandableNavGroupState extends State<_ExpandableNavGroup> {
             child: ListTile(
               dense: true,
               leading: Icon(item.icon,
-                  color: selected ? Colors.white : const Color(0xFFBBDEFB),
+                  color: selected ? Colors.white : const Color(0xFFDBEAFE),
                   size: 17),
               title: Text(item.label,
                   style: TextStyle(
-                      color: selected ? Colors.white : const Color(0xFFBBDEFB),
+                      color: selected ? Colors.white : const Color(0xFFDBEAFE),
                       fontSize: 12,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

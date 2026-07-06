@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart';
 
 void _showBlock(BuildContext context, Widget block) {
@@ -34,12 +35,12 @@ void _showBlock(BuildContext context, Widget block) {
 
 // Single professional accent shared by all quick-action icons (was a
 // different bright color per icon — kept uniform for a more formal look).
-// These icons always sit on the dark navy top-bar/banner gradient, so use
-// the same light accent already used for the sidebar toggle there —
-// the earlier navy blue was invisible against that background.
-const _qColor = Color(0xFF90CAF9);
+// These icons always sit on the dark top-bar/banner gradient, so use the
+// active theme's accent — the same color used for the sidebar's selected
+// nav item, which is already chosen to read well against that background.
+Color get _qColor => AppTheme.accentBlue;
 
-const _qData = [
+List<({IconData icon, Color color, String label})> get _qData => [
   (icon: Icons.campaign_rounded,     color: _qColor, label: 'Announcements'),
   (icon: Icons.event_rounded,        color: _qColor, label: 'Holidays'),
   (icon: Icons.emoji_events_rounded, color: _qColor, label: 'Emp of Month'),

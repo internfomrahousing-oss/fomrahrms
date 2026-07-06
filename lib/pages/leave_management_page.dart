@@ -12,7 +12,7 @@ class LeaveManagementPage extends StatefulWidget {
 }
 
 class _LeaveManagementPageState extends State<LeaveManagementPage> {
-  static const _accentColor = Color(0xFF0D47A1);
+  static const _accentColor = Color(0xFF2563EB);
 
   DateTime? _selectedMonth;
   String _searchQuery = '';
@@ -310,7 +310,7 @@ class _ApplicationCard extends StatelessWidget {
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             const Icon(Icons.person_rounded,
-                color: Color(0xFF0D47A1), size: 20),
+                color: Color(0xFF2563EB), size: 20),
             const SizedBox(width: 8),
             Text(app.employeeName,
                 style: TextStyle(
@@ -435,7 +435,7 @@ class _DecisionRow extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Icon(Icons.manage_accounts_rounded,
-              size: 13, color: Color(0xFF78909C)),
+              size: 13, color: Color(0xFF6B7280)),
           const SizedBox(width: 5),
           Text(
             status == LeaveApprovalStatus.pending

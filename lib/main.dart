@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
+import 'models/color_theme_notifier.dart';
 import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
 import 'services/supabase_service.dart';
@@ -31,5 +32,6 @@ void main() async {
     );
     SupabaseService.loadAll();
     SupabaseService.restoreCheckInState();
+    colorThemeNotifier.loadInitial();
   } catch (_) {}
 }

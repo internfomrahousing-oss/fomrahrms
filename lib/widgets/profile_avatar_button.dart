@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../models/theme_notifier.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
+import '../theme/app_theme.dart';
 
 /// Circular avatar + name/ID that opens a profile dropdown on tap.
 /// Use [large] = true for the welcome banner (bigger avatar, vertical layout).
@@ -122,7 +123,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                 child: Container(
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D47A1),
+                    color: AppTheme.primaryBlue,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
@@ -234,9 +235,12 @@ class _ProfileDropdown extends StatelessWidget {
           // ── Header ───────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF060F1E), Color(0xFF0A2472)],
+                colors: [
+                  AppTheme.primaryBlueDark,
+                  Color.lerp(AppTheme.primaryBlueDark, AppTheme.primaryBlue, 0.55)!,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -300,8 +304,8 @@ class _ProfileDropdown extends StatelessWidget {
           // ── My Profile ───────────────────────────────────────────────
           ListTile(
             dense: true,
-            leading: const Icon(Icons.person_rounded, size: 18,
-                color: Color(0xFF0D47A1)),
+            leading: Icon(Icons.person_rounded, size: 18,
+                color: AppTheme.primaryBlue),
             title: const Text('My Profile',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             onTap: () => onNavigate(UserSession.profileRoute),
@@ -345,11 +349,11 @@ class _InfoRow extends StatelessWidget {
             Text(label,
                 style: const TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF90A4AE),
+                    color: Color(0xFF6B7280),
                     fontWeight: FontWeight.w500)),
             Text(value,
                 style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF37474F)),
+                    fontSize: 12, color: Color(0xFF6B7280)),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
           ]),

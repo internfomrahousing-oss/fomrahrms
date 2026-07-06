@@ -4,7 +4,7 @@ import '../models/lead_model.dart';
 import '../services/lead_service.dart';
 import '../widgets/back_button.dart';
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 
 class LeadManagementPage extends StatefulWidget {
@@ -192,31 +192,31 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     Color fg;
     switch (status.toLowerCase()) {
       case 'new':
-        bg = const Color(0xFFE3F2FD);
-        fg = const Color(0xFF0D47A1);
+        bg = const Color(0xFFEFF6FF);
+        fg = const Color(0xFF2563EB);
         break;
       case 'follow-up':
-        bg = const Color(0xFFFFF3E0);
-        fg = const Color(0xFFE65100);
+        bg = const Color(0xFFFEF3C7);
+        fg = const Color(0xFFF59E0B);
         break;
       case 'interested':
-        bg = const Color(0xFFE8F5E9);
-        fg = const Color(0xFF2E7D32);
+        bg = const Color(0xFFDCFCE7);
+        fg = const Color(0xFF22C55E);
         break;
       case 'not interested':
-        bg = const Color(0xFFFFEBEE);
-        fg = const Color(0xFFC62828);
+        bg = const Color(0xFFFEE2E2);
+        fg = const Color(0xFFEF4444);
         break;
       case 'converted':
-        bg = const Color(0xFFF3E5F5);
-        fg = const Color(0xFF6A1B9A);
+        bg = const Color(0xFFEFF6FF);
+        fg = const Color(0xFF2563EB);
         break;
       case 'lost':
-        bg = const Color(0xFFEEEEEE);
+        bg = const Color(0xFFE5E7EB);
         fg = const Color(0xFF616161);
         break;
       default:
-        bg = const Color(0xFFF5F5F5);
+        bg = const Color(0xFFF8FAFC);
         fg = const Color(0xFF757575);
     }
     return Container(
@@ -278,7 +278,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       filled: isKey,
-                      fillColor: isKey ? const Color(0xFFF0F0F0) : null,
+                      fillColor: isKey ? const Color(0xFFE5E7EB) : null,
                       helperText: isKey ? 'Row identifier — cannot be edited' : null,
                     ),
                   ),
@@ -395,10 +395,10 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Lead',
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFC62828))),
+                fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
         content: Text(
           'Remove "${lead.name}" permanently from Google Sheets?',
-          style: const TextStyle(fontSize: 14, color: Color(0xFF546E7A)),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
@@ -406,7 +406,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828),
+              backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -426,7 +426,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('"${lead.name}" deleted from Google Sheets'),
-          backgroundColor: const Color(0xFFC62828),
+          backgroundColor: const Color(0xFFEF4444),
         ));
       }
     } catch (e) {
@@ -444,7 +444,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Lead updated in Google Sheets'),
-          backgroundColor: Color(0xFF2E7D32),
+          backgroundColor: Color(0xFF22C55E),
         ));
       }
     } catch (e) {
@@ -466,7 +466,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       if (_all.length > prevCount) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Lead added to Google Sheets'),
-          backgroundColor: Color(0xFF2E7D32),
+          backgroundColor: Color(0xFF22C55E),
         ));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -534,12 +534,12 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                         width: 180,
                         child: Text(e.key,
                             style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF78909C), fontWeight: FontWeight.w600)),
+                                fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                       ),
                       Expanded(
                         child: Text(
                           e.value.isEmpty ? '—' : e.value,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E), fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF111827), fontWeight: FontWeight.w500),
                         ),
                       ),
                     ]),
@@ -567,8 +567,8 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                   icon: const Icon(Icons.delete_outline_rounded, size: 15),
                   label: const Text('Delete'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFC62828),
-                    side: const BorderSide(color: Color(0xFFC62828)),
+                    foregroundColor: const Color(0xFFEF4444),
+                    side: const BorderSide(color: Color(0xFFEF4444)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () { Navigator.pop(ctx); _showDeleteDialog(lead); },
@@ -621,7 +621,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                 fontWeight: FontWeight.bold,
                                 color: _blue)),
                         RichText(text: TextSpan(
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                           children: [
                             if (_hasActiveFilter) ...[
                               TextSpan(
@@ -637,7 +637,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           Text(
                             'Sheet: ${_shortUrl(_scriptUrl)}',
                             style: const TextStyle(
-                                fontSize: 10, color: Color(0xFF90A4AE)),
+                                fontSize: 10, color: Color(0xFF6B7280)),
                           ),
                       ],
                     ),
@@ -685,7 +685,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                               )
                             : null,
                         filled: true,
-                        fillColor: const Color(0xFFF5F7FA),
+                        fillColor: const Color(0xFFF8FAFC),
                         contentPadding: const EdgeInsets.symmetric(vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -706,7 +706,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: _showFilter ? _blue : const Color(0xFFF5F7FA),
+                            color: _showFilter ? _blue : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _showFilter ? _blue : const Color(0xFFDDDDDD)),
@@ -766,7 +766,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                             decoration: BoxDecoration(
                               color: _filtered.length < _all.length
                                   ? Colors.orange.withValues(alpha: 0.12)
-                                  : const Color(0xFFF0F4FF),
+                                  : const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -810,7 +810,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(_prettyCol(col).toUpperCase(),
                                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                        color: Color(0xFF90A4AE), letterSpacing: 0.8)),
+                                        color: Color(0xFF6B7280), letterSpacing: 0.8)),
                                 const SizedBox(height: 8),
                                 Wrap(spacing: 6, runSpacing: 6,
                                   children: ['All', ...vals].map((v) {
@@ -828,7 +828,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                         duration: const Duration(milliseconds: 120),
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                         decoration: BoxDecoration(
-                                          color: active ? _blue : const Color(0xFFF5F7FA),
+                                          color: active ? _blue : const Color(0xFFF8FAFC),
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(
                                               color: active ? _blue : const Color(0xFFDDE3ED)),
@@ -836,7 +836,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                         child: Text('$v  $count',
                                             style: TextStyle(
                                                 fontSize: 12, fontWeight: FontWeight.w600,
-                                                color: active ? Colors.white : const Color(0xFF546E7A))),
+                                                color: active ? Colors.white : const Color(0xFF6B7280))),
                                       ),
                                     );
                                   }).toList(),
@@ -862,7 +862,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                 slider: RangeSlider(
                                   values: r, min: mn, max: mx,
                                   activeColor: _blue,
-                                  inactiveColor: const Color(0xFFBBDEFB),
+                                  inactiveColor: const Color(0xFFDBEAFE),
                                   onChanged: (v) {
                                     setState(() => _numRange[col] = v);
                                     _applyFilter();
@@ -878,7 +878,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                               child: Padding(
                                 padding: EdgeInsets.symmetric(vertical: 12),
                                 child: Text('No filterable columns detected in this sheet.',
-                                    style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE))),
+                                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                               ),
                             ),
                         ]),
@@ -939,12 +939,12 @@ class _RangeRow extends StatelessWidget {
       Row(children: [
         Text(label,
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                color: Color(0xFF546E7A))),
+                color: Color(0xFF6B7280))),
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F4FF),
+            color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(value,
@@ -996,7 +996,7 @@ class _LeadCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+        side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -1021,7 +1021,7 @@ class _LeadCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       name.isNotEmpty ? name : '(No name)',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A237E)),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
                     ),
                   ),
                   statusBadge,
@@ -1029,18 +1029,18 @@ class _LeadCard extends StatelessWidget {
                 if (phone.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Row(children: [
-                    const Icon(Icons.phone_rounded, size: 11, color: Color(0xFF78909C)),
+                    const Icon(Icons.phone_rounded, size: 11, color: Color(0xFF6B7280)),
                     const SizedBox(width: 4),
-                    Text(phone, style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                    Text(phone, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ]),
                 ],
                 if (project.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Row(children: [
-                    const Icon(Icons.work_outline_rounded, size: 11, color: Color(0xFF78909C)),
+                    const Icon(Icons.work_outline_rounded, size: 11, color: Color(0xFF6B7280)),
                     const SizedBox(width: 4),
                     Expanded(child: Text(project,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A)),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                         maxLines: 1, overflow: TextOverflow.ellipsis)),
                   ]),
                 ],
@@ -1049,7 +1049,7 @@ class _LeadCard extends StatelessWidget {
                   Wrap(spacing: 8, runSpacing: 4,
                     children: extras.map((e) => Text(
                       '${e.key}: ${e.value}',
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF90A4AE)),
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     )).toList(),
                   ),
@@ -1072,7 +1072,7 @@ class _LeadCard extends StatelessWidget {
               Row(children: [
                 _SmallIconBtn(icon: Icons.edit_rounded, color: _blue, onTap: onEdit),
                 const SizedBox(width: 4),
-                _SmallIconBtn(icon: Icons.delete_outline_rounded, color: const Color(0xFFC62828), onTap: onDelete),
+                _SmallIconBtn(icon: Icons.delete_outline_rounded, color: const Color(0xFFEF4444), onTap: onDelete),
               ]),
             ]),
           ]),
@@ -1121,7 +1121,7 @@ class _EmptyState extends StatelessWidget {
               ? Icons.search_off_rounded
               : Icons.people_outline_rounded,
           size: 52,
-          color: const Color(0xFFBBDEFB),
+          color: const Color(0xFFDBEAFE),
         ),
         const SizedBox(height: 12),
         Text(
@@ -1138,7 +1138,7 @@ class _EmptyState extends StatelessWidget {
               : 'Add your first lead or connect your Google Sheet.',
           textAlign: TextAlign.center,
           style:
-              const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+              const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
         ),
       ]),
     );
@@ -1155,7 +1155,7 @@ class _ErrorView extends StatelessWidget {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.cloud_off_rounded,
-            size: 52, color: Color(0xFFBBDEFB)),
+            size: 52, color: Color(0xFFDBEAFE)),
         const SizedBox(height: 12),
         const Text('Could not load leads',
             style: TextStyle(
@@ -1169,7 +1169,7 @@ class _ErrorView extends StatelessWidget {
           child: Text(error,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF78909C))),
+                  fontSize: 12, color: Color(0xFF6B7280))),
         ),
         const SizedBox(height: 20),
         ElevatedButton.icon(

@@ -1,17 +1,18 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-
-const _scarlet = Color(0xFFDA291C); // Pantone Scarlet
+import '../models/color_theme_notifier.dart';
+import '../theme/app_theme.dart';
 
 // ── Public card ───────────────────────────────────────────────────────────────
 
 /// Single stat card. Pass [gaugePercent] (0.0–1.0) to show a gauge needle,
 /// or omit to show a decorative bar-chart (used for totals/counts with no %).
+/// Leave [color] unset to follow the active app color theme.
 class AppStatCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final double? gaugePercent;
 
   const AppStatCard({
@@ -19,12 +20,19 @@ class AppStatCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.icon,
-    this.color = _scarlet,
+    this.color,
     this.gaugePercent,
   });
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: colorThemeNotifier,
+      builder: (context, _) => _card(color ?? AppTheme.primaryBlue),
+    );
+  }
+
+  Widget _card(Color color) {
     return Card(
       color: color.withValues(alpha: 0.08),
       elevation: 0,

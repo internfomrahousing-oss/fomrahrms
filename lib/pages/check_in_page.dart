@@ -17,7 +17,7 @@ class CheckInPage extends StatefulWidget {
 }
 
 class _CheckInPageState extends State<CheckInPage> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   bool _loading = true;
   AttendanceRecord? _record; // today's record from Supabase
@@ -155,7 +155,7 @@ class _CheckedInView extends StatelessWidget {
   final Timer? refreshTimer;
   const _CheckedInView({required this.record, this.refreshTimer});
 
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {

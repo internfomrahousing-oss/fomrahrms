@@ -13,7 +13,7 @@ class CheckOutPage extends StatefulWidget {
 }
 
 class _CheckOutPageState extends State<CheckOutPage> {
-  static const _color = Color(0xFF1565C0);
+  static const _color = Color(0xFF3B82F6);
 
   bool _loading = true;
   AttendanceRecord? _record;
@@ -273,7 +273,7 @@ class _AlreadyCheckedOut extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0D47A1).withValues(alpha: 0.12) : Colors.blue.shade50,
+          color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.12) : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: isDark ? Colors.blue.shade700 : Colors.blue.shade300),

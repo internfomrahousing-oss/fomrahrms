@@ -37,7 +37,7 @@ class LeaveApprovalsPage extends StatefulWidget {
 }
 
 class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
-  static const _color = Color(0xFF1565C0);
+  static const _color = Color(0xFF3B82F6);
 
   // Empty list — will be populated from backend when connected
   final List<_Application> _applications = [];
@@ -110,7 +110,7 @@ class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
                 const SizedBox(height: 8),
               ],
               if (reviewed.isNotEmpty) ...[
-                _SectionLabel('Reviewed', reviewed.length, const Color(0xFF78909C)),
+                _SectionLabel('Reviewed', reviewed.length, const Color(0xFF6B7280)),
                 const SizedBox(height: 8),
                 ...reviewed.map((app) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -274,9 +274,9 @@ class _ApplicationCardState extends State<_ApplicationCard> {
           Row(children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+              backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
               child: const Icon(Icons.person_rounded,
-                  color: Color(0xFF0D47A1), size: 22),
+                  color: Color(0xFF2563EB), size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -286,23 +286,23 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                   Text(app.employeeName,
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A237E))),
+                          color: Color(0xFF111827))),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D47A1).withValues(alpha: 0.08),
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(app.employeeId,
                         style: const TextStyle(
                             fontSize: 10, fontWeight: FontWeight.w600,
-                            color: Color(0xFF0D47A1))),
+                            color: Color(0xFF2563EB))),
                   ),
                 ]),
                 Text(app.department,
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF78909C))),
+                        fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),
             Container(
@@ -344,12 +344,12 @@ class _ApplicationCardState extends State<_ApplicationCard> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.notes_rounded, size: 14, color: Color(0xFF78909C)),
+              const Icon(Icons.notes_rounded, size: 14, color: Color(0xFF6B7280)),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(app.reason,
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF546E7A))),
+                        fontSize: 12, color: Color(0xFF6B7280))),
               ),
             ]),
           ),
@@ -413,7 +413,7 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                   label: Text('Undo ($_countdown)',
                       style: const TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF78909C)),
+                      foregroundColor: const Color(0xFF6B7280)),
                 ),
             ]),
         ]),
@@ -431,10 +431,10 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 13, color: const Color(0xFF0D47A1)),
+      Icon(icon, size: 13, color: const Color(0xFF2563EB)),
       const SizedBox(width: 4),
       Text('$label: ',
-          style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       Text(value,
           style: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600,

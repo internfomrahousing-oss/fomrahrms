@@ -14,13 +14,13 @@ class _Item {
 }
 
 const _items = [
-  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF1976D2), '/employee/leave-management'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/employee/payslips'),
+  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF2563EB), '/employee/leave-management'),
+  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF111827), '/employee/payslips'),
   _Item('Maintenance',   Icons.build_rounded,                  Color(0xFF4E342E), '/employee/maintenance-management'),
-  _Item('Notifications', Icons.notifications_rounded,          Color(0xFF0D47A1), '/employee/notifications'),
+  _Item('Notifications', Icons.notifications_rounded,          Color(0xFF2563EB), '/employee/notifications'),
 ];
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 class EmployeeDashboardPage extends StatefulWidget {
   const EmployeeDashboardPage({super.key});
@@ -60,7 +60,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                 children: [
                   const AttendanceShortcutCard(
                     attendanceRoute: '/employee/attendance-management',
-                    accentColor: Color(0xFF0D47A1),
+                    accentColor: Color(0xFF2563EB),
                   ),
                   SizedBox(height: narrow ? 16 : 24),
 

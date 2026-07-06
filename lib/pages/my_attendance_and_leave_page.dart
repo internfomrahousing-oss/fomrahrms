@@ -3,7 +3,7 @@ import '../widgets/back_button.dart';
 import 'my_attendance_page.dart';
 import 'employee_leave_page.dart';
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 // Combines MyAttendancePage and EmployeeLeavePage into one scrollable page
 // under a single sidebar entry ("My Attendance and Leaves").

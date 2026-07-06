@@ -9,10 +9,10 @@ import '../widgets/back_button.dart';
 const _lateHour   = 9;
 const _lateMinute = 30;
 
-const _blue   = Color(0xFF0D47A1);
-const _green  = Color(0xFF2E7D32);
-const _purple = Color(0xFF6A1B9A);
-const _red    = Color(0xFFC62828);
+const _blue   = Color(0xFF2563EB);
+const _green  = Color(0xFF22C55E);
+const _purple = Color(0xFF2563EB);
+const _red    = Color(0xFFEF4444);
 
 class EmployeeAttendanceCalendarPage extends StatefulWidget {
   final String employeeId;
@@ -151,7 +151,7 @@ class _EmployeeAttendanceCalendarPageState
                   Text(widget.employeeName,
                       style: Theme.of(context).textTheme.headlineMedium),
                   const Text('Attendance Calendar',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                 ]),
               ),
             ]),
@@ -410,7 +410,7 @@ class _DaySheet extends StatelessWidget {
           const SizedBox(height: 12),
           if (rec.checkOutTime.isNotEmpty) ...[
             _detailRow(context, Icons.logout_rounded, 'Check Out', rec.checkOutTime,
-                const Color(0xFF00695C)),
+                const Color(0xFF15803D)),
             const SizedBox(height: 12),
             if (_dur(rec.checkInTime, rec.checkOutTime) != null)
               _detailRow(context, Icons.timelapse_rounded, 'Duration',

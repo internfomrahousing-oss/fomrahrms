@@ -13,7 +13,7 @@ class ApplyCompOffPage extends StatefulWidget {
 }
 
 class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
-  static const _color = Color(0xFF2E7D32);
+  static const _color = Color(0xFF22C55E);
 
   // Populated from Supabase config; falls back to LeaveFormConfig defaults.
   List<String> _reasons = List<String>.from(LeaveFormConfig.defaultCompOffReasons);
@@ -148,7 +148,7 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
@@ -156,7 +156,7 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
     ),
     filled: true,
     fillColor: Colors.white,
-    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+    labelStyle: const TextStyle(color: Color(0xFF6B7280)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   );
 
@@ -252,7 +252,7 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
                           borderRadius: BorderRadius.circular(10)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -260,7 +260,7 @@ class _ApplyCompOffPageState extends State<ApplyCompOffPage> {
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                      labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                     ),
                   ),
                 ],
@@ -331,7 +331,7 @@ class _DateField extends StatelessWidget {
           border: Border.all(
             color: date != null
                 ? color.withValues(alpha: 0.4)
-                : const Color(0xFFE0E0E0),
+                : const Color(0xFFE5E7EB),
             width: date != null ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
@@ -339,13 +339,13 @@ class _DateField extends StatelessWidget {
         child: Row(children: [
           Icon(Icons.calendar_today_rounded,
               size: 18,
-              color: date != null ? color : const Color(0xFF90A4AE)),
+              color: date != null ? color : const Color(0xFF6B7280)),
           const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label,
                 style: TextStyle(
                     fontSize: 11,
-                    color: date != null ? color : const Color(0xFF78909C),
+                    color: date != null ? color : const Color(0xFF6B7280),
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text(
@@ -355,8 +355,8 @@ class _DateField extends StatelessWidget {
                 fontWeight:
                     date != null ? FontWeight.w600 : FontWeight.normal,
                 color: date != null
-                    ? const Color(0xFF1A237E)
-                    : const Color(0xFF90A4AE),
+                    ? const Color(0xFF111827)
+                    : const Color(0xFF6B7280),
               ),
             ),
           ]),

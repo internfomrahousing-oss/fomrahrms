@@ -10,7 +10,7 @@ class LateComingPage extends StatefulWidget {
 }
 
 class _LateComingPageState extends State<LateComingPage> {
-  static const _color = Color(0xFF283593);
+  static const _color = Color(0xFF111827);
 
   final _timeCtrl   = TextEditingController();
   final _reasonCtrl = TextEditingController();
@@ -99,10 +99,10 @@ class _LateComingPageState extends State<LateComingPage> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                     ),
-                    filled: true, fillColor: const Color(0xFFF5F7FA),
-                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                    filled: true, fillColor: const Color(0xFFF8FAFC),
+                    labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -121,14 +121,14 @@ class _LateComingPageState extends State<LateComingPage> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(color: _color, width: 2),
                     ),
                     filled: true, fillColor: Colors.white,
-                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                    labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -146,14 +146,14 @@ class _LateComingPageState extends State<LateComingPage> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(color: _color, width: 2),
                     ),
                     filled: true, fillColor: Colors.white,
-                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                    labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                   ),
                 ),
               ]),

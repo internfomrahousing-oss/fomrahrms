@@ -6,8 +6,9 @@ import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
+import '../theme/app_theme.dart';
 
-const _purple = Color(0xFF6A1B9A);
+Color get _purple => AppTheme.primaryBlue;
 const _months = ['Jan','Feb','Mar','Apr','May','Jun',
                   'Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -16,9 +17,9 @@ String _fmtDate(DateTime d) =>
 
 // Shared task status → color/label, reused by MyTasksBlock and TaskAnalyticsBlock.
 Color taskStatusColor(TaskStatus s) => switch (s) {
-      TaskStatus.assigned   => const Color(0xFF1565C0),
+      TaskStatus.assigned   => const Color(0xFF3B82F6),
       TaskStatus.pending    => Colors.orange.shade700,
-      TaskStatus.inProgress => const Color(0xFF6A1B9A),
+      TaskStatus.inProgress => const Color(0xFF2563EB),
       TaskStatus.completed  => Colors.green.shade700,
       TaskStatus.delayed    => Colors.red.shade700,
     };
@@ -144,7 +145,7 @@ class InfoCard extends StatelessWidget {
               ],
               Expanded(
                 child: Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w700,
                         color: _purple)),
               ),
@@ -310,7 +311,7 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(_fmtDate(date),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
                                             color: _purple)),
@@ -465,7 +466,7 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
                           ),
                           child: Text(_fmtDate(date),
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: _purple)),
@@ -645,7 +646,7 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
                           style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF37474F))),
+                              color: Color(0xFF6B7280))),
                       if (reason != null && reason.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(reason,
@@ -775,7 +776,7 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
                           radius: 16,
                           backgroundColor: _purple.withValues(alpha: 0.18),
                           child: Text(_initials(name),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: _purple)),
@@ -982,8 +983,8 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
 class _Loader extends StatelessWidget {
   const _Loader();
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
             child: SizedBox(
                 width: 24,

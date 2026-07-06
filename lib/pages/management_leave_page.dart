@@ -5,27 +5,27 @@ import '../widgets/back_button.dart';
 class ManagementLeavePage extends StatelessWidget {
   const ManagementLeavePage({super.key});
 
-  static const _color = Color(0xFF283593);
+  static const _color = Color(0xFF111827);
 
   static const _topics = [
     _Topic(
       'Leave Management',
       Icons.folder_shared_rounded,
-      Color(0xFF0D47A1),
+      Color(0xFF2563EB),
       '/management/leave/overview',
       'All employee leaves — approve, deny, or edit any decision company-wide.',
     ),
     _Topic(
       'Team Leave Approvals',
       Icons.group_rounded,
-      Color(0xFF283593),
+      Color(0xFF111827),
       '/management/leave/team-approvals',
       'Leave requests from employees reporting directly to you.',
     ),
     _Topic(
       'Edit Leave Forms',
       Icons.edit_note_rounded,
-      Color(0xFF6A1B9A),
+      Color(0xFF2563EB),
       '/management/edit-leave-form',
       'Approve HR requests or directly update Leave, Permission & Comp Off form options.',
     ),
@@ -110,7 +110,7 @@ class _TopicCard extends StatelessWidget {
                         fontSize: 14, fontWeight: FontWeight.w700, color: topic.color)),
                 const SizedBox(height: 3),
                 Text(topic.subtitle,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
               ]),
             ),
             Icon(Icons.chevron_right_rounded, color: topic.color.withValues(alpha: 0.5)),

@@ -9,7 +9,7 @@ class LeaveBalancePage extends StatelessWidget {
     return const fd.FormDetailPage(
       title: 'Leave Balance Track',
       icon: Icons.balance_rounded,
-      color: Color(0xFF1976D2),
+      color: Color(0xFF2563EB),
       fields: [
         fd.FormField(label: 'Available Leave', icon: Icons.event_available_rounded, keyboardType: TextInputType.number),
         fd.FormField(label: 'Used Leave',      icon: Icons.event_busy_rounded,      keyboardType: TextInputType.number),

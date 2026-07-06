@@ -14,7 +14,7 @@ class MyLeaveBalancePage extends StatefulWidget {
 }
 
 class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
-  static const _color = Color(0xFF1976D2);
+  static const _color = Color(0xFF2563EB);
   bool _loading = false;
   bool _elAvailLoading = false;
   AppUser? _appUser;
@@ -143,7 +143,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                       Text('Leave Balance',
                           style: Theme.of(context).textTheme.headlineMedium),
                       Text(_monthName(DateTime.now().month),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                     ]),
                     const Spacer(),
                     IconButton(
@@ -156,7 +156,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
 
                   if (user == null)
                     const Text('Employee record not found.',
-                        style: TextStyle(color: Color(0xFF78909C)))
+                        style: TextStyle(color: Color(0xFF6B7280)))
                   else ...[
                     // Status chip
                     _StatusChip(user.leaveStatus),
@@ -174,7 +174,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                         _LeaveBlock('ML',
                           used:  _usedBucket('ML'),
                           quota: user.monthlyMl,
-                          color: const Color(0xFF1565C0),
+                          color: const Color(0xFF3B82F6),
                           subtitle: 'This month'),
                       ],
                       if (user.isElEligible) ...[
@@ -212,9 +212,9 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'EL Eligible' => const Color(0xFF6A1B9A),
-      'On-Roll'     => const Color(0xFF2E7D32),
-      _             => const Color(0xFF78909C),
+      'EL Eligible' => const Color(0xFF2563EB),
+      'On-Roll'     => const Color(0xFF22C55E),
+      _             => const Color(0xFF6B7280),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -259,7 +259,7 @@ class _LeaveBlock extends StatelessWidget {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
             const Spacer(),
             Text(subtitle,
-                style: const TextStyle(fontSize: 9, color: Color(0xFF90A4AE))),
+                style: const TextStyle(fontSize: 9, color: Color(0xFF6B7280))),
           ]),
           const SizedBox(height: 6),
           Row(children: [
@@ -270,7 +270,7 @@ class _LeaveBlock extends StatelessWidget {
                     color: Colors.green.shade700)),
             const SizedBox(width: 3),
             const Text('available',
-                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
           ]),
           const SizedBox(height: 3),
           Row(children: [
@@ -281,7 +281,7 @@ class _LeaveBlock extends StatelessWidget {
                     color: Colors.orange.shade700)),
             const SizedBox(width: 3),
             const Text('used',
-                style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
           ]),
         ]),
       ),
@@ -297,7 +297,7 @@ class _ElAvailCard extends StatelessWidget {
   const _ElAvailCard(
       {required this.user, required this.loading, required this.onRequest});
 
-  static const _purple = Color(0xFF6A1B9A);
+  static const _purple = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {
@@ -326,10 +326,10 @@ class _ElAvailCard extends StatelessWidget {
                   style: TextStyle(fontSize: 10, color: Colors.orange))
             else if (lastAvailed != null)
               Text('Last encashed: ${_fmtDate(lastAvailed)}',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF78909C)))
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)))
             else
               const Text('Not yet encashed',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+                  style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
           ]),
         ),
         if (hasPending)

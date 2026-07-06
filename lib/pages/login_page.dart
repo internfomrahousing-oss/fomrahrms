@@ -15,7 +15,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -175,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
               Text('Housing & Infrastructure',
                   style: TextStyle(
                       fontSize: 13,
-                      color: isDark ? Colors.white54 : const Color(0xFF78909C),
+                      color: isDark ? Colors.white54 : const Color(0xFF6B7280),
                       letterSpacing: 1)),
               const SizedBox(height: 40),
 
@@ -213,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
             decoration: _inputDecoration('Password', Icons.lock_rounded, isDark).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF78909C)),
+                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
@@ -267,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
                 Text('Set your password to continue.',
                     style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.white54 : const Color(0xFF78909C))),
+                        color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
               ]),
             ),
           ]),
@@ -278,7 +278,7 @@ class _LoginPageState extends State<LoginPage> {
             decoration: _inputDecoration('Create Password', Icons.lock_rounded, isDark).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF78909C)),
+                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
                 onPressed: () => setState(() => _obscureNew = !_obscureNew),
               ),
             ),
@@ -291,7 +291,7 @@ class _LoginPageState extends State<LoginPage> {
             decoration: _inputDecoration('Confirm Password', Icons.lock_outline_rounded, isDark).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF78909C)),
+                    size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
                 onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
               ),
             ),
@@ -322,7 +322,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Text('Back to Login',
                   style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? Colors.white54 : const Color(0xFF78909C))),
+                      color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
             ),
           ),
         ]),
@@ -348,7 +348,7 @@ class _LoginPageState extends State<LoginPage> {
       filled: true,
       fillColor: isDark ? const Color(0xFF1E2740) : const Color(0xFFF5F8FF),
       labelStyle: TextStyle(
-          color: isDark ? Colors.white54 : const Color(0xFF78909C)),
+          color: isDark ? Colors.white54 : const Color(0xFF6B7280)),
     );
   }
 
@@ -389,17 +389,17 @@ class _CredentialsHint extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2540) : const Color(0xFFF0F4FF),
+        color: isDark ? const Color(0xFF1A2540) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
             color: isDark ? const Color(0xFF2A3A6A) : const Color(0xFFBBCCF0)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Admin Credentials',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0D47A1))),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF2563EB))),
         const SizedBox(height: 2),
         Text('Users created by Management set their own password on first login.',
-            style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF78909C))),
+            style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
         const SizedBox(height: 6),
         _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123', isDark),
         const SizedBox(height: 4),
@@ -412,14 +412,14 @@ class _CredentialsHint extends StatelessWidget {
 
   Widget _cred(IconData icon, String role, String email, String pass, bool isDark) {
     return Row(children: [
-      Icon(icon, size: 13, color: const Color(0xFF0D47A1)),
+      Icon(icon, size: 13, color: const Color(0xFF2563EB)),
       const SizedBox(width: 6),
       Text('$role: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white70 : const Color(0xFF37474F))),
+          color: isDark ? Colors.white70 : const Color(0xFF6B7280))),
       Expanded(
         child: Text('$email / $pass',
             style: TextStyle(fontSize: 11,
-                color: isDark ? Colors.white54 : const Color(0xFF546E7A)),
+                color: isDark ? Colors.white54 : const Color(0xFF6B7280)),
             overflow: TextOverflow.ellipsis),
       ),
     ]);

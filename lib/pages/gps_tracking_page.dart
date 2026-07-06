@@ -13,7 +13,7 @@ class GpsTrackingPage extends StatefulWidget {
 }
 
 class _GpsTrackingPageState extends State<GpsTrackingPage> {
-  static const _color = Color(0xFF0288D1);
+  static const _color = Color(0xFF3B82F6);
 
   // Live location
   Position? _livePosition;
@@ -240,7 +240,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
             _SectionCard(
               title: 'Route Tracking',
               icon: Icons.route_rounded,
-              color: const Color(0xFF0D47A1),
+              color: const Color(0xFF2563EB),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Container(
@@ -269,21 +269,21 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D47A1).withValues(alpha: 0.06),
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: const Color(0xFF0D47A1).withValues(alpha: 0.2)),
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
                     ),
                     child: const Row(children: [
                       Icon(Icons.lock_outline_rounded,
-                          size: 16, color: Color(0xFF0D47A1)),
+                          size: 16, color: Color(0xFF2563EB)),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'GPS tracking runs until you check out.',
                           style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF0D47A1),
+                              color: Color(0xFF2563EB),
                               fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -340,10 +340,10 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0D47A1).withValues(alpha: 0.05),
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: const Color(0xFF0D47A1).withValues(alpha: 0.15)),
+                              color: const Color(0xFF2563EB).withValues(alpha: 0.15)),
                         ),
                         child: Row(children: [
                           Icon(Icons.location_pin, size: 14, color: Colors.grey.shade500),
@@ -371,7 +371,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
             _SectionCard(
               title: 'Last Known Location',
               icon: Icons.history_rounded,
-              color: const Color(0xFF1565C0),
+              color: const Color(0xFF3B82F6),
               child: _lastKnown == null
                   ? Text(
                       'No location recorded yet.',
@@ -443,7 +443,7 @@ class _CoordRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF0288D1)),
+      Icon(icon, size: 16, color: const Color(0xFF3B82F6)),
       const SizedBox(width: 8),
       Text('$label: ', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
       Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),

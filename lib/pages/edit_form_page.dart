@@ -6,7 +6,7 @@ import '../models/form_config.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 // Icons for each section id
 const _sectionIcons = <String, IconData>{
@@ -100,7 +100,7 @@ class _EditFormPageState extends State<EditFormPage> {
         content: const Text(
             'This will immediately update the live Application Form for all new candidates. '
             'The current version will be saved to history.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -138,7 +138,7 @@ class _EditFormPageState extends State<EditFormPage> {
         });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Form v$vNum published! Link updated.'),
-          backgroundColor: const Color(0xFF2E7D32),
+          backgroundColor: const Color(0xFF22C55E),
           duration: const Duration(seconds: 4),
         ));
         await _loadHistory();
@@ -167,7 +167,7 @@ class _EditFormPageState extends State<EditFormPage> {
           content: const Text(
               'There is already a form version waiting for Management approval. '
               'Please wait for it to be reviewed before submitting another.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -191,14 +191,14 @@ class _EditFormPageState extends State<EditFormPage> {
         content: const Text(
             'The updated form will be sent to Management for approval. '
             'The current live form will remain active until the new version is approved.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6A1B9A),
+              backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -222,7 +222,7 @@ class _EditFormPageState extends State<EditFormPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Form version sent to Management for approval'),
-          backgroundColor: Color(0xFF2E7D32),
+          backgroundColor: Color(0xFF22C55E),
         ));
         _nextVersionNumber++;
         await _loadHistory();
@@ -282,7 +282,7 @@ class _EditFormPageState extends State<EditFormPage> {
           ),
           const SizedBox(height: 8),
           const Text('Custom fields can be added after the section is created.',
-              style: TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+              style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
         ]),
         actions: [
           TextButton(
@@ -402,7 +402,7 @@ class _EditFormPageState extends State<EditFormPage> {
               children: [
                 const Text('Hold and drag to reorder. Tap × to remove.',
                     style:
-                        TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                        TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                 const SizedBox(height: 10),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 220),
@@ -422,7 +422,7 @@ class _EditFormPageState extends State<EditFormPage> {
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 8),
                         leading: const Icon(Icons.drag_handle_rounded,
-                            size: 16, color: Color(0xFFBBBBBB)),
+                            size: 16, color: Color(0xFFE5E7EB)),
                         title: Text(e.value,
                             style: const TextStyle(fontSize: 13)),
                         trailing: IconButton(
@@ -576,7 +576,7 @@ class _EditFormPageState extends State<EditFormPage> {
                     Text(
                         'Edit form sections · Add custom fields · Send for Management approval',
                         style: TextStyle(
-                            fontSize: 12, color: Color(0xFF78909C))),
+                            fontSize: 12, color: Color(0xFF6B7280))),
                   ]),
             ),
             if (!_loading) ...[
@@ -586,7 +586,7 @@ class _EditFormPageState extends State<EditFormPage> {
                       ?.writeText(_activeFormLink);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Current form link copied'),
-                    backgroundColor: Color(0xFF2E7D32),
+                    backgroundColor: Color(0xFF22C55E),
                     duration: Duration(seconds: 2),
                   ));
                 },
@@ -625,7 +625,7 @@ class _EditFormPageState extends State<EditFormPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isManagement
                       ? _blue
-                      : const Color(0xFF6A1B9A),
+                      : const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
@@ -667,10 +667,10 @@ class _EditFormPageState extends State<EditFormPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE3F2FD),
+                              color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: const Color(0xFFBBDEFB)),
+                                  color: const Color(0xFFDBEAFE)),
                             ),
                             child: const Row(children: [
                               Icon(Icons.info_outline_rounded,
@@ -684,7 +684,7 @@ class _EditFormPageState extends State<EditFormPage> {
                                   'Click "Update & Publish" when done.',
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF37474F)),
+                                      color: Color(0xFF6B7280)),
                                 ),
                               ),
                             ]),
@@ -708,7 +708,7 @@ class _EditFormPageState extends State<EditFormPage> {
                           const SizedBox(height: 4),
                           const Text(
                             'Drag  ⠿  to reorder sections',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+                            style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                           ),
                           const SizedBox(height: 8),
                           ReorderableListView(
@@ -819,8 +819,8 @@ class _SectionTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: enabled
-              ? const Color(0xFFE0E0E0)
-              : const Color(0xFFEEEEEE),
+              ? const Color(0xFFE5E7EB)
+              : const Color(0xFFE5E7EB),
         ),
       ),
       child: Column(
@@ -834,7 +834,7 @@ class _SectionTile extends StatelessWidget {
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Icon(Icons.drag_handle_rounded,
-                      size: 20, color: Color(0xFFBBBBBB)),
+                      size: 20, color: Color(0xFFE5E7EB)),
                 ),
               ),
               Container(
@@ -842,11 +842,11 @@ class _SectionTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: enabled
                       ? _blue.withValues(alpha: 0.1)
-                      : const Color(0xFFF5F5F5),
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon,
-                    color: enabled ? _blue : const Color(0xFFBBBBBB),
+                    color: enabled ? _blue : const Color(0xFFE5E7EB),
                     size: 18),
               ),
               const SizedBox(width: 12),
@@ -856,8 +856,8 @@ class _SectionTile extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: enabled
-                          ? const Color(0xFF37474F)
-                          : const Color(0xFFBBBBBB),
+                          ? const Color(0xFF6B7280)
+                          : const Color(0xFFE5E7EB),
                     )),
               ),
               // Rename
@@ -866,7 +866,7 @@ class _SectionTile extends StatelessWidget {
                 icon: Icon(Icons.edit_rounded,
                     size: 16,
                     color: enabled
-                        ? const Color(0xFF78909C)
+                        ? const Color(0xFF6B7280)
                         : const Color(0xFFDDDDDD)),
                 onPressed: enabled ? onRename : null,
               ),
@@ -889,7 +889,7 @@ class _SectionTile extends StatelessWidget {
 
           // Built-in fields — interactive: tap X to hide, tap restore to show again
           if (enabled && builtInFieldDefs.isNotEmpty) ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Column(
@@ -900,13 +900,13 @@ class _SectionTile extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF90A4AE),
+                            color: Color(0xFF6B7280),
                             letterSpacing: 0.3)),
                     const SizedBox(width: 6),
                     const Text('(tap × to hide a field)',
                         style: TextStyle(
                             fontSize: 9,
-                            color: Color(0xFFBBBBBB))),
+                            color: Color(0xFFE5E7EB))),
                   ]),
                   const SizedBox(height: 6),
                   Wrap(
@@ -924,19 +924,19 @@ class _SectionTile extends StatelessWidget {
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isHidden
-                                ? const Color(0xFFFFF3E0)
+                                ? const Color(0xFFFEF3C7)
                                 : _blue.withValues(alpha: 0.07),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isHidden
-                                  ? const Color(0xFFFFCC80)
+                                  ? const Color(0xFFFEF3C7)
                                   : _blue.withValues(alpha: 0.25),
                             ),
                           ),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             if (isHidden)
                               const Icon(Icons.visibility_off_rounded,
-                                  size: 10, color: Color(0xFFE65100)),
+                                  size: 10, color: Color(0xFFF59E0B)),
                             if (!isHidden)
                               const Icon(Icons.check_rounded,
                                   size: 10, color: _blue),
@@ -945,7 +945,7 @@ class _SectionTile extends StatelessWidget {
                                 style: TextStyle(
                                     fontSize: 10,
                                     color: isHidden
-                                        ? const Color(0xFFE65100)
+                                        ? const Color(0xFFF59E0B)
                                         : _blue,
                                     decoration: isHidden
                                         ? TextDecoration.lineThrough
@@ -957,8 +957,8 @@ class _SectionTile extends StatelessWidget {
                                   : Icons.close_rounded,
                               size: 10,
                               color: isHidden
-                                  ? const Color(0xFFE65100)
-                                  : const Color(0xFF90A4AE),
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFF6B7280),
                             ),
                           ]),
                         ),
@@ -972,7 +972,7 @@ class _SectionTile extends StatelessWidget {
 
           // Option editors for configurable sections
           if (enabled && optionKeys.isNotEmpty) ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Column(
@@ -997,7 +997,7 @@ class _SectionTile extends StatelessWidget {
                                   style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF78909C))),
+                                      color: Color(0xFF6B7280))),
                               const SizedBox(height: 4),
                               Wrap(
                                 spacing: 6,
@@ -1037,7 +1037,7 @@ class _SectionTile extends StatelessWidget {
 
           // Custom fields sub-panel (always shown when enabled)
           if (enabled) ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
               child: Column(
@@ -1048,7 +1048,7 @@ class _SectionTile extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF78909C))),
+                            color: Color(0xFF6B7280))),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: onAddField,
@@ -1099,15 +1099,15 @@ class _CustomFieldPreview extends StatelessWidget {
       case 'mcq':
         typeIcon = Icons.radio_button_checked_rounded;
         typeLabel = 'MCQ';
-        typeColor = const Color(0xFF6A1B9A);
+        typeColor = const Color(0xFF2563EB);
       case 'photo_upload':
         typeIcon = Icons.photo_camera_rounded;
         typeLabel = 'Photo Upload';
-        typeColor = const Color(0xFFE65100);
+        typeColor = const Color(0xFFF59E0B);
       case 'file_upload':
         typeIcon = Icons.upload_file_rounded;
         typeLabel = 'File Upload';
-        typeColor = const Color(0xFF1565C0);
+        typeColor = const Color(0xFF3B82F6);
       case 'number':
         typeIcon = Icons.pin_rounded;
         typeLabel = 'Numbers Only';
@@ -1115,24 +1115,24 @@ class _CustomFieldPreview extends StatelessWidget {
       case 'date':
         typeIcon = Icons.calendar_today_rounded;
         typeLabel = 'Date / Calendar';
-        typeColor = const Color(0xFF6A1B9A);
+        typeColor = const Color(0xFF2563EB);
       case 'checkbox':
         typeIcon = Icons.check_box_rounded;
         typeLabel = 'Checkbox';
-        typeColor = const Color(0xFF2E7D32);
+        typeColor = const Color(0xFF22C55E);
       default:
         typeIcon = Icons.short_text_rounded;
         typeLabel = 'Short Answer';
-        typeColor = const Color(0xFF2E7D32);
+        typeColor = const Color(0xFF22C55E);
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FF),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Row(children: [
         Container(
@@ -1154,7 +1154,7 @@ class _CustomFieldPreview extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF37474F))),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         ),
         if (isRequired) ...[
           const SizedBox(width: 6),
@@ -1162,7 +1162,7 @@ class _CustomFieldPreview extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEE),
+              color: const Color(0xFFFEE2E2),
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text('Required',
@@ -1175,7 +1175,7 @@ class _CustomFieldPreview extends StatelessWidget {
         const SizedBox(width: 4),
         IconButton(
           icon: const Icon(Icons.edit_rounded,
-              size: 14, color: Color(0xFF78909C)),
+              size: 14, color: Color(0xFF6B7280)),
           onPressed: onEdit,
           constraints:
               const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -1283,7 +1283,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF546E7A))),
+                      color: Color(0xFF6B7280))),
               const SizedBox(height: 8),
               Wrap(spacing: 8, runSpacing: 6, children: [
                 _TypeChip(
@@ -1362,7 +1362,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 const SizedBox(width: 8),
                 const Text('Required field',
                     style: TextStyle(
-                        fontSize: 13, color: Color(0xFF37474F))),
+                        fontSize: 13, color: Color(0xFF6B7280))),
               ]),
 
               // ── MCQ options ────────────────────────────────────
@@ -1372,7 +1372,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF546E7A))),
+                        color: Color(0xFF6B7280))),
                 const SizedBox(height: 4),
                 const Text('Drag to reorder · tap × to remove',
                     style: TextStyle(
@@ -1398,7 +1398,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                             contentPadding:
                                 const EdgeInsets.symmetric(horizontal: 8),
                             leading: const Icon(Icons.drag_handle_rounded,
-                                size: 16, color: Color(0xFFBBBBBB)),
+                                size: 16, color: Color(0xFFE5E7EB)),
                             title: Text(e.value,
                                 style: const TextStyle(fontSize: 13)),
                             trailing: IconButton(
@@ -1447,18 +1447,18 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
+                    color: const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFFCC80)),
+                    border: Border.all(color: const Color(0xFFFEF3C7)),
                   ),
                   child: const Row(children: [
                     Icon(Icons.photo_camera_rounded,
-                        size: 14, color: Color(0xFFE65100)),
+                        size: 14, color: Color(0xFFF59E0B)),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Candidates upload a photo (JPG / PNG). It will be auto-compressed to ≤200 KB.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFFE65100)),
+                        style: TextStyle(fontSize: 11, color: Color(0xFFF59E0B)),
                       ),
                     ),
                   ]),
@@ -1469,18 +1469,18 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
                   child: const Row(children: [
                     Icon(Icons.upload_file_rounded,
-                        size: 14, color: Color(0xFF1565C0)),
+                        size: 14, color: Color(0xFF3B82F6)),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Candidates upload a document (PDF, DOC, DOCX, XLS, XLSX). Uploaded as-is.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF1565C0)),
+                        style: TextStyle(fontSize: 11, color: Color(0xFF3B82F6)),
                       ),
                     ),
                   ]),
@@ -1491,7 +1491,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
@@ -1512,18 +1512,18 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3E5F5),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFCE93D8)),
+                    border: Border.all(color: const Color(0xFF3B82F6)),
                   ),
                   child: const Row(children: [
                     Icon(Icons.calendar_today_rounded,
-                        size: 14, color: Color(0xFF6A1B9A)),
+                        size: 14, color: Color(0xFF2563EB)),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'A calendar date picker will be shown to the candidate.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF6A1B9A)),
+                        style: TextStyle(fontSize: 11, color: Color(0xFF2563EB)),
                       ),
                     ),
                   ]),
@@ -1534,18 +1534,18 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
                   ),
                   child: const Row(children: [
                     Icon(Icons.check_box_rounded,
-                        size: 14, color: Color(0xFF2E7D32)),
+                        size: 14, color: Color(0xFF22C55E)),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'A single tick-box that the candidate can check or leave unchecked.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32)),
+                        style: TextStyle(fontSize: 11, color: Color(0xFF22C55E)),
                       ),
                     ),
                   ]),
@@ -1602,24 +1602,24 @@ class _TypeChip extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? _blue : const Color(0xFFF5F7FA),
+          color: isSelected ? _blue : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: isSelected ? _blue : const Color(0xFFE0E0E0)),
+              color: isSelected ? _blue : const Color(0xFFE5E7EB)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon,
               size: 14,
               color: isSelected
                   ? Colors.white
-                  : const Color(0xFF546E7A)),
+                  : const Color(0xFF6B7280)),
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(
                   fontSize: 12,
                   color: isSelected
                       ? Colors.white
-                      : const Color(0xFF546E7A),
+                      : const Color(0xFF6B7280),
                   fontWeight: isSelected
                       ? FontWeight.w600
                       : FontWeight.normal)),
@@ -1664,18 +1664,18 @@ class _VersionHistoryCard extends StatelessWidget {
     late String statusLabel;
     switch (status) {
       case 'approved':
-        statusBg = const Color(0xFFE8F5E9);
-        statusFg = const Color(0xFF2E7D32);
+        statusBg = const Color(0xFFDCFCE7);
+        statusFg = const Color(0xFF22C55E);
         statusIcon = Icons.check_circle_rounded;
         statusLabel = 'Approved';
       case 'rejected':
-        statusBg = const Color(0xFFFFEBEE);
-        statusFg = const Color(0xFFC62828);
+        statusBg = const Color(0xFFFEE2E2);
+        statusFg = const Color(0xFFEF4444);
         statusIcon = Icons.cancel_rounded;
         statusLabel = 'Rejected';
       default:
-        statusBg = const Color(0xFFFFF3E0);
-        statusFg = const Color(0xFFE65100);
+        statusBg = const Color(0xFFFEF3C7);
+        statusFg = const Color(0xFFF59E0B);
         statusIcon = Icons.hourglass_empty_rounded;
         statusLabel = 'Pending Approval';
     }
@@ -1686,7 +1686,7 @@ class _VersionHistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1712,11 +1712,11 @@ class _VersionHistoryCard extends StatelessWidget {
                   if (createdBy.isNotEmpty)
                     Text('Created by $createdBy',
                         style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF546E7A))),
+                            fontSize: 12, color: Color(0xFF6B7280))),
                   if (dateStr.isNotEmpty)
                     Text(dateStr,
                         style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF78909C))),
+                            fontSize: 11, color: Color(0xFF6B7280))),
                 ],
               ),
             ),
@@ -1742,23 +1742,23 @@ class _VersionHistoryCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text('Approved by $approvedBy',
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF2E7D32))),
+                    fontSize: 11, color: Color(0xFF22C55E))),
           ],
 
           if (rejectionNote.isNotEmpty && status == 'rejected') ...[
             const SizedBox(height: 6),
             Text('Reason: $rejectionNote',
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFFC62828))),
+                    fontSize: 11, color: Color(0xFFEF4444))),
           ],
 
           if (link != null) ...[
             const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
             const SizedBox(height: 8),
             Row(children: [
               const Icon(Icons.link_rounded,
-                  size: 14, color: Color(0xFF78909C)),
+                  size: 14, color: Color(0xFF6B7280)),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(link,
@@ -1772,7 +1772,7 @@ class _VersionHistoryCard extends StatelessWidget {
                   html.window.navigator.clipboard?.writeText(link);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Link copied'),
-                    backgroundColor: Color(0xFF2E7D32),
+                    backgroundColor: Color(0xFF22C55E),
                     duration: Duration(seconds: 2),
                   ));
                 },
@@ -1811,9 +1811,9 @@ class _HeadingRow extends StatelessWidget {
           style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1A237E))),
+              color: Color(0xFF111827))),
       const SizedBox(width: 12),
-      const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
     ]);
   }
 }
@@ -1826,17 +1826,17 @@ class _EmptyHistory extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: const Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.history_rounded, size: 38, color: Color(0xFFBBDEFB)),
+          Icon(Icons.history_rounded, size: 38, color: Color(0xFFDBEAFE)),
           SizedBox(height: 10),
           Text('No form versions yet',
-              style: TextStyle(fontSize: 13, color: Color(0xFF78909C))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           SizedBox(height: 4),
           Text('Submitted versions will appear here after approval.',
-              style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
+              style: TextStyle(fontSize: 11, color: Color(0xFFE5E7EB))),
         ]),
       ),
     );

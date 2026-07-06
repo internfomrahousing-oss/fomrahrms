@@ -16,7 +16,7 @@ class HrLeaveRecordsPage extends StatefulWidget {
 
 class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     with SingleTickerProviderStateMixin {
-  static const _color = Color(0xFF0D47A1);
+  static const _color = Color(0xFF2563EB);
 
   late final TabController _tabs;
   bool _loading = true;
@@ -162,7 +162,7 @@ static String _fmtD(double d) =>
                   const SizedBox(width: 16),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Leave Records', style: Theme.of(context).textTheme.headlineMedium),
-                    const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                    const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ]),
                   const Spacer(),
                   OutlinedButton.icon(
@@ -192,7 +192,7 @@ static String _fmtD(double d) =>
                 TabBar(
                   controller: _tabs,
                   labelColor: _color,
-                  unselectedLabelColor: const Color(0xFF78909C),
+                  unselectedLabelColor: const Color(0xFF6B7280),
                   indicatorColor: _color,
                   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   tabs: const [
@@ -266,11 +266,11 @@ static String _fmtD(double d) =>
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(user.name,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A237E))),
+                            color: Color(0xFF111827))),
                     Text(user.email,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                     Text(user.designation.isEmpty ? user.role : '${user.designation} · ${user.role}',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                   ]),
                 ),
               ]),
@@ -283,7 +283,7 @@ static String _fmtD(double d) =>
                 _LeaveTypeBlock('ML',
                   used: _usedBucket(user.name, 'ML'),
                   quota: user.monthlyMl,
-                  color: const Color(0xFF1565C0)),
+                  color: const Color(0xFF3B82F6)),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('CL',
                   used: _usedBucket(user.name, 'CL'),
@@ -357,7 +357,7 @@ static String _fmtD(double d) =>
                           ),
                           Text(
                             _isCurrentMonth ? 'Current month' : 'Tap to pick month',
-                            style: const TextStyle(fontSize: 10, color: Color(0xFF78909C)),
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
                           ),
                         ]),
                       ),
@@ -437,7 +437,7 @@ class _StatChip extends StatelessWidget {
     return Column(children: [
       Text(value,
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-      Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+      Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
     ]);
   }
 }
@@ -474,7 +474,7 @@ class _LeaveTypeBlock extends StatelessWidget {
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
                     color: Colors.green.shade700)),
             const SizedBox(width: 2),
-            const Text('available', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+            const Text('available', style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
           ]),
           const SizedBox(height: 2),
           Row(children: [
@@ -484,7 +484,7 @@ class _LeaveTypeBlock extends StatelessWidget {
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
                     color: Colors.orange.shade700)),
             const SizedBox(width: 2),
-            const Text('used', style: TextStyle(fontSize: 10, color: Color(0xFF78909C))),
+            const Text('used', style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
           ]),
         ]),
       ),
@@ -547,12 +547,12 @@ class _AppCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Icon(Icons.person_rounded, color: Color(0xFF0D47A1), size: 18),
+            const Icon(Icons.person_rounded, color: Color(0xFF2563EB), size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(app.employeeName,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A237E))),
+                      color: Color(0xFF111827))),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -621,9 +621,9 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: const Color(0xFF78909C)),
+      Icon(icon, size: 12, color: const Color(0xFF6B7280)),
       const SizedBox(width: 4),
-      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A))),
+      Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
     ]);
   }
 }

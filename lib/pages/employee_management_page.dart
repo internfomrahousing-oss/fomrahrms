@@ -24,7 +24,7 @@ class EmployeeManagementPage extends StatelessWidget {
                   color: AppTheme.lightBlue,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.people_rounded,
+                child: Icon(Icons.people_rounded,
                     color: AppTheme.primaryBlue, size: 22),
               ),
               const SizedBox(width: 14),
@@ -80,7 +80,7 @@ class _ProfileCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0D47A1),
+                        color: const Color(0xFF2563EB),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Row(
@@ -105,11 +105,11 @@ class _ProfileCard extends StatelessWidget {
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.person_rounded,
-                    color: Color(0xFF0D47A1), size: 24),
+                    color: Color(0xFF2563EB), size: 24),
               ),
               const SizedBox(height: 10),
               const Text(
@@ -118,13 +118,13 @@ class _ProfileCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A237E),
+                  color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 4),
               Icon(Icons.arrow_forward_rounded,
                   size: 14,
-                  color: const Color(0xFF0D47A1).withValues(alpha: 0.6)),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.6)),
             ],
           ),
         ),
@@ -149,11 +149,11 @@ class _RecordsCard extends StatelessWidget {
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0288D1).withValues(alpha: 0.1),
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.people_alt_rounded,
-                    color: Color(0xFF0288D1), size: 24),
+                    color: Color(0xFF3B82F6), size: 24),
               ),
               const SizedBox(height: 10),
               const Text(
@@ -162,13 +162,13 @@ class _RecordsCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A237E),
+                  color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 4),
               Icon(Icons.arrow_forward_rounded,
                   size: 14,
-                  color: const Color(0xFF0288D1).withValues(alpha: 0.6)),
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.6)),
             ],
           ),
         ),

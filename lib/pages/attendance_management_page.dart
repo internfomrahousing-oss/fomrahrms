@@ -7,9 +7,9 @@ class AttendanceManagementPage extends StatelessWidget {
   const AttendanceManagementPage({super.key});
 
   static const _topics = [
-    _Topic('Check In',         Icons.login_rounded,      Color(0xFF0D47A1), '/attendance/hr/check-in'),
-    _Topic('Check Out',        Icons.logout_rounded,     Color(0xFF1565C0), '/attendance/hr/check-out'),
-    _Topic('Late Coming',      Icons.watch_later_rounded, Color(0xFF283593), '/attendance/hr/late-coming'),
+    _Topic('Check In',         Icons.login_rounded,      Color(0xFF2563EB), '/attendance/hr/check-in'),
+    _Topic('Check Out',        Icons.logout_rounded,     Color(0xFF3B82F6), '/attendance/hr/check-out'),
+    _Topic('Late Coming',      Icons.watch_later_rounded, Color(0xFF111827), '/attendance/hr/late-coming'),
     _Topic('Employee Records', Icons.people_alt_rounded,  Color(0xFF1E88E5), '/attendance/employee-records'),
   ];
 
@@ -31,7 +31,7 @@ class AttendanceManagementPage extends StatelessWidget {
                   color: AppTheme.lightBlue,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.access_time_rounded,
+                child: Icon(Icons.access_time_rounded,
                     color: AppTheme.primaryBlue, size: 22),
               ),
               const SizedBox(width: 14),
@@ -115,7 +115,7 @@ class _TopicCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A237E),
+                  color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 4),

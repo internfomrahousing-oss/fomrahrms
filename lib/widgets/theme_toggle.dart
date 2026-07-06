@@ -10,7 +10,7 @@ class ThemeToggle extends StatelessWidget {
       valueListenable: themeNotifier,
       builder: (context, mode, _) {
         final isDark = mode == ThemeMode.dark;
-        final color = isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0);
+        final color = isDark ? const Color(0xFF90CAF9) : const Color(0xFF3B82F6);
 
         return Tooltip(
           message: isDark ? 'Switch to Light' : 'Switch to Dark',

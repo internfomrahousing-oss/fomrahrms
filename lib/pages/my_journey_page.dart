@@ -83,11 +83,11 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withValues(alpha: 0.1),
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.timeline_rounded,
-                    color: Color(0xFF1565C0), size: 22),
+                    color: Color(0xFF3B82F6), size: 22),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -95,12 +95,12 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
                   Text('My Journey',
                       style: Theme.of(context).textTheme.headlineMedium),
                   const Text('Interview & onboarding status',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                 ]),
               ),
               IconButton(
                 tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF1565C0)),
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3B82F6)),
                 onPressed: _fetch,
               ),
             ]),
@@ -110,7 +110,7 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 60),
-                  child: CircularProgressIndicator(color: Color(0xFF1565C0), strokeWidth: 2),
+                  child: CircularProgressIndicator(color: Color(0xFF3B82F6), strokeWidth: 2),
                 ),
               )
             else if (_interviewApp == null && _onboardingForm == null)
@@ -157,11 +157,11 @@ class _InterviewCard extends StatelessWidget {
       final approved = status == 'accepted' || status == 'approved';
       final rejected = status == 'rejected';
       final color = approved
-          ? const Color(0xFF2E7D32)
-          : rejected ? const Color(0xFFC62828) : const Color(0xFFE65100);
+          ? const Color(0xFF22C55E)
+          : rejected ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
       final bg = approved
-          ? const Color(0xFFE8F5E9)
-          : rejected ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+          ? const Color(0xFFDCFCE7)
+          : rejected ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7);
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
@@ -189,7 +189,7 @@ class _InterviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: allApproved
-              ? const Color(0xFF2E7D32)
+              ? const Color(0xFF22C55E)
               : Theme.of(context).colorScheme.outlineVariant,
           width: allApproved ? 1.5 : 1,
         ),
@@ -201,11 +201,11 @@ class _InterviewCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1565C0).withValues(alpha: 0.1),
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.work_outline_rounded,
-                  color: Color(0xFF1565C0), size: 18),
+                  color: Color(0xFF3B82F6), size: 18),
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -220,14 +220,14 @@ class _InterviewCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF2E7D32)),
+                  Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF22C55E)),
                   SizedBox(width: 4),
                   Text('Interview Done',
-                      style: TextStyle(fontSize: 10, color: Color(0xFF2E7D32),
+                      style: TextStyle(fontSize: 10, color: Color(0xFF22C55E),
                           fontWeight: FontWeight.w600)),
                 ]),
               ),
@@ -263,12 +263,12 @@ class _OnboardingCard extends StatelessWidget {
 
   Color _color(String s) {
     switch (s) {
-      case 'access_granted': return const Color(0xFF6A1B9A);
-      case 'mgmt_approved':  return const Color(0xFF2E7D32);
-      case 'hr_approved':    return const Color(0xFF1565C0);
+      case 'access_granted': return const Color(0xFF2563EB);
+      case 'mgmt_approved':  return const Color(0xFF22C55E);
+      case 'hr_approved':    return const Color(0xFF3B82F6);
       case 'hr_denied':
-      case 'mgmt_denied':    return const Color(0xFFC62828);
-      default:               return const Color(0xFFE65100);
+      case 'mgmt_denied':    return const Color(0xFFEF4444);
+      default:               return const Color(0xFFF59E0B);
     }
   }
 
@@ -285,7 +285,7 @@ class _OnboardingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: status == 'access_granted'
-              ? const Color(0xFF6A1B9A)
+              ? const Color(0xFF2563EB)
               : Theme.of(context).colorScheme.outlineVariant,
           width: status == 'access_granted' ? 1.5 : 1,
         ),

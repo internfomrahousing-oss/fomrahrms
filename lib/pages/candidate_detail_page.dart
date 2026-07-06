@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../models/candidate_store.dart';
 import '../widgets/back_button.dart';
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 void _openUrl(String url) {
   if (url.isEmpty) return;
@@ -59,7 +59,7 @@ class CandidateDetailPage extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
                 Text('Applied on ${_fmtDate(_val(d, 'submitted_at'))}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),
             // Resume button
@@ -183,7 +183,7 @@ class CandidateDetailPage extends StatelessWidget {
   Widget _chip(String text) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     decoration: BoxDecoration(
-      color: const Color(0xFFF0F4FF),
+      color: const Color(0xFFF8FAFC),
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: const Color(0xFFBBCCF0)),
     ),
@@ -213,9 +213,9 @@ class _Section extends StatelessWidget {
         const SizedBox(width: 10),
         Text(title,
             style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+                fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
         const SizedBox(width: 12),
-        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+        const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
       ]),
     );
   }
@@ -242,15 +242,15 @@ class _InfoGrid extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(i.label,
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF78909C), fontWeight: FontWeight.w500)),
+                    fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
             const SizedBox(height: 4),
             Text(i.value,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF1A237E),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF111827),
                     fontWeight: FontWeight.w600)),
           ]),
         ),
@@ -322,24 +322,24 @@ class _ScrollTable extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Column(children: [
           // Header
           Container(
-            color: const Color(0xFFE3F2FD),
+            color: const Color(0xFFEFF6FF),
             child: Row(children: List.generate(headers.length, (i) => Container(
               width: widths[i],
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: BoxDecoration(border: Border(
                 right: i < headers.length - 1
-                    ? const BorderSide(color: Color(0xFFCCCCCC)) : BorderSide.none,
+                    ? const BorderSide(color: Color(0xFFE5E7EB)) : BorderSide.none,
               )),
               child: Text(headers[i], style: const TextStyle(
                   fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
             ))),
           ),
-          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
           // Rows
           ...rows.asMap().entries.map((e) => Column(children: [
             Container(
@@ -349,16 +349,16 @@ class _ScrollTable extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: BoxDecoration(border: Border(
                   right: i < keys.length - 1
-                      ? const BorderSide(color: Color(0xFFEEEEEE)) : BorderSide.none,
+                      ? const BorderSide(color: Color(0xFFE5E7EB)) : BorderSide.none,
                 )),
                 child: Text(
                   (e.value[keys[i]] ?? '').toString(),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF37474F)),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                 ),
               ))),
             ),
             if (e.key < rows.length - 1)
-              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const Divider(height: 1, color: Color(0xFFE5E7EB)),
           ])),
         ]),
       ),
@@ -371,5 +371,5 @@ class _Empty extends StatelessWidget {
   const _Empty({this.text = 'No data provided.'});
   @override
   Widget build(BuildContext context) => Text(text,
-      style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)));
+      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)));
 }

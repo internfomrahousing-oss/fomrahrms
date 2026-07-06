@@ -4,8 +4,8 @@ import '../models/app_user.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 
-const _mgmtColor = Color(0xFF4A148C);
-const _mgmtLight = Color(0xFFF3E5F5);
+const _mgmtColor = Color(0xFF1D4ED8);
+const _mgmtLight = Color(0xFFEFF6FF);
 
 class _Role {
   String name;
@@ -124,7 +124,7 @@ class _AdministrationPageState extends State<AdministrationPage>
                               fontWeight: FontWeight.bold,
                               color: _mgmtColor)),
                       const Text('Management access only',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                          style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                     ]),
                   ],
                 ]),
@@ -132,7 +132,7 @@ class _AdministrationPageState extends State<AdministrationPage>
                 TabBar(
                   controller: _tabs,
                   labelColor: _mgmtColor,
-                  unselectedLabelColor: const Color(0xFF78909C),
+                  unselectedLabelColor: const Color(0xFF6B7280),
                   indicatorColor: _mgmtColor,
                   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   tabs: const [
@@ -175,10 +175,10 @@ class _UsersTab extends StatelessWidget {
 
   Color _roleColor(String role) {
     switch (role) {
-      case 'HR':         return const Color(0xFF0D47A1);
-      case 'Manager':    return const Color(0xFF1A237E);
+      case 'HR':         return const Color(0xFF2563EB);
+      case 'Manager':    return const Color(0xFF111827);
       case 'Management': return _mgmtColor;
-      default:           return const Color(0xFF2E7D32);
+      default:           return const Color(0xFF22C55E);
     }
   }
 
@@ -267,11 +267,11 @@ class _UsersTab extends StatelessWidget {
                   ]),
                   const SizedBox(height: 2),
                   Text(u.email,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   const SizedBox(height: 4),
                   Row(children: [
                     if (u.designation.isNotEmpty) ...[
-                      _Chip(label: u.designation, color: const Color(0xFF546E7A)),
+                      _Chip(label: u.designation, color: const Color(0xFF6B7280)),
                       const SizedBox(width: 6),
                     ],
                     _Chip(label: u.role, color: _roleColor(u.role)),
@@ -279,10 +279,10 @@ class _UsersTab extends StatelessWidget {
                   if ((u.role == 'Employee' || u.role == 'Manager') && u.reportingManager.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Row(children: [
-                      const Icon(Icons.manage_accounts_rounded, size: 11, color: Color(0xFF90A4AE)),
+                      const Icon(Icons.manage_accounts_rounded, size: 11, color: Color(0xFF6B7280)),
                       const SizedBox(width: 4),
                       Text('Reports to: ${u.reportingManager}',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                     ]),
                   ],
                 ]),
@@ -309,7 +309,7 @@ class _UsersTab extends StatelessWidget {
                 IconButton(
                   tooltip: 'Delete User',
                   onPressed: () => _confirmDelete(context, u, onDelete),
-                  icon: const Icon(Icons.delete_rounded, size: 18, color: Color(0xFFB71C1C)),
+                  icon: const Icon(Icons.delete_rounded, size: 18, color: Color(0xFFB91C1C)),
                   visualDensity: VisualDensity.compact,
                 ),
               ]),
@@ -364,14 +364,14 @@ class _UsersTab extends StatelessWidget {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: _mgmtColor, width: 2),
                   ),
                   filled: true, fillColor: Colors.white,
-                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -387,7 +387,7 @@ class _UsersTab extends StatelessWidget {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -426,7 +426,7 @@ class _UsersTab extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -447,7 +447,7 @@ class _UsersTab extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
             ),
             ElevatedButton(
               onPressed: () {
@@ -502,10 +502,10 @@ class _UsersTab extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete User',
-            style: TextStyle(color: Color(0xFFB71C1C), fontWeight: FontWeight.bold)),
+            style: TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.bold)),
         content: RichText(
           text: TextSpan(
-            style: const TextStyle(fontSize: 14, color: Color(0xFF37474F)),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
             children: [
               const TextSpan(text: 'Are you sure you want to permanently delete '),
               TextSpan(
@@ -519,7 +519,7 @@ class _UsersTab extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -527,7 +527,7 @@ class _UsersTab extends StatelessWidget {
               onDelete(u);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB71C1C),
+              backgroundColor: const Color(0xFFB91C1C),
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -675,7 +675,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                       style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
-                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -686,7 +686,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                   prefixIcon: const Icon(Icons.badge_rounded, color: _mgmtColor, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
-                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -710,7 +710,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                     prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true, fillColor: Colors.white,
-                    labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                    labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                   ),
                 ),
             ]),
@@ -799,8 +799,8 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(width: 180, child: Text(label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF546E7A)))),
-          Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)))),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)))),
+          Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF111827)))),
         ]),
       );
     }
@@ -887,10 +887,10 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                   final id = f['id'].toString();
                   Color statusColor;
                   String statusLabel;
-                  if (status == 'mgmt_approved') { statusColor = const Color(0xFF2E7D32); statusLabel = 'Approved'; }
-                  else if (status == 'mgmt_denied') { statusColor = const Color(0xFFB71C1C); statusLabel = 'Denied'; }
-                  else if (status == 'access_granted') { statusColor = const Color(0xFF6A1B9A); statusLabel = 'Active'; }
-                  else { statusColor = const Color(0xFF1565C0); statusLabel = 'Awaiting Review'; }
+                  if (status == 'mgmt_approved') { statusColor = const Color(0xFF22C55E); statusLabel = 'Approved'; }
+                  else if (status == 'mgmt_denied') { statusColor = const Color(0xFFB91C1C); statusLabel = 'Denied'; }
+                  else if (status == 'access_granted') { statusColor = const Color(0xFF2563EB); statusLabel = 'Active'; }
+                  else { statusColor = const Color(0xFF3B82F6); statusLabel = 'Awaiting Review'; }
 
                   return Card(
                     elevation: 0,
@@ -913,9 +913,9 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                           const SizedBox(width: 12),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text((f['name'] as String?) ?? '—',
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1A237E))),
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF111827))),
                             Text('${f['designation'] ?? ''}  ·  ${f['phone_number'] ?? ''}',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                           ])),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -935,7 +935,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                             width: double.infinity,
                             padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8EAF6),
+                              color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1001,9 +1001,9 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                           ],
                           if (status == 'access_granted') ...[
                             const SizedBox(width: 10),
-                            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF6A1B9A)),
+                            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF2563EB)),
                             const SizedBox(width: 4),
-                            const Text('Account active', style: TextStyle(fontSize: 12, color: Color(0xFF6A1B9A))),
+                            const Text('Account active', style: TextStyle(fontSize: 12, color: Color(0xFF2563EB))),
                           ],
                         ]),
                       ]),
@@ -1028,7 +1028,7 @@ class _DetailRow extends StatelessWidget {
         Icon(icon, size: 12, color: _mgmtColor),
         const SizedBox(width: 5),
         Text('$label: ', style: const TextStyle(fontSize: 11, color: _mgmtColor, fontWeight: FontWeight.w600)),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF1A237E)))),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF111827)))),
       ]),
     );
   }
@@ -1043,10 +1043,10 @@ class _RolesTab extends StatelessWidget {
 
   Color _color(String name) {
     switch (name) {
-      case 'HR':         return const Color(0xFF0D47A1);
-      case 'Manager':    return const Color(0xFF1A237E);
+      case 'HR':         return const Color(0xFF2563EB);
+      case 'Manager':    return const Color(0xFF111827);
       case 'Management': return _mgmtColor;
-      default:           return const Color(0xFF2E7D32);
+      default:           return const Color(0xFF22C55E);
     }
   }
 
@@ -1071,7 +1071,7 @@ class _RolesTab extends StatelessWidget {
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const SizedBox(height: 4),
         const Text('Edit role names and descriptions as needed.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         const SizedBox(height: 16),
         ...roles.map((r) {
           final c = _color(r.name);
@@ -1096,7 +1096,7 @@ class _RolesTab extends StatelessWidget {
                             fontSize: 14, fontWeight: FontWeight.w700, color: c)),
                     const SizedBox(height: 3),
                     Text(r.description,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A))),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ]),
                 ),
                 IconButton(
@@ -1129,7 +1129,7 @@ class _RolesTab extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1174,7 +1174,7 @@ class _AccessTab extends StatelessWidget {
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const SizedBox(height: 4),
         const Text('Enable or disable module access across the system.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         const SizedBox(height: 16),
         ...keys.map((key) {
           final enabled = access[key] ?? true;
@@ -1199,12 +1199,12 @@ class _AccessTab extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: enabled ? const Color(0xFF1A237E) : Colors.grey.shade500)),
+                      color: enabled ? const Color(0xFF111827) : Colors.grey.shade500)),
               subtitle: Text(
                 enabled ? 'Access enabled for all roles' : 'Access currently disabled',
                 style: TextStyle(
                     fontSize: 11,
-                    color: enabled ? const Color(0xFF546E7A) : Colors.grey.shade400),
+                    color: enabled ? const Color(0xFF6B7280) : Colors.grey.shade400),
               ),
               trailing: Switch(
                 value: enabled,
@@ -1283,7 +1283,7 @@ class _DialogField extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -1291,7 +1291,7 @@ class _DialogField extends StatelessWidget {
         ),
         filled: true,
         fillColor: Colors.white,
-        labelStyle: const TextStyle(color: Color(0xFF78909C)),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
       ),
     );
   }

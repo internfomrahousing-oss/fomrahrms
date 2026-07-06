@@ -4,7 +4,7 @@ import '../widgets/back_button.dart';
 class LeaveOutputsPage extends StatelessWidget {
   const LeaveOutputsPage({super.key});
 
-  static const _color = Color(0xFF0288D1);
+  static const _color = Color(0xFF3B82F6);
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class LeaveOutputsPage extends StatelessWidget {
             _OutputCard(
               title: 'Leave Reports',
               icon: Icons.bar_chart_rounded,
-              color: const Color(0xFF0D47A1),
+              color: const Color(0xFF2563EB),
               subtitle: 'Applied Leave Data',
               columns: const ['Applied On', 'Leave Type', 'No. of Days', 'Reason', 'Manager', 'HR'],
             ),

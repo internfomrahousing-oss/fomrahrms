@@ -30,12 +30,12 @@ String _nextEmpId(List<AppUser> users) {
 
 // Status helpers
 Color _statusColor(String s) {
-  if (s == 'hr_approved')    return const Color(0xFF1565C0);
-  if (s == 'hr_denied')      return const Color(0xFFC62828);
-  if (s == 'mgmt_approved')  return const Color(0xFF2E7D32);
-  if (s == 'mgmt_denied')    return const Color(0xFFB71C1C);
-  if (s == 'access_granted') return const Color(0xFF6A1B9A);
-  return const Color(0xFFE65100);
+  if (s == 'hr_approved')    return const Color(0xFF3B82F6);
+  if (s == 'hr_denied')      return const Color(0xFFEF4444);
+  if (s == 'mgmt_approved')  return const Color(0xFF22C55E);
+  if (s == 'mgmt_denied')    return const Color(0xFFB91C1C);
+  if (s == 'access_granted') return const Color(0xFF2563EB);
+  return const Color(0xFFF59E0B);
 }
 String _statusLabel(String s) {
   if (s == 'hr_approved')    return 'Awaiting Management';
@@ -46,7 +46,7 @@ String _statusLabel(String s) {
   return 'Pending';
 }
 
-const _blue = Color(0xFF0D47A1);
+const _blue = Color(0xFF2563EB);
 
 class EmployeeOnboardingPage extends StatefulWidget {
   const EmployeeOnboardingPage({super.key});
@@ -137,7 +137,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
       );
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Onboarding form v${version['version_number']} approved and published!'),
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF22C55E),
       ));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -201,17 +201,17 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+              color: const Color(0xFFDCFCE7),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFF81C784)),
             ),
             child: Row(children: [
-              const Icon(Icons.link_rounded, color: Color(0xFF2E7D32), size: 18),
+              const Icon(Icons.link_rounded, color: Color(0xFF22C55E), size: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Onboarding form link is always live',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1B5E20))),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
                   const SizedBox(height: 2),
                   Text(
                     _activeSections.isEmpty
@@ -275,7 +275,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Link copied to clipboard'),
       duration: Duration(seconds: 2),
-      backgroundColor: Color(0xFF2E7D32),
+      backgroundColor: Color(0xFF22C55E),
     ));
   }
 
@@ -309,7 +309,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   const Text('Employee Onboarding',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _blue)),
                   Text('${_all.length} submission${_all.length == 1 ? '' : 's'} received',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                 ]),
               ),
               if (!narrow) ...[
@@ -330,8 +330,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   icon: const Icon(Icons.edit_note_rounded, size: 15),
                   label: const Text('Edit Form', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF6A1B9A),
-                    side: const BorderSide(color: Color(0xFF6A1B9A)),
+                    foregroundColor: const Color(0xFF2563EB),
+                    side: const BorderSide(color: Color(0xFF2563EB)),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -444,7 +444,7 @@ class _TabBtn extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? _blue : const Color(0xFFF0F4FF),
+          color: selected ? _blue : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? _blue : const Color(0xFFD0D7F0),
@@ -548,7 +548,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
+                  color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(children: [
@@ -570,7 +570,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                       style: TextStyle(color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
-                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -581,7 +581,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   prefixIcon: const Icon(Icons.badge_rounded, color: _blue, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
-                  labelStyle: const TextStyle(color: Color(0xFF78909C)),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
               if (managers.isNotEmpty) ...[
@@ -608,7 +608,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0), foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () async {
@@ -693,7 +693,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFE8EAF6))),
+          side: const BorderSide(color: Color(0xFFEFF6FF))),
       child: Column(children: [
         InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -713,10 +713,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(name,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1A237E))),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF111827))),
                   const SizedBox(height: 2),
                   Text('${(d['designation'] as String?) ?? ''}  ·  $dateStr',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                 ]),
               ),
               // Status badge
@@ -738,7 +738,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 onPressed: _acting ? null : () => _delete(context),
               ),
               Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                  color: const Color(0xFF78909C)),
+                  color: const Color(0xFF6B7280)),
             ]),
           ),
         ),
@@ -828,7 +828,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                       icon: const Icon(Icons.check_rounded, size: 16),
                       label: const Text('Send to Management'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
+                        backgroundColor: const Color(0xFF3B82F6),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -844,7 +844,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -882,8 +882,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(width: 190,
             child: Text(label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF546E7A)))),
-        Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E)))),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)))),
+        Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF111827)))),
       ]),
     );
   }
@@ -903,7 +903,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FF),
+            color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start,
@@ -930,8 +930,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
             const Icon(Icons.insert_drive_file_rounded, size: 14, color: _blue),
             const SizedBox(width: 6),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A))),
-              Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF1A237E))),
+              Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+              Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF111827))),
             ])),
             if (url.isNotEmpty)
               TextButton(
@@ -976,8 +976,8 @@ class _LinkedInterviewBanner extends StatelessWidget {
     Widget _chip(String label, String s) {
       final ok  = _ok(s);
       final rej = s == 'rejected';
-      final c   = ok ? const Color(0xFF2E7D32) : rej ? const Color(0xFFC62828) : const Color(0xFFE65100);
-      final bg  = ok ? const Color(0xFFE8F5E9) : rej ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+      final c   = ok ? const Color(0xFF22C55E) : rej ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+      final bg  = ok ? const Color(0xFFDCFCE7) : rej ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7);
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
@@ -989,10 +989,10 @@ class _LinkedInterviewBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: allDone ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD),
+        color: allDone ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: allDone ? const Color(0xFF2E7D32) : _blue,
+          color: allDone ? const Color(0xFF22C55E) : _blue,
           width: 1,
         ),
       ),
@@ -1001,7 +1001,7 @@ class _LinkedInterviewBanner extends StatelessWidget {
           Icon(
             allDone ? Icons.verified_rounded : Icons.assignment_rounded,
             size: 14,
-            color: allDone ? const Color(0xFF2E7D32) : _blue,
+            color: allDone ? const Color(0xFF22C55E) : _blue,
           ),
           const SizedBox(width: 6),
           Text(
@@ -1009,14 +1009,14 @@ class _LinkedInterviewBanner extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: allDone ? const Color(0xFF2E7D32) : _blue,
+              color: allDone ? const Color(0xFF22C55E) : _blue,
             ),
           ),
         ]),
         if (post.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text('Applied for: $post',
-              style: TextStyle(fontSize: 11, color: allDone ? const Color(0xFF388E3C) : const Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 11, color: allDone ? const Color(0xFF388E3C) : const Color(0xFF6B7280))),
         ],
         const SizedBox(height: 8),
         Wrap(spacing: 6, runSpacing: 4, children: [
@@ -1165,7 +1165,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFE65100),
+                color: const Color(0xFFF59E0B),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text('v$vNum',
@@ -1175,22 +1175,22 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Submitted by $createdBy',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
                 if (dateStr.isNotEmpty)
-                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
               ]),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
+                color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFFF9800)),
               ),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.pending_actions_rounded, size: 12, color: Color(0xFFE65100)),
+                Icon(Icons.pending_actions_rounded, size: 12, color: Color(0xFFF59E0B)),
                 SizedBox(width: 4),
-                Text('Pending Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFE65100))),
+                Text('Pending Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B))),
               ]),
             ),
           ]),
@@ -1201,21 +1201,21 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(children: [
             const Text('Changes vs current live form:',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
             const SizedBox(width: 8),
             if (!hasChanges)
-              _DiffPill('No Changes', const Color(0xFF546E7A), const Color(0xFFF5F5F5))
+              _DiffPill('No Changes', const Color(0xFF6B7280), const Color(0xFFF8FAFC))
             else ...[
               if (addedCount > 0) ...[
-                _DiffPill('+$addedCount New', const Color(0xFF2E7D32), const Color(0xFFE8F5E9)),
+                _DiffPill('+$addedCount New', const Color(0xFF22C55E), const Color(0xFFDCFCE7)),
                 const SizedBox(width: 4),
               ],
               if (modifiedCount > 0) ...[
-                _DiffPill('~$modifiedCount Changed', const Color(0xFFE65100), const Color(0xFFFFF3E0)),
+                _DiffPill('~$modifiedCount Changed', const Color(0xFFF59E0B), const Color(0xFFFEF3C7)),
                 const SizedBox(width: 4),
               ],
               if (removedCount > 0)
-                _DiffPill('-$removedCount Removed', const Color(0xFFC62828), const Color(0xFFFFEBEE)),
+                _DiffPill('-$removedCount Removed', const Color(0xFFEF4444), const Color(0xFFFEE2E2)),
             ],
           ]),
         ),
@@ -1227,7 +1227,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Form Structure Preview',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF37474F))),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
             const SizedBox(height: 10),
             ...diffs.map((diff) => _SectionDiffTile(
                   diff: diff,
@@ -1292,7 +1292,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: const Text('Approve & Publish',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF22C55E))),
                       content: Column(mainAxisSize: MainAxisSize.min, children: [
                         Text('Publish onboarding form v$vNum?',
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -1300,16 +1300,16 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
+                            color: const Color(0xFFDCFCE7),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF2E7D32)),
+                            Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF22C55E)),
                             SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 'This version will immediately become the live form. The onboarding link is always the same — candidates using it will automatically receive this updated form.',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32), height: 1.5),
+                                style: TextStyle(fontSize: 11, color: Color(0xFF22C55E), height: 1.5),
                               ),
                             ),
                           ]),
@@ -1318,7 +1318,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                       actions: [
                         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), foregroundColor: Colors.white),
                           onPressed: () => Navigator.pop(ctx, true),
                           child: const Text('Approve & Publish'),
                         ),
@@ -1332,7 +1332,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                     : const Icon(Icons.check_circle_rounded, size: 16),
                 label: const Text('Approve & Publish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: const Color(0xFF22C55E),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1402,41 +1402,41 @@ class _SectionDiffTile extends StatelessWidget {
     switch (diff.status) {
       case _DS.added:
         borderColor = const Color(0xFF66BB6A);
-        bgColor     = const Color(0xFFE8F5E9);
-        textColor   = const Color(0xFF1B5E20);
+        bgColor     = const Color(0xFFDCFCE7);
+        textColor   = const Color(0xFF15803D);
         badge       = 'NEW';
-        badgeColor  = const Color(0xFF1B5E20);
-        badgeBg     = const Color(0xFFA5D6A7);
+        badgeColor  = const Color(0xFF15803D);
+        badgeBg     = const Color(0xFF86EFAC);
       case _DS.removed:
-        borderColor  = const Color(0xFFEF9A9A);
-        bgColor      = const Color(0xFFFFEBEE);
-        textColor    = const Color(0xFFB71C1C);
+        borderColor  = const Color(0xFFFCA5A5);
+        bgColor      = const Color(0xFFFEE2E2);
+        textColor    = const Color(0xFFB91C1C);
         badge        = 'REMOVED';
-        badgeColor   = const Color(0xFFB71C1C);
+        badgeColor   = const Color(0xFFB91C1C);
         badgeBg      = const Color(0xFFFFCDD2);
         strikethrough = true;
       case _DS.disabled:
-        borderColor  = const Color(0xFFE0E0E0);
-        bgColor      = const Color(0xFFF5F5F5);
+        borderColor  = const Color(0xFFE5E7EB);
+        bgColor      = const Color(0xFFF8FAFC);
         textColor    = const Color(0xFF9E9E9E);
         badge        = 'DISABLED';
         badgeColor   = const Color(0xFF757575);
-        badgeBg      = const Color(0xFFEEEEEE);
+        badgeBg      = const Color(0xFFE5E7EB);
         strikethrough = true;
       case _DS.modified:
         borderColor = const Color(0xFFFFB74D);
-        bgColor     = const Color(0xFFFFF8E1);
-        textColor   = const Color(0xFFE65100);
+        bgColor     = const Color(0xFFFEF3C7);
+        textColor   = const Color(0xFFF59E0B);
         badge       = 'CHANGED';
-        badgeColor  = const Color(0xFFE65100);
+        badgeColor  = const Color(0xFFF59E0B);
         badgeBg     = const Color(0xFFFFE0B2);
       case _DS.unchanged:
-        borderColor = const Color(0xFFBBDEFB);
-        bgColor     = const Color(0xFFE3F2FD);
+        borderColor = const Color(0xFFDBEAFE);
+        bgColor     = const Color(0xFFEFF6FF);
         textColor   = _blue;
         badge       = null;
         badgeColor  = _blue;
-        badgeBg     = const Color(0xFFBBDEFB);
+        badgeBg     = const Color(0xFFDBEAFE);
     }
 
     final builtInDefs = OnboardingFormConfig.builtInFieldDefs[id] ?? [];
@@ -1504,7 +1504,7 @@ class _SectionDiffTile extends StatelessWidget {
                       final isHidden = hiddenIds.contains(fId);
                       final isHiddenChanged = diff.hiddenChanged.contains(fId);
                       Color fc = isHidden ? Colors.grey : textColor;
-                      Color fb = isHidden ? const Color(0xFFEEEEEE) : bgColor;
+                      Color fb = isHidden ? const Color(0xFFE5E7EB) : bgColor;
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -1535,25 +1535,25 @@ class _SectionDiffTile extends StatelessWidget {
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: isNew ? const Color(0xFFE8F5E9) : bgColor,
+                            color: isNew ? const Color(0xFFDCFCE7) : bgColor,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: isNew ? const Color(0xFF66BB6A) : borderColor),
                           ),
                           child: Text(isNew ? '$fLabel ✦' : fLabel,
                               style: TextStyle(fontSize: 10,
-                                  color: isNew ? const Color(0xFF1B5E20) : textColor,
+                                  color: isNew ? const Color(0xFF15803D) : textColor,
                                   fontWeight: isNew ? FontWeight.w700 : FontWeight.normal)),
                         );
                       }),
                       ...diff.removedFields.map((fId) => Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
+                          color: const Color(0xFFFEE2E2),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFEF9A9A)),
+                          border: Border.all(color: const Color(0xFFFCA5A5)),
                         ),
                         child: Text('$fId (removed)',
-                            style: const TextStyle(fontSize: 10, color: Color(0xFFB71C1C),
+                            style: const TextStyle(fontSize: 10, color: Color(0xFFB91C1C),
                                 decoration: TextDecoration.lineThrough)),
                       )),
                     ]),

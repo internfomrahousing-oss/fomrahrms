@@ -9,7 +9,7 @@ class DepartmentsPage extends StatelessWidget {
     return const fd.FormDetailPage(
       title: 'Departments',
       icon: Icons.account_tree_rounded,
-      color: Color(0xFF2E7D32),
+      color: Color(0xFF22C55E),
       fields: [
         fd.FormField(label: 'Create Department',      icon: Icons.add_business_rounded),
         fd.FormField(label: 'Assign Department Head', icon: Icons.person_pin_rounded),

@@ -9,7 +9,7 @@ class EmployeeProfilePage extends StatelessWidget {
     return const fd.FormDetailPage(
       title: 'Employee Profile',
       icon: Icons.person_rounded,
-      color: Color(0xFF0D47A1),
+      color: Color(0xFF2563EB),
       fields: [
         fd.FormField(label: 'Employee ID',      icon: Icons.badge_rounded),
         fd.FormField(label: 'Employee Name',    icon: Icons.person_outline_rounded),

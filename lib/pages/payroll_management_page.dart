@@ -13,8 +13,8 @@ class PayrollManagementPage extends StatefulWidget {
 }
 
 class _PayrollManagementPageState extends State<PayrollManagementPage> {
-  static const _color  = Color(0xFF0D47A1);
-  static const _purple = Color(0xFF6A1B9A);
+  static const _color  = Color(0xFF2563EB);
+  static const _purple = Color(0xFF2563EB);
 
   bool _loading = true;
   bool _elExpanded = false;
@@ -102,7 +102,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
             const SizedBox(width: 16),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Payroll Management', style: Theme.of(context).textTheme.headlineMedium),
-              const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+              const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             ]),
             const Spacer(),
             IconButton(
@@ -154,7 +154,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                                     : pendingCount > 0
                                         ? '$pendingCount pending request${pendingCount > 1 ? 's' : ''} · ${elEmployees.length} eligible'
                                         : '${elEmployees.length} eligible employee${elEmployees.length > 1 ? 's' : ''}',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                               ),
                             ]),
                           ),
@@ -233,10 +233,10 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start, children: [
                                   Text(u.name,
                                       style: const TextStyle(fontSize: 13,
-                                          fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+                                          fontWeight: FontWeight.w700, color: Color(0xFF111827))),
                                   Text(
                                     u.designation.isEmpty ? u.role : '${u.designation} · ${u.role}',
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                                   ),
                                 ])),
                                 Container(
@@ -264,7 +264,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                                   _BalanceStat(
                                     label: 'Accrued',
                                     value: '$accrued d',
-                                    color: const Color(0xFF546E7A),
+                                    color: const Color(0xFF6B7280),
                                   ),
                                   _Divider(),
                                   _BalanceStat(
@@ -287,7 +287,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                                     _BalanceStat(
                                       label: 'Last Encashed',
                                       value: _fmtDate(lastAvailed),
-                                      color: const Color(0xFF78909C),
+                                      color: const Color(0xFF6B7280),
                                     ),
                                   ],
                                 ]),
@@ -342,10 +342,10 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                               crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(u.name,
                                 style: const TextStyle(fontSize: 13,
-                                    fontWeight: FontWeight.w700, color: Color(0xFF1A237E))),
+                                    fontWeight: FontWeight.w700, color: Color(0xFF111827))),
                             Text(
                               u.designation.isEmpty ? u.role : '${u.designation} · ${u.role}',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF78909C)),
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                             ),
                           ])),
                           _StatusChip(u.leaveStatus),
@@ -378,7 +378,7 @@ class _BalanceStat extends StatelessWidget {
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
         const SizedBox(height: 2),
         Text(label,
-            style: const TextStyle(fontSize: 9, color: Color(0xFF90A4AE))),
+            style: const TextStyle(fontSize: 9, color: Color(0xFF6B7280))),
       ]),
     );
   }
@@ -387,7 +387,7 @@ class _BalanceStat extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 28, color: const Color(0xFF6A1B9A).withValues(alpha: 0.1),
+      Container(width: 1, height: 28, color: const Color(0xFF2563EB).withValues(alpha: 0.1),
           margin: const EdgeInsets.symmetric(horizontal: 4));
 }
 
@@ -401,7 +401,7 @@ class _ConfirmButton extends StatefulWidget {
 }
 
 class _ConfirmButtonState extends State<_ConfirmButton> {
-  static const _purple = Color(0xFF6A1B9A);
+  static const _purple = Color(0xFF2563EB);
   bool _loading = false;
 
   @override
@@ -435,9 +435,9 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'EL Eligible' => const Color(0xFF6A1B9A),
-      'On-Roll'     => const Color(0xFF2E7D32),
-      _             => const Color(0xFF78909C),
+      'EL Eligible' => const Color(0xFF2563EB),
+      'On-Roll'     => const Color(0xFF22C55E),
+      _             => const Color(0xFF6B7280),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

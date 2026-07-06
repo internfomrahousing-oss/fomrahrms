@@ -22,7 +22,7 @@ class TeamLeaveApprovalsPage extends StatefulWidget {
 }
 
 class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
-  static const _color = Color(0xFF283593);
+  static const _color = Color(0xFF111827);
   bool get _isMgmt   => widget.isManagement;
   bool get _showAll  => widget.showAll;
 
@@ -151,7 +151,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Reason for denial (optional):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF546E7A))),
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           const SizedBox(height: 10),
           TextField(
             controller: reasonCtrl,
@@ -255,7 +255,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                 _showAll
                     ? 'View and edit all employee leave decisions'
                     : 'Employees reporting directly to you',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
               ),
             ]),
             const Spacer(),
@@ -323,7 +323,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                       borderRadius: BorderRadius.circular(10)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -345,7 +345,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               child: Row(children: [
                 Text(
                   'Showing: ${_filterStatus!.name[0].toUpperCase()}${_filterStatus!.name.substring(1)} only',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF78909C)),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -391,7 +391,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             _SectionHeader(
               label: 'Leave Applications',
               count: _leaveSection.length,
-              color: const Color(0xFF283593),
+              color: const Color(0xFF111827),
               icon: Icons.event_note_rounded,
             ),
             const SizedBox(height: 8),
@@ -423,7 +423,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             _SectionHeader(
               label: 'Permission Applications',
               count: _permSection.length,
-              color: const Color(0xFF00838F),
+              color: const Color(0xFF3B82F6),
               icon: Icons.access_time_rounded,
             ),
             const SizedBox(height: 8),
@@ -452,7 +452,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             _SectionHeader(
               label: 'Comp Off Applications',
               count: _compOffSection.length,
-              color: const Color(0xFF2E7D32),
+              color: const Color(0xFF22C55E),
               icon: Icons.swap_horiz_rounded,
             ),
             const SizedBox(height: 8),
@@ -513,7 +513,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('All Leave Approvals', style: Theme.of(context).textTheme.headlineMedium),
                     const Text('View and edit all employee leave decisions',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+                        style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ]),
                 ),
                 IconButton(
@@ -658,7 +658,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       decoration: BoxDecoration(
         color: isDark
             ? Colors.amber.withValues(alpha: 0.12)
-            : const Color(0xFFFFF8E1),
+            : const Color(0xFFFEF3C7),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
             color: Colors.amber.withValues(alpha: isDark ? 0.4 : 0.6)),
@@ -689,21 +689,21 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF00838F).withValues(alpha: 0.07),
+        color: const Color(0xFF3B82F6).withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-            color: const Color(0xFF00838F).withValues(alpha: 0.25)),
+            color: const Color(0xFF3B82F6).withValues(alpha: 0.25)),
       ),
       child: const Row(children: [
         Icon(Icons.info_outline_rounded,
-            size: 15, color: Color(0xFF00838F)),
+            size: 15, color: Color(0xFF3B82F6)),
         SizedBox(width: 8),
         Expanded(
           child: Text(
             'Each employee is entitled to 2 hours of permission per month.',
             style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF00838F),
+                color: Color(0xFF3B82F6),
                 fontWeight: FontWeight.w500),
           ),
         ),
@@ -943,7 +943,7 @@ class _RequestCardState extends State<_RequestCard> {
                         ? Colors.red.shade700
                         : remaining <= 30
                             ? Colors.orange.shade700
-                            : const Color(0xFF00838F);
+                            : const Color(0xFF3B82F6);
                     return Row(children: [
                       Icon(Icons.schedule_rounded, size: 14, color: mu),
                       const SizedBox(width: 8),
