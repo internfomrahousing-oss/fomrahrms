@@ -32,11 +32,18 @@ void _showBlock(BuildContext context, Widget block) {
   );
 }
 
+// Single professional accent shared by all quick-action icons (was a
+// different bright color per icon — kept uniform for a more formal look).
+// These icons always sit on the dark navy top-bar/banner gradient, so use
+// the same light accent already used for the sidebar toggle there —
+// the earlier navy blue was invisible against that background.
+const _qColor = Color(0xFF90CAF9);
+
 const _qData = [
-  (icon: Icons.campaign_rounded,     color: Color(0xFFE53935), label: 'Announcements'),
-  (icon: Icons.event_rounded,        color: Color(0xFF43A047), label: 'Holidays'),
-  (icon: Icons.emoji_events_rounded, color: Color(0xFFFB8C00), label: 'Emp of Month'),
-  (icon: Icons.cake_rounded,         color: Color(0xFF8E24AA), label: 'Birthdays'),
+  (icon: Icons.campaign_rounded,     color: _qColor, label: 'Announcements'),
+  (icon: Icons.event_rounded,        color: _qColor, label: 'Holidays'),
+  (icon: Icons.emoji_events_rounded, color: _qColor, label: 'Emp of Month'),
+  (icon: Icons.cake_rounded,         color: _qColor, label: 'Birthdays'),
 ];
 
 Widget _blockFor(int i) {

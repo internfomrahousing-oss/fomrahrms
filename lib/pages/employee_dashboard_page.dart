@@ -64,10 +64,22 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                   ),
                   SizedBox(height: narrow ? 16 : 24),
 
-                  const MyTasksBlock(viewAllRoute: '/employee/tasks'),
-                  SizedBox(height: narrow ? 16 : 24),
-
-                  const TaskAnalyticsBlock(),
+                  narrow
+                      ? const Column(children: [
+                          MyTasksBlock(viewAllRoute: '/employee/tasks'),
+                          SizedBox(height: 16),
+                          TaskAnalyticsBlock(),
+                        ])
+                      : const IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: MyTasksBlock(viewAllRoute: '/employee/tasks')),
+                              SizedBox(width: 16),
+                              Expanded(child: TaskAnalyticsBlock()),
+                            ],
+                          ),
+                        ),
                   SizedBox(height: narrow ? 16 : 24),
 
                   _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),

@@ -29,6 +29,20 @@ String taskStatusLabel(TaskStatus s) => switch (s) {
       TaskStatus.delayed    => 'Delayed',
     };
 
+Color taskPriorityColor(TaskPriority p) => switch (p) {
+      TaskPriority.low      => Colors.green.shade600,
+      TaskPriority.medium   => Colors.orange.shade700,
+      TaskPriority.high     => Colors.deepOrange.shade700,
+      TaskPriority.critical => Colors.red.shade800,
+    };
+
+String taskPriorityLabel(TaskPriority p) => switch (p) {
+      TaskPriority.low      => 'Low',
+      TaskPriority.medium   => 'Medium',
+      TaskPriority.high     => 'High',
+      TaskPriority.critical => 'Critical',
+    };
+
 // ── Public widget ─────────────────────────────────────────────────────────────
 
 class DashboardInfoBlocks extends StatelessWidget {
@@ -861,28 +875,13 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
                     for (final t in shown) ...[
                       Row(children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: cs.onSurface)),
-                              const SizedBox(height: 2),
-                              Builder(builder: (_) {
-                                final (label, color) = _urgency(
-                                    t.dueDate, cs.onSurface.withValues(alpha: 0.5));
-                                return Text(label,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: color));
-                              }),
-                            ],
-                          ),
+                          child: Text(t.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface)),
                         ),
                         const SizedBox(width: 6),
                         Container(
@@ -899,6 +898,28 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
                                   color: taskStatusColor(t.status))),
                         ),
                       ]),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Builder(builder: (_) {
+                            final (label, color) = _urgency(
+                                t.dueDate, cs.onSurface.withValues(alpha: 0.5));
+                            return Text(label,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: color));
+                          }),
+                          _MetaPill(taskPriorityLabel(t.priority), taskPriorityColor(t.priority)),
+                          if (t.department.isNotEmpty)
+                            _MetaPill(t.department, cs.onSurface.withValues(alpha: 0.55)),
+                          if (t.weightage > 0)
+                            _MetaPill('${t.weightage} pts', _purple),
+                        ],
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 7),
                         child: Divider(height: 1, color: _purple.withValues(alpha: 0.12)),
@@ -952,3 +973,23 @@ Widget _Empty(String msg) => Padding(
               style: const TextStyle(
                   fontSize: 12, color: Color(0x666A1B9A)))),
     );
+
+// Small labelled dot used for compact task metadata (priority, department, points).
+class _MetaPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _MetaPill(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 6, height: 6,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 4),
+      Text(label,
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+    ]);
+  }
+}

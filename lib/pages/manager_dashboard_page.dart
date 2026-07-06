@@ -50,10 +50,22 @@ class ManagerDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(height: narrow ? 20 : 28),
 
-                  const MyTasksBlock(viewAllRoute: '/manager/my-tasks'),
-                  SizedBox(height: narrow ? 20 : 28),
-
-                  const TaskAnalyticsBlock(showTeam: true),
+                  narrow
+                      ? const Column(children: [
+                          MyTasksBlock(viewAllRoute: '/manager/my-tasks'),
+                          SizedBox(height: 20),
+                          TaskAnalyticsBlock(showTeam: true),
+                        ])
+                      : const IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: MyTasksBlock(viewAllRoute: '/manager/my-tasks')),
+                              SizedBox(width: 16),
+                              Expanded(child: TaskAnalyticsBlock(showTeam: true)),
+                            ],
+                          ),
+                        ),
                   SizedBox(height: narrow ? 20 : 28),
 
                   _SectionLabel(
