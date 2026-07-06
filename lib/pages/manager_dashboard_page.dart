@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
 
 
@@ -16,7 +17,6 @@ class _Item {
 const _personalItems = [
   _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF1565C0), '/manager/my-attendance'),
   _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF1976D2), '/manager/my-leave'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF0288D1), '/manager/my-tasks'),
   _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF283593), '/manager/my-payslips'),
 ];
 
@@ -50,7 +50,10 @@ class ManagerDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(height: narrow ? 20 : 28),
 
-                  const DashboardInfoBlocks(),
+                  const MyTasksBlock(viewAllRoute: '/manager/my-tasks'),
+                  SizedBox(height: narrow ? 20 : 28),
+
+                  const TaskAnalyticsBlock(showTeam: true),
                   SizedBox(height: narrow ? 20 : 28),
 
                   _SectionLabel(

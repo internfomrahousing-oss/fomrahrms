@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
 
 class _Item {
@@ -63,7 +64,10 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                   ),
                   SizedBox(height: narrow ? 16 : 24),
 
-                  DashboardInfoBlocks(key: ValueKey(_refreshKey)),
+                  const MyTasksBlock(viewAllRoute: '/employee/tasks'),
+                  SizedBox(height: narrow ? 16 : 24),
+
+                  const TaskAnalyticsBlock(),
                   SizedBox(height: narrow ? 16 : 24),
 
                   _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),

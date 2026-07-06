@@ -10,7 +10,10 @@ import '../widgets/back_button.dart';
 
 class EmployeeLeavePage extends StatefulWidget {
   final String prefix;
-  const EmployeeLeavePage({super.key, this.prefix = '/employee'});
+  // When true, renders just the content (no Scaffold/back-button/page title)
+  // so it can be embedded inside another page, e.g. MyAttendanceAndLeavePage.
+  final bool embedded;
+  const EmployeeLeavePage({super.key, this.prefix = '/employee', this.embedded = false});
 
   @override
   State<EmployeeLeavePage> createState() => _EmployeeLeavePageState();
@@ -192,14 +195,75 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
   Widget build(BuildContext context) {
     final user = _appUser;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Column(children: [
-        // ── Header ────────────────────────────────────────────────────────
-        Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
-          child: Row(children: [
+    final balanceAndActions = Row(mainAxisSize: MainAxisSize.min, children: [
+      // ── Compact leave balance ─────────────────────────────────────
+      if (user != null) _CompactBalance(
+        clAvail: (user.monthlyCl - _usedBucket('CL')).clamp(0, 99).toInt(),
+        mlAvail: user.isOnroll || user.isElEligible
+            ? (user.monthlyMl - _usedBucket('ML')).clamp(0, 99).toInt()
+            : -1,
+        elAvail: user.isElEligible
+            ? (_elAccrued() - _usedElSinceAvail()).clamp(0, 999).toInt()
+            : -1,
+      ),
+      const SizedBox(width: 10),
+
+      // ── Apply Leave dropdown ──────────────────────────────────────
+      PopupMenuButton<String>(
+        offset: const Offset(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        onSelected: (val) {
+          if (val == 'leave')        context.push('${widget.prefix}/leave/apply');
+          else if (val == 'perm')    context.push('${widget.prefix}/leave/permission');
+          else if (val == 'compoff') context.push('${widget.prefix}/leave/compoff');
+        },
+        itemBuilder: (_) => [
+          _menuItem('leave',   Icons.event_available_rounded, 'Apply Leave',      _purple),
+          _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', const Color(0xFF00838F)),
+          _menuItem('compoff', Icons.swap_horiz_rounded,      'Apply Comp Off',   const Color(0xFF2E7D32)),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: _purple,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.add_rounded, size: 16, color: Colors.white),
+            SizedBox(width: 6),
+            Text('Apply Leave',
+                style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+            SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down_rounded, size: 16, color: Colors.white),
+          ]),
+        ),
+      ),
+      const SizedBox(width: 4),
+      IconButton(
+        tooltip: 'Refresh',
+        icon: const Icon(Icons.refresh_rounded, color: _blue, size: 20),
+        onPressed: _loadData,
+      ),
+    ]);
+
+    final header = widget.embedded
+        ? Row(children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.beach_access_rounded, color: _blue, size: 18),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Leave',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            balanceAndActions,
+          ])
+        : Row(children: [
             const NavBackButton(),
             const SizedBox(width: 8),
             Container(
@@ -215,56 +279,85 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
               child: Text('Leave Management',
                   style: Theme.of(context).textTheme.headlineMedium),
             ),
+            balanceAndActions,
+          ]);
 
-            // ── Compact leave balance ─────────────────────────────────────
-            if (user != null) _CompactBalance(
-              clAvail: (user.monthlyCl - _usedBucket('CL')).clamp(0, 99).toInt(),
-              mlAvail: user.isOnroll || user.isElEligible
-                  ? (user.monthlyMl - _usedBucket('ML')).clamp(0, 99).toInt()
-                  : -1,
-              elAvail: user.isElEligible
-                  ? (_elAccrued() - _usedElSinceAvail()).clamp(0, 999).toInt()
-                  : -1,
-            ),
-            const SizedBox(width: 10),
+    // ── Leave history (shared between embedded / standalone) ──────────────
+    final historyChildren = <Widget>[
+      // ── Status chips ────────────────────────────────────
+      Row(children: [
+        _StatusChip('Pending',  Icons.hourglass_empty_rounded,
+            Colors.orange.shade700, _pending),
+        const SizedBox(width: 8),
+        _StatusChip('Approved', Icons.check_circle_rounded,
+            Colors.green.shade700, _approved),
+        const SizedBox(width: 8),
+        _StatusChip('Denied',   Icons.cancel_rounded,
+            Colors.red.shade700, _denied),
+      ]),
+      const SizedBox(height: 10),
 
-            // ── Apply Leave dropdown ──────────────────────────────────────
-            PopupMenuButton<String>(
-              offset: const Offset(0, 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              onSelected: (val) {
-                if (val == 'leave')        context.push('${widget.prefix}/leave/apply');
-                else if (val == 'perm')    context.push('${widget.prefix}/leave/permission');
-                else if (val == 'compoff') context.push('${widget.prefix}/leave/compoff');
-              },
-              itemBuilder: (_) => [
-                _menuItem('leave',   Icons.event_available_rounded, 'Apply Leave',      _purple),
-                _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', const Color(0xFF00838F)),
-                _menuItem('compoff', Icons.swap_horiz_rounded,      'Apply Comp Off',   const Color(0xFF2E7D32)),
-              ],
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _purple,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.add_rounded, size: 16, color: Colors.white),
-                  SizedBox(width: 6),
-                  Text('Apply Leave',
-                      style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_drop_down_rounded, size: 16, color: Colors.white),
-                ]),
+      // ── Type filter chips + month picker ─────────────────
+      Wrap(spacing: 8, runSpacing: 6, children: [
+        _buildTypeChip('All',        'all',        Icons.list_rounded,             _blue),
+        _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  const Color(0xFF6A1B9A)),
+        _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      const Color(0xFF00838F)),
+        _buildTypeChip('Comp Off',   'Comp Off',   Icons.swap_horiz_rounded,       const Color(0xFF2E7D32)),
+        _buildMonthChip(),
+      ]),
+      const SizedBox(height: 12),
+
+      // ── Leave history ───────────────────────────────────
+      if (_filtered.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+              const SizedBox(height: 12),
+              Text(
+                _apps.isEmpty
+                    ? 'No leave history yet'
+                    : 'No records for this filter',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 15),
               ),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh_rounded, color: _blue, size: 20),
-              onPressed: _loadData,
-            ),
-          ]),
+              if (_apps.isEmpty) ...[
+                const SizedBox(height: 6),
+                Text('Tap "Apply Leave" to submit your first request.',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+              ],
+            ]),
+          ),
+        )
+      else
+        ..._filtered.map((a) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _AppCard(app: a),
+            )),
+    ];
+
+    if (widget.embedded) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        header,
+        const SizedBox(height: 16),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: historyChildren),
+      ]);
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Column(children: [
+        // ── Header ────────────────────────────────────────────────────────
+        Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+          child: header,
         ),
         const Divider(height: 1),
 
@@ -274,58 +367,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
               ? const Center(child: CircularProgressIndicator())
               : ListView(
                   padding: const EdgeInsets.all(16),
-                  children: [
-                    // ── Status chips ────────────────────────────────────
-                    Row(children: [
-                      _StatusChip('Pending',  Icons.hourglass_empty_rounded,
-                          Colors.orange.shade700, _pending),
-                      const SizedBox(width: 8),
-                      _StatusChip('Approved', Icons.check_circle_rounded,
-                          Colors.green.shade700, _approved),
-                      const SizedBox(width: 8),
-                      _StatusChip('Denied',   Icons.cancel_rounded,
-                          Colors.red.shade700, _denied),
-                    ]),
-                    const SizedBox(height: 10),
-
-                    // ── Type filter chips + month picker ─────────────────
-                    Wrap(spacing: 8, runSpacing: 6, children: [
-                      _buildTypeChip('All',        'all',        Icons.list_rounded,             _blue),
-                      _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  const Color(0xFF6A1B9A)),
-                      _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      const Color(0xFF00838F)),
-                      _buildTypeChip('Comp Off',   'Comp Off',   Icons.swap_horiz_rounded,       const Color(0xFF2E7D32)),
-                      _buildMonthChip(),
-                    ]),
-                    const SizedBox(height: 12),
-
-                    // ── Leave history ───────────────────────────────────
-                    if (_filtered.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 48),
-                        child: Center(
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
-                            const SizedBox(height: 12),
-                            Text(
-                              _apps.isEmpty
-                                  ? 'No leave history yet'
-                                  : 'No records for this filter',
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-                            ),
-                            if (_apps.isEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text('Tap "Apply Leave" to submit your first request.',
-                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-                            ],
-                          ]),
-                        ),
-                      )
-                    else
-                      ..._filtered.map((a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _AppCard(app: a),
-                          )),
-                  ],
+                  children: historyChildren,
                 ),
         ),
       ]),

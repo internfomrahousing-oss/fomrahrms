@@ -40,6 +40,7 @@ import 'pages/reports_analytics_page.dart';
 import 'pages/administration_page.dart';
 import 'pages/employee_dashboard_page.dart';
 import 'pages/my_attendance_page.dart';
+import 'pages/my_attendance_and_leave_page.dart';
 import 'pages/my_tasks_page.dart';
 import 'pages/my_payslips_page.dart';
 import 'pages/my_profile_page.dart';
@@ -216,6 +217,7 @@ final _router = GoRouter(
         GoRoute(path: '/hr/my-attendance',            builder: (_, __) => const MyAttendancePage(checkInRoute: '/hr/attendance/check-in-out')),
         GoRoute(path: '/hr/attendance/check-in-out', builder: (_, __) => const EmployeeAttendancePage(prefix: '')),
         GoRoute(path: '/hr/my-leave',               builder: (_, __) => const EmployeeLeavePage(prefix: '')),
+        GoRoute(path: '/hr/attendance-leaves',       builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/hr/attendance/check-in-out', leavePrefix: '')),
         GoRoute(path: '/hr/my-tasks',               builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/hr/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/hr/my-profile',             builder: (_, __) => const MyProfilePage()),
@@ -234,6 +236,7 @@ final _router = GoRouter(
         GoRoute(path: '/employee/dashboard',               builder: (_, __) => const EmployeeDashboardPage()),
         GoRoute(path: '/employee/my-details',              builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/employee/attendance-management',        builder: (_, __) => const MyAttendancePage(checkInRoute: '/employee/attendance/check-in-out')),
+        GoRoute(path: '/employee/attendance-leaves',            builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/employee/attendance/check-in-out', leavePrefix: '/employee')),
         GoRoute(path: '/employee/attendance/check-in-out',      builder: (_, __) => const EmployeeAttendancePage()),
         GoRoute(path: '/employee/attendance/check-in',     builder: (_, __) => const CheckInPage()),
         GoRoute(path: '/employee/attendance/check-out',    builder: (_, __) => const CheckOutPage()),
@@ -302,6 +305,7 @@ final _router = GoRouter(
         // Personal pages
         GoRoute(path: '/manager/my-details',              builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/manager/my-attendance',                  builder: (_, __) => const MyAttendancePage(checkInRoute: '/manager/attendance/check-in-out')),
+        GoRoute(path: '/manager/attendance-leaves',              builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/manager/attendance/check-in-out', leavePrefix: '/manager')),
         GoRoute(path: '/manager/attendance/check-in-out',        builder: (_, __) => const EmployeeAttendancePage(prefix: '/manager')),
         GoRoute(path: '/manager/my-leave',                builder: (_, __) => const EmployeeLeavePage(prefix: '/manager')),
         GoRoute(path: '/manager/my-tasks',                builder: (_, __) => const MyTasksPage()),
@@ -371,6 +375,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/my-attendance',               builder: (_, __) => const MyAttendancePage(checkInRoute: '/management/attendance/check-in-out')),
         GoRoute(path: '/management/attendance/check-in-out',     builder: (_, __) => const EmployeeAttendancePage()),
         GoRoute(path: '/management/my-leave',               builder: (_, __) => const EmployeeLeavePage()),
+        GoRoute(path: '/management/attendance-leaves',       builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/management/attendance/check-in-out')),
         GoRoute(path: '/management/my-tasks',               builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/management/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/management/my-profile',             builder: (_, __) => const MyProfilePage()),

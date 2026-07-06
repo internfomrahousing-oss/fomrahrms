@@ -18,7 +18,14 @@ const _yellow = Color(0xFFF9A825);
 
 class MyAttendancePage extends StatefulWidget {
   final String checkInRoute;
-  const MyAttendancePage({super.key, this.checkInRoute = '/employee/attendance/check-in-out'});
+  // When true, renders just the content (no Scaffold/back-button/page title)
+  // so it can be embedded inside another page, e.g. MyAttendanceAndLeavePage.
+  final bool embedded;
+  const MyAttendancePage({
+    super.key,
+    this.checkInRoute = '/employee/attendance/check-in-out',
+    this.embedded = false,
+  });
 
   @override
   State<MyAttendancePage> createState() => _MyAttendancePageState();
@@ -157,49 +164,71 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     const mNames = ['January','February','March','April','May','June',
                     'July','August','September','October','November','December'];
 
-    return Scaffold(
-      backgroundColor: null,
-      body: RefreshIndicator(
-        onRefresh: _load,
-        color: _blue,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    final header = widget.embedded
+        ? Row(children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.access_time_rounded, color: _blue, size: 18),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Attendance',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => context.go(widget.checkInRoute),
+              icon: const Icon(Icons.fingerprint_rounded, size: 16),
+              label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 2,
+              ),
+            ),
+          ])
+        : Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.access_time_rounded, color: _blue, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('My Attendance',
+                    style: Theme.of(context).textTheme.headlineMedium),
+                const Text('Attendance records',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
+              ]),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => context.go(widget.checkInRoute),
+              icon: const Icon(Icons.fingerprint_rounded, size: 16),
+              label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 2,
+              ),
+            ),
+          ]);
+
+    final content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // ── Header ────────────────────────────────────────────────────
-            Row(children: [
-              const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.access_time_rounded, color: _blue, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('My Attendance',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const Text('Attendance records',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF78909C))),
-                ]),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => context.go(widget.checkInRoute),
-                icon: const Icon(Icons.fingerprint_rounded, size: 16),
-                label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 2,
-                ),
-              ),
-            ]),
+            header,
             const SizedBox(height: 20),
 
             // ── Today card ─────────────────────────────────────────────────
@@ -282,8 +311,19 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
               _Legend(color: _red,    label: 'Absent'),
               _Legend(color: _yellow, label: 'Holiday'),
             ]),
-            const SizedBox(height: 24),
-          ]),
+          ]);
+
+    if (widget.embedded) return content;
+
+    return Scaffold(
+      backgroundColor: null,
+      body: RefreshIndicator(
+        onRefresh: _load,
+        color: _blue,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(24),
+          child: content,
         ),
       ),
     );

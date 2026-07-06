@@ -18,8 +18,7 @@ class _NavItem {
 const _empNavItems = [
   _NavItem('Dashboard',            Icons.dashboard_rounded,               '/employee/dashboard'),
   _NavItem('My Profile',           Icons.person_rounded,                  '/employee/profile'),
-  _NavItem('My Attendance',        Icons.access_time_rounded,             '/employee/attendance-management'),
-  _NavItem('My Leave',             Icons.beach_access_rounded,            '/employee/leave-management'),
+  _NavItem('My Attendance and Leaves', Icons.event_note_rounded,          '/employee/attendance-leaves'),
   _NavItem('My Tasks',             Icons.task_alt_rounded,                '/employee/tasks'),
   _NavItem('My Payslips',          Icons.account_balance_wallet_rounded,  '/employee/payslips'),
   _NavItem('Maintenance',          Icons.build_rounded,                   '/employee/maintenance-management'),

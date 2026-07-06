@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../models/employee_store.dart';
+import '../models/task_store.dart';
+import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 
 const _purple = Color(0xFF6A1B9A);
@@ -8,21 +12,39 @@ const _months = ['Jan','Feb','Mar','Apr','May','Jun',
 String _fmtDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')} ${_months[d.month - 1]}';
 
+// Shared task status → color/label, reused by MyTasksBlock and TaskAnalyticsBlock.
+Color taskStatusColor(TaskStatus s) => switch (s) {
+      TaskStatus.assigned   => const Color(0xFF1565C0),
+      TaskStatus.pending    => Colors.orange.shade700,
+      TaskStatus.inProgress => const Color(0xFF6A1B9A),
+      TaskStatus.completed  => Colors.green.shade700,
+      TaskStatus.delayed    => Colors.red.shade700,
+    };
+
+String taskStatusLabel(TaskStatus s) => switch (s) {
+      TaskStatus.assigned   => 'Assigned',
+      TaskStatus.pending    => 'Pending',
+      TaskStatus.inProgress => 'In Progress',
+      TaskStatus.completed  => 'Completed',
+      TaskStatus.delayed    => 'Delayed',
+    };
+
 // ── Public widget ─────────────────────────────────────────────────────────────
 
 class DashboardInfoBlocks extends StatelessWidget {
   final bool canEdit;
-  const DashboardInfoBlocks({super.key, this.canEdit = false});
+  final bool showIcon;
+  const DashboardInfoBlocks({super.key, this.canEdit = false, this.showIcon = true});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (_, constraints) {
       final wide = constraints.maxWidth > 700;
       final blocks = <Widget>[
-        AnnouncementsBlock(canEdit: canEdit),
-        HolidaysBlock(canEdit: canEdit),
-        _EmployeeOfMonthBlock(canEdit: canEdit),
-        BirthdaysBlock(canEdit: canEdit),
+        AnnouncementsBlock(canEdit: canEdit, showIcon: showIcon),
+        HolidaysBlock(canEdit: canEdit, showIcon: showIcon),
+        _EmployeeOfMonthBlock(canEdit: canEdit, showIcon: showIcon),
+        BirthdaysBlock(canEdit: canEdit, showIcon: showIcon),
       ];
       if (wide) {
         return IntrinsicHeight(
@@ -49,18 +71,20 @@ class DashboardInfoBlocks extends StatelessWidget {
 
 // ── Shared card shell ─────────────────────────────────────────────────────────
 
-class _InfoCard extends StatelessWidget {
+class InfoCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final bool canEdit;
+  final bool showIcon;
   final VoidCallback? onAdd;
   final VoidCallback? onRefresh;
   final Widget child;
-  const _InfoCard({
+  const InfoCard({
     required this.icon,
     required this.title,
     required this.child,
     this.canEdit = false,
+    this.showIcon = true,
     this.onAdd,
     this.onRefresh,
   });
@@ -81,15 +105,17 @@ class _InfoCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(children: [
-              Container(
-                width: 32, height: 32,
-                decoration: BoxDecoration(
-                  color: _purple.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+              if (showIcon) ...[
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: _purple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: _purple, size: 18),
                 ),
-                child: Icon(icon, color: _purple, size: 18),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: Text(title,
                     style: const TextStyle(
@@ -128,7 +154,8 @@ class _InfoCard extends StatelessWidget {
 
 class AnnouncementsBlock extends StatefulWidget {
   final bool canEdit;
-  const AnnouncementsBlock({super.key, required this.canEdit});
+  final bool showIcon;
+  const AnnouncementsBlock({super.key, required this.canEdit, this.showIcon = true});
   @override
   State<AnnouncementsBlock> createState() => _AnnouncementsBlockState();
 }
@@ -224,10 +251,11 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return _InfoCard(
+    return InfoCard(
       icon: Icons.campaign_rounded,
       title: 'Announcements',
       canEdit: widget.canEdit,
+      showIcon: widget.showIcon,
       onAdd: _showAdd,
       onRefresh: _load,
       child: _loading
@@ -304,7 +332,8 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
 
 class HolidaysBlock extends StatefulWidget {
   final bool canEdit;
-  const HolidaysBlock({super.key, required this.canEdit});
+  final bool showIcon;
+  const HolidaysBlock({super.key, required this.canEdit, this.showIcon = true});
   @override
   State<HolidaysBlock> createState() => _HolidaysBlockState();
 }
@@ -382,10 +411,11 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return _InfoCard(
+    return InfoCard(
       icon: Icons.event_rounded,
       title: 'Holidays This Year',
       canEdit: widget.canEdit,
+      showIcon: widget.showIcon,
       onAdd: _showAdd,
       child: _loading
           ? const _Loader()
@@ -447,7 +477,8 @@ class EmptyBlock extends StatelessWidget {
 
 class _EmployeeOfMonthBlock extends StatefulWidget {
   final bool canEdit;
-  const _EmployeeOfMonthBlock({required this.canEdit});
+  final bool showIcon;
+  const _EmployeeOfMonthBlock({required this.canEdit, this.showIcon = true});
 
   @override
   State<_EmployeeOfMonthBlock> createState() => _EmployeeOfMonthBlockState();
@@ -472,57 +503,70 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
     final monthYear =
         '${now.year}-${now.month.toString().padLeft(2, '0')}';
 
-    final nameCtrl = TextEditingController(
-        text: _data?['employee_name'] as String? ?? '');
+    final names = EmployeeStore.employees
+        .map((e) => e.name)
+        .where((n) => n.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    final currentName = _data?['employee_name'] as String? ?? '';
+    String? selectedName = names.contains(currentName) ? currentName : null;
     final reasonCtrl = TextEditingController(
         text: _data?['reason'] as String? ?? '');
 
     await showDialog(
       context: context,
-      builder: (dlgCtx) => AlertDialog(
-        title: const Text('Employee of the Month'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: nameCtrl,
-            autofocus: true,
-            decoration: const InputDecoration(
-                labelText: 'Employee Name',
-                border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: reasonCtrl,
-            maxLines: 3,
-            decoration: const InputDecoration(
-                labelText: 'Reason / Achievement',
-                border: OutlineInputBorder()),
-          ),
-        ]),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dlgCtx),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameCtrl.text.trim();
-              final reason = reasonCtrl.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(dlgCtx);
-              final err = await SupabaseService.upsertEmployeeOfMonth(
-                  name, reason, monthYear);
-              if (!mounted) return;
-              if (err == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Saved'), backgroundColor: Colors.green));
-                _load();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(err), backgroundColor: Colors.red));
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (dlgCtx) => StatefulBuilder(
+        builder: (sbCtx, setDlg) => AlertDialog(
+          title: const Text('Employee of the Month'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            DropdownButtonFormField<String>(
+              value: selectedName,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                  labelText: 'Employee Name',
+                  border: OutlineInputBorder()),
+              items: names
+                  .map((n) => DropdownMenuItem(value: n, child: Text(n)))
+                  .toList(),
+              onChanged: (v) => setDlg(() => selectedName = v),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                  labelText: 'Reason / Achievement',
+                  border: OutlineInputBorder()),
+            ),
+          ]),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dlgCtx),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final name = selectedName ?? '';
+                final reason = reasonCtrl.text.trim();
+                if (name.isEmpty) return;
+                Navigator.pop(dlgCtx);
+                final err = await SupabaseService.upsertEmployeeOfMonth(
+                    name, reason, monthYear);
+                if (!mounted) return;
+                if (err == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Saved'), backgroundColor: Colors.green));
+                  _load();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(err), backgroundColor: Colors.red));
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -544,10 +588,11 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
       }
     }
 
-    return _InfoCard(
+    return InfoCard(
       icon: Icons.emoji_events_rounded,
       title: 'Employee of the Month',
       canEdit: widget.canEdit,
+      showIcon: widget.showIcon,
       onAdd: widget.canEdit ? _showEdit : null,
       onRefresh: _load,
       child: _loading
@@ -593,7 +638,8 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
 
 class BirthdaysBlock extends StatefulWidget {
   final bool canEdit;
-  const BirthdaysBlock({super.key, required this.canEdit});
+  final bool showIcon;
+  const BirthdaysBlock({super.key, required this.canEdit, this.showIcon = true});
   @override
   State<BirthdaysBlock> createState() => _BirthdaysBlockState();
 }
@@ -680,10 +726,11 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return _InfoCard(
+    return InfoCard(
       icon: Icons.cake_rounded,
       title: 'Birthdays This Month',
       canEdit: widget.canEdit,
+      showIcon: widget.showIcon,
       onAdd: _showAdd,
       child: _loading
           ? const _Loader()
@@ -731,6 +778,152 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
                       ]),
                     );
                   }).toList(),
+                ),
+    );
+  }
+}
+
+// ── My Tasks ──────────────────────────────────────────────────────────────────
+
+class MyTasksBlock extends StatefulWidget {
+  final bool showIcon;
+  final String viewAllRoute;
+  const MyTasksBlock({super.key, this.showIcon = true, required this.viewAllRoute});
+
+  @override
+  State<MyTasksBlock> createState() => _MyTasksBlockState();
+}
+
+class _MyTasksBlockState extends State<MyTasksBlock> {
+  List<Task> _tasks = [];
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final all = await SupabaseService.fetchTasks();
+    final name = UserSession.name.trim();
+    if (!mounted) return;
+    final mine = name.isEmpty
+        ? <Task>[]
+        : all
+            .where((t) =>
+                t.assignedEmployee.trim() == name ||
+                t.teamMembers.any((m) => m.trim() == name))
+            .where((t) => t.status != TaskStatus.completed)
+            .toList()
+      ..sort((a, b) {
+        // Most urgent first: earliest due date wins; same day → higher priority wins.
+        final byDate = a.dueDate.compareTo(b.dueDate);
+        if (byDate != 0) return byDate;
+        return _priorityRank(a.priority).compareTo(_priorityRank(b.priority));
+      });
+    setState(() { _tasks = mine; _loading = false; });
+  }
+
+  static int _priorityRank(TaskPriority p) => switch (p) {
+        TaskPriority.critical => 0,
+        TaskPriority.high     => 1,
+        TaskPriority.medium   => 2,
+        TaskPriority.low      => 3,
+      };
+
+  // Label + color describing how urgent a due date is, so the most
+  // time-critical tasks are visually obvious at the top of the list.
+  static (String, Color) _urgency(DateTime due, Color defaultColor) {
+    final now = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final day = DateTime(due.year, due.month, due.day);
+    final diff = day.difference(now).inDays;
+    if (diff < 0) return ('Overdue by ${-diff}d', Colors.red.shade700);
+    if (diff == 0) return ('Due today', Colors.orange.shade800);
+    if (diff == 1) return ('Due tomorrow', Colors.orange.shade700);
+    if (diff <= 3) return ('Due in ${diff}d', Colors.amber.shade800);
+    return ('Due ${_fmtDate(due)}', defaultColor);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final shown = _tasks.take(5).toList();
+    return InfoCard(
+      icon: Icons.task_alt_rounded,
+      title: 'My Tasks',
+      showIcon: widget.showIcon,
+      onRefresh: _load,
+      child: _loading
+          ? const _Loader()
+          : _tasks.isEmpty
+              ? _Empty('No pending tasks')
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final t in shown) ...[
+                      Row(children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(t.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: cs.onSurface)),
+                              const SizedBox(height: 2),
+                              Builder(builder: (_) {
+                                final (label, color) = _urgency(
+                                    t.dueDate, cs.onSurface.withValues(alpha: 0.5));
+                                return Text(label,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: color));
+                              }),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: taskStatusColor(t.status).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: taskStatusColor(t.status).withValues(alpha: 0.3)),
+                          ),
+                          child: Text(taskStatusLabel(t.status),
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: taskStatusColor(t.status))),
+                        ),
+                      ]),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        child: Divider(height: 1, color: _purple.withValues(alpha: 0.12)),
+                      ),
+                    ],
+                    InkWell(
+                      onTap: () => context.push(widget.viewAllRoute),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text('View all',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _purple)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_forward_rounded, size: 14, color: _purple),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
     );
   }
