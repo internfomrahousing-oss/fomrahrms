@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
+import '../models/payslip_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
@@ -19,7 +20,10 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
 
   bool _loading = false;
   bool _elAvailLoading = false;
+  bool _requesting = false;
   AppUser? _appUser;
+  List<PayslipRequest> _requests = [];
+  List<Payslip> _payslips = [];
 
   @override
   void initState() {
@@ -45,13 +49,43 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
       }
 
       final match = users.where((u) => u.name == UserSession.name).toList();
+      final user = match.isNotEmpty ? match.first : null;
+
+      List<PayslipRequest> requests = [];
+      List<Payslip> payslips = [];
+      if (user != null && user.employeeId.isNotEmpty) {
+        final more = await Future.wait([
+          SupabaseService.fetchPayslipRequestsFor(user.employeeId),
+          SupabaseService.fetchPayslips(user.employeeId),
+        ]);
+        requests = more[0] as List<PayslipRequest>;
+        payslips = more[1] as List<Payslip>;
+      }
+
       if (mounted) setState(() {
-        _appUser = match.isNotEmpty ? match.first : null;
-        _loading = false;
+        _appUser  = user;
+        _requests = requests;
+        _payslips = payslips;
+        _loading  = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _requestPayslip(String monthYear) async {
+    final user = _appUser;
+    if (user == null || user.employeeId.isEmpty) return;
+    setState(() => _requesting = true);
+    await SupabaseService.requestPayslip(PayslipRequest(
+      id: '${user.employeeId}_$monthYear',
+      employeeId: user.employeeId,
+      employeeName: user.name,
+      monthYear: monthYear,
+      requestedAt: DateTime.now(),
+    ));
+    await _load();
+    if (mounted) setState(() => _requesting = false);
   }
 
   Future<void> _requestElAvail() async {
@@ -130,29 +164,25 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
                   if (user == null)
                     const Text('Employee record not found.',
                         style: TextStyle(color: Color(0xFF6B7280)))
-                  else if (user.isElEligible) ...[
-                    // ── EL section ──────────────────────────────────────────
-                    _ElBalanceCard(
-                      accrued: _elAccrued(user),
-                      used:    _elUsed(user),
-                      user:    user,
-                      loading: _elAvailLoading,
-                      onRequest: _requestElAvail,
-                    ),
-                  ] else ...[
-                    // ── Placeholder for non-EL employees ────────────────────
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 48),
-                        child: Column(children: [
-                          Icon(Icons.receipt_long_rounded,
-                              size: 64, color: Colors.grey.shade300),
-                          const SizedBox(height: 12),
-                          Text('Payslips will be available here.',
-                              style: TextStyle(
-                                  color: Colors.grey.shade400, fontSize: 14)),
-                        ]),
+                  else ...[
+                    if (user.isElEligible) ...[
+                      // ── EL section ────────────────────────────────────────
+                      _ElBalanceCard(
+                        accrued: _elAccrued(user),
+                        used:    _elUsed(user),
+                        user:    user,
+                        loading: _elAvailLoading,
+                        onRequest: _requestElAvail,
                       ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // ── Payslip request + history ────────────────────────────
+                    _PayslipSection(
+                      requests: _requests,
+                      payslips: _payslips,
+                      requesting: _requesting,
+                      onRequest: _requestPayslip,
                     ),
                   ],
                 ],
@@ -335,4 +365,395 @@ class _ElBalanceCard extends StatelessWidget {
 
   static String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+}
+
+// ── Payslip request + history section ───────────────────────────────────────
+const _monthNames = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/// Last 12 months as (key='YYYY-MM', label='Mon YYYY'), newest first.
+List<(String, String)> _recentMonths() {
+  final now = DateTime.now();
+  return List.generate(12, (i) {
+    final d = DateTime(now.year, now.month - i, 1);
+    final key = '${d.year}-${d.month.toString().padLeft(2, '0')}';
+    return (key, '${_monthNames[d.month - 1]} ${d.year}');
+  });
+}
+
+String _monthLabel(String monthYear) {
+  final parts = monthYear.split('-');
+  if (parts.length != 2) return monthYear;
+  final m = int.tryParse(parts[1]);
+  if (m == null || m < 1 || m > 12) return monthYear;
+  return '${_monthNames[m - 1]} ${parts[0]}';
+}
+
+class _PayslipSection extends StatefulWidget {
+  final List<PayslipRequest> requests;
+  final List<Payslip> payslips;
+  final bool requesting;
+  final Future<void> Function(String monthYear) onRequest;
+  const _PayslipSection({
+    required this.requests,
+    required this.payslips,
+    required this.requesting,
+    required this.onRequest,
+  });
+
+  @override
+  State<_PayslipSection> createState() => _PayslipSectionState();
+}
+
+class _PayslipSectionState extends State<_PayslipSection> {
+  static const _purple = Color(0xFF2563EB);
+  late String _selectedMonth = _recentMonths().first.$1;
+
+  PayslipRequest? get _existingRequest {
+    for (final r in widget.requests) {
+      if (r.monthYear == _selectedMonth) return r;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final months = _recentMonths();
+    final existing = _existingRequest;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _purple.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _purple.withValues(alpha: 0.2)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.receipt_long_rounded, color: _purple, size: 20),
+            const SizedBox(width: 8),
+            const Text('Request Payslip',
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: _purple)),
+          ]),
+          const SizedBox(height: 16),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedMonth,
+                decoration: InputDecoration(
+                  labelText: 'Month',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+                items: months
+                    .map((m) => DropdownMenuItem(value: m.$1, child: Text(m.$2)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _selectedMonth = v);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: (widget.requesting || existing != null)
+                  ? null
+                  : () => widget.onRequest(_selectedMonth),
+              icon: widget.requesting
+                  ? const SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send_rounded, size: 16),
+              label: const Text('Request'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _purple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ]),
+          if (existing != null) ...[
+            const SizedBox(height: 12),
+            _RequestStatusRow(request: existing),
+          ],
+        ]),
+      ),
+      const SizedBox(height: 20),
+      Text('Payslip History',
+          style: TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+      const SizedBox(height: 10),
+      if (widget.payslips.isEmpty)
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _purple.withValues(alpha: 0.15)),
+          ),
+          child: Row(children: [
+            Icon(Icons.info_outline_rounded, color: Colors.grey.shade400, size: 20),
+            const SizedBox(width: 10),
+            Text('No payslips generated yet.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+          ]),
+        )
+      else
+        ...widget.payslips.map((p) => _PayslipListTile(payslip: p)),
+    ]);
+  }
+}
+
+class _RequestStatusRow extends StatelessWidget {
+  final PayslipRequest request;
+  const _RequestStatusRow({required this.request});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color, label) = switch (request.status) {
+      PayslipRequestStatus.pending => (
+          Icons.hourglass_empty_rounded, Colors.orange.shade700, 'Pending HR approval'),
+      PayslipRequestStatus.approved => (
+          Icons.check_circle_rounded, Colors.green.shade700, 'Approved — see history below'),
+      PayslipRequestStatus.rejected => (
+          Icons.cancel_rounded, Colors.red.shade700, 'Rejected'),
+    };
+    return Row(children: [
+      Icon(icon, size: 16, color: color),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text('${_monthLabel(request.monthYear)}: $label',
+            style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+      ),
+    ]);
+  }
+}
+
+class _PayslipListTile extends StatelessWidget {
+  final Payslip payslip;
+  const _PayslipListTile({required this.payslip});
+
+  static const _purple = Color(0xFF2563EB);
+
+  static String _fmtRs(double v) => '₹${v.toStringAsFixed(0)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(
+            color: _purple.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.description_rounded, color: _purple, size: 20),
+        ),
+        title: Text(_monthLabel(payslip.monthYear),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+        subtitle: Text('Net Pay: ${_fmtRs(payslip.netPay)}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6B7280)),
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => PayslipDetailPage(payslip: payslip))),
+      ),
+    );
+  }
+}
+
+// ── Full payslip detail view ────────────────────────────────────────────────
+class PayslipDetailPage extends StatelessWidget {
+  final Payslip payslip;
+  const PayslipDetailPage({super.key, required this.payslip});
+
+  static const _purple = Color(0xFF2563EB);
+
+  static String _fmtRs(double v) =>
+      '₹${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')}';
+
+  Widget _infoRow(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          Expanded(
+              flex: 2,
+              child: Text(label,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)))),
+          Expanded(
+              flex: 3,
+              child: Text(value,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+        ]),
+      );
+
+  Widget _amountRow(String label, double value, {bool bold = false}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: bold ? FontWeight.w700 : FontWeight.normal))),
+          Text(_fmtRs(value),
+              style: TextStyle(
+                  fontSize: 13, fontWeight: bold ? FontWeight.w700 : FontWeight.w600)),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final p = payslip;
+    return Scaffold(
+      backgroundColor: null,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: _purple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.description_rounded, color: _purple, size: 26),
+            ),
+            const SizedBox(width: 16),
+            Text('Pay Slip — ${_monthLabel(p.monthYear)}',
+                style: Theme.of(context).textTheme.headlineMedium),
+          ]),
+          const SizedBox(height: 24),
+
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _purple.withValues(alpha: 0.15)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // ── Profile header ──────────────────────────────────────────
+              _infoRow('Emp Code', p.employeeId),
+              _infoRow('Employee Name', p.empName),
+              _infoRow('Department', p.department),
+              _infoRow('Designation', p.designation),
+              if (p.band.isNotEmpty) _infoRow('Band', p.band),
+              _infoRow('Date of Joining', p.dateOfJoining),
+              _infoRow('No. of Working Days', '${p.workingDays}'),
+              _infoRow('No of Days Worked', '${p.daysWorked}'),
+              _infoRow('No of LOP Days', '${p.lopDays}'),
+              _infoRow('Gross Pay (Rs)', _fmtRs(p.grossPay)),
+              const Divider(height: 28),
+
+              // ── Earnings / Deductions ────────────────────────────────────
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Earnings',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
+                    const SizedBox(height: 6),
+                    _amountRow('Basic', p.basic),
+                    _amountRow('House Rent Allowance', p.hra),
+                    _amountRow('Educational Allowance', p.educationalAllowance),
+                    _amountRow('LTA', p.lta),
+                    _amountRow('Other Allowance', p.otherAllowance),
+                    _amountRow('Conveyance Allowance', p.conveyanceAllowance),
+                    if (p.specialAllowance > 0)
+                      _amountRow('Special Allowance', p.specialAllowance),
+                    const Divider(),
+                    _amountRow('Actual Gross Pay (Rs)', p.actualGrossPay, bold: true),
+                  ]),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Deductions',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
+                    const SizedBox(height: 6),
+                    _amountRow('EPF', p.epf),
+                    _amountRow('Professional Tax', p.professionalTax),
+                    _amountRow('TDS', p.tds),
+                    _amountRow('Late Deductions', p.lateDeductions),
+                    if (p.cug > 0) _amountRow('CUG', p.cug),
+                    const Divider(),
+                    _amountRow('Total Deductions', p.totalDeductions, bold: true),
+                  ]),
+                ),
+              ]),
+
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _purple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: _amountRow('Net Pay (Rs)', p.netPay, bold: true),
+              ),
+
+              if (p.leaveDetails.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                const Text('Leave Details',
+                    style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
+                const SizedBox(height: 8),
+                Table(
+                  border: TableBorder.all(color: const Color(0xFFE5E7EB)),
+                  columnWidths: const {
+                    0: FlexColumnWidth(2),
+                    1: FlexColumnWidth(1),
+                    2: FlexColumnWidth(1),
+                    3: FlexColumnWidth(1),
+                  },
+                  children: [
+                    const TableRow(
+                      decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                      children: [
+                        Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text('Leave Type',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                        Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text('Opening',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                        Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text('Taken',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                        Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text('Closing',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                      ],
+                    ),
+                    for (final row in p.leaveDetails)
+                      TableRow(children: [
+                        Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text(row.type, style: const TextStyle(fontSize: 12))),
+                        Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text('${row.opening}', style: const TextStyle(fontSize: 12))),
+                        Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text('${row.taken}', style: const TextStyle(fontSize: 12))),
+                        Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text('${row.closing}', style: const TextStyle(fontSize: 12))),
+                      ]),
+                  ],
+                ),
+              ],
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
 }

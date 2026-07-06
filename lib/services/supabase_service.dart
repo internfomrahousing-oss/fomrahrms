@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
+import '../models/payslip_store.dart';
 import '../models/profile_store.dart';
 import '../models/employee_store.dart';
 import '../models/task_store.dart';
@@ -84,6 +85,47 @@ import '../models/user_session.dart';
   create table if not exists app_settings (
     id text primary key default 'global',
     color_theme text default 'midnightBlue'
+  );
+
+  create table if not exists payslip_requests (
+    id text primary key,
+    employee_id text default '',
+    employee_name text default '',
+    month_year text not null,
+    status text default 'pending',
+    requested_at timestamptz default now(),
+    decided_at timestamptz,
+    decided_by text default ''
+  );
+
+  create table if not exists payslips (
+    id text primary key,
+    employee_id text default '',
+    month_year text not null,
+    emp_name text default '',
+    department text default '',
+    designation text default '',
+    band text default '',
+    date_of_joining text default '',
+    working_days integer default 0,
+    days_worked integer default 0,
+    lop_days integer default 0,
+    gross_pay numeric default 0,
+    basic numeric default 0,
+    hra numeric default 0,
+    educational_allowance numeric default 0,
+    lta numeric default 0,
+    other_allowance numeric default 0,
+    conveyance_allowance numeric default 0,
+    special_allowance numeric default 0,
+    epf numeric default 0,
+    professional_tax numeric default 0,
+    tds numeric default 0,
+    late_deductions numeric default 0,
+    cug numeric default 0,
+    leave_details text default '[]',
+    generated_at timestamptz default now(),
+    generated_by text default ''
   );
 
   create table if not exists employee_profiles (
@@ -1400,6 +1442,80 @@ class SupabaseService {
         'id': 'global',
         'color_theme': themeKey,
       });
+    } catch (_) {}
+  }
+
+  // ── Payslip requests ─────────────────────────────────────────────────────
+
+  static Future<List<PayslipRequest>> fetchPayslipRequests() async {
+    try {
+      final data = await _db
+          ?.from('payslip_requests')
+          .select()
+          .order('requested_at', ascending: false);
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => PayslipRequest.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<List<PayslipRequest>> fetchPayslipRequestsFor(String employeeId) async {
+    try {
+      final data = await _db
+          ?.from('payslip_requests')
+          .select()
+          .eq('employee_id', employeeId)
+          .order('requested_at', ascending: false);
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => PayslipRequest.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> requestPayslip(PayslipRequest req) async {
+    try {
+      await _db?.from('payslip_requests').upsert(req.toJson());
+    } catch (_) {}
+  }
+
+  static Future<void> decidePayslipRequest(
+      String id, PayslipRequestStatus status, String decidedBy) async {
+    try {
+      await _db?.from('payslip_requests').update({
+        'status': status.name,
+        'decided_at': DateTime.now().toIso8601String(),
+        'decided_by': decidedBy,
+      }).eq('id', id);
+    } catch (_) {}
+  }
+
+  // ── Payslips ──────────────────────────────────────────────────────────────
+
+  static Future<List<Payslip>> fetchPayslips(String employeeId) async {
+    try {
+      final data = await _db
+          ?.from('payslips')
+          .select()
+          .eq('employee_id', employeeId)
+          .order('month_year', ascending: false);
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => Payslip.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> savePayslip(Payslip p) async {
+    try {
+      await _db?.from('payslips').upsert(p.toJson());
     } catch (_) {}
   }
 
