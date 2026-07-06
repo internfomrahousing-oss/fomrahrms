@@ -18,6 +18,7 @@ class AppUser {
   String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
   String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
   String elLastAvailedAt;    // ISO datetime when HR confirmed EL avail; empty = never availed
+  double grossPay;           // monthly gross pay (Rs), set by HR, used to generate payslips
 
   AppUser({
     required this.name,
@@ -37,6 +38,7 @@ class AppUser {
     this.biometricId = '',
     this.elAvailRequestedAt = '',
     this.elLastAvailedAt = '',
+    this.grossPay = 0,
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
@@ -90,6 +92,7 @@ class AppUser {
     'biometricId':           biometricId,
     'elAvailRequestedAt':    elAvailRequestedAt,
     'elLastAvailedAt':       elLastAvailedAt,
+    'grossPay':              grossPay,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -110,5 +113,6 @@ class AppUser {
     biometricId:          j['biometricId']          as String? ?? '',
     elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',
     elLastAvailedAt:      j['elLastAvailedAt']       as String? ?? '',
+    grossPay:             (j['grossPay'] as num?)?.toDouble() ?? 0,
   );
 }

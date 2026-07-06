@@ -17,6 +17,9 @@ class AppTheme {
   static Color get lightBlue => _t.lightTint;
   static Color get sidebarBg => _t.sidebarBg;
   static Color get sidebarSelectedBg => _t.sidebarSelectedBg;
+  // Muted icon/text color for unselected nav items — a pale tint of the
+  // active theme's accent, so menus read as themed rather than always blue.
+  static Color get sidebarMuted => Color.lerp(_t.accent, Colors.white, 0.65)!;
   static const Color white = Colors.white;
 
   static const Color success = Color(0xFF22C55E);

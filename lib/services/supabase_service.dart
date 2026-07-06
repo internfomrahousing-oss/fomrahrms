@@ -183,6 +183,7 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists date_of_joining text default '';
   alter table app_users add column if not exists el_avail_requested_at text default '';
   alter table app_users add column if not exists el_last_availed_at text default '';
+  alter table app_users add column if not exists gross_pay numeric default 0;
 
   create table if not exists tasks (
     id text primary key,
@@ -612,6 +613,7 @@ class SupabaseService {
         biometricId:          (row['biometric_id']            as String?) ?? '',
         elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
         elLastAvailedAt:      (row['el_last_availed_at']      as String?) ?? '',
+        grossPay:             (row['gross_pay'] as num?)?.toDouble() ?? 0,
       )).toList();
     } catch (_) {
       return [];
@@ -637,6 +639,7 @@ class SupabaseService {
       'biometric_id':             u.biometricId,
       'el_avail_requested_at':    u.elAvailRequestedAt,
       'el_last_availed_at':       u.elLastAvailedAt,
+      'gross_pay':                u.grossPay,
     });
   }
 

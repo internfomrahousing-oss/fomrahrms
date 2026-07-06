@@ -952,6 +952,7 @@ class _EditDialogState extends State<_EditDialog> {
   late final TextEditingController _addressCtrl;
   late final TextEditingController _joiningCtrl;
   late final TextEditingController _leaveCtrl;
+  late final TextEditingController _grossPayCtrl;
   late String _role;
   late String _manager;
   late bool _active;
@@ -975,6 +976,8 @@ class _EditDialogState extends State<_EditDialog> {
     _joiningCtrl = TextEditingController(text: u?.dateOfJoining ?? '');
     _leaveCtrl   = TextEditingController(
         text: (u?.leaveAllocation ?? 21).toString());
+    _grossPayCtrl = TextEditingController(
+        text: u != null && u.grossPay > 0 ? u.grossPay.toStringAsFixed(0) : '');
     _role    = u?.role ?? 'Employee';
     _manager = u?.reportingManager ?? '';
     _active  = u?.active ?? true;
@@ -984,7 +987,7 @@ class _EditDialogState extends State<_EditDialog> {
   void dispose() {
     for (final c in [
       _nameCtrl, _emailCtrl, _empIdCtrl, _bioIdCtrl, _desigCtrl,
-      _mobileCtrl, _addressCtrl, _joiningCtrl, _leaveCtrl,
+      _mobileCtrl, _addressCtrl, _joiningCtrl, _leaveCtrl, _grossPayCtrl,
     ]) {
       c.dispose();
     }
@@ -1025,6 +1028,12 @@ class _EditDialogState extends State<_EditDialog> {
                             : (existingJoining.isNotEmpty
                                 ? existingJoining
                                 : today),
+      onrollConfirmedAt:  widget.user?.onrollConfirmedAt ?? '',
+      elEligibleAt:       widget.user?.elEligibleAt ?? '',
+      elAvailRequestedAt: widget.user?.elAvailRequestedAt ?? '',
+      elLastAvailedAt:    widget.user?.elLastAvailedAt ?? '',
+      grossPay:         double.tryParse(_grossPayCtrl.text.trim()) ??
+                        (widget.user?.grossPay ?? 0),
     );
 
     await widget.onSave(updated);
@@ -1199,6 +1208,10 @@ class _EditDialogState extends State<_EditDialog> {
 
             _field(_leaveCtrl, 'Leave Allocation (days / year)',
                 Icons.event_note_rounded,
+                keyboard: TextInputType.number),
+
+            _field(_grossPayCtrl, 'Gross Pay (Rs / month)',
+                Icons.account_balance_wallet_rounded,
                 keyboard: TextInputType.number),
 
             // Role dropdown

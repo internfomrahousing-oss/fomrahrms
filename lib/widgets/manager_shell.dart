@@ -244,11 +244,11 @@ class _SidebarHeader extends StatelessWidget {
                     color: AppTheme.primaryBlue, size: 26),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('FOMRA',
+                    const Text('FOMRA',
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -256,7 +256,7 @@ class _SidebarHeader extends StatelessWidget {
                             letterSpacing: 1.5)),
                     Text('Manager Portal',
                         style:
-                            TextStyle(color: Color(0xFFDBEAFE), fontSize: 10)),
+                            TextStyle(color: AppTheme.sidebarMuted, fontSize: 10)),
                   ],
                 ),
               ),
@@ -288,7 +288,7 @@ class _SidebarHeader extends StatelessWidget {
                             fontWeight: FontWeight.w600)),
                     Text('Reporting Manager',
                         style: TextStyle(
-                            color: Color(0xFFDBEAFE), fontSize: 11)),
+                            color: AppTheme.sidebarMuted, fontSize: 11)),
                   ],
                 ),
               ),
@@ -318,12 +318,12 @@ class _SidebarTile extends StatelessWidget {
       child: ListTile(
         dense: true,
         leading: Icon(item.icon,
-            color: selected ? Colors.white : const Color(0xFFDBEAFE),
+            color: selected ? Colors.white : AppTheme.sidebarMuted,
             size: 20),
         title: Text(
           item.label,
           style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFFDBEAFE),
+            color: selected ? Colors.white : AppTheme.sidebarMuted,
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -349,15 +349,15 @@ class _SidebarFooter extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
             Icon(Icons.logout_rounded,
-                color: Color(0xFFDBEAFE), size: 18),
-            SizedBox(width: 10),
+                color: AppTheme.sidebarMuted, size: 18),
+            const SizedBox(width: 10),
             Text('Sign Out',
                 style: TextStyle(
-                    color: Color(0xFFDBEAFE), fontSize: 13)),
+                    color: AppTheme.sidebarMuted, fontSize: 13)),
           ]),
         ),
       ),
