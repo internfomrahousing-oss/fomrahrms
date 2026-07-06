@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
 
 class TaskManagementPage extends StatefulWidget {
@@ -43,19 +44,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
 
   Future<void> _load() async {
     final tasks = await SupabaseService.fetchTasks();
-    final now = DateTime.now();
-    for (final t in tasks) {
-      if (t.status == TaskStatus.completed) continue;
-      if (t.dueDate.isBefore(now) && t.status != TaskStatus.delayed) {
-        t.status = TaskStatus.delayed;
-        SupabaseService.updateTaskStatus(t.id, TaskStatus.delayed);
-      } else if (t.status == TaskStatus.inProgress &&
-          t.receivedAt != null &&
-          now.difference(t.receivedAt!).inHours >= 2) {
-        t.status = TaskStatus.pending;
-        SupabaseService.updateTaskStatus(t.id, TaskStatus.pending);
-      }
-    }
+    applyTaskAutoTransitions(tasks);
     TaskStore.tasks
       ..clear()
       ..addAll(tasks);

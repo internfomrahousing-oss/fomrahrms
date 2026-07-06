@@ -4,6 +4,7 @@ import '../models/employee_store.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../services/task_transitions.dart';
 import 'dashboard_info_blocks.dart';
 
 /// Donut-chart breakdown of task status counts. Shows the current user's
@@ -28,6 +29,7 @@ class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
 
   Future<void> _load() async {
     final all = await SupabaseService.fetchTasks();
+    applyTaskAutoTransitions(all);
     final name = UserSession.name.trim();
 
     final mine = <TaskStatus, int>{};

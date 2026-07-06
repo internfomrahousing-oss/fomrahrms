@@ -4,6 +4,7 @@ import '../models/employee_store.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../services/task_transitions.dart';
 
 const _purple = Color(0xFF6A1B9A);
 const _months = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -817,6 +818,7 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
 
   Future<void> _load() async {
     final all = await SupabaseService.fetchTasks();
+    applyTaskAutoTransitions(all);
     final name = UserSession.name.trim();
     if (!mounted) return;
     final mine = name.isEmpty

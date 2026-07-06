@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
 
 class MyTasksPage extends StatefulWidget {
@@ -47,24 +48,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
     if (mounted) setState(() => _loading = true);
     final allTasks = await SupabaseService.fetchTasks();
     final name = UserSession.name.trim();
-    final now = DateTime.now();
-
-    // Auto-transitions: check each task for 2h overdue and due date crossed
-    for (final t in allTasks) {
-      if (t.status == TaskStatus.completed) continue;
-      // If due date passed → delayed (takes priority)
-      if (t.dueDate.isBefore(now) && t.status != TaskStatus.delayed) {
-        t.status = TaskStatus.delayed;
-        SupabaseService.updateTaskStatus(t.id, TaskStatus.delayed);
-      }
-      // If received > 2 hours ago and still inProgress → pending
-      else if (t.status == TaskStatus.inProgress &&
-          t.receivedAt != null &&
-          now.difference(t.receivedAt!).inHours >= 2) {
-        t.status = TaskStatus.pending;
-        SupabaseService.updateTaskStatus(t.id, TaskStatus.pending);
-      }
-    }
+    applyTaskAutoTransitions(allTasks);
 
     if (!mounted) return;
     setState(() {
