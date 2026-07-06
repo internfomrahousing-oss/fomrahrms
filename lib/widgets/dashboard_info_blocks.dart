@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/employee_store.dart';
@@ -42,6 +43,16 @@ String taskPriorityLabel(TaskPriority p) => switch (p) {
       TaskPriority.medium   => 'Medium',
       TaskPriority.high     => 'High',
       TaskPriority.critical => 'Critical',
+    };
+
+// Coarse completion percent per status stage, used for the ring shown on
+// each task row (there's no real progress-% field on Task).
+int taskStatusStagePercent(TaskStatus s) => switch (s) {
+      TaskStatus.assigned   => 0,
+      TaskStatus.pending    => 25,
+      TaskStatus.inProgress => 50,
+      TaskStatus.delayed    => 75,
+      TaskStatus.completed  => 100,
     };
 
 // ── Public widget ─────────────────────────────────────────────────────────────
@@ -110,7 +121,7 @@ class InfoCard extends StatelessWidget {
       color: _purple.withValues(alpha: 0.08),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: _purple.withValues(alpha: 0.18), width: 1),
       ),
       child: Padding(
@@ -875,56 +886,70 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (final t in shown) ...[
-                      Row(children: [
-                        Expanded(
-                          child: Text(t.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onSurface)),
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _purple.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _purple.withValues(alpha: 0.10)),
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: taskStatusColor(t.status).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: taskStatusColor(t.status).withValues(alpha: 0.3)),
-                          ),
-                          child: Text(taskStatusLabel(t.status),
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: taskStatusColor(t.status))),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(t.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: cs.onSurface)),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 4,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    children: [
+                                      Builder(builder: (_) {
+                                        final (label, color) = _urgency(
+                                            t.dueDate, cs.onSurface.withValues(alpha: 0.5));
+                                        return Text(label,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: color));
+                                      }),
+                                      _MetaPill(taskPriorityLabel(t.priority), taskPriorityColor(t.priority)),
+                                      if (t.department.isNotEmpty)
+                                        _MetaPill(t.department, cs.onSurface.withValues(alpha: 0.55)),
+                                      if (t.weightage > 0)
+                                        _MetaPill('${t.weightage} pts', _purple),
+                                    ],
+                                  ),
+                                  if (t.teamMembers.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                        t.teamMembers.length == 1
+                                            ? '1 member'
+                                            : '${t.teamMembers.length} members',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: cs.onSurface.withValues(alpha: 0.45))),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            _TaskProgressRing(
+                              percent: taskStatusStagePercent(t.status),
+                              color: taskStatusColor(t.status),
+                            ),
+                          ],
                         ),
-                      ]),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Builder(builder: (_) {
-                            final (label, color) = _urgency(
-                                t.dueDate, cs.onSurface.withValues(alpha: 0.5));
-                            return Text(label,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: color));
-                          }),
-                          _MetaPill(taskPriorityLabel(t.priority), taskPriorityColor(t.priority)),
-                          if (t.department.isNotEmpty)
-                            _MetaPill(t.department, cs.onSurface.withValues(alpha: 0.55)),
-                          if (t.weightage > 0)
-                            _MetaPill('${t.weightage} pts', _purple),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        child: Divider(height: 1, color: _purple.withValues(alpha: 0.12)),
                       ),
                     ],
                     InkWell(
@@ -976,6 +1001,64 @@ Widget _Empty(String msg) => Padding(
                   fontSize: 12, color: Color(0x666A1B9A)))),
     );
 
+// Circular progress ring showing a task's status-stage percent, e.g. "50%".
+class _TaskProgressRing extends StatelessWidget {
+  final int percent;
+  final Color color;
+  const _TaskProgressRing({required this.percent, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 46, height: 46,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(46, 46),
+            painter: _RingPainter(percent: percent / 100, color: color),
+          ),
+          Text('$percent%',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  final double percent;
+  final Color color;
+  const _RingPainter({required this.percent, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 5.0;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 - strokeWidth / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi, false,
+        Paint()
+          ..color = color.withValues(alpha: 0.15)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth);
+
+    if (percent > 0) {
+      canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * percent, false,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth
+            ..strokeCap = StrokeCap.round);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      oldDelegate.percent != percent || oldDelegate.color != color;
+}
+
 // Small labelled dot used for compact task metadata (priority, department, points).
 class _MetaPill extends StatelessWidget {
   final String label;
@@ -990,8 +1073,12 @@ class _MetaPill extends StatelessWidget {
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       const SizedBox(width: 4),
-      Text(label,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+      Flexible(
+        child: Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+      ),
     ]);
   }
 }

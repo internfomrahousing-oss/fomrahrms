@@ -10,7 +10,8 @@ import '../services/supabase_service.dart';
 /// Use [large] = true for the welcome banner (bigger avatar, vertical layout).
 class ProfileAvatarButton extends StatefulWidget {
   final bool large;
-  const ProfileAvatarButton({super.key, this.large = false});
+  final double avatarRadius;
+  const ProfileAvatarButton({super.key, this.large = false, this.avatarRadius = 52});
 
   @override
   State<ProfileAvatarButton> createState() => _ProfileAvatarButtonState();
@@ -96,7 +97,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Stack(clipBehavior: Clip.none, children: [
             CircleAvatar(
-              radius: 52,
+              radius: widget.avatarRadius,
               backgroundColor: Colors.white.withValues(alpha: 0.20),
               backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
               child: _uploadingPhoto
@@ -107,10 +108,10 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                           strokeWidth: 2, color: Colors.white))
                   : (photoUrl.isEmpty
                       ? Text(initial,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 38))
+                              fontSize: widget.avatarRadius * 0.73))
                       : null),
             ),
             Positioned(

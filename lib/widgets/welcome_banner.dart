@@ -92,17 +92,17 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(28, 28, 28, 28),
+          padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 28, wide ? 28 : 16, 28),
           child: Row(children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Welcome to FOMRA HRMS',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: wide ? 24 : 17,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.3,
                     ),
@@ -135,7 +135,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                 ],
               ),
             ),
-            const ProfileAvatarButton(large: true),
+            ProfileAvatarButton(large: true, avatarRadius: wide ? 52 : 34),
             if (widget.onRefresh != null) ...[
               const SizedBox(width: 8),
               Tooltip(

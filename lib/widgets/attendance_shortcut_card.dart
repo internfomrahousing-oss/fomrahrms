@@ -416,8 +416,9 @@ Approved by: Sharad Fomra, CEO & MD
         Flexible(
           child: Card(
             margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             onTap: _loading ? null : _openSheet,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -462,8 +463,9 @@ Approved by: Sharad Fomra, CEO & MD
         // ── HR Policy button ──────────────────────────────────────────────
         Card(
           margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             onTap: _showHRPolicy,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
