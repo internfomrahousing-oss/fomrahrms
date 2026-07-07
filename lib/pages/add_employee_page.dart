@@ -75,7 +75,14 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
-      context.canPop() ? context.pop() : context.go('/employee-management');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        final path = GoRouterState.of(context).uri.path;
+        context.go(path.startsWith('/management/')
+            ? '/management/employee-management'
+            : '/employee-management');
+      }
     }
   }
 

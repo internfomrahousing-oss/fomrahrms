@@ -13,6 +13,8 @@ class NavBackButton extends StatelessWidget {
         context.go('/manager/dashboard');
       } else if (path.startsWith('/employee/')) {
         context.go('/employee/dashboard');
+      } else if (path.startsWith('/management/')) {
+        context.go('/management/dashboard');
       } else {
         context.go('/dashboard');
       }
