@@ -1,149 +1,454 @@
-Redesign the entire HRMS dashboard UI to look like a premium modern SaaS product similar to Linear, Notion, Vercel Dashboard, Stripe Dashboard and Deel.
+You are a Senior Product Designer from Stripe, Linear and Vercel.
 
-IMPORTANT:
-- Do NOT change any functionality.
-- Do NOT change routing.
-- Do NOT modify backend logic.
-- Do NOT remove or rename components.
-- Do NOT change any content or data.
-- Only redesign the visual appearance.
+Your task is to redesign ONLY the UI of this HRMS Dashboard into a premium enterprise SaaS dashboard.
 
-Design Goals
+IMPORTANT RULES
 
-• Minimal
-• Premium
-• Professional
-• Spacious
-• Enterprise-grade
-• Modern SaaS aesthetic
+❌ DO NOT change any functionality.
+❌ DO NOT change business logic.
+❌ DO NOT modify backend.
+❌ DO NOT rename routes.
+❌ DO NOT change APIs.
+❌ DO NOT remove components.
+❌ DO NOT change any data.
+❌ DO NOT change navigation.
 
-Layout
+Only improve visual design, spacing, typography, hierarchy, colors and interactions.
 
-- Reduce the height of the hero section by about 50%.
-- Replace the oversized welcome banner with a compact greeting.
-- Keep the profile section smaller and cleaner.
-- Improve spacing using an 8px spacing system.
-- Align all cards perfectly.
-- Maintain consistent margins throughout.
+--------------------------------------------------
+DESIGN STYLE
+--------------------------------------------------
+
+The dashboard should feel like:
+
+• Linear
+• Vercel
+• Notion
+• Ramp
+• Stripe Dashboard
+• Deel
+• Modern enterprise HR software
+
+Keywords
+
+Premium
+Minimal
+Elegant
+Professional
+Enterprise
+Clean
+Fast
+Confident
+
+Avoid anything that looks like:
+
+❌ Bootstrap Admin
+❌ AdminLTE
+❌ Material Dashboard Template
+❌ Generic UI kits
+
+The result should look custom designed.
+
+--------------------------------------------------
+GLOBAL DESIGN SYSTEM
+--------------------------------------------------
+
+Use an 8px spacing system.
+
+Border Radius
+
+Cards:
+18px
+
+Buttons:
+14px
+
+Inputs:
+14px
+
+Avatar:
+12px
+
+Page Background
+
+#F8FAFC
 
 Cards
 
-- Use white cards.
-- Very light border (#E5E7EB).
-- Soft shadow only on hover.
-- Border radius: 16px.
-- Increase card padding.
-- Large KPI numbers.
-- Smaller labels.
-- Add subtle hover animation.
-- Use consistent card heights.
-
-Colors
-
-Primary:
-#2563EB
-
-Success:
-#22C55E
-
-Danger:
-#EF4444
-
-Warning:
-#F59E0B
-
 Background:
-#F8FAFC
-
-Card:
 #FFFFFF
 
-Text Primary:
-#111827
+Border:
+1px solid #EEF2F7
 
-Text Secondary:
-#6B7280
+Shadow
 
-Borders:
-#E5E7EB
+Default
 
-Icons
+0 1px 2px rgba(16,24,40,.04)
 
-- Use one consistent icon style throughout.
-- Icons should have soft circular backgrounds.
-- Color-code icons by category.
+Hover
 
-Typography
+0 10px 30px rgba(16,24,40,.08)
 
-Headings:
-Font Weight 700
+Never use heavy shadows.
 
-Card Titles:
+--------------------------------------------------
+TYPOGRAPHY
+--------------------------------------------------
+
+Use Inter.
+
+Page Heading
+
+36px
+700
+
+Section Heading
+
+20px
+700
+
+Card Heading
+
+16px
 600
 
-Body:
-400
+Body
 
-KPI Numbers:
-36-40px bold
+14px
+500
+
+Caption
+
+12px
+500
+
+KPI Number
+
+48px
+700
+
+Secondary text
+
+#6B7280
+
+Primary text
+
+#111827
+
+--------------------------------------------------
+HEADER
+--------------------------------------------------
+
+Reduce the header height another 20%.
+
+Replace the large welcome area with:
+
+Good Morning 👋
+
+HR Admin
+
+Today is Monday, 7 July
+
+Below that show:
+
+Formra Housing & Infrastructure
+
+Keep everything compact.
+
+Move the profile into a smaller modern user menu.
+
+Reduce wasted space.
+
+--------------------------------------------------
+TOP KPI SECTION
+--------------------------------------------------
+
+Make these cards the visual focus.
+
+Total Employees
+
+Present Today
+
+Absent Today
+
+On Site
+
+Each KPI should contain:
+
+Large Number
+
+Small title
+
+Colored icon
+
+Mini trend chart
+
+Small percentage change
+
+Example
+
+10
+
+Total Employees
+
+↑ 8% this month
+
+Cards should have subtle hover animations.
+
+Lift 4px.
+
+Shadow increases.
+
+Icon scales slightly.
+
+--------------------------------------------------
+QUICK ACTIONS
+--------------------------------------------------
+
+Turn quick actions into beautiful pills.
+
+Example
+
+○ Check In
+
+📄 HR Policy
+
+➕ Add Employee
+
+📢 New Announcement
+
+Each should have
+
+soft background
+
+hover
+
+icon animation
+
+--------------------------------------------------
+CONTENT SECTION
+--------------------------------------------------
+
+Use a responsive grid.
+
+Announcements should span TWO columns because it is the most important widget.
+
+Holiday
+
+Employee of Month
+
+Birthdays
+
+should occupy one column each.
+
+Improve whitespace.
+
+--------------------------------------------------
+ANNOUNCEMENTS
+--------------------------------------------------
+
+Improve hierarchy.
+
+Date
+
+Bold
+
+Title
+
+Regular
+
+Description
+
+Muted
+
+Hover highlight each announcement.
+
+--------------------------------------------------
+MY SPACE
+--------------------------------------------------
+
+Instead of empty cards add useful summaries.
+
+Attendance
+
+Today's Hours
+
+Weekly Hours
+
+Leave
+
+Available Leaves
+
+Pending Requests
+
+Tasks
+
+Completed
+
+Pending
+
+Payslip
+
+Latest Payslip
+
+Download
+
+Only improve layout.
+
+Do not change functionality.
+
+--------------------------------------------------
+ICONS
+--------------------------------------------------
+
+Use only one icon family.
+
+Lucide Icons.
+
+Every icon sits inside a soft colored circular container.
+
+Example
+
+Blue
+
+Green
+
+Orange
+
+Pink
+
+Purple
+
+Gray
+
+No mixed icon styles.
+
+--------------------------------------------------
+COLORS
+--------------------------------------------------
+
+Blue
+
+#2563EB
+
+Green
+
+#22C55E
+
+Red
+
+#EF4444
+
+Orange
+
+#F59E0B
+
+Purple
+
+#8B5CF6
+
+Pink
+
+#EC4899
+
+Text
+
+#111827
+
+Muted
+
+#6B7280
+
+Background
+
+#F8FAFC
+
+--------------------------------------------------
+SPACING
+--------------------------------------------------
+
+Increase spacing between sections.
+
+Reduce unnecessary whitespace inside cards.
+
+Perfect vertical rhythm.
+
+Nothing should feel cramped.
+
+Nothing should feel empty.
+
+--------------------------------------------------
+ANIMATIONS
+--------------------------------------------------
+
+Every interactive component should animate.
+
+Cards
+
+150ms ease
+
+Hover Lift
+
+Hover Shadow
 
 Buttons
 
-- Modern pill buttons.
-- Subtle shadows.
-- Smooth hover transitions.
-- 150ms animations.
+Hover background
+
+Icons rotate slightly
+
+Numbers
+
+Animate on load
 
 Charts
 
-- Make charts cleaner.
-- Remove unnecessary decoration.
-- Use subtle gradients.
-- Improve readability.
+Fade in
 
-Sections
+Dropdown
 
-Create stronger visual hierarchy:
+Smooth open
 
-1. Greeting
-2. KPI Cards
-3. Quick Actions
-4. Announcements
-5. Holidays
-6. Employee of Month
-7. Birthdays
-8. My Space
+--------------------------------------------------
+RESPONSIVENESS
+--------------------------------------------------
 
-Quick Actions
+Desktop
 
-Convert Check In/Out and HR Policy into modern action buttons with matching icons.
+Tablet
 
-Spacing
+Mobile
 
-Increase whitespace between sections.
-Reduce excessive whitespace inside cards.
+must all look intentionally designed.
 
-Animations
+--------------------------------------------------
+ACCESSIBILITY
+--------------------------------------------------
 
-Add:
+WCAG AA
 
-- Hover lift
-- Fade-in
-- Smooth page transitions
-- Soft shadows
-- Animated counters for KPIs
+Proper contrast
 
-Responsiveness
+Readable typography
 
-Maintain excellent responsiveness for desktop, tablet and mobile.
+44px click targets
 
-Accessibility
+Keyboard navigation
 
-Ensure WCAG AA contrast.
-Improve readability.
-Increase click targets.
+--------------------------------------------------
+FINAL GOAL
+--------------------------------------------------
 
-Output
+When someone opens this dashboard they should immediately think:
 
-Rewrite only the UI styling.
-Keep all existing functionality, APIs, components, routes, and business logic exactly the same.
+"This looks like a premium SaaS product built in 2026."
+
+The design should be clean enough that it could be used by companies like Rippling, BambooHR, Deel or Zoho People.
+
+Take inspiration from modern enterprise dashboards rather than traditional admin templates.
+
+Do not stop after making small improvements.
+
+Audit every section and refine every spacing, font size, border, icon, shadow, animation and alignment until the interface reaches approximately a 9.5/10 quality level.

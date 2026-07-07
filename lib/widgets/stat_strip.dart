@@ -47,7 +47,7 @@ class AppStatCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 132),
+            constraints: const BoxConstraints(minHeight: 156),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -64,24 +64,30 @@ class AppStatCard extends StatelessWidget {
                               color: AppTheme.textSecondary)),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      width: 36, height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color.withValues(alpha: 0.12),
+                    HoverBuilder(
+                      builder: (context, hovering) => AnimatedScale(
+                        scale: hovering ? 1.12 : 1.0,
+                        duration: AppTheme.fastAnim,
+                        child: Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: color.withValues(alpha: 0.12),
+                          ),
+                          child: Icon(icon, color: color, size: 18),
+                        ),
                       ),
-                      child: Icon(icon, color: color, size: 18),
                     ),
                   ],
                 ),
-                // ── bottom row: value + visual ────────────────────────────────
+                // ── value + visual ───────────────────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     AnimatedCounter(
                         value: value,
                         style: const TextStyle(
-                            fontSize: 36,
+                            fontSize: 48,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textPrimary,
                             height: 1)),
@@ -93,6 +99,18 @@ class AppStatCard extends StatelessWidget {
                       _BarChartWidget(color: color),
                   ],
                 ),
+                if (gaugePercent != null) ...[
+                  const SizedBox(height: 6),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.pie_chart_rounded, size: 13, color: color.withValues(alpha: 0.7)),
+                    const SizedBox(width: 4),
+                    Text('${(gaugePercent!.clamp(0.0, 1.0) * 100).round()}% of total',
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: color.withValues(alpha: 0.75))),
+                  ]),
+                ],
               ],
             ),
           ),
@@ -155,20 +173,9 @@ class _GaugeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 72, height: 40,
-          child: CustomPaint(painter: _GaugePainter(percent: percent, color: color)),
-        ),
-        Text('${(percent * 100).round()}%',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color.withValues(alpha: 0.75))),
-      ],
+    return SizedBox(
+      width: 72, height: 40,
+      child: CustomPaint(painter: _GaugePainter(percent: percent, color: color)),
     );
   }
 }

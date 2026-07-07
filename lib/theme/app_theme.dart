@@ -25,13 +25,15 @@ class AppTheme {
   static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
+  static const Color purple = Color(0xFF8B5CF6);
+  static const Color pink = Color(0xFFEC4899);
   static const Color pageBackground = Color(0xFFF8FAFC);
   static const Color textPrimary = Color(0xFF111827);
   static const Color textSecondary = Color(0xFF6B7280);
-  static const Color borderSubtle = Color(0xFFE5E7EB);
+  static const Color borderSubtle = Color(0xFFEEF2F7);
 
-  static const double cardRadius = 16;
-  static const double controlRadius = 12;
+  static const double cardRadius = 18;
+  static const double controlRadius = 14;
   static const double pillRadius = 999;
 
   // ── 8px spacing system ──────────────────────────────────────────────────
@@ -43,6 +45,22 @@ class AppTheme {
   static const double space6 = 40;
 
   static const Duration fastAnim = Duration(milliseconds: 150);
+
+  // ── Card shadow (subtle by default, deeper on hover) ─────────────────────
+  static const List<BoxShadow> cardShadow = [
+    BoxShadow(color: Color.fromRGBO(16, 24, 40, 0.04), blurRadius: 2, offset: Offset(0, 1)),
+  ];
+  static const List<BoxShadow> cardShadowHover = [
+    BoxShadow(color: Color.fromRGBO(16, 24, 40, 0.08), blurRadius: 30, offset: Offset(0, 10)),
+  ];
+
+  // ── Typography scale ─────────────────────────────────────────────────────
+  static TextStyle get pageHeading => GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w700, color: textPrimary);
+  static TextStyle get sectionHeading => GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary);
+  static TextStyle get cardHeading => GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary);
+  static TextStyle get bodyText => GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: textPrimary);
+  static TextStyle get captionText => GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondary);
+  static TextStyle get kpiNumber => GoogleFonts.inter(fontSize: 48, fontWeight: FontWeight.w700, color: textPrimary);
 
   static TextTheme _interTextTheme(Color body, Color heading) {
     return GoogleFonts.interTextTheme().copyWith(
@@ -102,7 +120,7 @@ class AppTheme {
           shadowColor: primaryBlue.withValues(alpha: 0.35),
           animationDuration: fastAnim,
           textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(pillRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(controlRadius)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ).copyWith(
           overlayColor: WidgetStateProperty.all(white.withValues(alpha: 0.08)),
@@ -116,7 +134,7 @@ class AppTheme {
           side: const BorderSide(color: borderSubtle),
           animationDuration: fastAnim,
           textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(pillRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(controlRadius)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
       ),
@@ -125,7 +143,7 @@ class AppTheme {
           foregroundColor: primaryBlue,
           animationDuration: fastAnim,
           textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(pillRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(controlRadius)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

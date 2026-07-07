@@ -75,22 +75,24 @@ class DashboardInfoBlocks extends StatelessWidget {
         BirthdaysBlock(canEdit: canEdit, showIcon: showIcon),
       ];
       if (wide) {
+        // Announcements is the most important widget, so it spans 2 columns
+        // while Holidays / Employee of Month / Birthdays each take 1.
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: blocks[0]), const SizedBox(width: 12),
-              Expanded(child: blocks[1]), const SizedBox(width: 12),
-              Expanded(child: blocks[2]), const SizedBox(width: 12),
+              Expanded(flex: 2, child: blocks[0]), const SizedBox(width: 16),
+              Expanded(child: blocks[1]), const SizedBox(width: 16),
+              Expanded(child: blocks[2]), const SizedBox(width: 16),
               Expanded(child: blocks[3]),
             ],
           ),
         );
       }
       return Column(children: [
-        blocks[0], const SizedBox(height: 12),
-        blocks[1], const SizedBox(height: 12),
-        blocks[2], const SizedBox(height: 12),
+        blocks[0], const SizedBox(height: 16),
+        blocks[1], const SizedBox(height: 16),
+        blocks[2], const SizedBox(height: 16),
         blocks[3],
       ]);
     });
@@ -150,10 +152,7 @@ class InfoCard extends StatelessWidget {
                   const SizedBox(width: 10),
                 ],
                 Expanded(
-                  child: Text(title,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary)),
+                  child: Text(title, style: AppTheme.cardHeading),
                 ),
                 if (canEdit && onAdd != null)
                   GestureDetector(
@@ -308,50 +307,60 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        InkWell(
-                          onTap: () => setState(() => _expanded = isExp ? null : i),
-                          borderRadius: BorderRadius.circular(6),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 7),
-                            child: Row(children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(_fmtDate(date),
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: _purple)),
-                                    const SizedBox(height: 2),
-                                    Text(item['text'] as String? ?? '',
-                                        maxLines: isExp ? null : 1,
-                                        overflow: isExp
-                                            ? TextOverflow.visible
-                                            : TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: cs.onSurface.withValues(alpha: 0.8))),
-                                  ],
-                                ),
+                        HoverBuilder(
+                          builder: (context, hovering) => AnimatedContainer(
+                            duration: AppTheme.fastAnim,
+                            decoration: BoxDecoration(
+                              color: hovering ? _purple.withValues(alpha: 0.05) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: InkWell(
+                              onTap: () => setState(() => _expanded = isExp ? null : i),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                                child: Row(children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(_fmtDate(date),
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: _purple)),
+                                        const SizedBox(height: 3),
+                                        Text(item['text'] as String? ?? '',
+                                            maxLines: isExp ? null : 1,
+                                            overflow: isExp
+                                                ? TextOverflow.visible
+                                                : TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppTheme.textPrimary)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  if (widget.canEdit)
+                                    GestureDetector(
+                                      onTap: () => _delete(item['id'] as String),
+                                      child: Icon(Icons.delete_outline_rounded,
+                                          size: 16,
+                                          color: _purple.withValues(alpha: 0.5)),
+                                    )
+                                  else
+                                    Icon(
+                                      isExp
+                                          ? Icons.keyboard_arrow_up_rounded
+                                          : Icons.keyboard_arrow_down_rounded,
+                                      size: 18,
+                                      color: cs.onSurface.withValues(alpha: 0.35),
+                                    ),
+                                ]),
                               ),
-                              const SizedBox(width: 4),
-                              if (widget.canEdit)
-                                GestureDetector(
-                                  onTap: () => _delete(item['id'] as String),
-                                  child: Icon(Icons.delete_outline_rounded,
-                                      size: 16,
-                                      color: _purple.withValues(alpha: 0.5)),
-                                )
-                              else
-                                Icon(
-                                  isExp
-                                      ? Icons.keyboard_arrow_up_rounded
-                                      : Icons.keyboard_arrow_down_rounded,
-                                  size: 18,
-                                  color: cs.onSurface.withValues(alpha: 0.35),
-                                ),
-                            ]),
+                            ),
                           ),
                         ),
                         Divider(height: 1, color: _purple.withValues(alpha: 0.12)),

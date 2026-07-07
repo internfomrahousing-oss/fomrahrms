@@ -416,57 +416,68 @@ Approved by: Sharad Fomra, CEO & MD
     return Row(children: [
         // ── Attendance check-in/out button ───────────────────────────────
         Flexible(
-          child: HoverLift(
-            liftPx: 2,
-            borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-            child: Material(
-              color: isDark ? statusColor.withValues(alpha: 0.14) : AppTheme.white,
-              shape: RoundedRectangleBorder(
+          child: HoverBuilder(
+            builder: (context, hovering) => AnimatedContainer(
+              duration: AppTheme.fastAnim,
+              curve: Curves.easeOut,
+              transform: Matrix4.translationValues(0, hovering ? -2 : 0, 0),
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                side: BorderSide(color: AppTheme.borderSubtle),
+                boxShadow: hovering ? AppTheme.cardShadowHover : AppTheme.cardShadow,
               ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                onTap: _loading ? null : _openSheet,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(
-                      width: 28, height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: statusColor.withValues(alpha: 0.14),
-                      ),
-                      child: _loading
-                          ? Padding(
-                              padding: const EdgeInsets.all(7),
-                              child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-                            )
-                          : Icon(statusIcon, size: 16, color: statusColor),
-                    ),
-                    const SizedBox(width: 9),
-                    Flexible(
-                      child: Text(statusText,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: _loading
-                                  ? cs.onSurface.withValues(alpha: 0.5)
-                                  : cs.onSurface)),
-                    ),
-                    if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
-                      const SizedBox(width: 7),
-                      Container(
-                        width: 6, height: 6,
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade400,
-                          shape: BoxShape.circle,
+              child: Material(
+                color: isDark ? statusColor.withValues(alpha: 0.14) : AppTheme.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                  side: BorderSide(color: AppTheme.borderSubtle),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                  onTap: _loading ? null : _openSheet,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      AnimatedRotation(
+                        turns: hovering ? 0.04 : 0,
+                        duration: AppTheme.fastAnim,
+                        child: Container(
+                          width: 28, height: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: statusColor.withValues(alpha: 0.14),
+                          ),
+                          child: _loading
+                              ? Padding(
+                                  padding: const EdgeInsets.all(7),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+                                )
+                              : Icon(statusIcon, size: 16, color: statusColor),
                         ),
                       ),
-                    ],
-                  ]),
+                      const SizedBox(width: 9),
+                      Flexible(
+                        child: Text(statusText,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: _loading
+                                    ? cs.onSurface.withValues(alpha: 0.5)
+                                    : cs.onSurface)),
+                      ),
+                      if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
+                        const SizedBox(width: 7),
+                        Container(
+                          width: 6, height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade400,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ]),
+                  ),
                 ),
               ),
             ),
@@ -476,38 +487,49 @@ Approved by: Sharad Fomra, CEO & MD
         const SizedBox(width: 10),
 
         // ── HR Policy button ──────────────────────────────────────────────
-        HoverLift(
-          liftPx: 2,
-          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-          child: Material(
-            color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.14) : AppTheme.white,
-            shape: RoundedRectangleBorder(
+        HoverBuilder(
+          builder: (context, hovering) => AnimatedContainer(
+            duration: AppTheme.fastAnim,
+            curve: Curves.easeOut,
+            transform: Matrix4.translationValues(0, hovering ? -2 : 0, 0),
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-              side: BorderSide(color: AppTheme.borderSubtle),
+              boxShadow: hovering ? AppTheme.cardShadowHover : AppTheme.cardShadow,
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-              onTap: _showHRPolicy,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Container(
-                    width: 28, height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: (isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))
-                          .withValues(alpha: 0.14),
+            child: Material(
+              color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.14) : AppTheme.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                side: BorderSide(color: AppTheme.borderSubtle),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                onTap: _showHRPolicy,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    AnimatedRotation(
+                      turns: hovering ? 0.04 : 0,
+                      duration: AppTheme.fastAnim,
+                      child: Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: (isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))
+                              .withValues(alpha: 0.14),
+                        ),
+                        child: Icon(Icons.policy_rounded, size: 16,
+                            color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB)),
+                      ),
                     ),
-                    child: Icon(Icons.policy_rounded, size: 16,
-                        color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB)),
-                  ),
-                  const SizedBox(width: 9),
-                  Text('HR Policy',
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))),
-                ]),
+                    const SizedBox(width: 9),
+                    Text('HR Policy',
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))),
+                  ]),
+                ),
               ),
             ),
           ),

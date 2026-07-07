@@ -40,6 +40,10 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
     super.dispose();
   }
 
+  static const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  static const _months = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+
   String get _greeting {
     final h = _now.hour;
     if (h < 12) return 'Good Morning';
@@ -53,6 +57,9 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
     if (h < 17) return Icons.light_mode_rounded;
     return Icons.nights_stay_rounded;
   }
+
+  String get _todayLabel =>
+      'Today is ${_weekdays[_now.weekday - 1]}, ${_now.day} ${_months[_now.month - 1]}';
 
   @override
   Widget build(BuildContext context) {
@@ -77,64 +84,59 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
           end: Alignment.centerRight,
         ),
       ),
-      child: Stack(children: [
-        Positioned(
-          right: -30,
-          top: -50,
-          child: Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.05),
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 14, wide ? 28 : 16, 14),
-          child: Row(children: [
-            Icon(_greetIcon, color: const Color(0xFFFFD54F), size: wide ? 20 : 17),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$_greeting, $name',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: wide ? 17 : 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.subtitle,
-                    style: const TextStyle(color: Colors.white60, fontSize: 11.5),
-                  ),
-                ],
-              ),
-            ),
-            const ProfileAvatarButton(),
-            if (widget.onRefresh != null) ...[
-              const SizedBox(width: 4),
-              Tooltip(
-                message: 'Refresh',
-                child: InkWell(
-                  onTap: widget.onRefresh,
-                  borderRadius: BorderRadius.circular(20),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(Icons.refresh_rounded, color: Colors.white60, size: 18),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 11, wide ? 28 : 16, 11),
+        child: Row(children: [
+          Icon(_greetIcon, color: const Color(0xFFFFD54F), size: wide ? 18 : 16),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$_greeting \u{1F44B}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: wide ? 15 : 13,
+                    fontWeight: FontWeight.w700,
+                    height: 1.15,
+                    letterSpacing: 0.2,
                   ),
                 ),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+                Text(
+                  '$_todayLabel  ·  ${widget.subtitle}',
+                  style: const TextStyle(color: Colors.white60, fontSize: 11, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+          const ProfileAvatarButton(),
+          if (widget.onRefresh != null) ...[
+            const SizedBox(width: 4),
+            Tooltip(
+              message: 'Refresh',
+              child: InkWell(
+                onTap: widget.onRefresh,
+                borderRadius: BorderRadius.circular(20),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.refresh_rounded, color: Colors.white60, size: 18),
+                ),
               ),
-            ],
-          ]),
-        ),
-      ]),
+            ),
+          ],
+        ]),
+      ),
     );
   }
 }

@@ -1,24 +1,18 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
-/// Wraps a card-like [child] with a subtle lift + shadow on hover — pure
-/// visual polish, no behavior change. No-ops gracefully on touch devices
-/// since [MouseRegion] simply never reports a hover there.
-class HoverLift extends StatefulWidget {
-  final Widget child;
-  final double liftPx;
-  final BorderRadius borderRadius;
-  const HoverLift({
-    super.key,
-    required this.child,
-    this.liftPx = 3,
-    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
-  });
+/// Reports hover state to [builder] — pure visual polish, no behavior
+/// change. No-ops gracefully on touch devices since [MouseRegion] simply
+/// never reports a hover there.
+class HoverBuilder extends StatefulWidget {
+  final Widget Function(BuildContext context, bool hovering) builder;
+  const HoverBuilder({super.key, required this.builder});
 
   @override
-  State<HoverLift> createState() => _HoverLiftState();
+  State<HoverBuilder> createState() => _HoverBuilderState();
 }
 
-class _HoverLiftState extends State<HoverLift> {
+class _HoverBuilderState extends State<HoverBuilder> {
   bool _hovering = false;
 
   @override
@@ -26,23 +20,37 @@ class _HoverLiftState extends State<HoverLift> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      child: widget.builder(context, _hovering),
+    );
+  }
+}
+
+/// Wraps a card-like [child] with a subtle 4px lift + deeper shadow on
+/// hover, always showing a faint resting shadow — pure visual polish, no
+/// behavior change.
+class HoverLift extends StatelessWidget {
+  final Widget child;
+  final double liftPx;
+  final BorderRadius borderRadius;
+  const HoverLift({
+    super.key,
+    required this.child,
+    this.liftPx = 4,
+    this.borderRadius = const BorderRadius.all(Radius.circular(AppTheme.cardRadius)),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return HoverBuilder(
+      builder: (context, hovering) => AnimatedContainer(
+        duration: AppTheme.fastAnim,
         curve: Curves.easeOut,
-        transform: Matrix4.translationValues(0, _hovering ? -widget.liftPx : 0, 0),
+        transform: Matrix4.translationValues(0, hovering ? -liftPx : 0, 0),
         decoration: BoxDecoration(
-          borderRadius: widget.borderRadius,
-          boxShadow: _hovering
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ]
-              : const [],
+          borderRadius: borderRadius,
+          boxShadow: hovering ? AppTheme.cardShadowHover : AppTheme.cardShadow,
         ),
-        child: widget.child,
+        child: child,
       ),
     );
   }

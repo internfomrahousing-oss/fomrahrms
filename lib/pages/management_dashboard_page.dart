@@ -133,20 +133,17 @@ class _SectionLabel extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Row(children: [
       Container(
-        width: 32, height: 32,
+        width: 36, height: 36,
         decoration: BoxDecoration(
           color: cs.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
+          shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: cs.primary, size: 18),
+        child: Icon(icon, color: cs.primary, size: 20),
       ),
-      const SizedBox(width: 10),
-      Text(label,
-          style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: cs.onSurface)),
       const SizedBox(width: 12),
+      Text(label,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface)),
+      const SizedBox(width: 16),
       Expanded(child: Divider(color: cs.outlineVariant)),
     ]);
   }
