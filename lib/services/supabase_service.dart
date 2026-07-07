@@ -1620,14 +1620,25 @@ class SupabaseService {
     try {
       final rows = await db
           .from('onboarding_forms')
-          .select('attachments')
+          .select('attachments, form_data')
           .eq('assigned_emp_id', employeeId)
           .order('submitted_at', ascending: false)
           .limit(1);
       final list = List<Map<String, dynamic>>.from(rows as List);
       if (list.isEmpty) return null;
-      final attachments = list.first['attachments'];
-      if (attachments is! List) return null;
+      final row = list.first;
+      // Manually-uploaded photos (via updateCurrentUserPhoto) live in the
+      // top-level 'attachments' column; the passport photo submitted with
+      // the original onboarding form lives nested inside 'form_data'
+      // (only name/phone/designation are ever written top-level on submit).
+      // Check the manual upload first so it takes precedence if both exist.
+      final formData = row['form_data'];
+      final attachments = [
+        ...(row['attachments'] is List ? row['attachments'] as List : const []),
+        ...(formData is Map && formData['attachments'] is List
+            ? formData['attachments'] as List
+            : const []),
+      ];
       for (final item in attachments) {
         final docType = (item['doc_type'] ?? '').toString().toLowerCase();
         final url = (item['url'] ?? '').toString();

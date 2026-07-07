@@ -302,12 +302,17 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       CircleAvatar(
                         radius: 32,
                         backgroundColor: const Color(0xFF111827),
-                        child: Text(
-                          (_user?.name.isNotEmpty == true)
-                              ? _user!.name[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
+                        backgroundImage: UserSession.photoUrl.isNotEmpty
+                            ? NetworkImage(UserSession.photoUrl)
+                            : null,
+                        child: UserSession.photoUrl.isNotEmpty
+                            ? null
+                            : Text(
+                                (_user?.name.isNotEmpty == true)
+                                    ? _user!.name[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                              ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
