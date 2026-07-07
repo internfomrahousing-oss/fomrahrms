@@ -909,19 +909,18 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
       icon: Icons.task_alt_rounded,
       title: 'My Tasks',
       showIcon: widget.showIcon,
-      onRefresh: widget.modern ? null : _load,
-      trailing: widget.modern ? _ViewAllPill(route: widget.viewAllRoute) : null,
+      onRefresh: _load,
       child: _loading
           ? const _Loader()
           : _tasks.isEmpty
               ? _Empty('No pending tasks')
-              : Column(
+              : widget.modern
+                  ? _ModernTasksSummary(tasks: _tasks, viewAllRoute: widget.viewAllRoute)
+                  : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (final t in shown)
-                      widget.modern
-                          ? _ModernTaskRow(task: t)
-                          : Container(
+                      Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -986,109 +985,67 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
                                 ],
                               ),
                             ),
-                    if (!widget.modern)
-                      InkWell(
-                        onTap: () => context.push(widget.viewAllRoute),
-                        borderRadius: BorderRadius.circular(6),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text('View all',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _purple)),
-                              const SizedBox(width: 4),
-                              Icon(Icons.arrow_forward_rounded, size: 14, color: _purple),
-                            ],
-                          ),
+                    InkWell(
+                      onTap: () => context.push(widget.viewAllRoute),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text('View all',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _purple)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_forward_rounded, size: 14, color: _purple),
+                          ],
                         ),
                       ),
+                    ),
                   ],
                 ),
     );
   }
 }
 
-// ── "View all →" header pill (modern style) ───────────────────────────────────
-class _ViewAllPill extends StatelessWidget {
-  final String route;
-  const _ViewAllPill({required this.route});
+// ── Modern compact summary (Employee/Manager dashboards) — matches the
+// simple label/value/action-link layout used by My Leave / My Payslips /
+// My Attendance, instead of listing every task individually.
+class _ModernTasksSummary extends StatelessWidget {
+  final List<Task> tasks;
+  final String viewAllRoute;
+  const _ModernTasksSummary({required this.tasks, required this.viewAllRoute});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => context.push(route),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: _purple.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-        ),
+    final nextDue = tasks.isNotEmpty
+        ? _MyTasksBlockState._urgency(tasks.first.dueDate, AppTheme.textSecondary).$1
+        : '—';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Pending',
+          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+      const SizedBox(height: 2),
+      Text('${tasks.length}',
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+      const SizedBox(height: 12),
+      const Text('Next Due',
+          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+      const SizedBox(height: 2),
+      Text(nextDue,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+      const SizedBox(height: 14),
+      InkWell(
+        onTap: () => context.push(viewAllRoute),
+        borderRadius: BorderRadius.circular(6),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text('View all',
-              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: _purple)),
-          const SizedBox(width: 3),
-          Icon(Icons.arrow_forward_rounded, size: 13, color: _purple),
+          Text('View all', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: _purple)),
+          const SizedBox(width: 4),
+          Icon(Icons.arrow_forward_rounded, size: 14, color: _purple),
         ]),
       ),
-    );
-  }
-}
-
-// ── Modern compact task row (Employee/Manager dashboards) ────────────────────
-class _ModernTaskRow extends StatelessWidget {
-  final Task task;
-  const _ModernTaskRow({required this.task});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = taskPriorityColor(task.priority);
-    final (dueLabel, _) = _MyTasksBlockState._urgency(task.dueDate, AppTheme.textSecondary);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.pageBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(Icons.assignment_rounded, color: color, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(task.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 4),
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              Text(dueLabel,
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
-              Text(' • ', style: TextStyle(fontSize: 11.5, color: color)),
-              Text(taskPriorityLabel(task.priority),
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
-            ]),
-          ]),
-        ),
-        const SizedBox(width: 10),
-        _TaskProgressRing(
-          percent: taskStatusStagePercent(task.status),
-          color: taskStatusColor(task.status),
-        ),
-      ]),
-    );
+    ]);
   }
 }
 
