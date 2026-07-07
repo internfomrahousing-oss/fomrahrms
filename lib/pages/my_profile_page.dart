@@ -329,25 +329,28 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     padding: const EdgeInsets.all(20),
                     child: Row(children: [
                       Stack(clipBehavior: Clip.none, children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: const Color(0xFF111827),
-                          backgroundImage: UserSession.photoUrl.isNotEmpty
-                              ? NetworkImage(UserSession.photoUrl)
-                              : null,
-                          child: _uploadingPhoto
-                              ? const SizedBox(
-                                  width: 20, height: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white))
-                              : (UserSession.photoUrl.isNotEmpty
-                                  ? null
-                                  : Text(
-                                      (_user?.name.isNotEmpty == true)
-                                          ? _user!.name[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                                    )),
+                        ValueListenableBuilder<String>(
+                          valueListenable: UserSession.photoUrlNotifier,
+                          builder: (context, photoUrl, _) => CircleAvatar(
+                            radius: 32,
+                            backgroundColor: const Color(0xFF111827),
+                            backgroundImage: photoUrl.isNotEmpty
+                                ? NetworkImage(photoUrl)
+                                : null,
+                            child: _uploadingPhoto
+                                ? const SizedBox(
+                                    width: 20, height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white))
+                                : (photoUrl.isNotEmpty
+                                    ? null
+                                    : Text(
+                                        (_user?.name.isNotEmpty == true)
+                                            ? _user!.name[0].toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                                      )),
+                          ),
                         ),
                         Positioned(
                           right: -2,

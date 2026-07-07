@@ -92,9 +92,15 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: UserSession.photoUrlNotifier,
+      builder: (context, photoUrl, _) => _buildContent(context, photoUrl),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, String photoUrl) {
     final name      = UserSession.name;
     final empId     = UserSession.employeeId;
-    final photoUrl  = UserSession.photoUrl;
     final initial   = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     if (widget.large) {
@@ -235,10 +241,16 @@ class _ProfileDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: UserSession.photoUrlNotifier,
+      builder: (context, photoUrl, _) => _buildContent(context, photoUrl),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, String photoUrl) {
     final name       = UserSession.name;
     final designation= UserSession.designation;
     final manager    = UserSession.reportingManager;
-    final photoUrl   = UserSession.photoUrl;
     final initial    = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     return Material(

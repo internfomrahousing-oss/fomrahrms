@@ -33,5 +33,10 @@ void main() async {
     SupabaseService.loadAll();
     SupabaseService.restoreCheckInState();
     colorThemeNotifier.loadInitial();
+    if (restored && UserSession.employeeId.isNotEmpty) {
+      SupabaseService.fetchCurrentUserPhotoUrl(UserSession.employeeId).then((url) {
+        if (url != null) UserSession.photoUrl = url;
+      });
+    }
   } catch (_) {}
 }

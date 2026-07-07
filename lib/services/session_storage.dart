@@ -1,6 +1,5 @@
 import 'dart:html' as html;
 import '../models/user_session.dart';
-import '../services/supabase_service.dart';
 
 class SessionStorage {
   static const _kRole             = 'fomra_role';
@@ -49,13 +48,9 @@ class SessionStorage {
       UserSession.email            = storage[_kEmail] ?? '';
       UserSession.designation      = storage[_kDesignation] ?? '';
       UserSession.reportingManager = storage[_kReportingManager] ?? '';
-      // Fetch photo URL in background after restore
-      final empId = UserSession.employeeId;
-      if (empId.isNotEmpty) {
-        SupabaseService.fetchCurrentUserPhotoUrl(empId).then((url) {
-          if (url != null) UserSession.photoUrl = url;
-        });
-      }
+      // Photo URL is fetched from main() once Supabase has finished
+      // initializing (fetching it here would race Supabase.initialize()
+      // and silently fail every time).
       return true;
     } catch (_) {
       return false;

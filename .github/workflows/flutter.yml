@@ -47,7 +47,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href /fomrahrms/
+        run: flutter build web --release --base-href /fomrahrms/ --no-tree-shake-icons
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -72,7 +72,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --no-tree-shake-icons
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest

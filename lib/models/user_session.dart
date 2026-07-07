@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum UserRole { hr, employee, reportingManager, management }
 
 class UserSession {
@@ -8,7 +10,12 @@ class UserSession {
   static String   email           = '';
   static String   designation     = '';
   static String   reportingManager= '';
-  static String   photoUrl        = '';
+
+  // Backed by a ValueNotifier so widgets built before the background photo
+  // fetch (e.g. after a page refresh) can still update once the URL arrives.
+  static final ValueNotifier<String> photoUrlNotifier = ValueNotifier<String>('');
+  static String get photoUrl => photoUrlNotifier.value;
+  static set photoUrl(String value) => photoUrlNotifier.value = value;
 
   static String get profileRoute {
     switch (role) {
