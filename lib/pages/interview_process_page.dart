@@ -789,7 +789,13 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: () => context.push('/edit-form'),
+                    onPressed: () {
+                      final base = GoRouterState.of(context).uri.path
+                              .startsWith('/management/')
+                          ? '/management'
+                          : '';
+                      context.push('$base/edit-form');
+                    },
                     icon: const Icon(Icons.edit_note_rounded, size: 16),
                     label: const Text('Edit Form',
                         style: TextStyle(fontSize: 13)),

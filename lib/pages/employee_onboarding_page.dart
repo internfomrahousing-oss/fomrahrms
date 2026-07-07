@@ -335,7 +335,13 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
-                  onPressed: () => context.push('/edit-onboarding-form'),
+                  onPressed: () {
+                    final base = GoRouterState.of(context).uri.path
+                            .startsWith('/management/')
+                        ? '/management'
+                        : '';
+                    context.push('$base/edit-onboarding-form');
+                  },
                   icon: const Icon(Icons.edit_note_rounded, size: 15),
                   label: const Text('Edit Form', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
