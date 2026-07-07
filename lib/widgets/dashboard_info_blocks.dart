@@ -110,6 +110,9 @@ class InfoCard extends StatelessWidget {
   final VoidCallback? onRefresh;
   final Widget child;
   final Color? accentColor;
+  // Replaces the add/refresh icon in the header when set — e.g. a "View
+  // all" link — leaving other InfoCard call sites unaffected.
+  final Widget? trailing;
   const InfoCard({
     required this.icon,
     required this.title,
@@ -119,6 +122,7 @@ class InfoCard extends StatelessWidget {
     this.onAdd,
     this.onRefresh,
     this.accentColor,
+    this.trailing,
   });
 
   @override
@@ -154,24 +158,28 @@ class InfoCard extends StatelessWidget {
                 Expanded(
                   child: Text(title, style: AppTheme.cardHeading),
                 ),
-                if (canEdit && onAdd != null)
-                  GestureDetector(
-                    onTap: onAdd,
-                    child: Tooltip(
-                      message: 'Add',
-                      child: Icon(Icons.add_circle_outline_rounded,
-                          color: accent, size: 20),
+                if (trailing != null)
+                  trailing!
+                else ...[
+                  if (canEdit && onAdd != null)
+                    GestureDetector(
+                      onTap: onAdd,
+                      child: Tooltip(
+                        message: 'Add',
+                        child: Icon(Icons.add_circle_outline_rounded,
+                            color: accent, size: 20),
+                      ),
                     ),
-                  ),
-                if (!canEdit && onRefresh != null)
-                  GestureDetector(
-                    onTap: onRefresh,
-                    child: Tooltip(
-                      message: 'Refresh',
-                      child: Icon(Icons.refresh_rounded,
-                          color: accent.withValues(alpha: 0.55), size: 18),
+                  if (!canEdit && onRefresh != null)
+                    GestureDetector(
+                      onTap: onRefresh,
+                      child: Tooltip(
+                        message: 'Refresh',
+                        child: Icon(Icons.refresh_rounded,
+                            color: accent.withValues(alpha: 0.55), size: 18),
+                      ),
                     ),
-                  ),
+                ],
               ]),
               const SizedBox(height: 14),
               child,
@@ -835,7 +843,10 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
 class MyTasksBlock extends StatefulWidget {
   final bool showIcon;
   final String viewAllRoute;
-  const MyTasksBlock({super.key, this.showIcon = true, required this.viewAllRoute});
+  // Employee/Manager dashboards opt into the newer compact-checklist look;
+  // HR keeps the original card style (modern defaults to false).
+  final bool modern;
+  const MyTasksBlock({super.key, this.showIcon = true, required this.viewAllRoute, this.modern = false});
 
   @override
   State<MyTasksBlock> createState() => _MyTasksBlockState();
@@ -898,7 +909,8 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
       icon: Icons.task_alt_rounded,
       title: 'My Tasks',
       showIcon: widget.showIcon,
-      onRefresh: _load,
+      onRefresh: widget.modern ? null : _load,
+      trailing: widget.modern ? _ViewAllPill(route: widget.viewAllRoute) : null,
       child: _loading
           ? const _Loader()
           : _tasks.isEmpty
@@ -906,94 +918,176 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final t in shown) ...[
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _purple.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _purple.withValues(alpha: 0.10)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    for (final t in shown)
+                      widget.modern
+                          ? _ModernTaskRow(task: t)
+                          : Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _purple.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: _purple.withValues(alpha: 0.10)),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text(t.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: cs.onSurface)),
-                                  const SizedBox(height: 6),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 4,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    children: [
-                                      Builder(builder: (_) {
-                                        final (label, color) = _urgency(
-                                            t.dueDate, cs.onSurface.withValues(alpha: 0.5));
-                                        return Text(label,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(t.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                                fontSize: 11,
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.w600,
-                                                color: color));
-                                      }),
-                                      _MetaPill(taskPriorityLabel(t.priority), taskPriorityColor(t.priority)),
-                                      if (t.department.isNotEmpty)
-                                        _MetaPill(t.department, cs.onSurface.withValues(alpha: 0.55)),
-                                      if (t.weightage > 0)
-                                        _MetaPill('${t.weightage} pts', _purple),
-                                    ],
+                                                color: cs.onSurface)),
+                                        const SizedBox(height: 6),
+                                        Wrap(
+                                          spacing: 10,
+                                          runSpacing: 4,
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          children: [
+                                            Builder(builder: (_) {
+                                              final (label, color) = _urgency(
+                                                  t.dueDate, cs.onSurface.withValues(alpha: 0.5));
+                                              return Text(label,
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: color));
+                                            }),
+                                            _MetaPill(taskPriorityLabel(t.priority), taskPriorityColor(t.priority)),
+                                            if (t.department.isNotEmpty)
+                                              _MetaPill(t.department, cs.onSurface.withValues(alpha: 0.55)),
+                                            if (t.weightage > 0)
+                                              _MetaPill('${t.weightage} pts', _purple),
+                                          ],
+                                        ),
+                                        if (t.teamMembers.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          Text(
+                                              t.teamMembers.length == 1
+                                                  ? '1 member'
+                                                  : '${t.teamMembers.length} members',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: cs.onSurface.withValues(alpha: 0.45))),
+                                        ],
+                                      ],
+                                    ),
                                   ),
-                                  if (t.teamMembers.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    Text(
-                                        t.teamMembers.length == 1
-                                            ? '1 member'
-                                            : '${t.teamMembers.length} members',
-                                        style: TextStyle(
-                                            fontSize: 10,
-                                            color: cs.onSurface.withValues(alpha: 0.45))),
-                                  ],
+                                  const SizedBox(width: 12),
+                                  _TaskProgressRing(
+                                    percent: taskStatusStagePercent(t.status),
+                                    color: taskStatusColor(t.status),
+                                  ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            _TaskProgressRing(
-                              percent: taskStatusStagePercent(t.status),
-                              color: taskStatusColor(t.status),
-                            ),
-                          ],
+                    if (!widget.modern)
+                      InkWell(
+                        onTap: () => context.push(widget.viewAllRoute),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text('View all',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: _purple)),
+                              const SizedBox(width: 4),
+                              Icon(Icons.arrow_forward_rounded, size: 14, color: _purple),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                    InkWell(
-                      onTap: () => context.push(widget.viewAllRoute),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text('View all',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: _purple)),
-                            const SizedBox(width: 4),
-                            Icon(Icons.arrow_forward_rounded, size: 14, color: _purple),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
+    );
+  }
+}
+
+// ── "View all →" header pill (modern style) ───────────────────────────────────
+class _ViewAllPill extends StatelessWidget {
+  final String route;
+  const _ViewAllPill({required this.route});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push(route),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: _purple.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text('View all',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: _purple)),
+          const SizedBox(width: 3),
+          Icon(Icons.arrow_forward_rounded, size: 13, color: _purple),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Modern compact task row (Employee/Manager dashboards) ────────────────────
+class _ModernTaskRow extends StatelessWidget {
+  final Task task;
+  const _ModernTaskRow({required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = taskPriorityColor(task.priority);
+    final (dueLabel, _) = _MyTasksBlockState._urgency(task.dueDate, AppTheme.textSecondary);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.pageBackground,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.assignment_rounded, color: color, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(task.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
+            const SizedBox(height: 4),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(dueLabel,
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
+              Text(' • ', style: TextStyle(fontSize: 11.5, color: color)),
+              Text(taskPriorityLabel(task.priority),
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
+            ]),
+          ]),
+        ),
+        const SizedBox(width: 10),
+        _TaskProgressRing(
+          percent: taskStatusStagePercent(task.status),
+          color: taskStatusColor(task.status),
+        ),
+      ]),
     );
   }
 }

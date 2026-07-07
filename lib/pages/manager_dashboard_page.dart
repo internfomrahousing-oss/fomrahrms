@@ -57,8 +57,8 @@ class ManagerDashboardPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _MySpaceRow(children: const [
-                    MyTasksBlock(viewAllRoute: '/manager/my-tasks'),
-                    TaskAnalyticsBlock(showTeam: true),
+                    MyTasksBlock(viewAllRoute: '/manager/my-tasks', modern: true),
+                    TaskAnalyticsBlock(showTeam: true, modern: true),
                     MyLeaveBlock(applyRoute: '/manager/my-leave'),
                     MyPayslipBlock(viewRoute: '/manager/my-payslips'),
                     MyAttendanceSummaryBlock(viewRoute: '/manager/my-attendance'),

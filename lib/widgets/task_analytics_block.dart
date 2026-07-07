@@ -5,6 +5,7 @@ import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
+import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart';
 
 /// Donut-chart breakdown of task status counts. Shows the current user's
@@ -13,7 +14,10 @@ import 'dashboard_info_blocks.dart';
 class TaskAnalyticsBlock extends StatefulWidget {
   final bool showTeam;
   final bool showIcon;
-  const TaskAnalyticsBlock({super.key, this.showTeam = false, this.showIcon = true});
+  // Employee/Manager dashboards opt into an added "Completion Rate"
+  // footer; HR keeps the original donut-only card (modern defaults false).
+  final bool modern;
+  const TaskAnalyticsBlock({super.key, this.showTeam = false, this.showIcon = true, this.modern = false});
 
   @override
   State<TaskAnalyticsBlock> createState() => _TaskAnalyticsBlockState();
@@ -83,31 +87,125 @@ class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
                       child: Text('No tasks yet',
                           style: TextStyle(fontSize: 12, color: Colors.grey.shade500))),
                 )
-              : !widget.showTeam
-                  ? _StatusDonut(label: 'Status Breakdown', counts: _mine)
-                  : LayoutBuilder(builder: (_, constraints) {
-                      final donuts = [
-                        _StatusDonut(label: 'My Tasks', counts: _mine),
-                        _StatusDonut(label: 'Team Tasks', counts: _team),
-                      ];
-                      if (constraints.maxWidth > 420) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: donuts[0]),
-                            const SizedBox(width: 16),
-                            Expanded(child: donuts[1]),
-                          ],
-                        );
-                      }
-                      return Column(children: [
-                        donuts[0],
-                        const SizedBox(height: 20),
-                        donuts[1],
-                      ]);
-                    }),
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    !widget.showTeam
+                        ? _StatusDonut(label: 'Status Breakdown', counts: _mine)
+                        : LayoutBuilder(builder: (_, constraints) {
+                            final donuts = [
+                              _StatusDonut(label: 'My Tasks', counts: _mine),
+                              _StatusDonut(label: 'Team Tasks', counts: _team),
+                            ];
+                            if (constraints.maxWidth > 420) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: donuts[0]),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: donuts[1]),
+                                ],
+                              );
+                            }
+                            return Column(children: [
+                              donuts[0],
+                              const SizedBox(height: 20),
+                              donuts[1],
+                            ]);
+                          }),
+                    if (widget.modern) ...[
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+                      _CompletionRateFooter(counts: _mine),
+                    ],
+                  ],
+                ),
     );
   }
+}
+
+// ── Completion-rate footer (modern style) ─────────────────────────────────────
+class _CompletionRateFooter extends StatelessWidget {
+  final Map<TaskStatus, int> counts;
+  const _CompletionRateFooter({required this.counts});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = counts.values.fold(0, (a, b) => a + b);
+    final completed = counts[TaskStatus.completed] ?? 0;
+    final rate = total > 0 ? ((completed / total) * 100).round() : 0;
+
+    return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Completion Rate',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+          const SizedBox(height: 2),
+          Text('$rate%',
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+          const SizedBox(height: 2),
+          const Text('Overall Completion',
+              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+        ]),
+      ),
+      const SizedBox(width: 16),
+      SizedBox(
+        width: 100, height: 48,
+        child: CustomPaint(painter: _SparklinePainter(color: AppTheme.primaryBlue)),
+      ),
+    ]);
+  }
+}
+
+// Purely decorative trend line — there's no historical completion-rate
+// data stored yet, so this shows shape/motion only, no invented numbers.
+class _SparklinePainter extends CustomPainter {
+  final Color color;
+  const _SparklinePainter({required this.color});
+
+  static const _pts = [0.5, 0.35, 0.55, 0.3, 0.6, 0.4, 0.2];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stepX = size.width / (_pts.length - 1);
+    final points = [
+      for (int i = 0; i < _pts.length; i++) Offset(i * stepX, size.height * _pts[i])
+    ];
+
+    final line = Path()..moveTo(points.first.dx, points.first.dy);
+    for (int i = 0; i < points.length - 1; i++) {
+      final mid = Offset((points[i].dx + points[i + 1].dx) / 2, (points[i].dy + points[i + 1].dy) / 2);
+      line.quadraticBezierTo(points[i].dx, points[i].dy, mid.dx, mid.dy);
+    }
+    line.lineTo(points.last.dx, points.last.dy);
+
+    final fill = Path.from(line)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withValues(alpha: 0.18), color.withValues(alpha: 0.0)],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklinePainter oldDelegate) => oldDelegate.color != color;
 }
 
 // ── Donut + legend ──────────────────────────────────────────────────────────

@@ -65,8 +65,8 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                   _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
                   const SizedBox(height: 16),
                   _MySpaceRow(children: const [
-                    MyTasksBlock(viewAllRoute: '/employee/tasks'),
-                    TaskAnalyticsBlock(),
+                    MyTasksBlock(viewAllRoute: '/employee/tasks', modern: true),
+                    TaskAnalyticsBlock(modern: true),
                     MyLeaveBlock(applyRoute: '/employee/leave-management'),
                     MyPayslipBlock(viewRoute: '/employee/payslips'),
                     MyAttendanceSummaryBlock(viewRoute: '/employee/attendance-management'),
