@@ -79,6 +79,10 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                 UserSession.clear();
                 context.go('/login');
               },
+              onEditPhoto: () {
+                Navigator.of(context).pop();
+                _editPhoto();
+              },
             ),
           ),
         ],
@@ -221,13 +225,17 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
 class _ProfileDropdown extends StatelessWidget {
   final void Function(String route) onNavigate;
   final VoidCallback onSignOut;
+  final VoidCallback onEditPhoto;
 
-  const _ProfileDropdown({required this.onNavigate, required this.onSignOut});
+  const _ProfileDropdown({
+    required this.onNavigate,
+    required this.onSignOut,
+    required this.onEditPhoto,
+  });
 
   @override
   Widget build(BuildContext context) {
     final name       = UserSession.name;
-    final empId      = UserSession.employeeId;
     final designation= UserSession.designation;
     final manager    = UserSession.reportingManager;
     final photoUrl   = UserSession.photoUrl;
@@ -253,47 +261,25 @@ class _ProfileDropdown extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Row(children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: Colors.white24,
-                backgroundImage:
-                    photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-                child: photoUrl.isEmpty
-                    ? Text(initial,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold))
-                    : null,
+            child: Center(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(32),
+                onTap: () => onNavigate(UserSession.profileRoute),
+                child: CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Colors.white24,
+                  backgroundImage:
+                      photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+                  child: photoUrl.isEmpty
+                      ? Text(initial,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold))
+                      : null,
+                ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(name.isEmpty ? 'User' : name,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  if (empId.isNotEmpty)
-                    Text(empId,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.65),
-                            fontSize: 11)),
-                  if (designation.isNotEmpty)
-                    Text(designation,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
-                            fontSize: 11),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                ]),
-              ),
-            ]),
+            ),
           ),
 
           // ── Details ──────────────────────────────────────────────────
@@ -317,6 +303,16 @@ class _ProfileDropdown extends StatelessWidget {
             title: const Text('My Profile',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             onTap: () => onNavigate(UserSession.profileRoute),
+          ),
+
+          // ── Edit Profile ─────────────────────────────────────────────
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.camera_alt_rounded, size: 18,
+                color: AppTheme.primaryBlue),
+            title: const Text('Edit Profile Photo',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            onTap: onEditPhoto,
           ),
 
           const Divider(height: 1),
