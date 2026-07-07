@@ -290,8 +290,11 @@ class _SidebarHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Admin User', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                      Text('Administrator', style: TextStyle(color: AppTheme.sidebarMuted, fontSize: 11)),
+                      Text(
+                        UserSession.name.isNotEmpty ? UserSession.name : 'HR Admin',
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      Text('HR Administrator', style: TextStyle(color: AppTheme.sidebarMuted, fontSize: 11)),
                     ],
                   ),
                 ),

@@ -81,30 +81,24 @@ String? _guard(GoRouterState state) {
   if (!UserSession.loggedIn) return '/login';
 
   final role = UserSession.role;
+  String home() => switch (role) {
+        UserRole.hr => '/dashboard',
+        UserRole.employee => '/employee/dashboard',
+        UserRole.management => '/management/dashboard',
+        UserRole.reportingManager => '/manager/dashboard',
+      };
 
   // Root path: send to the role's home
-  if (path == '/' || path.isEmpty) {
-    if (role == UserRole.hr) return '/dashboard';
-    if (role == UserRole.employee) return '/employee/dashboard';
-    if (role == UserRole.management) return '/management/dashboard';
-    return '/manager/dashboard';
-  }
+  if (path == '/' || path.isEmpty) return home();
 
-  // Management can access all routes — no redirect needed
-  if (role == UserRole.management) return null;
-
-  if (path.startsWith('/management/')) return '/dashboard';
-
-  if (path.startsWith('/employee/') && role != UserRole.employee) {
-    return role == UserRole.hr ? '/dashboard' : '/manager/dashboard';
-  }
-  if (path.startsWith('/manager/') && role != UserRole.reportingManager) {
-    return role == UserRole.hr ? '/dashboard' : '/employee/dashboard';
-  }
+  // Each role is confined to its own shell — no cross-role browsing.
+  if (path.startsWith('/management/') && role != UserRole.management) return home();
+  if (path.startsWith('/employee/') && role != UserRole.employee) return home();
+  if (path.startsWith('/manager/') && role != UserRole.reportingManager) return home();
   if (!path.startsWith('/employee/') && !path.startsWith('/manager/') &&
-      !path.startsWith('/hr/') &&
-      path != '/login' && role != UserRole.hr) {
-    return role == UserRole.employee ? '/employee/dashboard' : '/manager/dashboard';
+      !path.startsWith('/management/') && !path.startsWith('/hr/') &&
+      role != UserRole.hr) {
+    return home();
   }
 
   return null;

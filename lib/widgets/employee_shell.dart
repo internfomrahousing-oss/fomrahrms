@@ -239,8 +239,9 @@ class _SidebarHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Employee',
-                        style: TextStyle(
+                    Text(
+                        UserSession.name.isNotEmpty ? UserSession.name : 'Employee',
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
