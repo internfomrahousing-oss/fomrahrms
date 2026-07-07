@@ -51,6 +51,21 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
     }
   }
 
+  Future<void> _deletePhoto() async {
+    final empId = UserSession.employeeId;
+    if (empId.isEmpty || _uploadingPhoto || UserSession.photoUrl.isEmpty) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final ok = await SupabaseService.deleteCurrentUserPhoto(empId);
+      if (ok && mounted) {
+        setState(() => UserSession.photoUrl = '');
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
   void _openMenu() {
     final box = _key.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
@@ -82,6 +97,10 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
               onEditPhoto: () {
                 Navigator.of(context).pop();
                 _editPhoto();
+              },
+              onDeletePhoto: () {
+                Navigator.of(context).pop();
+                _deletePhoto();
               },
             ),
           ),
@@ -168,60 +187,25 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
       );
     }
 
-    // ── Top-bar variant: compact horizontal ──────────────────────────────
+    // ── Top-bar variant: icon only ───────────────────────────────────────
     final light = widget.light;
-    final fg      = light ? AppTheme.textPrimary : Colors.white;
-    final fgMuted = light ? AppTheme.textSecondary : Colors.white.withValues(alpha: 0.65);
-    final chipBg  = light ? AppTheme.pageBackground : Colors.white.withValues(alpha: 0.10);
-    final chipBorder = light ? AppTheme.borderSubtle : Colors.white.withValues(alpha: 0.20);
     final avatarBg = light ? AppTheme.primaryBlue.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.20);
     final avatarFg = light ? AppTheme.primaryBlue : Colors.white;
 
     return GestureDetector(
       key: _key,
       onTap: _openMenu,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: chipBg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: chipBorder),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: avatarBg,
-            backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-            child: photoUrl.isEmpty
-                ? Text(initial,
-                    style: TextStyle(
-                        color: avatarFg,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14))
-                : null,
-          ),
-          const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name.isEmpty ? 'User' : name,
+      child: CircleAvatar(
+        radius: 16,
+        backgroundColor: avatarBg,
+        backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+        child: photoUrl.isEmpty
+            ? Text(initial,
                 style: TextStyle(
-                    color: fg,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600),
-              ),
-              if (empId.isNotEmpty)
-                Text(
-                  empId,
-                  style: TextStyle(color: fgMuted, fontSize: 10),
-                ),
-            ],
-          ),
-          const SizedBox(width: 4),
-          Icon(Icons.arrow_drop_down_rounded, color: fgMuted, size: 18),
-        ]),
+                    color: avatarFg,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14))
+            : null,
       ),
     );
   }
@@ -232,11 +216,13 @@ class _ProfileDropdown extends StatelessWidget {
   final void Function(String route) onNavigate;
   final VoidCallback onSignOut;
   final VoidCallback onEditPhoto;
+  final VoidCallback onDeletePhoto;
 
   const _ProfileDropdown({
     required this.onNavigate,
     required this.onSignOut,
     required this.onEditPhoto,
+    required this.onDeletePhoto,
   });
 
   @override
@@ -326,6 +312,20 @@ class _ProfileDropdown extends StatelessWidget {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             onTap: onEditPhoto,
           ),
+
+          // ── Delete Photo ─────────────────────────────────────────────
+          if (photoUrl.isNotEmpty)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.delete_outline_rounded, size: 18,
+                  color: Color(0xFFE53935)),
+              title: const Text('Delete Photo',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFFE53935))),
+              onTap: onDeletePhoto,
+            ),
 
           const Divider(height: 1),
 

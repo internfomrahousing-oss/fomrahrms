@@ -1706,6 +1706,37 @@ class SupabaseService {
     return url;
   }
 
+  // Removes the current user's manually-uploaded profile photo from their
+  // latest onboarding form's 'attachments' column. Returns true on success.
+  static Future<bool> deleteCurrentUserPhoto(String employeeId) async {
+    final db = _db;
+    if (db == null || employeeId.isEmpty) return false;
+    try {
+      final rows = await db
+          .from('onboarding_forms')
+          .select('id, attachments')
+          .eq('assigned_emp_id', employeeId)
+          .order('submitted_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(rows as List);
+      if (list.isEmpty) return false;
+      final row = list.first;
+      final attachments = row['attachments'] is List
+          ? List<Map<String, dynamic>>.from(row['attachments'])
+          : <Map<String, dynamic>>[];
+      attachments.removeWhere((a) {
+        final docType = (a['doc_type'] ?? '').toString().toLowerCase();
+        return docType.contains('photo') || docType.contains('passport');
+      });
+      await db
+          .from('onboarding_forms')
+          .update({'attachments': attachments}).eq('id', row['id']);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── HR Policy (versioned, approval workflow) ──────────────────────────────
   // Returns the content of the latest approved version, or null if none.
   static Future<String?> fetchHRPolicy() async {
