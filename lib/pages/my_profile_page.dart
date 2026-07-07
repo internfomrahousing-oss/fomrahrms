@@ -10,6 +10,7 @@ import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
 import '../widgets/my_space_blocks.dart';
+import '../theme/app_theme.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -19,7 +20,7 @@ class MyProfilePage extends StatefulWidget {
 }
 
 class _MyProfilePageState extends State<MyProfilePage> {
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
   AppUser? _user;
   bool _loading = true;
   bool _saving = false;
@@ -304,7 +305,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 Row(children: [
                   const NavBackButton(),
                   const SizedBox(width: 8),
-                  const Icon(Icons.person_rounded, color: _color, size: 22),
+                  Icon(Icons.person_rounded, color: _color, size: 22),
                   const SizedBox(width: 10),
                   Text('My Profile', style: Theme.of(context).textTheme.headlineMedium),
                 ]),
@@ -319,9 +320,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Icon(Icons.person_rounded, color: _color, size: 22),
+                    Icon(Icons.person_rounded, color: _color, size: 22),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('My Profile',
                             style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 14)),
@@ -332,7 +333,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     ),
                     IconButton(
                       tooltip: 'Refresh',
-                      icon: const Icon(Icons.refresh_rounded, color: _color),
+                      icon: Icon(Icons.refresh_rounded, color: _color),
                       onPressed: _load,
                     ),
                   ]),
@@ -465,7 +466,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       icon: Icons.assignment_ind_rounded,
                       title: 'Interview Form',
                       subtitle: 'View your interview details',
-                      color: const Color(0xFF3B82F6),
+                      color: AppTheme.accentBlue,
                       onTap: () => _openMyInterviewForm(context),
                     ),
                   ),

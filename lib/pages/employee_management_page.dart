@@ -80,7 +80,7 @@ class _ProfileCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB),
+                        color: AppTheme.primaryBlue,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Row(
@@ -105,11 +105,11 @@ class _ProfileCard extends StatelessWidget {
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.person_rounded,
-                    color: Color(0xFF2563EB), size: 24),
+                child: Icon(Icons.person_rounded,
+                    color: AppTheme.primaryBlue, size: 24),
               ),
               const SizedBox(height: 10),
               const Text(
@@ -124,7 +124,7 @@ class _ProfileCard extends StatelessWidget {
               const SizedBox(height: 4),
               Icon(Icons.arrow_forward_rounded,
                   size: 14,
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.6)),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.6)),
             ],
           ),
         ),
@@ -149,11 +149,11 @@ class _RecordsCard extends StatelessWidget {
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  color: AppTheme.accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.people_alt_rounded,
-                    color: Color(0xFF3B82F6), size: 24),
+                child: Icon(Icons.people_alt_rounded,
+                    color: AppTheme.accentBlue, size: 24),
               ),
               const SizedBox(height: 10),
               const Text(
@@ -168,7 +168,7 @@ class _RecordsCard extends StatelessWidget {
               const SizedBox(height: 4),
               Icon(Icons.arrow_forward_rounded,
                   size: 14,
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.6)),
+                  color: AppTheme.accentBlue.withValues(alpha: 0.6)),
             ],
           ),
         ),

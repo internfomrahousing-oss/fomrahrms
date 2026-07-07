@@ -8,6 +8,7 @@ import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class AddTaskPage extends StatefulWidget {
   final bool selfAssign;
@@ -18,7 +19,7 @@ class AddTaskPage extends StatefulWidget {
 }
 
 class _AddTaskPageState extends State<AddTaskPage> {
-  static const _accent = Color(0xFF2563EB);
+  static Color get _accent => AppTheme.primaryBlue;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -107,7 +108,7 @@ static const _priorities = [
       lastDate: DateTime(2030),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: _accent),
+          colorScheme: ColorScheme.light(primary: _accent),
         ),
         child: child!,
       ),
@@ -237,7 +238,7 @@ void _pickTeam() {
                     color: _accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.add_task_rounded,
+                  child: Icon(Icons.add_task_rounded,
                       color: _accent, size: 22),
                 ),
                 const SizedBox(width: 14),
@@ -389,11 +390,11 @@ void _pickTeam() {
                   children: _teamMembers.map((e) => Chip(
                     avatar: CircleAvatar(
                       backgroundColor:
-                          const Color(0xFF2563EB).withValues(alpha: 0.15),
+                          AppTheme.primaryBlue.withValues(alpha: 0.15),
                       child: Text(e.name[0],
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF2563EB),
+                              color: AppTheme.primaryBlue,
                               fontWeight: FontWeight.bold)),
                     ),
                     label: Text(e.name,
@@ -486,10 +487,10 @@ class _EmployeePickerSheet extends StatelessWidget {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor:
-                      const Color(0xFF2563EB).withValues(alpha: 0.1),
+                      AppTheme.primaryBlue.withValues(alpha: 0.1),
                   child: Text(e.name[0],
-                      style: const TextStyle(
-                          color: Color(0xFF2563EB),
+                      style: TextStyle(
+                          color: AppTheme.primaryBlue,
                           fontWeight: FontWeight.bold)),
                 ),
                 title: Text(e.name,
@@ -498,8 +499,8 @@ class _EmployeePickerSheet extends StatelessWidget {
                 subtitle: Text('${e.designation} • ${e.department}',
                     style: const TextStyle(fontSize: 12)),
                 trailing: isSelected
-                    ? const Icon(Icons.check_circle_rounded,
-                        color: Color(0xFF2563EB))
+                    ? Icon(Icons.check_circle_rounded,
+                        color: AppTheme.primaryBlue)
                     : null,
                 onTap: () {
                   onPick(e);
@@ -567,9 +568,9 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
                 widget.onConfirm(_picked);
                 Navigator.pop(context);
               },
-              child: const Text('Done',
+              child: Text('Done',
                   style: TextStyle(
-                      color: Color(0xFF2563EB),
+                      color: AppTheme.primaryBlue,
                       fontWeight: FontWeight.w700)),
             ),
           ]),
@@ -593,10 +594,10 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
                 }),
                 secondary: CircleAvatar(
                   backgroundColor:
-                      const Color(0xFF2563EB).withValues(alpha: 0.1),
+                      AppTheme.primaryBlue.withValues(alpha: 0.1),
                   child: Text(e.name[0],
-                      style: const TextStyle(
-                          color: Color(0xFF2563EB),
+                      style: TextStyle(
+                          color: AppTheme.primaryBlue,
                           fontWeight: FontWeight.bold)),
                 ),
                 title: Text(e.name,
@@ -604,7 +605,7 @@ class _TeamPickerSheetState extends State<_TeamPickerSheet> {
                         fontWeight: FontWeight.w600, fontSize: 14)),
                 subtitle: Text('${e.designation} • ${e.department}',
                     style: const TextStyle(fontSize: 12)),
-                activeColor: const Color(0xFF2563EB),
+                activeColor: AppTheme.primaryBlue,
                 controlAffinity: ListTileControlAffinity.trailing,
               );
             },
@@ -670,9 +671,9 @@ class _DepartmentPickerSheetState extends State<_DepartmentPickerSheet> {
                 widget.onConfirm(_picked);
                 Navigator.pop(context);
               },
-              child: const Text('Done',
+              child: Text('Done',
                   style: TextStyle(
-                      color: Color(0xFF2563EB),
+                      color: AppTheme.primaryBlue,
                       fontWeight: FontWeight.w700)),
             ),
           ]),
@@ -697,16 +698,16 @@ class _DepartmentPickerSheetState extends State<_DepartmentPickerSheet> {
                 secondary: Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.business_rounded,
-                      size: 18, color: Color(0xFF2563EB)),
+                  child: Icon(Icons.business_rounded,
+                      size: 18, color: AppTheme.primaryBlue),
                 ),
                 title: Text(d,
                     style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 14)),
-                activeColor: const Color(0xFF2563EB),
+                activeColor: AppTheme.primaryBlue,
                 controlAffinity: ListTileControlAffinity.trailing,
               );
             },
@@ -728,20 +729,20 @@ class _EmployeeDetailCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF2563EB).withValues(alpha: 0.04),
+        color: AppTheme.primaryBlue.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.15)),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.15)),
       ),
       child: Row(children: [
         CircleAvatar(
           radius: 24,
           backgroundColor:
-              const Color(0xFF2563EB).withValues(alpha: 0.12),
+              AppTheme.primaryBlue.withValues(alpha: 0.12),
           child: Text(
             employee.name.isNotEmpty ? employee.name[0].toUpperCase() : '?',
-            style: const TextStyle(
-                color: Color(0xFF2563EB),
+            style: TextStyle(
+                color: AppTheme.primaryBlue,
                 fontWeight: FontWeight.bold,
                 fontSize: 18),
           ),
@@ -801,10 +802,10 @@ class _SectionHeader extends StatelessWidget {
       Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: const Color(0xFF2563EB), size: 18),
+        child: Icon(icon, color: AppTheme.primaryBlue, size: 18),
       ),
       const SizedBox(width: 10),
       Text(label,
@@ -844,7 +845,7 @@ class _Field extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+            prefixIcon: Icon(icon, size: 18, color: AppTheme.primaryBlue),
             border: InputBorder.none,
             labelStyle: const TextStyle(
                 fontSize: 13, color: Color(0xFF6B7280)),
@@ -869,7 +870,7 @@ class _ReadOnlyField extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(children: [
-          Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+          Icon(icon, size: 18, color: AppTheme.primaryBlue),
           const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label,
@@ -886,13 +887,13 @@ class _ReadOnlyField extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Text('Auto-generated',
+            child: Text('Auto-generated',
                 style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF2563EB),
+                    color: AppTheme.primaryBlue,
                     fontWeight: FontWeight.w600)),
           ),
         ]),
@@ -923,7 +924,7 @@ class _DateField extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(children: [
-            Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+            Icon(icon, size: 18, color: AppTheme.primaryBlue),
             const SizedBox(width: 10),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(label,
@@ -969,11 +970,11 @@ class _AssignCard extends StatelessWidget {
         leading: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child:
-              Icon(icon, color: const Color(0xFF2563EB), size: 20),
+              Icon(icon, color: AppTheme.primaryBlue, size: 20),
         ),
         title: Text(label,
             style: const TextStyle(
@@ -1000,7 +1001,7 @@ class _DropdownLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+      Icon(icon, size: 16, color: AppTheme.primaryBlue),
       const SizedBox(width: 8),
       Text(label,
           style: const TextStyle(

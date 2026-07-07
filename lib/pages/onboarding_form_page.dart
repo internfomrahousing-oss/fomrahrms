@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/onboarding_form_config.dart';
 import '../services/supabase_service.dart';
 import '../widgets/web_file_picker.dart';
+import '../theme/app_theme.dart';
 
 class _AttachFile {
   final String name;
@@ -27,7 +28,7 @@ class OnboardingFormPage extends StatefulWidget {
 }
 
 class _OnboardingFormPageState extends State<OnboardingFormPage> {
-  static const _primary = Color(0xFF2563EB);
+  static Color get _primary => AppTheme.primaryBlue;
   final _formKey = GlobalKey<FormState>();
   bool _submitted = false;
   bool _saving = false;
@@ -250,7 +251,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         lastDate: last ?? DateTime(2100),
         builder: (ctx, child) => Theme(
           data: Theme.of(ctx).copyWith(
-              colorScheme: const ColorScheme.light(primary: _primary)),
+              colorScheme: ColorScheme.light(primary: _primary)),
           child: child!,
         ),
       );
@@ -423,7 +424,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: fileName != null
-                  ? const Color(0xFF2563EB)
+                  ? AppTheme.primaryBlue
                   : const Color(0xFFE5E7EB),
               width: fileName != null ? 1.5 : 1,
             ),
@@ -435,7 +436,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 Container(
                   width: 22, height: 22,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
+                    color: AppTheme.primaryBlue,
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: const Center(
@@ -456,7 +457,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               ]),
             ),
             if (fileName != null) ...[
-              const Divider(height: 1, color: Color(0xFFEFF6FF)),
+              Divider(height: 1, color: AppTheme.lightBlue),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                 child: Container(
@@ -545,8 +546,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                     style: const TextStyle(fontSize: 12),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF2563EB),
-                    side: const BorderSide(color: Color(0xFF2563EB)),
+                    foregroundColor: AppTheme.primaryBlue,
+                    side: BorderSide(color: AppTheme.primaryBlue),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -581,7 +582,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                   groupValue: _customMcqValues[id],
                   onChanged: (v) =>
                       setState(() => _customMcqValues[id] = v),
-                  activeColor: const Color(0xFF2563EB),
+                  activeColor: AppTheme.primaryBlue,
                   contentPadding: EdgeInsets.zero,
                 )),
           ]),
@@ -616,7 +617,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(9),
                   borderSide:
-                      const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                      BorderSide(color: AppTheme.primaryBlue, width: 1.5)),
               labelStyle:
                   const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
             ),
@@ -650,7 +651,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderRadius: BorderRadius.circular(9),
                 border: Border.all(
                   color: picked != null
-                      ? const Color(0xFF2563EB)
+                      ? AppTheme.primaryBlue
                       : const Color(0xFFE5E7EB),
                 ),
               ),
@@ -669,7 +670,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 Icon(Icons.calendar_today_rounded,
                     size: 18,
                     color: picked != null
-                        ? const Color(0xFF2563EB)
+                        ? AppTheme.primaryBlue
                         : const Color(0xFFE5E7EB)),
               ]),
             ),
@@ -692,7 +693,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderRadius: BorderRadius.circular(9),
                 border: Border.all(
                   color: checked
-                      ? const Color(0xFF2563EB)
+                      ? AppTheme.primaryBlue
                       : const Color(0xFFE5E7EB),
                 ),
               ),
@@ -702,7 +703,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                       ? Icons.check_box_rounded
                       : Icons.check_box_outline_blank_rounded,
                   color: checked
-                      ? const Color(0xFF2563EB)
+                      ? AppTheme.primaryBlue
                       : const Color(0xFFE5E7EB),
                   size: 22,
                 ),
@@ -743,8 +744,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(
-                    color: Color(0xFF2563EB), width: 1.5)),
+                borderSide: BorderSide(
+                    color: AppTheme.primaryBlue, width: 1.5)),
             labelStyle:
                 const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
           ),
@@ -1030,8 +1031,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     width: double.infinity,
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-          colors: [_primary, Color(0xFF3B82F6)],
+      gradient: LinearGradient(
+          colors: [_primary, AppTheme.accentBlue],
           begin: Alignment.topLeft, end: Alignment.bottomRight),
       borderRadius: BorderRadius.circular(16),
     ),
@@ -1124,7 +1125,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Text('Member ${i + 1}',
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
         if (i > 0)
@@ -1209,7 +1210,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Text('Entry ${i + 1}',
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
         if (i > 0)
@@ -1272,7 +1273,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Text('Experience ${i + 1}',
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
         if (i > 0)
@@ -1425,7 +1426,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: files.isNotEmpty
-                  ? const Color(0xFF2563EB)
+                  ? AppTheme.primaryBlue
                   : const Color(0xFFE5E7EB),
               width: files.isNotEmpty ? 1.5 : 1,
             ),
@@ -1438,7 +1439,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 Container(
                   width: 22, height: 22,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
+                    color: AppTheme.primaryBlue,
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: Center(
@@ -1462,7 +1463,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
             // Uploaded files list
             if (files.isNotEmpty) ...[
-              const Divider(height: 1, color: Color(0xFFEFF6FF)),
+              Divider(height: 1, color: AppTheme.lightBlue),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                 child: Column(
@@ -1533,8 +1534,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                       files.isEmpty ? 'Add File' : 'Add More',
                       style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF2563EB),
-                    side: const BorderSide(color: Color(0xFF2563EB)),
+                    foregroundColor: AppTheme.primaryBlue,
+                    side: BorderSide(color: AppTheme.primaryBlue),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
                     minimumSize: Size.zero,
@@ -1741,7 +1742,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0xFFEFF6FF)),
+          side: BorderSide(color: AppTheme.lightBlue),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -1811,7 +1812,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             hintText: hint,
             counterText: maxLength != null ? '' : null,
             suffixIcon: onTap != null
-                ? const Icon(Icons.calendar_today_rounded, size: 17, color: _primary)
+                ? Icon(Icons.calendar_today_rounded, size: 17, color: _primary)
                 : null,
             filled: true,
             fillColor: Colors.white,
@@ -1825,7 +1826,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: _primary, width: 1.5)),
+                borderSide: BorderSide(color: _primary, width: 1.5)),
             errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
                 borderSide: const BorderSide(color: Colors.red)),
@@ -1853,7 +1854,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
                 labelText: label,
-                suffixIcon: const Icon(Icons.calendar_today_rounded,
+                suffixIcon: Icon(Icons.calendar_today_rounded,
                     size: 17, color: _primary),
                 filled: true,
                 fillColor: Colors.white,
@@ -1868,7 +1869,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(9),
                     borderSide:
-                        const BorderSide(color: _primary, width: 1.5)),
+                        BorderSide(color: _primary, width: 1.5)),
                 labelStyle:
                     const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
               ),
@@ -1904,7 +1905,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: _primary, width: 1.5)),
+                borderSide: BorderSide(color: _primary, width: 1.5)),
             labelStyle:
                 const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
           ),
@@ -1966,7 +1967,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             overflow: TextOverflow.ellipsis),
         style: OutlinedButton.styleFrom(
           foregroundColor: _primary,
-          side: const BorderSide(color: _primary),
+          side: BorderSide(color: _primary),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           minimumSize:
               fullWidth ? const Size(double.infinity, 42) : const Size(0, 38),
@@ -1985,7 +1986,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         label: Text(label, style: const TextStyle(fontSize: 13)),
         style: OutlinedButton.styleFrom(
           foregroundColor: _primary,
-          side: const BorderSide(color: _primary),
+          side: BorderSide(color: _primary),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),

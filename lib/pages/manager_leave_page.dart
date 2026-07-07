@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class ManagerLeavePage extends StatefulWidget {
   const ManagerLeavePage({super.key});
@@ -39,10 +40,10 @@ class _LeaveRequest {
 class _ManagerLeavePageState extends State<ManagerLeavePage> {
   static const _accentColor = Color(0xFF111827);
 
-  static const _topics = [
-    _Topic('Apply Leave',         Icons.event_available_rounded, Color(0xFF2563EB), '/manager/leave/apply'),
-    _Topic('My Approvals',        Icons.approval_rounded,        Color(0xFF3B82F6), '/manager/leave/approvals'),
-    _Topic('Leave Balance',       Icons.balance_rounded,         Color(0xFF2563EB), '/manager/leave/balance'),
+  static List<_Topic> get _topics => [
+    _Topic('Apply Leave',         Icons.event_available_rounded, AppTheme.primaryBlue, '/manager/leave/apply'),
+    _Topic('My Approvals',        Icons.approval_rounded,        AppTheme.accentBlue, '/manager/leave/approvals'),
+    _Topic('Leave Balance',       Icons.balance_rounded,         AppTheme.primaryBlue, '/manager/leave/balance'),
     _Topic('Team Leave Approvals',Icons.group_rounded,           Color(0xFF111827), '/manager/leave/team-approvals'),
   ];
 

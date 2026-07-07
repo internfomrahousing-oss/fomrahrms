@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 enum _Status { pending, approved, denied }
 
@@ -37,7 +38,7 @@ class LeaveApprovalsPage extends StatefulWidget {
 }
 
 class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
 
   // Empty list — will be populated from backend when connected
   final List<_Application> _applications = [];
@@ -64,7 +65,7 @@ class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.approval_rounded, color: _color, size: 26),
+                child: Icon(Icons.approval_rounded, color: _color, size: 26),
               ),
               const SizedBox(width: 16),
               Text('Leave Approvals',
@@ -274,9 +275,9 @@ class _ApplicationCardState extends State<_ApplicationCard> {
           Row(children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
-              child: const Icon(Icons.person_rounded,
-                  color: Color(0xFF2563EB), size: 22),
+              backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              child: Icon(Icons.person_rounded,
+                  color: AppTheme.primaryBlue, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -291,13 +292,13 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(app.employeeId,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 10, fontWeight: FontWeight.w600,
-                            color: Color(0xFF2563EB))),
+                            color: AppTheme.primaryBlue)),
                   ),
                 ]),
                 Text(app.department,
@@ -431,7 +432,7 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 13, color: const Color(0xFF2563EB)),
+      Icon(icon, size: 13, color: AppTheme.primaryBlue),
       const SizedBox(width: 4),
       Text('$label: ',
           style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),

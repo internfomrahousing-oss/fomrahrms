@@ -3,8 +3,9 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import '../models/candidate_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 void _openUrl(String url) {
   if (url.isEmpty) return;
@@ -55,7 +56,7 @@ class CandidateDetailPage extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_val(d, 'name').isEmpty ? 'Candidate Details' : _val(d, 'name'),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
                 Text('Applied on ${_fmtDate(_val(d, 'submitted_at'))}',
                     style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
@@ -118,7 +119,7 @@ class CandidateDetailBody extends StatelessWidget {
       border: Border.all(color: const Color(0xFFBBCCF0)),
     ),
     child: Text(text,
-        style: const TextStyle(fontSize: 12, color: _blue, fontWeight: FontWeight.w500)),
+        style: TextStyle(fontSize: 12, color: _blue, fontWeight: FontWeight.w500)),
   );
 
   @override
@@ -345,7 +346,7 @@ class _ScrollTable extends StatelessWidget {
         child: Column(children: [
           // Header
           Container(
-            color: const Color(0xFFEFF6FF),
+            color: AppTheme.lightBlue,
             child: Row(children: List.generate(headers.length, (i) => Container(
               width: widths[i],
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -353,7 +354,7 @@ class _ScrollTable extends StatelessWidget {
                 right: i < headers.length - 1
                     ? const BorderSide(color: Color(0xFFE5E7EB)) : BorderSide.none,
               )),
-              child: Text(headers[i], style: const TextStyle(
+              child: Text(headers[i], style: TextStyle(
                   fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
             ))),
           ),

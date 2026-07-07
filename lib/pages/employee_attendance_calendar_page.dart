@@ -4,14 +4,15 @@ import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../models/attendance_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 // Late threshold: 09:30 AM
 const _lateHour   = 9;
 const _lateMinute = 30;
 
-const _blue   = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 const _green  = Color(0xFF22C55E);
-const _purple = Color(0xFF2563EB);
+const _purple = Color(0xFF2563EB); // fixed status color for "Late Coming" — not theme-driven
 const _red    = Color(0xFFEF4444);
 
 class EmployeeAttendanceCalendarPage extends StatefulWidget {
@@ -143,7 +144,7 @@ class _EmployeeAttendanceCalendarPageState
                   color: _blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.access_time_rounded, color: _blue, size: 22),
+                child: Icon(Icons.access_time_rounded, color: _blue, size: 22),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -200,7 +201,7 @@ class _EmployeeAttendanceCalendarPageState
                   const SizedBox(height: 4),
 
                   if (_loading)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 48),
                       child: Center(child: CircularProgressIndicator(color: _blue, strokeWidth: 2)),
                     )
@@ -263,7 +264,7 @@ class _CalendarGrid extends StatelessWidget {
       final sColor = statusColor(day);
 
       final decoration = isToday
-          ? const BoxDecoration(color: _blue, shape: BoxShape.circle)
+          ? BoxDecoration(color: _blue, shape: BoxShape.circle)
           : sColor != null
               ? BoxDecoration(
                   color: sColor.withValues(alpha: 0.15),

@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class HrLeaveRecordsPage extends StatefulWidget {
   const HrLeaveRecordsPage({super.key});
@@ -16,7 +17,7 @@ class HrLeaveRecordsPage extends StatefulWidget {
 
 class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
     with SingleTickerProviderStateMixin {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   late final TabController _tabs;
   bool _loading = true;
@@ -157,7 +158,7 @@ static String _fmtD(double d) =>
                       color: _color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.folder_shared_rounded, color: _color, size: 26),
+                    child: Icon(Icons.folder_shared_rounded, color: _color, size: 26),
                   ),
                   const SizedBox(width: 16),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -176,7 +177,7 @@ static String _fmtD(double d) =>
                     label: const Text('Edit Forms', style: TextStyle(fontSize: 12)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _color,
-                      side: const BorderSide(color: _color),
+                      side: BorderSide(color: _color),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -184,7 +185,7 @@ static String _fmtD(double d) =>
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: _reload,
-                    icon: const Icon(Icons.refresh_rounded, color: _color),
+                    icon: Icon(Icons.refresh_rounded, color: _color),
                     tooltip: 'Refresh',
                   ),
                 ]),
@@ -258,7 +259,7 @@ static String _fmtD(double d) =>
                   backgroundColor: _color.withValues(alpha: 0.12),
                   child: Text(
                     user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: const TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -283,7 +284,7 @@ static String _fmtD(double d) =>
                 _LeaveTypeBlock('ML',
                   used: _usedBucket(user.name, 'ML'),
                   quota: user.monthlyMl,
-                  color: const Color(0xFF3B82F6)),
+                  color: AppTheme.accentBlue),
                 const SizedBox(width: 8),
                 _LeaveTypeBlock('CL',
                   used: _usedBucket(user.name, 'CL'),
@@ -336,7 +337,7 @@ static String _fmtD(double d) =>
                         );
                       }),
                       borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(10),
                         child: Icon(Icons.chevron_left_rounded, size: 28, color: _color),
                       ),
@@ -352,7 +353,7 @@ static String _fmtD(double d) =>
                           Text(
                             '${_monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.w700, color: _color),
                           ),
                           Text(
@@ -547,7 +548,7 @@ class _AppCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Icon(Icons.person_rounded, color: Color(0xFF2563EB), size: 18),
+            Icon(Icons.person_rounded, color: AppTheme.primaryBlue, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(app.employeeName,

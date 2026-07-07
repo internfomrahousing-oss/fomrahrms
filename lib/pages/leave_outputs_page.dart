@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class LeaveOutputsPage extends StatelessWidget {
   const LeaveOutputsPage({super.key});
 
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +25,7 @@ class LeaveOutputsPage extends StatelessWidget {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.output_rounded, color: _color, size: 26),
+                child: Icon(Icons.output_rounded, color: _color, size: 26),
               ),
               const SizedBox(width: 16),
               Text('Outputs', style: Theme.of(context).textTheme.headlineMedium),
@@ -45,7 +46,7 @@ class LeaveOutputsPage extends StatelessWidget {
             _OutputCard(
               title: 'Leave Reports',
               icon: Icons.bar_chart_rounded,
-              color: const Color(0xFF2563EB),
+              color: AppTheme.primaryBlue,
               subtitle: 'Applied Leave Data',
               columns: const ['Applied On', 'Leave Type', 'No. of Days', 'Reason', 'Manager', 'HR'],
             ),

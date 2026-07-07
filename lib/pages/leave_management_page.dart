@@ -3,6 +3,7 @@ import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../utils/month_picker.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class LeaveManagementPage extends StatefulWidget {
   const LeaveManagementPage({super.key});
@@ -12,7 +13,7 @@ class LeaveManagementPage extends StatefulWidget {
 }
 
 class _LeaveManagementPageState extends State<LeaveManagementPage> {
-  static const _accentColor = Color(0xFF2563EB);
+  static Color get _accentColor => AppTheme.primaryBlue;
 
   DateTime? _selectedMonth;
   String _searchQuery = '';
@@ -131,14 +132,14 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                         onChanged: (v) => setState(() => _searchQuery = v),
                         decoration: InputDecoration(
                           hintText: 'Search employee or leave type...',
-                          prefixIcon: const Icon(Icons.search_rounded,
+                          prefixIcon: Icon(Icons.search_rounded,
                               color: _accentColor, size: 20),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10)),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide:
-                                const BorderSide(color: _accentColor, width: 2),
+                                BorderSide(color: _accentColor, width: 2),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
@@ -161,7 +162,7 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                         foregroundColor:
                             _selectedMonth != null ? _accentColor : null,
                         side: _selectedMonth != null
-                            ? const BorderSide(color: _accentColor)
+                            ? BorderSide(color: _accentColor)
                             : null,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
@@ -309,8 +310,8 @@ class _ApplicationCard extends StatelessWidget {
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Icon(Icons.person_rounded,
-                color: Color(0xFF2563EB), size: 20),
+            Icon(Icons.person_rounded,
+                color: AppTheme.primaryBlue, size: 20),
             const SizedBox(width: 8),
             Text(app.employeeName,
                 style: TextStyle(

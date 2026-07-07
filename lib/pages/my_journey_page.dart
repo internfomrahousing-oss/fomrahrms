@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class MyJourneyPage extends StatefulWidget {
   const MyJourneyPage({super.key});
@@ -83,11 +84,11 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  color: AppTheme.accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.timeline_rounded,
-                    color: Color(0xFF3B82F6), size: 22),
+                child: Icon(Icons.timeline_rounded,
+                    color: AppTheme.accentBlue, size: 22),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -100,17 +101,17 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
               ),
               IconButton(
                 tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3B82F6)),
+                icon: Icon(Icons.refresh_rounded, color: AppTheme.accentBlue),
                 onPressed: _fetch,
               ),
             ]),
             const SizedBox(height: 24),
 
             if (_loading)
-              const Center(
+              Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 60),
-                  child: CircularProgressIndicator(color: Color(0xFF3B82F6), strokeWidth: 2),
+                  child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2),
                 ),
               )
             else if (_interviewApp == null && _onboardingForm == null)
@@ -201,11 +202,11 @@ class _InterviewCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                color: AppTheme.accentBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.work_outline_rounded,
-                  color: Color(0xFF3B82F6), size: 18),
+              child: Icon(Icons.work_outline_rounded,
+                  color: AppTheme.accentBlue, size: 18),
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -285,7 +286,7 @@ class _OnboardingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: status == 'access_granted'
-              ? const Color(0xFF2563EB)
+              ? AppTheme.primaryBlue
               : Theme.of(context).colorScheme.outlineVariant,
           width: status == 'access_granted' ? 1.5 : 1,
         ),

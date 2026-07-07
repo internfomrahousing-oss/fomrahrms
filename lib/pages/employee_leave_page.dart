@@ -7,6 +7,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/month_picker.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class EmployeeLeavePage extends StatefulWidget {
   final String prefix;
@@ -20,8 +21,8 @@ class EmployeeLeavePage extends StatefulWidget {
 }
 
 class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
-  static const _blue   = Color(0xFF2563EB);
-  static const _purple = Color(0xFF2563EB);
+  static Color get _blue => AppTheme.primaryBlue;
+  static Color get _purple => AppTheme.primaryBlue;
 
   bool _loading = false;
   AppUser? _appUser;
@@ -228,7 +229,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
         },
         itemBuilder: (_) => [
           _menuItem('leave',   Icons.event_available_rounded, 'Apply Leave',      _purple),
-          _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', const Color(0xFF3B82F6)),
+          _menuItem('perm',    Icons.access_time_rounded,     'Apply Permission', AppTheme.accentBlue),
           _menuItem('compoff', Icons.swap_horiz_rounded,      'Apply Comp Off',   const Color(0xFF22C55E)),
         ],
         child: Container(
@@ -250,7 +251,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       const SizedBox(width: 4),
       IconButton(
         tooltip: 'Refresh',
-        icon: const Icon(Icons.refresh_rounded, color: _blue, size: 20),
+        icon: Icon(Icons.refresh_rounded, color: _blue, size: 20),
         onPressed: _loadData,
       ),
     ]);
@@ -263,7 +264,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.beach_access_rounded, color: _blue, size: 18),
+              child: Icon(Icons.beach_access_rounded, color: _blue, size: 18),
             ),
             const SizedBox(width: 10),
             const Expanded(
@@ -281,7 +282,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.beach_access_rounded, color: _blue, size: 22),
+              child: Icon(Icons.beach_access_rounded, color: _blue, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -332,8 +333,8 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       // ── Type filter chips + month picker ─────────────────
       Wrap(spacing: 8, runSpacing: 6, children: [
         _buildTypeChip('All',        'all',        Icons.list_rounded,             _blue),
-        _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  const Color(0xFF2563EB)),
-        _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      const Color(0xFF3B82F6)),
+        _buildTypeChip('Leave',      'leave',      Icons.event_available_rounded,  AppTheme.primaryBlue),
+        _buildTypeChip('Permission', 'Permission', Icons.access_time_rounded,      AppTheme.accentBlue),
         _buildTypeChip('Comp Off',   'Comp Off',   Icons.swap_horiz_rounded,       const Color(0xFF22C55E)),
         _buildMonthChip(),
       ]),
@@ -448,7 +449,7 @@ class _CompactBalance extends StatelessWidget {
           const SizedBox(width: 1),
           Container(width: 1, height: 20, color: const Color(0xFFCFD8DC)),
           const SizedBox(width: 1),
-          _Pill('ML', mlAvail, const Color(0xFF3B82F6)),
+          _Pill('ML', mlAvail, AppTheme.accentBlue),
         ],
         if (elAvail >= 0) ...[
           const SizedBox(width: 1),

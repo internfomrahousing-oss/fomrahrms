@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class GpsTrackingPage extends StatefulWidget {
   const GpsTrackingPage({super.key});
@@ -13,7 +14,7 @@ class GpsTrackingPage extends StatefulWidget {
 }
 
 class _GpsTrackingPageState extends State<GpsTrackingPage> {
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
 
   // Live location
   Position? _livePosition;
@@ -145,7 +146,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.location_on_rounded, color: _color, size: 26),
+                child: Icon(Icons.location_on_rounded, color: _color, size: 26),
               ),
               const SizedBox(width: 16),
               Text('GPS Tracking', style: Theme.of(context).textTheme.headlineMedium),
@@ -240,7 +241,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
             _SectionCard(
               title: 'Route Tracking',
               icon: Icons.route_rounded,
-              color: const Color(0xFF2563EB),
+              color: AppTheme.primaryBlue,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Container(
@@ -269,21 +270,21 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.06),
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
                     ),
-                    child: const Row(children: [
+                    child: Row(children: [
                       Icon(Icons.lock_outline_rounded,
-                          size: 16, color: Color(0xFF2563EB)),
+                          size: 16, color: AppTheme.primaryBlue),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'GPS tracking runs until you check out.',
                           style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF2563EB),
+                              color: AppTheme.primaryBlue,
                               fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -340,10 +341,10 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.05),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: const Color(0xFF2563EB).withValues(alpha: 0.15)),
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.15)),
                         ),
                         child: Row(children: [
                           Icon(Icons.location_pin, size: 14, color: Colors.grey.shade500),
@@ -371,7 +372,7 @@ class _GpsTrackingPageState extends State<GpsTrackingPage> {
             _SectionCard(
               title: 'Last Known Location',
               icon: Icons.history_rounded,
-              color: const Color(0xFF3B82F6),
+              color: AppTheme.accentBlue,
               child: _lastKnown == null
                   ? Text(
                       'No location recorded yet.',
@@ -443,7 +444,7 @@ class _CoordRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF3B82F6)),
+      Icon(icon, size: 16, color: AppTheme.accentBlue),
       const SizedBox(width: 8),
       Text('$label: ', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
       Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),

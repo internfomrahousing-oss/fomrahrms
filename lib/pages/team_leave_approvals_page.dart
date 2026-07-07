@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class TeamLeaveApprovalsPage extends StatefulWidget {
   /// isManagement: controls header label and icon (management vs manager)
@@ -423,7 +424,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
             _SectionHeader(
               label: 'Permission Applications',
               count: _permSection.length,
-              color: const Color(0xFF3B82F6),
+              color: AppTheme.accentBlue,
               icon: Icons.access_time_rounded,
             ),
             const SizedBox(height: 8),
@@ -689,21 +690,21 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF3B82F6).withValues(alpha: 0.07),
+        color: AppTheme.accentBlue.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-            color: const Color(0xFF3B82F6).withValues(alpha: 0.25)),
+            color: AppTheme.accentBlue.withValues(alpha: 0.25)),
       ),
-      child: const Row(children: [
+      child: Row(children: [
         Icon(Icons.info_outline_rounded,
-            size: 15, color: Color(0xFF3B82F6)),
+            size: 15, color: AppTheme.accentBlue),
         SizedBox(width: 8),
         Expanded(
           child: Text(
             'Each employee is entitled to 2 hours of permission per month.',
             style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF3B82F6),
+                color: AppTheme.accentBlue,
                 fontWeight: FontWeight.w500),
           ),
         ),
@@ -943,7 +944,7 @@ class _RequestCardState extends State<_RequestCard> {
                         ? Colors.red.shade700
                         : remaining <= 30
                             ? Colors.orange.shade700
-                            : const Color(0xFF3B82F6);
+                            : AppTheme.accentBlue;
                     return Row(children: [
                       Icon(Icons.schedule_rounded, size: 14, color: mu),
                       const SizedBox(width: 8),

@@ -8,6 +8,7 @@ import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class CheckInPage extends StatefulWidget {
   const CheckInPage({super.key});
@@ -17,7 +18,7 @@ class CheckInPage extends StatefulWidget {
 }
 
 class _CheckInPageState extends State<CheckInPage> {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   bool _loading = true;
   AttendanceRecord? _record; // today's record from Supabase
@@ -121,7 +122,7 @@ class _CheckInPageState extends State<CheckInPage> {
                 color: _color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.login_rounded, color: _color, size: 26),
+              child: Icon(Icons.login_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
             Text('Check In', style: Theme.of(context).textTheme.headlineMedium),
@@ -155,7 +156,7 @@ class _CheckedInView extends StatelessWidget {
   final Timer? refreshTimer;
   const _CheckedInView({required this.record, this.refreshTimer});
 
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +215,7 @@ class _CheckedInView extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.route_rounded, color: _color, size: 18),
+                Icon(Icons.route_rounded, color: _color, size: 18),
                 const SizedBox(width: 8),
                 Text(
                   pts.length > 1 ? 'Route (${pts.length} points)' : 'Check-In Location',

@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class MyPayslipsPage extends StatefulWidget {
   const MyPayslipsPage({super.key});
@@ -15,8 +16,8 @@ class MyPayslipsPage extends StatefulWidget {
 }
 
 class _MyPayslipsPageState extends State<MyPayslipsPage> {
-  static const _color  = Color(0xFF2563EB);
-  static const _purple = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
+  static Color get _purple => AppTheme.primaryBlue;
 
   bool _loading = false;
   bool _elAvailLoading = false;
@@ -146,7 +147,7 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
                         color: _color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.account_balance_wallet_rounded,
+                      child: Icon(Icons.account_balance_wallet_rounded,
                           color: _color, size: 26),
                     ),
                     const SizedBox(width: 16),
@@ -155,7 +156,7 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
                     const Spacer(),
                     IconButton(
                       tooltip: 'Refresh',
-                      icon: const Icon(Icons.refresh_rounded, color: _color),
+                      icon: Icon(Icons.refresh_rounded, color: _color),
                       onPressed: _load,
                     ),
                   ]),
@@ -207,7 +208,7 @@ class _ElBalanceCard extends StatelessWidget {
     required this.onRequest,
   });
 
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
 
   static String _fmt(double d) =>
       d % 1 == 0 ? '${d.toInt()}' : d.toStringAsFixed(1);
@@ -230,9 +231,9 @@ class _ElBalanceCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Title row
         Row(children: [
-          const Icon(Icons.card_giftcard_rounded, color: _purple, size: 20),
+          Icon(Icons.card_giftcard_rounded, color: _purple, size: 20),
           const SizedBox(width: 8),
-          const Text('Earned Leave (EL)',
+          Text('Earned Leave (EL)',
               style: TextStyle(
                   fontSize: 14, fontWeight: FontWeight.w700, color: _purple)),
           const Spacer(),
@@ -243,7 +244,7 @@ class _ElBalanceCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: _purple.withValues(alpha: 0.2)),
             ),
-            child: const Text('EL Eligible',
+            child: Text('EL Eligible',
                 style: TextStyle(
                     fontSize: 10, color: _purple, fontWeight: FontWeight.w600)),
           ),
@@ -406,7 +407,7 @@ class _PayslipSection extends StatefulWidget {
 }
 
 class _PayslipSectionState extends State<_PayslipSection> {
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
   late String _selectedMonth = _recentMonths().first.$1;
 
   PayslipRequest? get _existingRequest {
@@ -431,9 +432,9 @@ class _PayslipSectionState extends State<_PayslipSection> {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Icon(Icons.receipt_long_rounded, color: _purple, size: 20),
+            Icon(Icons.receipt_long_rounded, color: _purple, size: 20),
             const SizedBox(width: 8),
-            const Text('Request Payslip',
+            Text('Request Payslip',
                 style: TextStyle(
                     fontSize: 14, fontWeight: FontWeight.w700, color: _purple)),
           ]),
@@ -538,7 +539,7 @@ class _PayslipListTile extends StatelessWidget {
   final Payslip payslip;
   const _PayslipListTile({required this.payslip});
 
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
 
   static String _fmtRs(double v) => '₹${v.toStringAsFixed(0)}';
 
@@ -553,7 +554,7 @@ class _PayslipListTile extends StatelessWidget {
             color: _purple.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.description_rounded, color: _purple, size: 20),
+          child: Icon(Icons.description_rounded, color: _purple, size: 20),
         ),
         title: Text(_monthLabel(payslip.monthYear),
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
@@ -572,7 +573,7 @@ class PayslipDetailPage extends StatelessWidget {
   final Payslip payslip;
   const PayslipDetailPage({super.key, required this.payslip});
 
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
 
   static String _fmtRs(double v) =>
       '₹${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')}';
@@ -622,7 +623,7 @@ class PayslipDetailPage extends StatelessWidget {
                 color: _purple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.description_rounded, color: _purple, size: 26),
+              child: Icon(Icons.description_rounded, color: _purple, size: 26),
             ),
             const SizedBox(width: 16),
             Text('Pay Slip — ${_monthLabel(p.monthYear)}',
@@ -655,7 +656,7 @@ class PayslipDetailPage extends StatelessWidget {
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Earnings',
+                    Text('Earnings',
                         style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
                     const SizedBox(height: 6),
                     _amountRow('Basic', p.basic),
@@ -673,7 +674,7 @@ class PayslipDetailPage extends StatelessWidget {
                 const SizedBox(width: 24),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Deductions',
+                    Text('Deductions',
                         style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
                     const SizedBox(height: 6),
                     _amountRow('EPF', p.epf),
@@ -699,7 +700,7 @@ class PayslipDetailPage extends StatelessWidget {
 
               if (p.leaveDetails.isNotEmpty) ...[
                 const SizedBox(height: 24),
-                const Text('Leave Details',
+                Text('Leave Details',
                     style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
                 const SizedBox(height: 8),
                 Table(

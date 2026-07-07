@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/profile_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class MyDetailsPage extends StatelessWidget {
   const MyDetailsPage({super.key});
 
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +40,7 @@ class MyDetailsPage extends StatelessWidget {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.badge_rounded, color: _color, size: 26),
+                child: Icon(Icons.badge_rounded, color: _color, size: 26),
               ),
               const SizedBox(width: 16),
               Text('My Details',
@@ -55,7 +56,7 @@ class MyDetailsPage extends StatelessWidget {
                   CircleAvatar(
                     radius: 36,
                     backgroundColor: _color.withValues(alpha: 0.1),
-                    child: const Icon(Icons.person_rounded, color: _color, size: 40),
+                    child: Icon(Icons.person_rounded, color: _color, size: 40),
                   ),
                   const SizedBox(width: 20),
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -75,7 +76,7 @@ class MyDetailsPage extends StatelessWidget {
                       ),
                       child: Text(
                         p.designation.isEmpty ? '—' : p.designation,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12, color: _color,
                             fontWeight: FontWeight.w500),
                       ),
@@ -120,10 +121,10 @@ class _DetailRow extends StatelessWidget {
         Container(
           width: 36, height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(field.icon, color: const Color(0xFF2563EB), size: 18),
+          child: Icon(field.icon, color: AppTheme.primaryBlue, size: 18),
         ),
         const SizedBox(width: 14),
         Expanded(

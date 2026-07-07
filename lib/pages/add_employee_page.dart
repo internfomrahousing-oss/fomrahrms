@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/employee_store.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class AddEmployeePage extends StatefulWidget {
   const AddEmployeePage({super.key});
@@ -12,7 +13,7 @@ class AddEmployeePage extends StatefulWidget {
 }
 
 class _AddEmployeePageState extends State<AddEmployeePage> {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   final _formKey = GlobalKey<FormState>();
   final _employeeIdCtrl    = TextEditingController();
@@ -118,7 +119,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                     color: _color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.person_add_rounded,
+                  child: Icon(Icons.person_add_rounded,
                       color: _color, size: 26),
                 ),
                 const SizedBox(width: 16),
@@ -229,14 +230,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+      Icon(icon, size: 16, color: AppTheme.primaryBlue),
       const SizedBox(width: 8),
       Text(title,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 13, fontWeight: FontWeight.w700,
-              color: Color(0xFF2563EB), letterSpacing: 0.3)),
+              color: AppTheme.primaryBlue, letterSpacing: 0.3)),
       const SizedBox(width: 10),
-      Expanded(child: Divider(color: const Color(0xFF2563EB).withValues(alpha: 0.2))),
+      Expanded(child: Divider(color: AppTheme.primaryBlue.withValues(alpha: 0.2))),
     ]);
   }
 }
@@ -268,7 +269,7 @@ class _Field extends StatelessWidget {
             : null,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: const Color(0xFF2563EB), size: 20),
+          prefixIcon: Icon(icon, color: AppTheme.primaryBlue, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -276,7 +277,7 @@ class _Field extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+            borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -316,8 +317,8 @@ Widget _DateField(TextEditingController ctrl, String label, BuildContext ctx) {
       },
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: const Icon(Icons.calendar_today_rounded,
-            color: Color(0xFF2563EB), size: 20),
+        prefixIcon: Icon(Icons.calendar_today_rounded,
+            color: AppTheme.primaryBlue, size: 20),
         suffixIcon: const Icon(Icons.arrow_drop_down_rounded,
             color: Color(0xFF6B7280)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -327,7 +328,7 @@ Widget _DateField(TextEditingController ctrl, String label, BuildContext ctx) {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+          borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
         ),
         filled: true, fillColor: Colors.white,
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),

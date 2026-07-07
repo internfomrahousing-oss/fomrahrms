@@ -4,8 +4,9 @@ import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 // Built-in (non-editable) field names per onboarding section
 
@@ -90,7 +91,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Update & Publish Onboarding Form',
+        title: Text('Update & Publish Onboarding Form',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
             'This will immediately update the live Onboarding Form for new employees. '
@@ -180,7 +181,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Send for Approval',
+        title: Text('Send for Approval',
             style: TextStyle(
                 fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
@@ -192,7 +193,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
+              backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
@@ -263,7 +264,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Rename Section',
+        title: Text('Rename Section',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
         content: TextField(
@@ -307,7 +308,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Section',
+        title: Text('Add Section',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -515,7 +516,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.edit_note_rounded,
+              child: Icon(Icons.edit_note_rounded,
                   color: _blue, size: 20),
             ),
             const SizedBox(width: 12),
@@ -523,7 +524,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Edit Onboarding Form',
+                    Text('Edit Onboarding Form',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -557,7 +558,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isManagement
                       ? _blue
-                      : const Color(0xFF2563EB),
+                      : AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
@@ -572,11 +573,11 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
               tooltip: 'Refresh',
               onPressed: _loading ? null : _load,
               icon: _loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18, height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: _blue))
-                  : const Icon(Icons.refresh_rounded, color: _blue),
+                  : Icon(Icons.refresh_rounded, color: _blue),
             ),
           ]),
         ),
@@ -584,7 +585,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
         // ── Body ────────────────────────────────────────────────────
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: _blue))
+              ? Center(child: CircularProgressIndicator(color: _blue))
               : SingleChildScrollView(
                   padding: EdgeInsets.all(pad),
                   child: Center(
@@ -598,12 +599,12 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: AppTheme.lightBlue,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                   color: const Color(0xFFDBEAFE)),
                             ),
-                            child: const Row(children: [
+                            child: Row(children: [
                               Icon(Icons.info_outline_rounded,
                                   color: _blue, size: 18),
                               SizedBox(width: 10),
@@ -678,7 +679,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                               icon: Icons.history_rounded),
                           const SizedBox(height: 12),
                           if (_historyLoading)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.all(24),
                               child: Center(
                                 child: CircularProgressIndicator(
@@ -864,7 +865,7 @@ class _ObSectionTile extends StatelessWidget {
                             const Icon(Icons.visibility_off_rounded,
                                 size: 10, color: Color(0xFFF59E0B)),
                           if (!isHidden)
-                            const Icon(Icons.check_rounded,
+                            Icon(Icons.check_rounded,
                                 size: 10, color: _blue),
                           const SizedBox(width: 4),
                           Text(fLabel,
@@ -988,7 +989,7 @@ class _CustomFieldPreview extends StatelessWidget {
       case 'mcq':
         typeIcon = Icons.radio_button_checked_rounded;
         typeLabel = 'MCQ';
-        typeColor = const Color(0xFF2563EB);
+        typeColor = AppTheme.primaryBlue;
       case 'photo_upload':
         typeIcon = Icons.photo_camera_rounded;
         typeLabel = 'Photo Upload';
@@ -996,7 +997,7 @@ class _CustomFieldPreview extends StatelessWidget {
       case 'file_upload':
         typeIcon = Icons.upload_file_rounded;
         typeLabel = 'File Upload';
-        typeColor = const Color(0xFF3B82F6);
+        typeColor = AppTheme.accentBlue;
       case 'number':
         typeIcon = Icons.pin_rounded;
         typeLabel = 'Numbers Only';
@@ -1004,7 +1005,7 @@ class _CustomFieldPreview extends StatelessWidget {
       case 'date':
         typeIcon = Icons.calendar_today_rounded;
         typeLabel = 'Date / Calendar';
-        typeColor = const Color(0xFF2563EB);
+        typeColor = AppTheme.primaryBlue;
       case 'checkbox':
         typeIcon = Icons.check_box_rounded;
         typeLabel = 'Checkbox';
@@ -1156,7 +1157,7 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
     return AlertDialog(
       title: Text(
         widget.existing == null ? 'Add Custom Field' : 'Edit Field',
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 16, fontWeight: FontWeight.bold, color: _blue),
       ),
       content: SizedBox(
@@ -1356,18 +1357,18 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: AppTheme.lightBlue,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
-                  child: const Row(children: [
+                  child: Row(children: [
                     Icon(Icons.upload_file_rounded,
-                        size: 14, color: Color(0xFF3B82F6)),
+                        size: 14, color: AppTheme.accentBlue),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Employee uploads a document (PDF, DOC, DOCX, XLS, XLSX). Uploaded as-is.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF3B82F6)),
+                        style: TextStyle(fontSize: 11, color: AppTheme.accentBlue),
                       ),
                     ),
                   ]),
@@ -1378,17 +1379,17 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: AppTheme.lightBlue,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
-                  child: const Row(children: [
-                    Icon(Icons.pin_rounded, size: 14, color: Color(0xFF3B82F6)),
+                  child: Row(children: [
+                    Icon(Icons.pin_rounded, size: 14, color: AppTheme.accentBlue),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Only numeric input is accepted (digits and decimal point).',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF3B82F6)),
+                        style: TextStyle(fontSize: 11, color: AppTheme.accentBlue),
                       ),
                     ),
                   ]),
@@ -1399,18 +1400,18 @@ class _FieldEditorDialogState extends State<_FieldEditorDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: AppTheme.lightBlue,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF3B82F6)),
+                    border: Border.all(color: AppTheme.accentBlue),
                   ),
-                  child: const Row(children: [
+                  child: Row(children: [
                     Icon(Icons.calendar_today_rounded,
-                        size: 14, color: Color(0xFF2563EB)),
+                        size: 14, color: AppTheme.primaryBlue),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'A calendar date picker will be shown to the employee.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF2563EB)),
+                        style: TextStyle(fontSize: 11, color: AppTheme.primaryBlue),
                       ),
                     ),
                   ]),
@@ -1578,7 +1579,7 @@ class _VersionHistoryCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(vLabel,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: _blue)),

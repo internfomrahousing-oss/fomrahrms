@@ -4,6 +4,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
+import '../theme/app_theme.dart';
 
 /// Wraps dashboard content and — the moment it builds — checks whether
 /// today is the logged-in user's birthday or a work-anniversary milestone
@@ -198,8 +199,8 @@ class _Particle {
         color = _colors[r.nextInt(_colors.length)],
         delay = r.nextDouble() * 0.25;
 
-  static const _colors = [
-    Color(0xFF2563EB),
+  static List<Color> get _colors => [
+    AppTheme.primaryBlue,
     Color(0xFF22C55E),
     Color(0xFFF59E0B),
     Color(0xFFEF4444),

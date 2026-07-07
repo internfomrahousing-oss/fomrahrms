@@ -8,6 +8,7 @@ import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class EmployeeAttendancePage extends StatefulWidget {
   // prefix kept for router compatibility; not used internally
@@ -19,7 +20,7 @@ class EmployeeAttendancePage extends StatefulWidget {
 }
 
 class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
-  static const _blue  = Color(0xFF2563EB);
+  static Color get _blue => AppTheme.primaryBlue;
   static const _green = Color(0xFF22C55E);
   static const _teal  = Color(0xFF15803D);
 
@@ -168,7 +169,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.access_time_rounded, color: _blue, size: 22),
+              child: Icon(Icons.access_time_rounded, color: _blue, size: 22),
             ),
             const SizedBox(width: 14),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -180,7 +181,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
             const Spacer(),
             IconButton(
               tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh_rounded, color: _blue),
+              icon: Icon(Icons.refresh_rounded, color: _blue),
               onPressed: _load,
             ),
           ]),
@@ -234,7 +235,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Row(children: [
+                    Row(children: [
                       Icon(Icons.route_rounded, color: _blue, size: 16),
                       SizedBox(width: 8),
                       Text('Route', style: TextStyle(
@@ -408,7 +409,7 @@ class _DaySummary extends StatelessWidget {
   final bool isDark;
   const _DaySummary({required this.record, required this.isDark});
 
-  static const _blue = Color(0xFF2563EB);
+  static Color get _blue => AppTheme.primaryBlue;
 
   String? get _duration {
     try {
@@ -434,7 +435,7 @@ class _DaySummary extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF2563EB).withValues(alpha: 0.12)
+            ? AppTheme.primaryBlue.withValues(alpha: 0.12)
             : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(

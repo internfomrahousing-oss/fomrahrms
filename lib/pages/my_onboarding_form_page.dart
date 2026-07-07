@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
 import 'employee_onboarding_page.dart' show OnboardingFormReadOnlyBody;
+import '../theme/app_theme.dart';
 
 const _green = Color(0xFF15803D);
 
@@ -132,7 +133,7 @@ class _MyOnboardingFormPageState extends State<MyOnboardingFormPage> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: Color(0xFFEFF6FF))),
+                      side: BorderSide(color: AppTheme.lightBlue)),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: OnboardingFormReadOnlyBody(data: d),

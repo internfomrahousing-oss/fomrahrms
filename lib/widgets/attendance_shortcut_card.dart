@@ -409,7 +409,7 @@ Approved by: Sharad Fomra, CEO & MD
     final isDark  = Theme.of(context).brightness == Brightness.dark;
     final rec     = _record;
     final accent  = widget.accentColor;
-    final hrBlue  = isDark ? Colors.blue.shade300 : const Color(0xFF2563EB);
+    final hrBlue  = isDark ? Colors.blue.shade300 : AppTheme.primaryBlue;
 
     // Determine status visuals for the Check In/Out tile
     final IconData statusIcon;
@@ -671,9 +671,9 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
       if (!mounted) return;
       setState(() { _editing = false; _saving = false; });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Policy submitted to Management for approval.'),
-          backgroundColor: Color(0xFF3B82F6),
+          backgroundColor: AppTheme.accentBlue,
         ),
       );
       Navigator.pop(context);
@@ -710,7 +710,7 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB),
+              color: AppTheme.primaryBlue,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(children: [
@@ -776,8 +776,8 @@ class _HRPolicyDialogState extends State<_HRPolicyDialog> {
                         minimumSize: const Size(0, 0)),
                     child: Text(
                       _previewPending ? 'View current' : 'Preview changes',
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF3B82F6)),
+                      style: TextStyle(
+                          fontSize: 11, color: AppTheme.accentBlue),
                     ),
                   ),
               ]),

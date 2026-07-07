@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import '../widgets/form_detail_page.dart' as fd;
+import '../theme/app_theme.dart';
 
 class EmployeeProfilePage extends StatelessWidget {
   const EmployeeProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const fd.FormDetailPage(
+    return fd.FormDetailPage(
       title: 'Employee Profile',
       icon: Icons.person_rounded,
-      color: Color(0xFF2563EB),
+      color: AppTheme.primaryBlue,
       fields: [
         fd.FormField(label: 'Employee ID',      icon: Icons.badge_rounded),
         fd.FormField(label: 'Employee Name',    icon: Icons.person_outline_rounded),

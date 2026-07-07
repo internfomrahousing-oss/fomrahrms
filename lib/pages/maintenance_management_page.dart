@@ -198,7 +198,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                   _ActionBtn(
                     label: 'Send to Management',
                     icon: Icons.upload_rounded,
-                    color: const Color(0xFF2563EB),
+                    color: AppTheme.primaryBlue,
                     onTap: () => _sendToManagement(t),
                   ),
                   const SizedBox(width: 8),
@@ -526,14 +526,14 @@ class _TicketCard extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('Sent to Mgmt',
+                child: Text('Sent to Mgmt',
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2563EB))),
+                        color: AppTheme.primaryBlue)),
               ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

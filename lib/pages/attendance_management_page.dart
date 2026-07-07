@@ -6,9 +6,9 @@ import '../widgets/back_button.dart';
 class AttendanceManagementPage extends StatelessWidget {
   const AttendanceManagementPage({super.key});
 
-  static const _topics = [
-    _Topic('Check In',         Icons.login_rounded,      Color(0xFF2563EB), '/attendance/hr/check-in'),
-    _Topic('Check Out',        Icons.logout_rounded,     Color(0xFF3B82F6), '/attendance/hr/check-out'),
+  static List<_Topic> get _topics => [
+    _Topic('Check In',         Icons.login_rounded,      AppTheme.primaryBlue, '/attendance/hr/check-in'),
+    _Topic('Check Out',        Icons.logout_rounded,     AppTheme.accentBlue, '/attendance/hr/check-out'),
     _Topic('Late Coming',      Icons.watch_later_rounded, Color(0xFF111827), '/attendance/hr/late-coming'),
     _Topic('Employee Records', Icons.people_alt_rounded,  Color(0xFF1E88E5), '/attendance/employee-records'),
   ];

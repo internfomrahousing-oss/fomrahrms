@@ -48,7 +48,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                 children: [
                   AttendanceShortcutCard(
                     attendanceRoute: '/employee/attendance-management',
-                    accentColor: const Color(0xFF2563EB),
+                    accentColor: AppTheme.primaryBlue,
                     extraTiles: [
                       QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
                           color: AppTheme.primaryBlue, route: '/employee/leave-management'),

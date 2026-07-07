@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 /// Management-only queue: requests that both HR and the Reporting Manager
 /// have already accepted (or that Management has already decided on).
@@ -15,7 +16,7 @@ class OnrollApprovalsPage extends StatefulWidget {
 }
 
 class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
-  static const _color = Color(0xFF1D4ED8);
+  static Color get _color => AppTheme.sidebarSelectedBg;
   List<AppUser> _all = [];
   bool _loading = true;
   String _search = '';
@@ -135,7 +136,7 @@ class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
                 color: _color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.verified_user_rounded, color: _color, size: 26),
+              child: Icon(Icons.verified_user_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -146,7 +147,7 @@ class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
             const Spacer(),
             IconButton(
               tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh_rounded, color: _color),
+              icon: Icon(Icons.refresh_rounded, color: _color),
               onPressed: _loadData,
             ),
           ]),
@@ -183,7 +184,7 @@ class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
                   hintText: 'Search employee...',
-                  prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
+                  prefixIcon: Icon(Icons.search_rounded, color: _color, size: 20),
                   suffixIcon: _search.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
@@ -332,11 +333,11 @@ class _OnrollRequestCardState extends State<_OnrollRequestCard> {
           Row(children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
+              backgroundColor: AppTheme.sidebarSelectedBg.withValues(alpha: 0.1),
               child: Text(
                 u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                    color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                    color: AppTheme.sidebarSelectedBg, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
             const SizedBox(width: 12),
@@ -354,9 +355,9 @@ class _OnrollRequestCardState extends State<_OnrollRequestCard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1D4ED8).withValues(alpha: 0.04),
+              color: AppTheme.sidebarSelectedBg.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF1D4ED8).withValues(alpha: 0.08)),
+              border: Border.all(color: AppTheme.sidebarSelectedBg.withValues(alpha: 0.08)),
             ),
             child: Column(children: [
               _detailRow(Icons.badge_rounded, 'Employee ID', u.employeeId),
@@ -482,8 +483,8 @@ class _OnrollRequestCardState extends State<_OnrollRequestCard> {
           style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
       Expanded(
         child: Text(value,
-            style: const TextStyle(
-                fontSize: 12, color: Color(0xFF1D4ED8), fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                fontSize: 12, color: AppTheme.sidebarSelectedBg, fontWeight: FontWeight.w600)),
       ),
     ]);
   }

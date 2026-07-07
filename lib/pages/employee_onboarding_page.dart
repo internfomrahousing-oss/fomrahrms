@@ -11,6 +11,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 Future<List<AppUser>> _loadAllUsers() async {
   try { return await UserStore.load(); } catch (_) { return []; }
@@ -47,7 +48,7 @@ String _statusLabel(String s) {
   return 'Pending';
 }
 
-const _blue = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 class EmployeeOnboardingPage extends StatefulWidget {
   const EmployeeOnboardingPage({super.key});
@@ -310,12 +311,12 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   color: _blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.how_to_reg_rounded, color: _blue, size: 20),
+                child: Icon(Icons.how_to_reg_rounded, color: _blue, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Employee Onboarding',
+                  Text('Employee Onboarding',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _blue)),
                   Text('${_all.length} submission${_all.length == 1 ? '' : 's'} received',
                       style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
@@ -328,7 +329,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   label: const Text('Copy Link', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _blue,
-                    side: const BorderSide(color: _blue),
+                    side: BorderSide(color: _blue),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -345,8 +346,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   icon: const Icon(Icons.edit_note_rounded, size: 15),
                   label: const Text('Edit Form', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF2563EB),
-                    side: const BorderSide(color: Color(0xFF2563EB)),
+                    foregroundColor: AppTheme.primaryBlue,
+                    side: BorderSide(color: AppTheme.primaryBlue),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -370,9 +371,9 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                 tooltip: 'Refresh',
                 onPressed: _loading ? null : _fetch,
                 icon: _loading
-                    ? const SizedBox(width: 18, height: 18,
+                    ? SizedBox(width: 18, height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
-                    : const Icon(Icons.refresh_rounded, color: _blue),
+                    : Icon(Icons.refresh_rounded, color: _blue),
               ),
             ]),
 
@@ -382,7 +383,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                 controller: _searchCtrl,
                 decoration: InputDecoration(
                   hintText: 'Search submissions…',
-                  prefixIcon: const Icon(Icons.search_rounded, color: _blue, size: 20),
+                  prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
                   suffixIcon: _searchCtrl.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
@@ -426,7 +427,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         // ── Body ──────────────────────────────────────────────────────
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: _blue))
+              ? Center(child: CircularProgressIndicator(color: _blue))
               : (_tab == 1 && UserSession.role == UserRole.management)
                   ? _buildFormApprovalsTab(pad)
                   : _buildSubmissionsTab(pad),
@@ -557,21 +558,21 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Forward to Management', style: TextStyle(color: _blue, fontWeight: FontWeight.bold)),
+          title: Text('Forward to Management', style: TextStyle(color: _blue, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: AppTheme.lightBlue,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.info_outline_rounded, color: _blue, size: 16),
+                  Icon(Icons.info_outline_rounded, color: _blue, size: 16),
                   const SizedBox(width: 8),
                   Expanded(child: Text(
                     'These details will be used to create the employee account once Management approves.',
-                    style: const TextStyle(fontSize: 12, color: _blue),
+                    style: TextStyle(fontSize: 12, color: _blue),
                   )),
                 ]),
               ),
@@ -580,8 +581,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 controller: emailCtrl,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  prefixIcon: const Icon(Icons.email_rounded, color: _blue, size: 20),
-                  suffix: const Text('@fomrahousing.in',
+                  prefixIcon: Icon(Icons.email_rounded, color: _blue, size: 20),
+                  suffix: Text('@fomrahousing.in',
                       style: TextStyle(color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
@@ -593,7 +594,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 controller: empIdCtrl,
                 decoration: InputDecoration(
                   labelText: 'Employee ID',
-                  prefixIcon: const Icon(Icons.badge_rounded, color: _blue, size: 20),
+                  prefixIcon: Icon(Icons.badge_rounded, color: _blue, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
                   labelStyle: const TextStyle(color: Color(0xFF6B7280)),
@@ -605,7 +606,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   value: selectedManager.isNotEmpty ? selectedManager : null,
                   decoration: InputDecoration(
                     labelText: 'Reporting Manager',
-                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _blue, size: 20),
+                    prefixIcon: Icon(Icons.manage_accounts_rounded, color: _blue, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true, fillColor: Colors.white,
                   ),
@@ -623,7 +624,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white,
+                backgroundColor: AppTheme.accentBlue, foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () async {
@@ -771,7 +772,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFEFF6FF))),
+          side: BorderSide(color: AppTheme.lightBlue)),
       child: Column(children: [
         InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -782,7 +783,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 20,
                 backgroundColor: _blue,
                 child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
@@ -906,7 +907,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                       icon: const Icon(Icons.check_rounded, size: 16),
                       label: const Text('Send to Management'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3B82F6),
+                        backgroundColor: AppTheme.accentBlue,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -922,15 +923,15 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: AppTheme.lightBlue,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Forwarded with details:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _blue)),
+                    Text('Forwarded with details:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _blue)),
                     const SizedBox(height: 4),
-                    Text('Email: ${d['assigned_email'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
-                    Text('Emp ID: ${d['assigned_emp_id'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
-                    Text('Manager: ${d['assigned_manager'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
+                    Text('Email: ${d['assigned_email'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
+                    Text('Emp ID: ${d['assigned_emp_id'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
+                    Text('Manager: ${d['assigned_manager'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
                   ]),
                 ),
                 // Management: final approve/deny — creates the employee account.
@@ -982,7 +983,7 @@ Widget _section(String title, List<Widget> rows) {
   if (visible.isEmpty) return const SizedBox.shrink();
   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     const SizedBox(height: 14),
-    Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+    Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
     const Divider(height: 10),
     ...rows,
   ]);
@@ -1009,7 +1010,7 @@ Widget _jsonSection(String title, dynamic jsonData, List<String> keys) {
   if (nonEmpty.isEmpty) return const SizedBox.shrink();
   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     const SizedBox(height: 14),
-    Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+    Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
     const Divider(height: 10),
     ...nonEmpty.asMap().entries.map((e) {
       final item = e.value as Map;
@@ -1032,7 +1033,7 @@ Widget _attachmentsSection(dynamic data) {
   if (items.isEmpty) return const SizedBox.shrink();
   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     const SizedBox(height: 14),
-    const Text('Attachments', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+    Text('Attachments', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
     const Divider(height: 10),
     ...items.map((item) {
       final name = item['name']?.toString() ?? '';
@@ -1041,7 +1042,7 @@ Widget _attachmentsSection(dynamic data) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(children: [
-          const Icon(Icons.insert_drive_file_rounded, size: 14, color: _blue),
+          Icon(Icons.insert_drive_file_rounded, size: 14, color: _blue),
           const SizedBox(width: 6),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
@@ -1166,7 +1167,7 @@ class _LinkedInterviewBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: allDone ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+        color: allDone ? const Color(0xFFDCFCE7) : AppTheme.lightBlue,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: allDone ? const Color(0xFF22C55E) : _blue,

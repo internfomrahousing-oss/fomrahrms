@@ -3,8 +3,9 @@ import 'package:go_router/go_router.dart';
 import '../models/lead_model.dart';
 import '../services/lead_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 
 class LeadManagementPage extends StatefulWidget {
@@ -259,7 +260,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Lead',
+        title: Text('Edit Lead',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: SizedBox(
           width: 400,
@@ -340,7 +341,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add New Lead',
+        title: Text('Add New Lead',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: SizedBox(
           width: 400,
@@ -497,7 +498,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
             // Header
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: _blue,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16), topRight: Radius.circular(16)),
@@ -557,7 +558,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                   label: const Text('Edit'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _blue,
-                    side: const BorderSide(color: _blue),
+                    side: BorderSide(color: _blue),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () { Navigator.pop(ctx); _showEditDialog(lead); },
@@ -616,7 +617,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(_sourceName,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: _blue)),
@@ -626,7 +627,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                             if (_hasActiveFilter) ...[
                               TextSpan(
                                 text: '${_filtered.length}',
-                                style: const TextStyle(fontWeight: FontWeight.w700, color: _blue),
+                                style: TextStyle(fontWeight: FontWeight.w700, color: _blue),
                               ),
                               TextSpan(text: ' of ${_all.length} leads'),
                             ] else
@@ -662,12 +663,12 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                     tooltip: 'Refresh',
                     onPressed: _loading ? null : _fetch,
                     icon: _loading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: _blue))
-                        : const Icon(Icons.refresh_rounded, color: _blue),
+                        : Icon(Icons.refresh_rounded, color: _blue),
                   ),
                 ]),
                 const SizedBox(height: 12),
@@ -677,7 +678,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                       controller: _searchCtrl,
                       decoration: InputDecoration(
                         hintText: 'Search by name, phone, project…',
-                        prefixIcon: const Icon(Icons.search_rounded, color: _blue, size: 20),
+                        prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear_rounded, size: 18),
@@ -756,9 +757,9 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
                         child: Row(children: [
-                          const Icon(Icons.tune_rounded, size: 15, color: _blue),
+                          Icon(Icons.tune_rounded, size: 15, color: _blue),
                           const SizedBox(width: 6),
-                          const Text('Filters',
+                          Text('Filters',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
                           const SizedBox(width: 10),
                           Container(
@@ -894,7 +895,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
           // ── Body ────────────────────────────────────────────────────
           Expanded(
             child: _loading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(color: _blue))
                 : _error != null
                     ? _ErrorView(error: _error!, onRetry: _fetch)
@@ -948,7 +949,7 @@ class _RangeRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(value,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
         ),
       ]),
       slider,
@@ -1010,7 +1011,7 @@ class _LeadCard extends StatelessWidget {
               backgroundColor: _blue.withValues(alpha: 0.1),
               child: Text(
                 name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: const TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
             const SizedBox(width: 12),
@@ -1066,7 +1067,7 @@ class _LeadCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(lead.rowKeyValue,
-                    style: const TextStyle(fontSize: 10, color: _blue, fontWeight: FontWeight.w700)),
+                    style: TextStyle(fontSize: 10, color: _blue, fontWeight: FontWeight.w700)),
               ),
               const SizedBox(height: 10),
               Row(children: [
@@ -1126,7 +1127,7 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           hasLeads ? 'No leads match your filter' : 'No leads yet',
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
               color: _blue),
@@ -1157,7 +1158,7 @@ class _ErrorView extends StatelessWidget {
         const Icon(Icons.cloud_off_rounded,
             size: 52, color: Color(0xFFDBEAFE)),
         const SizedBox(height: 12),
-        const Text('Could not load leads',
+        Text('Could not load leads',
             style: TextStyle(
 
                 fontSize: 15,

@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class TaskManagementPage extends StatefulWidget {
   const TaskManagementPage({super.key});
@@ -86,11 +87,11 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.task_alt_rounded,
-                    color: Color(0xFF2563EB), size: 22),
+                child: Icon(Icons.task_alt_rounded,
+                    color: AppTheme.primaryBlue, size: 22),
               ),
               const SizedBox(width: 14),
               Text('Task Management',
@@ -99,8 +100,8 @@ class _TaskManagementPageState extends State<TaskManagementPage>
               if (onTab0) ...[
                 IconButton(
                   tooltip: 'Refresh',
-                  icon: const Icon(Icons.refresh_rounded,
-                      color: Color(0xFF2563EB)),
+                  icon: Icon(Icons.refresh_rounded,
+                      color: AppTheme.primaryBlue),
                   onPressed: _load,
                 ),
                 const SizedBox(width: 4),
@@ -112,7 +113,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('Add Task'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 18, vertical: 10),
@@ -129,9 +130,9 @@ class _TaskManagementPageState extends State<TaskManagementPage>
           // Tab bar
           TabBar(
             controller: _tabController,
-            labelColor: const Color(0xFF2563EB),
+            labelColor: AppTheme.primaryBlue,
             unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF2563EB),
+            indicatorColor: AppTheme.primaryBlue,
             labelStyle: const TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w600),
             unselectedLabelStyle:
@@ -215,7 +216,7 @@ class _TasksTab extends StatelessWidget {
                     label: Text(f.$2),
                     selected: active,
                     onSelected: (_) => onFilterChanged(f.$1),
-                    selectedColor: const Color(0xFF2563EB),
+                    selectedColor: AppTheme.primaryBlue,
                     checkmarkColor: Colors.white,
                     labelStyle: TextStyle(
                       fontSize: 12,
@@ -228,7 +229,7 @@ class _TasksTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       side: BorderSide(
                         color: active
-                            ? const Color(0xFF2563EB)
+                            ? AppTheme.primaryBlue
                             : const Color(0xFFE5E7EB),
                       ),
                     ),
@@ -248,15 +249,15 @@ class _TasksTab extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                color: AppTheme.primaryBlue.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 '${filtered.length} task${filtered.length == 1 ? '' : 's'}',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2563EB)),
+                    color: AppTheme.primaryBlue),
               ),
             ),
           ]),
@@ -328,10 +329,10 @@ class _PlaceholderTab extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(icon, color: const Color(0xFF2563EB), size: 40),
+            child: Icon(icon, color: AppTheme.primaryBlue, size: 40),
           ),
           const SizedBox(height: 20),
           Text(title,

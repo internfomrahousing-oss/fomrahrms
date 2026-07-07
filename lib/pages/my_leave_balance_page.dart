@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class MyLeaveBalancePage extends StatefulWidget {
   const MyLeaveBalancePage({super.key});
@@ -14,7 +15,7 @@ class MyLeaveBalancePage extends StatefulWidget {
 }
 
 class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
   bool _loading = false;
   bool _elAvailLoading = false;
   AppUser? _appUser;
@@ -136,7 +137,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                         color: _color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.balance_rounded, color: _color, size: 26),
+                      child: Icon(Icons.balance_rounded, color: _color, size: 26),
                     ),
                     const SizedBox(width: 16),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -148,7 +149,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                     const Spacer(),
                     IconButton(
                       tooltip: 'Refresh',
-                      icon: const Icon(Icons.refresh_rounded, color: _color),
+                      icon: Icon(Icons.refresh_rounded, color: _color),
                       onPressed: _load,
                     ),
                   ]),
@@ -174,7 +175,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                         _LeaveBlock('ML',
                           used:  _usedBucket('ML'),
                           quota: user.monthlyMl,
-                          color: const Color(0xFF3B82F6),
+                          color: AppTheme.accentBlue,
                           subtitle: 'This month'),
                       ],
                       if (user.isElEligible) ...[
@@ -212,7 +213,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'EL Eligible' => const Color(0xFF2563EB),
+      'EL Eligible' => AppTheme.primaryBlue,
       'On-Roll'     => const Color(0xFF22C55E),
       _             => const Color(0xFF6B7280),
     };
@@ -297,7 +298,7 @@ class _ElAvailCard extends StatelessWidget {
   const _ElAvailCard(
       {required this.user, required this.loading, required this.onRequest});
 
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -314,11 +315,11 @@ class _ElAvailCard extends StatelessWidget {
         border: Border.all(color: _purple.withValues(alpha: 0.25)),
       ),
       child: Row(children: [
-        const Icon(Icons.card_giftcard_rounded, color: _purple, size: 18),
+        Icon(Icons.card_giftcard_rounded, color: _purple, size: 18),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('EL Encashment',
+            Text('EL Encashment',
                 style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w700, color: _purple)),
             if (hasPending)

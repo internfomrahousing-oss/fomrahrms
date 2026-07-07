@@ -99,7 +99,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
 
                   AttendanceShortcutCard(
                     attendanceRoute: '/management/my-attendance',
-                    accentColor: const Color(0xFF3B82F6),
+                    accentColor: AppTheme.accentBlue,
                     extraTiles: [
                       QuickTile(label: 'View Reports', icon: Icons.bar_chart_rounded,
                           color: AppTheme.purple, route: '/management/reports-analytics'),

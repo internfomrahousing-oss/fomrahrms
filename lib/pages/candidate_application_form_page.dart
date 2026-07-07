@@ -10,8 +10,9 @@ import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
 import '../models/form_config.dart';
 import '../widgets/web_file_picker.dart';
+import '../theme/app_theme.dart';
 
-const _blue  = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 class CandidateApplicationFormPage extends StatefulWidget {
   final String? version;
@@ -352,7 +353,7 @@ class _CandidateApplicationFormPageState
       lastDate: DateTime(2100),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.light(primary: _blue)),
+            colorScheme: ColorScheme.light(primary: _blue)),
         child: child!,
       ),
     );
@@ -370,7 +371,7 @@ class _CandidateApplicationFormPageState
       lastDate: DateTime(2100),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.light(primary: _blue)),
+            colorScheme: ColorScheme.light(primary: _blue)),
         child: child!,
       ),
     );
@@ -579,7 +580,7 @@ class _CandidateApplicationFormPageState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Row(children: [
+        title: Row(children: [
           Icon(Icons.check_circle_rounded, color: Colors.green, size: 24),
           SizedBox(width: 8),
           Text('Application Submitted',
@@ -640,7 +641,7 @@ class _CandidateApplicationFormPageState
     if (_configLoading) {
       return Theme(
         data: ThemeData.light(),
-        child: const Scaffold(
+        child: Scaffold(
           backgroundColor: Color(0xFFF8FAFC),
           body: Center(child: CircularProgressIndicator(color: _blue)),
         ),
@@ -663,10 +664,10 @@ class _CandidateApplicationFormPageState
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.assignment_ind_rounded, color: _blue, size: 20),
+              child: Icon(Icons.assignment_ind_rounded, color: _blue, size: 20),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Candidate Application Form',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
@@ -902,7 +903,7 @@ class _CandidateApplicationFormPageState
                               ]),
                             ),
                             if (_resumeFileName != null) ...[
-                              const Divider(height: 1, color: Color(0xFFEFF6FF)),
+                              Divider(height: 1, color: AppTheme.lightBlue),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                                 child: Container(
@@ -987,7 +988,7 @@ class _CandidateApplicationFormPageState
                                       style: const TextStyle(fontSize: 12)),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: _blue,
-                                    side: const BorderSide(color: _blue),
+                                    side: BorderSide(color: _blue),
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                     minimumSize: Size.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1006,7 +1007,7 @@ class _CandidateApplicationFormPageState
                       if (_secEnabled('declaration'))
                       _FormSection(icon: Icons.verified_rounded, title: _secTitle('declaration', 'Declaration'), children: [
                         RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), height: 1.6),
                             children: [
                               TextSpan(text: 'I, '),
@@ -1132,7 +1133,7 @@ Future<void> _pickMonthYearInto(
     lastDate: DateTime(2100),
     initialDatePickerMode: DatePickerMode.year,
     builder: (ctx, child) => Theme(
-      data: Theme.of(ctx).copyWith(colorScheme: const ColorScheme.light(primary: _blue)),
+      data: Theme.of(ctx).copyWith(colorScheme: ColorScheme.light(primary: _blue)),
       child: child!,
     ),
   );
@@ -1229,7 +1230,7 @@ class _EducationTableState extends State<_EducationTable> {
           scrollDirection: Axis.horizontal,
           child: Column(children: [
             Container(
-              color: const Color(0xFFEFF6FF),
+              color: AppTheme.lightBlue,
               child: Row(
                 children: List.generate(headers.length, (i) => Container(
                   width: colWidths[i],
@@ -1242,7 +1243,7 @@ class _EducationTableState extends State<_EducationTable> {
                     ),
                   ),
                   child: Text(headers[i],
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
                 )),
               ),
@@ -1342,7 +1343,7 @@ class _EducationTableState extends State<_EducationTable> {
           hintText: hint,
           hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFE5E7EB)),
           suffixIcon: onTap != null
-              ? const Icon(Icons.calendar_today_rounded, size: 14, color: _blue)
+              ? Icon(Icons.calendar_today_rounded, size: 14, color: _blue)
               : null,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -1356,7 +1357,7 @@ class _EducationTableState extends State<_EducationTable> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: _blue, width: 1.5),
+            borderSide: BorderSide(color: _blue, width: 1.5),
           ),
           filled: true,
           fillColor: const Color(0xFFFAFAFA),
@@ -1448,7 +1449,7 @@ class _EmpHistoryTable extends StatelessWidget {
           children: [
             // Header row
             Container(
-              color: const Color(0xFFEFF6FF),
+              color: AppTheme.lightBlue,
               child: Row(
                 children: List.generate(headers.length, (i) => Container(
                   width: widths[i],
@@ -1461,7 +1462,7 @@ class _EmpHistoryTable extends StatelessWidget {
                     ),
                   ),
                   child: Text(headers[i],
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
                 )),
               ),
@@ -1520,7 +1521,7 @@ class _EmpHistoryTable extends StatelessWidget {
           hintText: hint,
           hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFE5E7EB)),
           suffixIcon: onTap != null
-              ? const Icon(Icons.calendar_today_rounded, size: 14, color: _blue)
+              ? Icon(Icons.calendar_today_rounded, size: 14, color: _blue)
               : null,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -1534,7 +1535,7 @@ class _EmpHistoryTable extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: _blue, width: 1.5),
+            borderSide: BorderSide(color: _blue, width: 1.5),
           ),
           filled: true,
           fillColor: const Color(0xFFFAFAFA),
@@ -1564,7 +1565,7 @@ class _ReferralTable extends StatelessWidget {
         ),
         child: Column(children: [
           Container(
-            color: const Color(0xFFEFF6FF),
+            color: AppTheme.lightBlue,
             child: Row(
               children: List.generate(headers.length, (i) => Container(
                 width: widths[i],
@@ -1577,7 +1578,7 @@ class _ReferralTable extends StatelessWidget {
                   ),
                 ),
                 child: Text(headers[i],
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
               )),
             ),
@@ -1634,7 +1635,7 @@ class _ReferralTable extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: _blue, width: 1.5),
+            borderSide: BorderSide(color: _blue, width: 1.5),
           ),
           filled: true,
           fillColor: const Color(0xFFFAFAFA),
@@ -1659,7 +1660,7 @@ class _FormSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEFF6FF)),
+        border: Border.all(color: AppTheme.lightBlue),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1752,7 +1753,7 @@ class _Field extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: _blue, width: 2),
+          borderSide: BorderSide(color: _blue, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -1783,7 +1784,7 @@ class _DateField extends StatelessWidget {
           decoration: InputDecoration(
             labelText: required ? '$label *' : label,
             labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-            suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: _blue),
+            suffixIcon: Icon(Icons.calendar_today_rounded, size: 18, color: _blue),
             filled: true, fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1793,7 +1794,7 @@ class _DateField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _blue, width: 2),
+              borderSide: BorderSide(color: _blue, width: 2),
             ),
           ),
         ),

@@ -5,8 +5,9 @@ import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _mgmtColor = Color(0xFF1D4ED8);
+Color get _mgmtColor => AppTheme.sidebarSelectedBg;
 
 class ManagementInterviewReviewPage extends StatefulWidget {
   const ManagementInterviewReviewPage({super.key});
@@ -118,7 +119,7 @@ class _ManagementInterviewReviewPageState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Approve Candidate',
+        title: Text('Approve Candidate',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -201,7 +202,7 @@ class _ManagementInterviewReviewPageState
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Management Comment',
+        title: Text('Management Comment',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -349,7 +350,7 @@ class _ManagementInterviewReviewPageState
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Approve Form v$vNum',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: _mgmtColor)),
@@ -492,11 +493,11 @@ class _ManagementInterviewReviewPageState
                     color: _mgmtColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.admin_panel_settings_rounded,
+                  child: Icon(Icons.admin_panel_settings_rounded,
                       color: _mgmtColor, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -520,11 +521,11 @@ class _ManagementInterviewReviewPageState
                           _fetchFormVersions();
                         },
                   icon: (_candidatesLoading || _formLoading)
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18, height: 18,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: _mgmtColor))
-                      : const Icon(Icons.refresh_rounded, color: _mgmtColor),
+                      : Icon(Icons.refresh_rounded, color: _mgmtColor),
                 ),
               ]),
               const SizedBox(height: 12),
@@ -572,7 +573,7 @@ class _ManagementInterviewReviewPageState
             children: [
               // Tab 1: Candidate Reviews
               _candidatesLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(color: _mgmtColor))
                   : _candidatesError != null
                       ? _ErrorView(
@@ -596,7 +597,7 @@ class _ManagementInterviewReviewPageState
 
               // Tab 2: Form Approvals
               _formLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(color: _mgmtColor))
                   : _formError != null
                       ? _ErrorView(
@@ -684,10 +685,10 @@ class _CandidateList extends StatelessWidget {
                     CircleAvatar(
                       radius: 22,
                       backgroundColor:
-                          const Color(0xFF1D4ED8).withValues(alpha: 0.1),
+                          AppTheme.sidebarSelectedBg.withValues(alpha: 0.1),
                       child: Text(
                         name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: _mgmtColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 17),
@@ -699,7 +700,7 @@ class _CandidateList extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(name.isEmpty ? 'Unknown' : name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                     color: _mgmtColor)),
@@ -990,7 +991,7 @@ class _AFPendingCardState extends State<_AFPendingCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF3B82F6), width: 1.5),
+        border: Border.all(color: AppTheme.accentBlue, width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -998,8 +999,8 @@ class _AFPendingCardState extends State<_AFPendingCard> {
         // Header
         Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-          decoration: const BoxDecoration(
-            color: Color(0xFFEFF6FF),
+          decoration: BoxDecoration(
+            color: AppTheme.lightBlue,
             borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
           ),
           child: Row(children: [
@@ -1218,7 +1219,7 @@ class _AFHistoryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(color: _mgmtColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-            child: Text('Form v$vNum', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _mgmtColor)),
+            child: Text('Form v$vNum', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _mgmtColor)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1494,9 +1495,9 @@ class _EmptyCandidates extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.inbox_rounded, size: 52, color: Color(0xFF3B82F6)),
+        Icon(Icons.inbox_rounded, size: 52, color: AppTheme.accentBlue),
         SizedBox(height: 12),
         Text('No candidates pending approval',
             style: TextStyle(
@@ -1514,9 +1515,9 @@ class _EmptyFormVersions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.edit_document, size: 52, color: Color(0xFF3B82F6)),
+        Icon(Icons.edit_document, size: 52, color: AppTheme.accentBlue),
         SizedBox(height: 12),
         Text('No form edit requests',
             style: TextStyle(
@@ -1538,10 +1539,10 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.cloud_off_rounded,
-            size: 52, color: Color(0xFF3B82F6)),
+        Icon(Icons.cloud_off_rounded,
+            size: 52, color: AppTheme.accentBlue),
         const SizedBox(height: 12),
-        const Text('Could not load data',
+        Text('Could not load data',
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

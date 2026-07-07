@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../widgets/back_button.dart';
 import 'my_attendance_page.dart';
 import 'employee_leave_page.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 // Combines MyAttendancePage and EmployeeLeavePage into one scrollable page
 // under a single sidebar entry ("My Attendance and Leaves").
@@ -31,7 +32,7 @@ class MyAttendanceAndLeavePage extends StatelessWidget {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.event_note_rounded, color: _blue, size: 22),
+              child: Icon(Icons.event_note_rounded, color: _blue, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(

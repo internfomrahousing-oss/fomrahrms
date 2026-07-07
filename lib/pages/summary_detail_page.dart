@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/section_detail_page.dart';
+import '../theme/app_theme.dart';
 
 class _SectionData {
   final String title;
@@ -12,10 +13,10 @@ class _SectionData {
 }
 
 final _sectionMap = {
-  'employee': const _SectionData(
+  'employee': _SectionData(
     'Employee Summary',
     Icons.people_rounded,
-    Color(0xFF2563EB),
+    AppTheme.primaryBlue,
     ['Total Employees', 'Active Employees', 'Employees on Leave', 'Employees on Permission', 'Employees Working Remotely'],
   ),
   'attendance': const _SectionData(
@@ -24,10 +25,10 @@ final _sectionMap = {
     Color(0xFF22C55E),
     ['Present Today', 'Absent Today', 'Late Arrivals', 'On Permission', 'Comp Off', 'On Duty'],
   ),
-  'task': const _SectionData(
+  'task': _SectionData(
     'Task Summary',
     Icons.task_alt_rounded,
-    Color(0xFF2563EB),
+    AppTheme.primaryBlue,
     ['Tasks Assigned', 'Tasks In Progress', 'Tasks Completed', 'Overdue Tasks', 'Productivity Percentage'],
   ),
   'performance': const _SectionData(
@@ -36,10 +37,10 @@ final _sectionMap = {
     Color(0xFF15803D),
     ['Top Performers', 'Low Performers', 'Department Performance Score', 'Employee Ranking'],
   ),
-  'payroll': const _SectionData(
+  'payroll': _SectionData(
     'Payroll Summary',
     Icons.account_balance_wallet_rounded,
-    Color(0xFF3B82F6),
+    AppTheme.accentBlue,
     ['Payroll Processed', 'Pending Payroll', 'Total Salary Expense', 'Incentives Generated'],
   ),
   'lead': const _SectionData(

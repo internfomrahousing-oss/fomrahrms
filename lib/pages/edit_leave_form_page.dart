@@ -3,10 +3,11 @@ import '../models/leave_form_config.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _blue   = Color(0xFF2563EB);
-const _purple = Color(0xFF2563EB);
-const _teal   = Color(0xFF3B82F6);
+Color get _blue => AppTheme.primaryBlue;
+Color get _purple => AppTheme.primaryBlue;
+Color get _teal => AppTheme.accentBlue;
 const _green  = Color(0xFF22C55E);
 
 class _Section {
@@ -25,7 +26,7 @@ class _FormGroup {
   const _FormGroup(this.formName, this.formIcon, this.color, this.sections);
 }
 
-const _formGroups = [
+List<_FormGroup> get _formGroups => [
   _FormGroup('Apply Leave Form', Icons.event_note_rounded, _purple, [
     _Section('leave_types', 'Leave Types', Icons.event_available_rounded,
         'Dropdown options in the Apply Leave form.'),
@@ -116,7 +117,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Update & Publish',
+        title: Text('Update & Publish',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
             'This will immediately update the Leave, Permission, and Comp Off forms for all employees.',
@@ -190,7 +191,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Send for Approval',
+        title: Text('Send for Approval',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: const Text(
             'The updated form options will be sent to Management for approval. '
@@ -454,10 +455,10 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.edit_note_rounded, color: _blue, size: 22),
+              child: Icon(Icons.edit_note_rounded, color: _blue, size: 22),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Edit Leave Forms',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
@@ -490,9 +491,9 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
               tooltip: 'Refresh',
               onPressed: _loading ? null : _load,
               icon: _loading
-                  ? const SizedBox(width: 18, height: 18,
+                  ? SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
-                  : const Icon(Icons.refresh_rounded, color: _blue),
+                  : Icon(Icons.refresh_rounded, color: _blue),
             ),
           ]),
         ),
@@ -501,7 +502,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         // ── Body ────────────────────────────────────────────────────────────
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: _blue))
+              ? Center(child: CircularProgressIndicator(color: _blue))
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Center(
@@ -514,12 +515,12 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: AppTheme.lightBlue,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: const Color(0xFFDBEAFE)),
                             ),
                             child: Row(children: [
-                              const Icon(Icons.info_outline_rounded, color: _blue, size: 18),
+                              Icon(Icons.info_outline_rounded, color: _blue, size: 18),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -548,7 +549,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                           const _HeadingRow(label: 'Version History', icon: Icons.history_rounded),
                           const SizedBox(height: 12),
                           if (_historyLoading)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.all(24),
                               child: Center(child: CircularProgressIndicator(color: _blue)),
                             )
@@ -769,7 +770,7 @@ class _VersionCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text('v$vNum',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _blue)),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _blue)),
           ),
           const SizedBox(width: 10),
           Expanded(

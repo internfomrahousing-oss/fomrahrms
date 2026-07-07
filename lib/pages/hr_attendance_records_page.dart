@@ -7,6 +7,7 @@ import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class HrAttendanceRecordsPage extends StatefulWidget {
   final String routePrefix;
@@ -18,7 +19,7 @@ class HrAttendanceRecordsPage extends StatefulWidget {
 }
 
 class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   String _search = '';
   DateTime _selectedDate = DateTime.now();
@@ -121,7 +122,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                     _loadRecords();
                   },
                   borderRadius: BorderRadius.circular(20),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(10),
                     child: Icon(Icons.chevron_left_rounded, size: 28, color: _color),
                   ),
@@ -137,7 +138,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                       Text(
                         _fmtDate(_selectedDate),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w700, color: _color),
                       ),
                       if (isToday)
@@ -196,7 +197,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                 color: _color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.access_time_rounded, color: _color, size: 26),
+              child: Icon(Icons.access_time_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -211,10 +212,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18, height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: _color))
-                      : const Icon(Icons.refresh_rounded, color: _color, size: 22),
+                      : Icon(Icons.refresh_rounded, color: _color, size: 22),
                 ),
               ),
             ),
@@ -235,10 +236,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                       color: _color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.people_alt_rounded, color: _color, size: 22),
+                    child: Icon(Icons.people_alt_rounded, color: _color, size: 22),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Employee Attendance Records',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
@@ -247,7 +248,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                           style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                     ]),
                   ),
-                  const Icon(Icons.chevron_right_rounded, color: _color),
+                  Icon(Icons.chevron_right_rounded, color: _color),
                 ]),
               ),
             ),
@@ -262,7 +263,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
                   hintText: 'Search employee...',
-                  prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
+                  prefixIcon: Icon(Icons.search_rounded, color: _color, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -270,7 +271,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: _color, width: 2),
+                    borderSide: BorderSide(color: _color, width: 2),
                   ),
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surface,
@@ -286,7 +287,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
           const SizedBox(height: 16),
 
           if (_isLoading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator(color: _color)),
             )
@@ -331,8 +332,8 @@ class _AttendanceSummaryCard extends StatelessWidget {
       ('Present', '$present', Icons.check_circle_rounded, _green),
       ('Absent',  '$absent',  Icons.cancel_rounded,       const Color(0xFFEF4444)),
       ('Late Arrivals', '—', Icons.schedule_rounded,      const Color(0xFFF59E0B)),
-      ('On Permission', '—', Icons.event_note_rounded,    const Color(0xFF3B82F6)),
-      ('Comp Off',      '—', Icons.weekend_rounded,       const Color(0xFF2563EB)),
+      ('On Permission', '—', Icons.event_note_rounded,    AppTheme.accentBlue),
+      ('Comp Off',      '—', Icons.weekend_rounded,       AppTheme.primaryBlue),
       ('On Duty',       '—', Icons.work_rounded,          const Color(0xFF15803D)),
     ];
 
@@ -486,7 +487,7 @@ class _AttendanceDetailDialog extends StatelessWidget {
   final AttendanceRecord record;
   const _AttendanceDetailDialog({required this.record});
 
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +510,7 @@ class _AttendanceDetailDialog extends StatelessWidget {
                     color: _color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.access_time_rounded, color: _color, size: 24),
+                  child: Icon(Icons.access_time_rounded, color: _color, size: 24),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -597,7 +598,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+      Icon(icon, size: 16, color: AppTheme.primaryBlue),
       const SizedBox(width: 10),
       Text('$label:',
           style: const TextStyle(
@@ -708,7 +709,7 @@ class _RouteMapState extends State<_RouteMap> {
     final last = pts.last;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Icon(Icons.route_rounded, size: 15, color: Color(0xFF3B82F6)),
+        Icon(Icons.route_rounded, size: 15, color: AppTheme.accentBlue),
         const SizedBox(width: 6),
         Text(
           pts.length > 1 ? 'Route (${pts.length} points)' : 'Last Known Location',
@@ -745,7 +746,7 @@ class _EmployeeListSheet extends StatefulWidget {
 }
 
 class _EmployeeListSheetState extends State<_EmployeeListSheet> {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
   List<AppUser> _all = [];
   List<AppUser> _filtered = [];
   bool _loading = true;
@@ -813,7 +814,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.people_alt_rounded, color: _color, size: 20),
+                child: Icon(Icons.people_alt_rounded, color: _color, size: 20),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -836,7 +837,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
               onChanged: _filter,
               decoration: InputDecoration(
                 hintText: 'Search by name or designation...',
-                prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
+                prefixIcon: Icon(Icons.search_rounded, color: _color, size: 20),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -844,7 +845,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: _color, width: 2),
+                  borderSide: BorderSide(color: _color, width: 2),
                 ),
                 filled: true,
                 fillColor: cs.surface,
@@ -858,7 +859,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
           // List
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: _color, strokeWidth: 2))
+                ? Center(child: CircularProgressIndicator(color: _color, strokeWidth: 2))
                 : _filtered.isEmpty
                     ? Center(
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -884,7 +885,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
                               backgroundColor: _color.withValues(alpha: 0.1),
                               child: Text(
                                 emp.name.isNotEmpty ? emp.name[0].toUpperCase() : '?',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: _color, fontWeight: FontWeight.w700, fontSize: 14),
                               ),
                             ),
@@ -894,7 +895,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
                                 ? Text(emp.designation,
                                     style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)))
                                 : null,
-                            trailing: const Icon(Icons.chevron_right_rounded, color: _color),
+                            trailing: Icon(Icons.chevron_right_rounded, color: _color),
                             onTap: () {
                               Navigator.of(context).pop();
                               widget.parentContext.go(

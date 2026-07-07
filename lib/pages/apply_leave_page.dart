@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class ApplyLeavePage extends StatefulWidget {
   const ApplyLeavePage({super.key});
@@ -15,7 +16,7 @@ class ApplyLeavePage extends StatefulWidget {
 }
 
 class _ApplyLeavePageState extends State<ApplyLeavePage> {
-  static const _color = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
 
   // Populated from Supabase config; falls back to LeaveFormConfig defaults.
   List<String> _allLeaveTypes = List<String>.from(LeaveFormConfig.defaultLeaveTypes);
@@ -188,7 +189,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: _color),
+          colorScheme: ColorScheme.light(primary: _color),
         ),
         child: child!,
       ),
@@ -213,7 +214,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: _color),
+          colorScheme: ColorScheme.light(primary: _color),
         ),
         child: child!,
       ),
@@ -367,7 +368,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.event_available_rounded, color: _color, size: 26),
+                child: Icon(Icons.event_available_rounded, color: _color, size: 26),
               ),
               const SizedBox(width: 16),
               Text('Apply Leave', style: Theme.of(context).textTheme.headlineMedium),
@@ -386,7 +387,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                       isExpanded: true,
                       decoration: InputDecoration(
                         labelText: 'Leave Type',
-                        prefixIcon: const Icon(Icons.label_rounded, color: _color, size: 20),
+                        prefixIcon: Icon(Icons.label_rounded, color: _color, size: 20),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -394,7 +395,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: _color, width: 2),
+                          borderSide: BorderSide(color: _color, width: 2),
                         ),
                         filled: true, fillColor: Colors.white,
                         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
@@ -485,7 +486,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                           ),
                           child: Text(
                             _fmtEffective(_effectiveDays),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: _color,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13),
@@ -546,7 +547,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                       decoration: InputDecoration(
                         labelText: 'Reason',
                         alignLabelWithHint: true,
-                        prefixIcon: const Padding(
+                        prefixIcon: Padding(
                           padding: EdgeInsets.only(bottom: 60),
                           child: Icon(Icons.notes_rounded, color: _color, size: 20),
                         ),
@@ -557,7 +558,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: _color, width: 2),
+                          borderSide: BorderSide(color: _color, width: 2),
                         ),
                         filled: true, fillColor: Colors.white,
                         labelStyle: const TextStyle(color: Color(0xFF6B7280)),

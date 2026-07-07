@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class ManagementLeavePage extends StatelessWidget {
   const ManagementLeavePage({super.key});
 
   static const _color = Color(0xFF111827);
 
-  static const _topics = [
+  static List<_Topic> get _topics => [
     _Topic(
       'Leave Management',
       Icons.folder_shared_rounded,
-      Color(0xFF2563EB),
+      AppTheme.primaryBlue,
       '/management/leave/overview',
       'All employee leaves — approve, deny, or edit any decision company-wide.',
     ),
@@ -25,7 +26,7 @@ class ManagementLeavePage extends StatelessWidget {
     _Topic(
       'Edit Leave Forms',
       Icons.edit_note_rounded,
-      Color(0xFF2563EB),
+      AppTheme.primaryBlue,
       '/management/edit-leave-form',
       'Approve HR requests or directly update Leave, Permission & Comp Off form options.',
     ),

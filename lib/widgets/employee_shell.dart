@@ -123,7 +123,7 @@ class _NarrowLayout extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentTitle),
-        backgroundColor: const Color(0xFF3B82F6),
+        backgroundColor: AppTheme.accentBlue,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           const ThemeToggle(),

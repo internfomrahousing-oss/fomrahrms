@@ -4,8 +4,9 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _blue  = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 const _green = Color(0xFF22C55E);
 
 class FormApprovalsPage extends StatefulWidget {
@@ -176,10 +177,10 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                   color: _blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.approval_rounded, color: _blue, size: 22),
+                child: Icon(Icons.approval_rounded, color: _blue, size: 22),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Form Change Approvals',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
@@ -190,7 +191,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
               IconButton(
                 tooltip: 'Refresh',
                 onPressed: _load,
-                icon: const Icon(Icons.refresh_rounded, color: _blue),
+                icon: Icon(Icons.refresh_rounded, color: _blue),
               ),
             ]),
             const SizedBox(height: 16),
@@ -213,7 +214,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
         const Divider(height: 1),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: _blue))
+              ? Center(child: CircularProgressIndicator(color: _blue))
               : TabBarView(
                   controller: _tabs,
                   children: [
@@ -447,7 +448,7 @@ class _VersionCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(vLabel,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.bold, color: _blue)),
           ),
           const SizedBox(width: 10),

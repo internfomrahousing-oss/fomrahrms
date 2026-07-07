@@ -7,8 +7,9 @@ import '../services/user_store.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF2563EB);
+Color get _blue => AppTheme.primaryBlue;
 
 class InterviewProcessPage extends StatefulWidget {
   const InterviewProcessPage({super.key});
@@ -173,7 +174,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Assign to Manager',
+          title: Text('Assign to Manager',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text('Choose which manager should review this candidate:',
@@ -298,7 +299,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('HR Comment',
+        title: Text('HR Comment',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _blue)),
         content: TextField(
           controller: commentCtrl,
@@ -470,13 +471,13 @@ Fomra Housing & Infrastructure Pvt Ltd''';
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  color: AppTheme.accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.mail_outline_rounded, color: Color(0xFF3B82F6), size: 18),
+                child: Icon(Icons.mail_outline_rounded, color: AppTheme.accentBlue, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text('Send Offer Letter',
+              Text('Send Offer Letter',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
             ]),
             content: SizedBox(
@@ -569,7 +570,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(children: [
-                              const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF3B82F6)),
+                              Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.accentBlue),
                               const SizedBox(width: 8),
                               Text(_fmtDate(joiningDate),
                                   style: const TextStyle(fontSize: 13, color: Color(0xFF111827))),
@@ -603,7 +604,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(children: [
-                              const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF3B82F6)),
+                              Icon(Icons.access_time_rounded, size: 14, color: AppTheme.accentBlue),
                               const SizedBox(width: 8),
                               Text(_fmtTime(joiningTime),
                                   style: const TextStyle(fontSize: 13, color: Color(0xFF111827))),
@@ -678,7 +679,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 icon: const Icon(Icons.open_in_new_rounded, size: 15),
                 label: const Text('Send Offer Letter'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
+                  backgroundColor: AppTheme.accentBlue,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -729,7 +730,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                       color: _blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.record_voice_over_rounded,
+                    child: Icon(Icons.record_voice_over_rounded,
                         color: _blue, size: 20),
                   ),
                   const SizedBox(width: 12),
@@ -737,7 +738,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Interview Process',
+                        Text('Interview Process',
                             style: TextStyle(fontSize: 22,
                                 fontWeight: FontWeight.bold, color: _blue)),
                         Text(
@@ -763,7 +764,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                         style: TextStyle(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _blue,
-                      side: const BorderSide(color: _blue),
+                      side: BorderSide(color: _blue),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                       shape: RoundedRectangleBorder(
@@ -800,7 +801,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     label: const Text('Edit Form',
                         style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
+                      backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
@@ -814,11 +815,11 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     tooltip: 'Refresh',
                     onPressed: _loading ? null : _fetch,
                     icon: _loading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18, height: 18,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: _blue))
-                        : const Icon(Icons.refresh_rounded, color: _blue),
+                        : Icon(Icons.refresh_rounded, color: _blue),
                   ),
                 ]),
 
@@ -853,17 +854,17 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                       side: BorderSide(color: _filter == 'done' ? const Color(0xFF22C55E) : Colors.grey.shade300),
                     ),
                     FilterChip(
-                      avatar: const Icon(Icons.mark_email_read_rounded, size: 13, color: Color(0xFF2563EB)),
+                      avatar: Icon(Icons.mark_email_read_rounded, size: 13, color: AppTheme.primaryBlue),
                       label: Text('Pre Offer & Onboarding Sent ($_preOfferCount)'),
                       selected: _filter == 'pre_offer',
                       onSelected: (_) => setState(() { _filter = 'pre_offer'; _applyFilter(); }),
                       selectedColor: const Color(0xFFEDE7F6),
-                      checkmarkColor: const Color(0xFF2563EB),
+                      checkmarkColor: AppTheme.primaryBlue,
                       labelStyle: TextStyle(
-                          color: _filter == 'pre_offer' ? const Color(0xFF2563EB) : Colors.grey.shade600,
+                          color: _filter == 'pre_offer' ? AppTheme.primaryBlue : Colors.grey.shade600,
                           fontWeight: _filter == 'pre_offer' ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12),
-                      side: BorderSide(color: _filter == 'pre_offer' ? const Color(0xFF2563EB) : Colors.grey.shade300),
+                      side: BorderSide(color: _filter == 'pre_offer' ? AppTheme.primaryBlue : Colors.grey.shade300),
                     ),
                     FilterChip(
                       label: Text('All Applications (${_all.length})'),
@@ -883,7 +884,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     controller: _searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'Search applications…',
-                      prefixIcon: const Icon(Icons.search_rounded,
+                      prefixIcon: Icon(Icons.search_rounded,
                           color: _blue, size: 20),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
@@ -908,7 +909,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
           // ── Body ────────────────────────────────────────────────────
           Expanded(
             child: _loading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(color: _blue))
                 : _error != null
                     ? _ErrorView(error: _error!, onRetry: _fetch)
@@ -1009,10 +1010,10 @@ class _ApplicationCard extends StatelessWidget {
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                 child: Text(
                   name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: _blue, fontWeight: FontWeight.bold, fontSize: 17),
                 ),
               ),
@@ -1021,7 +1022,7 @@ class _ApplicationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name.isEmpty ? 'Unknown' : name,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w700, color: _blue)),
                   const SizedBox(height: 3),
                   Text('Submitted: $dateStr',
@@ -1104,14 +1105,14 @@ class _ApplicationCard extends StatelessWidget {
                     color: const Color(0xFFEDE7F6),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(children: [
+                  child: Row(children: [
                     Icon(Icons.mark_email_read_rounded,
-                        size: 15, color: Color(0xFF2563EB)),
+                        size: 15, color: AppTheme.primaryBlue),
                     SizedBox(width: 6),
                     Text('Pre Offer & Onboarding Sent',
                         style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF2563EB),
+                            color: AppTheme.primaryBlue,
                             fontWeight: FontWeight.w600)),
                   ]),
                 ),
@@ -1186,7 +1187,7 @@ class _ApplicationCard extends StatelessWidget {
                 _ActionButton(
                   label: 'Send Email',
                   icon: Icons.mail_outline_rounded,
-                  color: const Color(0xFF3B82F6),
+                  color: AppTheme.accentBlue,
                   onTap: onSendEmail!,
                   highlight: true,
                 ),
@@ -1308,7 +1309,7 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.inbox_rounded, size: 52, color: Color(0xFFDBEAFE)),
         SizedBox(height: 12),
@@ -1333,7 +1334,7 @@ class _ErrorView extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFDBEAFE)),
         const SizedBox(height: 12),
-        const Text('Could not load applications',
+        Text('Could not load applications',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _blue)),
         const SizedBox(height: 6),

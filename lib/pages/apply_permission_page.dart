@@ -4,6 +4,7 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class ApplyPermissionPage extends StatefulWidget {
   const ApplyPermissionPage({super.key});
@@ -13,7 +14,7 @@ class ApplyPermissionPage extends StatefulWidget {
 }
 
 class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
 
   // Populated from Supabase config; falls back to LeaveFormConfig defaults.
   List<String> _durations = List<String>.from(LeaveFormConfig.defaultPermissionDurations);
@@ -74,7 +75,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.light(primary: _color)),
+            colorScheme: ColorScheme.light(primary: _color)),
         child: child!,
       ),
     );
@@ -161,7 +162,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
                 color: _color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.access_time_rounded, color: _color, size: 26),
+              child: Icon(Icons.access_time_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
             Text('Apply Permission',
@@ -233,7 +234,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
                     decoration: InputDecoration(
                       labelText: 'Description',
                       alignLabelWithHint: true,
-                      prefixIcon: const Padding(
+                      prefixIcon: Padding(
                         padding: EdgeInsets.only(bottom: 72),
                         child: Icon(Icons.notes_rounded, color: _color, size: 20),
                       ),
@@ -245,7 +246,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: _color, width: 2),
+                        borderSide: BorderSide(color: _color, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
@@ -267,7 +268,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
                 label: const Text('Clear'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _color,
-                  side: const BorderSide(color: _color),
+                  side: BorderSide(color: _color),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -306,7 +307,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: _color, width: 2),
+      borderSide: BorderSide(color: _color, width: 2),
     ),
     filled: true,
     fillColor: Colors.white,

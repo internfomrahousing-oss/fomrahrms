@@ -3,6 +3,7 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class MyLeaveApprovalsPage extends StatefulWidget {
   const MyLeaveApprovalsPage({super.key});
@@ -12,7 +13,7 @@ class MyLeaveApprovalsPage extends StatefulWidget {
 }
 
 class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
 
   bool _loading = false;
 
@@ -64,7 +65,7 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
                   color: _color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.approval_rounded,
+                child: Icon(Icons.approval_rounded,
                     color: _color, size: 26),
               ),
               const SizedBox(width: 16),
@@ -73,7 +74,7 @@ class _MyLeaveApprovalsPageState extends State<MyLeaveApprovalsPage> {
               const Spacer(),
               IconButton(
                 tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded, color: _color),
+                icon: Icon(Icons.refresh_rounded, color: _color),
                 onPressed: _loadData,
               ),
             ]),

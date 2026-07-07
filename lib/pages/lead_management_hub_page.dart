@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../services/lead_service.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class LeadManagementHubPage extends StatefulWidget {
   final String basePath; // e.g. '/lead-management' or '/management/lead-management'
@@ -13,7 +14,7 @@ class LeadManagementHubPage extends StatefulWidget {
 }
 
 class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
-  static const _blue   = Color(0xFF2563EB);
+  static Color get _blue => AppTheme.primaryBlue;
 
   List<LeadSource> _sources = [];
   bool _loading = true;
@@ -242,8 +243,8 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF2563EB),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Row(children: [
@@ -323,8 +324,8 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
         children: [
           Container(
             width: 26, height: 26,
-            decoration: const BoxDecoration(
-              color: Color(0xFF2563EB),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -396,7 +397,7 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                         color: _blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.leaderboard_rounded,
+                      child: Icon(Icons.leaderboard_rounded,
                           color: _blue, size: 26),
                     ),
                     const SizedBox(width: 16),

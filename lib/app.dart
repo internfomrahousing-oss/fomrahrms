@@ -110,7 +110,7 @@ final _router = GoRouter(
   errorBuilder: (context, state) => Scaffold(
     body: Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline, size: 48, color: Color(0xFF2563EB)),
+        Icon(Icons.error_outline, size: 48, color: AppTheme.primaryBlue),
         const SizedBox(height: 16),
         const Text('Page not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
@@ -160,16 +160,16 @@ final _router = GoRouter(
         GoRoute(path: '/attendance/gps-tracking',         builder: (_, __) => const GpsTrackingPage()),
         GoRoute(path: '/attendance/late-coming',           builder: (_, __) => const LateComingPage()),
         GoRoute(path: '/attendance/employee-records', builder: (_, __) => const HrAttendanceRecordsPage(routePrefix: '')),
-        GoRoute(path: '/attendance/hr/check-in',      builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'Check In', icon: Icons.login_rounded, color: Color(0xFF2563EB),
+        GoRoute(path: '/attendance/hr/check-in',      builder: (_, __) => HrAttendanceDetailPage(
+          title: 'Check In', icon: Icons.login_rounded, color: AppTheme.primaryBlue,
           columns: ['Employee', 'Date', 'Check-In Time', 'GPS Location', 'Status'],
         )),
-        GoRoute(path: '/attendance/hr/check-out',     builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'Check Out', icon: Icons.logout_rounded, color: Color(0xFF3B82F6),
+        GoRoute(path: '/attendance/hr/check-out',     builder: (_, __) => HrAttendanceDetailPage(
+          title: 'Check Out', icon: Icons.logout_rounded, color: AppTheme.accentBlue,
           columns: ['Employee', 'Date', 'Check-Out Time', 'GPS Location', 'Status'],
         )),
-        GoRoute(path: '/attendance/hr/gps-tracking',  builder: (_, __) => const HrAttendanceDetailPage(
-          title: 'GPS Tracking', icon: Icons.location_on_rounded, color: Color(0xFF3B82F6),
+        GoRoute(path: '/attendance/hr/gps-tracking',  builder: (_, __) => HrAttendanceDetailPage(
+          title: 'GPS Tracking', icon: Icons.location_on_rounded, color: AppTheme.accentBlue,
           columns: ['Employee', 'Date', 'Last Location', 'Route Points', 'Time'],
         )),
         GoRoute(path: '/attendance/hr/late-coming',   builder: (_, __) => const HrAttendanceDetailPage(

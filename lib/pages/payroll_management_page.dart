@@ -7,6 +7,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class PayrollManagementPage extends StatefulWidget {
   const PayrollManagementPage({super.key});
@@ -16,8 +17,8 @@ class PayrollManagementPage extends StatefulWidget {
 }
 
 class _PayrollManagementPageState extends State<PayrollManagementPage> {
-  static const _color  = Color(0xFF2563EB);
-  static const _purple = Color(0xFF2563EB);
+  static Color get _color => AppTheme.primaryBlue;
+  static Color get _purple => AppTheme.primaryBlue;
 
   bool _loading = true;
   bool _elExpanded = false;
@@ -112,7 +113,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                 color: _color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.account_balance_wallet_rounded, color: _color, size: 26),
+              child: Icon(Icons.account_balance_wallet_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -122,7 +123,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
             const Spacer(),
             IconButton(
               tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh_rounded, color: _color),
+              icon: Icon(Icons.refresh_rounded, color: _color),
               onPressed: _reload,
             ),
           ]),
@@ -156,12 +157,12 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                               color: _purple.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.card_giftcard_rounded, color: _purple, size: 20),
+                            child: Icon(Icons.card_giftcard_rounded, color: _purple, size: 20),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              const Text('EL Encashment',
+                              Text('EL Encashment',
                                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _purple)),
                               Text(
                                 elEmployees.isEmpty
@@ -239,7 +240,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                                   backgroundColor: _purple.withValues(alpha: 0.12),
                                   child: Text(
                                     u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-                                    style: const TextStyle(color: _purple,
+                                    style: TextStyle(color: _purple,
                                         fontWeight: FontWeight.bold, fontSize: 14),
                                   ),
                                 ),
@@ -261,7 +262,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(color: _purple.withValues(alpha: 0.25)),
                                   ),
-                                  child: const Text('EL Eligible',
+                                  child: Text('EL Eligible',
                                       style: TextStyle(fontSize: 10, color: _purple,
                                           fontWeight: FontWeight.w600)),
                                 ),
@@ -394,7 +395,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                             backgroundColor: _color.withValues(alpha: 0.12),
                             child: Text(
                               u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-                              style: const TextStyle(color: _color,
+                              style: TextStyle(color: _color,
                                   fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
@@ -449,7 +450,7 @@ class _BalanceStat extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 28, color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+      Container(width: 1, height: 28, color: AppTheme.primaryBlue.withValues(alpha: 0.1),
           margin: const EdgeInsets.symmetric(horizontal: 4));
 }
 
@@ -463,7 +464,7 @@ class _ConfirmButton extends StatefulWidget {
 }
 
 class _ConfirmButtonState extends State<_ConfirmButton> {
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
   bool _loading = false;
 
   @override
@@ -497,7 +498,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'EL Eligible' => const Color(0xFF2563EB),
+      'EL Eligible' => AppTheme.primaryBlue,
       'On-Roll'     => const Color(0xFF22C55E),
       _             => const Color(0xFF6B7280),
     };
@@ -532,7 +533,7 @@ class _PayslipRequestsHeader extends StatelessWidget {
   const _PayslipRequestsHeader(
       {required this.requests, required this.expanded, required this.onTap});
 
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -553,12 +554,12 @@ class _PayslipRequestsHeader extends StatelessWidget {
               color: _purple.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.receipt_long_rounded, color: _purple, size: 20),
+            child: Icon(Icons.receipt_long_rounded, color: _purple, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Payslip Requests',
+              Text('Payslip Requests',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _purple)),
               Text(
                 requests.isEmpty
@@ -597,7 +598,7 @@ class _PayslipRequestTile extends StatelessWidget {
   final VoidCallback? onReview;
   const _PayslipRequestTile({required this.request, required this.user, required this.onReview});
 
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -620,7 +621,7 @@ class _PayslipRequestTile extends StatelessWidget {
           backgroundColor: _purple.withValues(alpha: 0.12),
           child: Text(
             request.employeeName.isNotEmpty ? request.employeeName[0].toUpperCase() : '?',
-            style: const TextStyle(color: _purple, fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(color: _purple, fontWeight: FontWeight.bold, fontSize: 13),
           ),
         ),
         const SizedBox(width: 10),
@@ -683,7 +684,7 @@ class _OptionField extends StatefulWidget {
 }
 
 class _OptionFieldState extends State<_OptionField> {
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
   late int _index = widget.defaultIndex;
   bool _custom = false;
   late final TextEditingController _customCtrl = TextEditingController();
@@ -770,7 +771,7 @@ class _OptionFieldState extends State<_OptionField> {
                 )
               : Text('₹${_amount.toStringAsFixed(0)}',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _purple)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _purple)),
         ),
       ]),
     );
@@ -787,7 +788,7 @@ class GeneratePayslipPage extends StatefulWidget {
 }
 
 class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
-  static const _purple = Color(0xFF2563EB);
+  static Color get _purple => AppTheme.primaryBlue;
   static const _lateCutoffMinutes = 9 * 60 + 30; // 9:30 AM
 
   late String _monthYear;
@@ -986,7 +987,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
             width: 100,
             child: Text('₹${value.toStringAsFixed(0)}',
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _purple)),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _purple)),
           ),
         ]),
       );
@@ -1010,7 +1011,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                       color: _purple.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.receipt_long_rounded, color: _purple, size: 26),
+                    child: Icon(Icons.receipt_long_rounded, color: _purple, size: 26),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -1099,7 +1100,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                 ]),
                 const SizedBox(height: 20),
 
-                const Text('Earnings', style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
+                Text('Earnings', style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
                 const SizedBox(height: 8),
                 _OptionField(
                   label: 'Basic',
@@ -1151,7 +1152,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                 _readOnlyAmount('Actual Gross Pay', _actualGrossPay),
                 const SizedBox(height: 16),
 
-                const Text('Deductions', style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
+                Text('Deductions', style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
                 const SizedBox(height: 8),
                 _readOnlyAmount('EPF', _epf),
                 _readOnlyAmount('Professional Tax', _professionalTax),
@@ -1183,7 +1184,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                     const Expanded(
                         child: Text('Net Pay', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15))),
                     Text('₹${_netPay.toStringAsFixed(0)}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: _purple)),
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: _purple)),
                   ]),
                 ),
                 const SizedBox(height: 24),

@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
 class MyTasksPage extends StatefulWidget {
   const MyTasksPage({super.key});
@@ -131,11 +132,11 @@ class _MyTasksPageState extends State<MyTasksPage> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  color: AppTheme.accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.task_alt_rounded,
-                    color: Color(0xFF3B82F6), size: 22),
+                child: Icon(Icons.task_alt_rounded,
+                    color: AppTheme.accentBlue, size: 22),
               ),
               const SizedBox(width: 14),
               Text('My Tasks',
@@ -143,7 +144,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
               const Spacer(),
               IconButton(
                 tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3B82F6)),
+                icon: Icon(Icons.refresh_rounded, color: AppTheme.accentBlue),
                 onPressed: _load,
               ),
               if (UserSession.role == UserRole.employee ||
@@ -160,7 +161,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('Add Task'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
+                    backgroundColor: AppTheme.accentBlue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 10),
@@ -186,7 +187,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                       selected: active,
                       onSelected: (_) =>
                           setState(() => _filter = f.$1),
-                      selectedColor: const Color(0xFF3B82F6),
+                      selectedColor: AppTheme.accentBlue,
                       checkmarkColor: Colors.white,
                       labelStyle: TextStyle(
                         fontSize: 12,
@@ -200,7 +201,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
                           color: active
-                              ? const Color(0xFF3B82F6)
+                              ? AppTheme.accentBlue
                               : const Color(0xFFE5E7EB),
                         ),
                       ),
@@ -219,15 +220,15 @@ class _MyTasksPageState extends State<MyTasksPage> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                color: AppTheme.accentBlue.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 '${tasks.length} task${tasks.length == 1 ? '' : 's'}',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF3B82F6)),
+                    color: AppTheme.accentBlue),
               ),
             ),
             const SizedBox(height: 16),
@@ -318,7 +319,7 @@ class _MyTaskCard extends StatefulWidget {
 class _MyTaskCardState extends State<_MyTaskCard> {
   bool _expanded = false;
 
-  static const _color = Color(0xFF3B82F6);
+  static Color get _color => AppTheme.accentBlue;
 
   Color _priorityColor(TaskPriority p) => switch (p) {
         TaskPriority.low      => Colors.green.shade600,
@@ -484,7 +485,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                     label: const Text('Mark as Received',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3B82F6),
+                      backgroundColor: AppTheme.accentBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

@@ -3,9 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../theme/app_theme.dart';
 
-const _mgmtColor = Color(0xFF1D4ED8);
-const _mgmtLight = Color(0xFFEFF6FF);
+Color get _mgmtColor => AppTheme.sidebarSelectedBg;
+Color get _mgmtLight => AppTheme.lightBlue;
 
 class _Role {
   String name;
@@ -113,7 +114,7 @@ class _AdministrationPageState extends State<AdministrationPage>
                         color: _mgmtLight,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.admin_panel_settings_rounded,
+                      child: Icon(Icons.admin_panel_settings_rounded,
                           color: _mgmtColor, size: 20),
                     ),
                     const SizedBox(width: 12),
@@ -193,7 +194,7 @@ class _UsersTab extends StatelessWidget {
         // ── Add user button ──────────────────────────────────────────────
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('All Users (${users.length})',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
           ElevatedButton.icon(
             onPressed: () => _showUserDialog(context, null),
@@ -293,7 +294,7 @@ class _UsersTab extends StatelessWidget {
                 IconButton(
                   tooltip: 'Edit User',
                   onPressed: () => _showUserDialog(context, u),
-                  icon: const Icon(Icons.edit_rounded, size: 18, color: _mgmtColor),
+                  icon: Icon(Icons.edit_rounded, size: 18, color: _mgmtColor),
                   visualDensity: VisualDensity.compact,
                 ),
                 IconButton(
@@ -346,7 +347,7 @@ class _UsersTab extends StatelessWidget {
         builder: (ctx, setS) => AlertDialog(
           title: Text(
             existing == null ? 'Create User' : 'Edit User',
-            style: const TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold),
+            style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold),
           ),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -358,8 +359,8 @@ class _UsersTab extends StatelessWidget {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  prefixIcon: const Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
-                  suffix: const Text('@fomrahousing.in',
+                  prefixIcon: Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
+                  suffix: Text('@fomrahousing.in',
                       style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   enabledBorder: OutlineInputBorder(
@@ -368,7 +369,7 @@ class _UsersTab extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: _mgmtColor, width: 2),
+                    borderSide: BorderSide(color: _mgmtColor, width: 2),
                   ),
                   filled: true, fillColor: Colors.white,
                   labelStyle: const TextStyle(color: Color(0xFF6B7280)),
@@ -383,7 +384,7 @@ class _UsersTab extends StatelessWidget {
                 value: selectedRole,
                 decoration: InputDecoration(
                   labelText: 'Role',
-                  prefixIcon: const Icon(Icons.shield_rounded, color: _mgmtColor, size: 20),
+                  prefixIcon: Icon(Icons.shield_rounded, color: _mgmtColor, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -391,7 +392,7 @@ class _UsersTab extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: _mgmtColor, width: 2),
+                    borderSide: BorderSide(color: _mgmtColor, width: 2),
                   ),
                   filled: true, fillColor: Colors.white,
                 ),
@@ -406,12 +407,12 @@ class _UsersTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.info_outline_rounded, size: 14, color: _mgmtColor),
+                  Icon(Icons.info_outline_rounded, size: 14, color: _mgmtColor),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _roleDashboardNote(selectedRole),
-                      style: const TextStyle(fontSize: 11, color: _mgmtColor),
+                      style: TextStyle(fontSize: 11, color: _mgmtColor),
                     ),
                   ),
                 ]),
@@ -422,7 +423,7 @@ class _UsersTab extends StatelessWidget {
                   value: managerNames.contains(selectedManager) ? selectedManager : null,
                   decoration: InputDecoration(
                     labelText: 'Reporting Manager',
-                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                    prefixIcon: Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -430,7 +431,7 @@ class _UsersTab extends StatelessWidget {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: _mgmtColor, width: 2),
+                      borderSide: BorderSide(color: _mgmtColor, width: 2),
                     ),
                     filled: true, fillColor: Colors.white,
                   ),
@@ -663,15 +664,15 @@ class _OnboardingTabState extends State<_OnboardingTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Edit Account Details', style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
+          title: Text('Edit Account Details', style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextField(
                 controller: emailCtrl,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  prefixIcon: const Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
-                  suffix: const Text('@fomrahousing.in',
+                  prefixIcon: Icon(Icons.email_rounded, color: _mgmtColor, size: 20),
+                  suffix: Text('@fomrahousing.in',
                       style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.w600, fontSize: 13)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
@@ -683,7 +684,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                 controller: empIdCtrl,
                 decoration: InputDecoration(
                   labelText: 'Employee ID',
-                  prefixIcon: const Icon(Icons.badge_rounded, color: _mgmtColor, size: 20),
+                  prefixIcon: Icon(Icons.badge_rounded, color: _mgmtColor, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true, fillColor: Colors.white,
                   labelStyle: const TextStyle(color: Color(0xFF6B7280)),
@@ -695,7 +696,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                   value: managers.contains(selectedManager) ? selectedManager : null,
                   decoration: InputDecoration(
                     labelText: 'Reporting Manager',
-                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                    prefixIcon: Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true, fillColor: Colors.white,
                   ),
@@ -707,7 +708,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                   controller: managerCtrl,
                   decoration: InputDecoration(
                     labelText: 'Reporting Manager',
-                    prefixIcon: const Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
+                    prefixIcon: Icon(Icons.manage_accounts_rounded, color: _mgmtColor, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true, fillColor: Colors.white,
                     labelStyle: const TextStyle(color: Color(0xFF6B7280)),
@@ -764,7 +765,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           child: Column(children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: _mgmtColor,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
               ),
@@ -808,7 +809,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _mgmtColor)),
+        Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const Divider(height: 10),
         ...rows,
       ],
@@ -839,7 +840,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
-    if (_loading) return const Center(child: CircularProgressIndicator(color: _mgmtColor));
+    if (_loading) return Center(child: CircularProgressIndicator(color: _mgmtColor));
     if (_error != null) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
@@ -862,10 +863,10 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         padding: EdgeInsets.fromLTRB(narrow ? 16 : 24, narrow ? 12 : 16, narrow ? 16 : 24, 0),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('HR Forwarded (${_forms.length})',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _mgmtColor)),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _mgmtColor)),
           IconButton(
             tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded, color: _mgmtColor),
+            icon: Icon(Icons.refresh_rounded, color: _mgmtColor),
             onPressed: _load,
           ),
         ]),
@@ -907,7 +908,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                             backgroundColor: _mgmtColor.withValues(alpha: 0.12),
                             child: Text(
                               ((f['name'] as String?) ?? '?')[0].toUpperCase(),
-                              style: const TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold, fontSize: 18),
+                              style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold, fontSize: 18),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -935,12 +936,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                             width: double.infinity,
                             padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: AppTheme.lightBlue,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                const Text('Account details (set by HR):',
+                                Text('Account details (set by HR):',
                                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _mgmtColor)),
                                 const SizedBox(height: 5),
                                 _DetailRow(Icons.email_rounded,           'Email',    f['assigned_email']   as String? ?? '—'),
@@ -950,7 +951,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                               if (status == 'hr_approved')
                                 IconButton(
                                   tooltip: 'Edit details',
-                                  icon: const Icon(Icons.edit_rounded, size: 16, color: _mgmtColor),
+                                  icon: Icon(Icons.edit_rounded, size: 16, color: _mgmtColor),
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () => _editAssigned(context, f),
                                 ),
@@ -966,7 +967,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                             label: const Text('View Details', style: TextStyle(fontSize: 12)),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: _mgmtColor,
-                              side: const BorderSide(color: _mgmtColor),
+                              side: BorderSide(color: _mgmtColor),
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
@@ -1027,7 +1028,7 @@ class _DetailRow extends StatelessWidget {
       child: Row(children: [
         Icon(icon, size: 12, color: _mgmtColor),
         const SizedBox(width: 5),
-        Text('$label: ', style: const TextStyle(fontSize: 11, color: _mgmtColor, fontWeight: FontWeight.w600)),
+        Text('$label: ', style: TextStyle(fontSize: 11, color: _mgmtColor, fontWeight: FontWeight.w600)),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF111827)))),
       ]),
     );
@@ -1067,7 +1068,7 @@ class _RolesTab extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.all(hPad),
       children: [
-        const Text('System Roles',
+        Text('System Roles',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const SizedBox(height: 4),
         const Text('Edit role names and descriptions as needed.',
@@ -1102,7 +1103,7 @@ class _RolesTab extends StatelessWidget {
                 IconButton(
                   tooltip: 'Edit Role',
                   onPressed: () => _showEditDialog(context, r),
-                  icon: const Icon(Icons.edit_rounded, size: 18, color: _mgmtColor),
+                  icon: Icon(Icons.edit_rounded, size: 18, color: _mgmtColor),
                 ),
               ]),
             ),
@@ -1119,7 +1120,7 @@ class _RolesTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Role',
+        title: Text('Edit Role',
             style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           _DialogField(controller: nameCtrl, label: 'Role Name',   icon: Icons.shield_rounded),
@@ -1170,7 +1171,7 @@ class _AccessTab extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.all(hPad),
       children: [
-        const Text('Control Access',
+        Text('Control Access',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const SizedBox(height: 4),
         const Text('Enable or disable module access across the system.',
@@ -1222,7 +1223,7 @@ class _AccessTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _mgmtColor.withValues(alpha: 0.2)),
           ),
-          child: const Row(children: [
+          child: Row(children: [
             Icon(Icons.info_outline_rounded, size: 16, color: _mgmtColor),
             SizedBox(width: 10),
             Expanded(
@@ -1287,7 +1288,7 @@ class _DialogField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: _mgmtColor, width: 2),
+          borderSide: BorderSide(color: _mgmtColor, width: 2),
         ),
         filled: true,
         fillColor: Colors.white,
