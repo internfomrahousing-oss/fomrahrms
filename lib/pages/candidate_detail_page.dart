@@ -1,7 +1,6 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../models/candidate_store.dart';
 import '../widgets/back_button.dart';
 
@@ -85,87 +84,7 @@ class CandidateDetailPage extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 800),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                    // ── Personal ────────────────────────────────────
-                    _Section(title: 'Personal Information', icon: Icons.person_rounded),
-                    _InfoGrid(narrow: narrow, items: [
-                      _Info('Name',           _val(d, 'name')),
-                      _Info('Mobile',         _val(d, 'mobile')),
-                      _Info('Email',          _val(d, 'email')),
-                      _Info('Place',          _val(d, 'place')),
-                      _Info('Date of Birth',  _val(d, 'dob')),
-                      _Info('Age',            _val(d, 'age')),
-                      _Info('Nationality',    _val(d, 'nationality')),
-                      _Info('Gender',         _val(d, 'gender')),
-                      _Info('Marital Status', _val(d, 'marital_status')),
-                    ]),
-
-                    const SizedBox(height: 20),
-                    // ── Interview ───────────────────────────────────
-                    _Section(title: 'Interview Details', icon: Icons.event_note_rounded),
-                    _InfoGrid(narrow: narrow, items: [
-                      _Info('Interview Date', _val(d, 'interview_date')),
-                      _Info('Post Applied',   _val(d, 'post_applied')),
-                    ]),
-
-                    const SizedBox(height: 20),
-                    // ── Education ───────────────────────────────────
-                    _Section(title: 'Educational Qualifications', icon: Icons.school_rounded),
-                    if (_val(d, 'standing_arrears').isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _chip('Standing Arrears in Degree: ${_val(d, 'standing_arrears')}'),
-                      ),
-                    _EduTable(rows: _asList(d['education_history'])),
-
-                    const SizedBox(height: 20),
-                    // ── Experience ──────────────────────────────────
-                    _Section(title: 'Experience & CTC', icon: Icons.work_history_rounded),
-                    _InfoGrid(narrow: narrow, items: [
-                      _Info('Total Experience',    _val(d, 'total_experience')),
-                      _Info('Relevant Experience', _val(d, 'relevant_experience')),
-                      _Info('Reason for Change',   _val(d, 'reason_for_change')),
-                      _Info('Current CTC (INR)',   _val(d, 'current_ctc')),
-                      _Info('Expected CTC (INR)',  _val(d, 'expected_ctc')),
-                      _Info('Notice Period',       _val(d, 'notice_period')),
-                    ]),
-
-                    const SizedBox(height: 20),
-                    // ── Employment History ──────────────────────────
-                    _Section(title: 'Employment History', icon: Icons.business_center_rounded),
-                    _EmpTable(rows: _asList(d['employment_history'])),
-
-                    const SizedBox(height: 20),
-                    // ── Source ──────────────────────────────────────
-                    _Section(title: 'Source', icon: Icons.campaign_rounded),
-                    _InfoGrid(narrow: narrow, items: [
-                      _Info('Source',            _val(d, 'source')),
-                      _Info('Job Portal',        _val(d, 'job_portal')),
-                      _Info('Referred By',       _val(d, 'referred_by')),
-                      _Info('Related Employee',  _val(d, 'related_employee')),
-                      _Info('Applied Before',    _val(d, 'applied_before')),
-                    ]),
-
-                    const SizedBox(height: 20),
-                    // ── Referrals ───────────────────────────────────
-                    _Section(title: 'Referrals', icon: Icons.group_add_rounded),
-                    _RefTable(rows: _asList(d['referrals'])),
-
-                    const SizedBox(height: 20),
-                    // ── Address & Declaration ───────────────────────
-                    _Section(title: 'Address & Declaration', icon: Icons.location_on_rounded),
-                    _InfoGrid(narrow: narrow, items: [
-                      _Info('Address',          _val(d, 'address')),
-                      _Info('Declaration Name', _val(d, 'declaration_name')),
-                      _Info('Signature Date',   _val(d, 'signature_date')),
-                    ]),
-
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                child: CandidateDetailBody(data: d, narrow: narrow),
               ),
             ),
           ),
@@ -173,6 +92,17 @@ class CandidateDetailPage extends StatelessWidget {
       ]),
     );
   }
+}
+
+// ── Full read-only body — reused wherever a candidate application needs to
+// be shown in full (this page, and HR's employee profile dialog) ──────────
+class CandidateDetailBody extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final bool narrow;
+  const CandidateDetailBody({super.key, required this.data, this.narrow = false});
+
+  String _val(Map<String, dynamic> d, String key) =>
+      (d[key] ?? '').toString().trim();
 
   List<Map<String, dynamic>> _asList(dynamic v) {
     if (v == null) return [];
@@ -190,6 +120,91 @@ class CandidateDetailPage extends StatelessWidget {
     child: Text(text,
         style: const TextStyle(fontSize: 12, color: _blue, fontWeight: FontWeight.w500)),
   );
+
+  @override
+  Widget build(BuildContext context) {
+    final d = data;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Personal ────────────────────────────────────
+        _Section(title: 'Personal Information', icon: Icons.person_rounded),
+        _InfoGrid(narrow: narrow, items: [
+          _Info('Name',           _val(d, 'name')),
+          _Info('Mobile',         _val(d, 'mobile')),
+          _Info('Email',          _val(d, 'email')),
+          _Info('Place',          _val(d, 'place')),
+          _Info('Date of Birth',  _val(d, 'dob')),
+          _Info('Age',            _val(d, 'age')),
+          _Info('Nationality',    _val(d, 'nationality')),
+          _Info('Gender',         _val(d, 'gender')),
+          _Info('Marital Status', _val(d, 'marital_status')),
+        ]),
+
+        const SizedBox(height: 20),
+        // ── Interview ───────────────────────────────────
+        _Section(title: 'Interview Details', icon: Icons.event_note_rounded),
+        _InfoGrid(narrow: narrow, items: [
+          _Info('Interview Date', _val(d, 'interview_date')),
+          _Info('Post Applied',   _val(d, 'post_applied')),
+        ]),
+
+        const SizedBox(height: 20),
+        // ── Education ───────────────────────────────────
+        _Section(title: 'Educational Qualifications', icon: Icons.school_rounded),
+        if (_val(d, 'standing_arrears').isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _chip('Standing Arrears in Degree: ${_val(d, 'standing_arrears')}'),
+          ),
+        _EduTable(rows: _asList(d['education_history'])),
+
+        const SizedBox(height: 20),
+        // ── Experience ──────────────────────────────────
+        _Section(title: 'Experience & CTC', icon: Icons.work_history_rounded),
+        _InfoGrid(narrow: narrow, items: [
+          _Info('Total Experience',    _val(d, 'total_experience')),
+          _Info('Relevant Experience', _val(d, 'relevant_experience')),
+          _Info('Reason for Change',   _val(d, 'reason_for_change')),
+          _Info('Current CTC (INR)',   _val(d, 'current_ctc')),
+          _Info('Expected CTC (INR)',  _val(d, 'expected_ctc')),
+          _Info('Notice Period',       _val(d, 'notice_period')),
+        ]),
+
+        const SizedBox(height: 20),
+        // ── Employment History ──────────────────────────
+        _Section(title: 'Employment History', icon: Icons.business_center_rounded),
+        _EmpTable(rows: _asList(d['employment_history'])),
+
+        const SizedBox(height: 20),
+        // ── Source ──────────────────────────────────────
+        _Section(title: 'Source', icon: Icons.campaign_rounded),
+        _InfoGrid(narrow: narrow, items: [
+          _Info('Source',            _val(d, 'source')),
+          _Info('Job Portal',        _val(d, 'job_portal')),
+          _Info('Referred By',       _val(d, 'referred_by')),
+          _Info('Related Employee',  _val(d, 'related_employee')),
+          _Info('Applied Before',    _val(d, 'applied_before')),
+        ]),
+
+        const SizedBox(height: 20),
+        // ── Referrals ───────────────────────────────────
+        _Section(title: 'Referrals', icon: Icons.group_add_rounded),
+        _RefTable(rows: _asList(d['referrals'])),
+
+        const SizedBox(height: 20),
+        // ── Address & Declaration ───────────────────────
+        _Section(title: 'Address & Declaration', icon: Icons.location_on_rounded),
+        _InfoGrid(narrow: narrow, items: [
+          _Info('Address',          _val(d, 'address')),
+          _Info('Declaration Name', _val(d, 'declaration_name')),
+          _Info('Signature Date',   _val(d, 'signature_date')),
+        ]),
+
+        const SizedBox(height: 32),
+      ],
+    );
+  }
 }
 
 // ── Section header ─────────────────────────────────────────────────────────────
@@ -231,31 +246,34 @@ class _InfoGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cols = narrow ? 1 : 2;
-    return Wrap(
-      spacing: 12, runSpacing: 12,
-      children: items.where((i) => i.value.isNotEmpty).map((i) => SizedBox(
-        width: narrow
-            ? double.infinity
-            : (MediaQuery.of(context).size.width - 80) / cols - 12,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+    return LayoutBuilder(builder: (context, constraints) {
+      final itemWidth = narrow
+          ? double.infinity
+          : (constraints.maxWidth - (cols - 1) * 12) / cols;
+      return Wrap(
+        spacing: 12, runSpacing: 12,
+        children: items.where((i) => i.value.isNotEmpty).map((i) => SizedBox(
+          width: itemWidth,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(i.label,
+                  style: const TextStyle(
+                      fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text(i.value,
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF111827),
+                      fontWeight: FontWeight.w600)),
+            ]),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(i.label,
-                style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
-            const SizedBox(height: 4),
-            Text(i.value,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF111827),
-                    fontWeight: FontWeight.w600)),
-          ]),
-        ),
-      )).toList(),
-    );
+        )).toList(),
+      );
+    });
   }
 }
 

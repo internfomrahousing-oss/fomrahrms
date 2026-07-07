@@ -9,6 +9,7 @@ import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
 
 Future<List<AppUser>> _loadAllUsers() async {
@@ -60,6 +61,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   List<Map<String, dynamic>> _filtered = [];
   List<Map<String, dynamic>> _pendingVersions = [];
   List<Map<String, dynamic>> _activeSections  = [];
+  Map<int, String> _versionLabels = {};
   int _tab = 0;
   bool _loading = false;
   final _searchCtrl = TextEditingController();
@@ -95,10 +97,11 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         if (fd is Map) row.addAll(Map<String, dynamic>.from(fd));
         return row;
       }).toList();
-      final allVersions = results[1];
+      final allVersions = List<Map<String, dynamic>>.from(results[1]);
       final pending = allVersions
           .where((v) => (v['status'] as String?) == 'pending')
           .toList();
+      final versionLabels = computeFormVersionLabels(allVersions);
 
       // Extract active (approved) sections for diff comparison
       final approved = allVersions
@@ -119,6 +122,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         _filtered = rows;
         _pendingVersions = pending;
         _activeSections  = activeSects;
+        _versionLabels   = versionLabels;
         _loading = false;
         // Auto-switch to Form Approvals tab when there are pending versions
         if (pending.isNotEmpty && _tab == 0) _tab = 1;
@@ -135,8 +139,10 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         id, 'approved',
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
       );
+      final label = _versionLabels[(version['version_number'] as num?)?.toInt()] ??
+          'v${version['version_number']}';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Onboarding form v${version['version_number']} approved and published!'),
+        content: Text('Onboarding form $label approved and published!'),
         backgroundColor: const Color(0xFF22C55E),
       ));
     } catch (e) {
@@ -152,8 +158,10 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
     final id = version['id'].toString();
     try {
       await SupabaseService.updateOnboardingFormVersionStatus(id, 'rejected');
+      final label = _versionLabels[(version['version_number'] as num?)?.toInt()] ??
+          'v${version['version_number']}';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Onboarding form v${version['version_number']} rejected.'),
+        content: Text('Onboarding form $label rejected.'),
         backgroundColor: Colors.orange,
       ));
     } catch (e) {
@@ -243,6 +251,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   child: _PendingVersionCard(
                     version: v,
                     activeSections: _activeSections,
+                    label: _versionLabels[(v['version_number'] as num?)?.toInt()],
                     onApprove: () => _approveVersion(v),
                     onReject: () => _rejectVersion(v),
                   ),
@@ -1262,11 +1271,13 @@ List<_SectionDiff> _computeDiff(
 class _PendingVersionCard extends StatefulWidget {
   final Map<String, dynamic> version;
   final List<Map<String, dynamic>> activeSections;
+  final String? label;
   final VoidCallback onApprove;
   final VoidCallback onReject;
   const _PendingVersionCard({
     required this.version,
     required this.activeSections,
+    this.label,
     required this.onApprove,
     required this.onReject,
   });
@@ -1289,6 +1300,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
   Widget build(BuildContext context) {
     final v = widget.version;
     final vNum = v['version_number'] as int? ?? 0;
+    final vLabel = widget.label ?? 'v$vNum';
     final createdBy = (v['created_by'] as String?) ?? 'HR';
     final rawDate = v['created_at'] as String?;
     String dateStr = '';
@@ -1330,7 +1342,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                 color: const Color(0xFFF59E0B),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text('v$vNum',
+              child: Text(vLabel,
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
             const SizedBox(width: 12),
@@ -1421,7 +1433,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                     builder: (ctx) => AlertDialog(
                       title: const Text('Reject Form Version',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
-                      content: Text('Reject onboarding form v$vNum submitted by $createdBy?\n\nThe current live form will remain unchanged.',
+                      content: Text('Reject onboarding form $vLabel submitted by $createdBy?\n\nThe current live form will remain unchanged.',
                           style: const TextStyle(fontSize: 13, height: 1.5)),
                       actions: [
                         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -1456,7 +1468,7 @@ class _PendingVersionCardState extends State<_PendingVersionCard> {
                       title: const Text('Approve & Publish',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF22C55E))),
                       content: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Text('Publish onboarding form v$vNum?',
+                        Text('Publish onboarding form $vLabel?',
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         Container(

@@ -6,6 +6,8 @@ import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
+import 'employee_onboarding_page.dart' show OnboardingFormReadOnlyBody;
+import 'candidate_detail_page.dart' show CandidateDetailBody;
 
 enum _SortOrder { newestFirst, oldestFirst, alphabetical, joinOldNew, joinNewOld }
 
@@ -1085,48 +1087,11 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
     ]);
   }
 
-  Widget _onboardingView(Map<String, dynamic> d) => Column(
+  // Approval-workflow status isn't part of the candidate's own submitted
+  // data, so it's shown separately above the full application below.
+  Widget _reviewStatusView(Map<String, dynamic> d) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _section('Basic Info', [
-        _row('Name', d['name']), _row('Phone', d['phone_number']),
-        _row('Designation', d['designation']), _row('Date of Joining', d['date_of_joining']),
-      ]),
-      _section('Personal', [
-        _row('Full Name', d['full_name']), _row('Date of Birth', d['date_of_birth']),
-        _row('Father Name', d['father_name']),
-        _row('Postal Address', d['postal_address']), _row('Permanent Address', d['permanent_address']),
-      ]),
-      _section('Emergency', [
-        _row('Blood Group', d['blood_group']), _row('Allergic To', d['allergic_to']),
-        _row('Emergency Contact', d['emergency_contact_name']),
-        _row('Emergency Number', d['emergency_contact_number']),
-        _row('Aadhar Number', d['aadhar_number']),
-      ]),
-      _section('Additional', [
-        _row('ESI Number', d['esi_number']), _row('PF Number', d['pf_number']),
-        _row('Languages', d['languages_known']), _row('Hobbies', d['hobbies']),
-      ]),
-    ],
-  );
-
-  Widget _interviewView(Map<String, dynamic> d) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _section('Application', [
-        _row('Name', d['name']), _row('Post Applied', d['post_applied']),
-        _row('Interview Date', d['interview_date']), _row('Mobile', d['mobile']),
-        _row('Email', d['email']), _row('Place', d['place']),
-        _row('Date of Birth', d['dob']), _row('Gender', d['gender']),
-        _row('Nationality', d['nationality']), _row('Marital Status', d['marital_status']),
-      ]),
-      _section('Experience', [
-        _row('Total Experience', d['total_experience']),
-        _row('Relevant Experience', d['relevant_experience']),
-        _row('Reason for Change', d['reason_for_change']),
-        _row('Current CTC', d['current_ctc']), _row('Expected CTC', d['expected_ctc']),
-        _row('Notice Period', d['notice_period']),
-      ]),
       _section('HR Review', [
         _row('HR Status', d['hr_status']), _row('HR Comment', d['hr_comment']),
         _row('Manager Status', d['manager_status']), _row('Manager Comment', d['manager_comment']),
@@ -1140,7 +1105,7 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 720),
+        constraints: const BoxConstraints(maxWidth: 820, maxHeight: 780),
         child: Column(children: [
           Container(
             padding: const EdgeInsets.all(16),
@@ -1187,14 +1152,17 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
                       _onboarding != null
                           ? SingleChildScrollView(
                               padding: const EdgeInsets.all(16),
-                              child: _onboardingView(_onboarding!))
+                              child: OnboardingFormReadOnlyBody(data: _onboarding!))
                           : const Center(child: Text('No onboarding form found for this employee.',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey))),
                       _interview != null
                           ? SingleChildScrollView(
                               padding: const EdgeInsets.all(16),
-                              child: _interviewView(_interview!))
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                _reviewStatusView(_interview!),
+                                CandidateDetailBody(data: _interview!),
+                              ]))
                           : const Center(child: Text('No interview application found for this employee.',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey))),

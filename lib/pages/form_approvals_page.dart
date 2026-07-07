@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/leave_form_config.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
 
 const _blue  = Color(0xFF2563EB);
@@ -23,6 +24,8 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
   List<Map<String, dynamic>> _interviewVersions   = [];
   List<Map<String, dynamic>> _onboardingVersions  = [];
   List<Map<String, dynamic>> _policyVersions      = [];
+  Map<int, String> _interviewVersionLabels  = {};
+  Map<int, String> _onboardingVersionLabels = {};
 
   @override
   void initState() {
@@ -51,6 +54,8 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
         _interviewVersions  = results[1];
         _onboardingVersions = results[2];
         _policyVersions     = results[3];
+        _interviewVersionLabels  = computeFormVersionLabels(results[1]);
+        _onboardingVersionLabels = computeFormVersionLabels(results[2]);
         _loading = false;
       });
     } catch (_) {
@@ -224,6 +229,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                     _VersionList(
                       versions: _interviewVersions,
                       formLabel: 'Interview / Application Form',
+                      versionLabels: _interviewVersionLabels,
                       onApprove: (id) => _approveInterview(id),
                       onReject: (id) async {
                         final note = await _rejectDialog();
@@ -233,6 +239,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                     _VersionList(
                       versions: _onboardingVersions,
                       formLabel: 'Onboarding Form',
+                      versionLabels: _onboardingVersionLabels,
                       onApprove: (id) => _approveOnboarding(id),
                       onReject: (id) async {
                         final note = await _rejectDialog();
@@ -295,11 +302,13 @@ class _PendingTab extends StatelessWidget {
 class _VersionList extends StatelessWidget {
   final List<Map<String, dynamic>> versions;
   final String formLabel;
+  final Map<int, String>? versionLabels;
   final void Function(String id) onApprove;
   final void Function(String id) onReject;
   const _VersionList({
     required this.versions,
     required this.formLabel,
+    this.versionLabels,
     required this.onApprove,
     required this.onReject,
   });
@@ -328,6 +337,7 @@ class _VersionList extends StatelessWidget {
           const SizedBox(height: 8),
           ...pending.map((v) => _VersionCard(
             version: v,
+            label: versionLabels?[(v['version_number'] as num?)?.toInt()],
             onApprove: () => onApprove(v['id'] as String),
             onReject: () => onReject(v['id'] as String),
           )),
@@ -336,7 +346,9 @@ class _VersionList extends StatelessWidget {
         if (resolved.isNotEmpty) ...[
           const _SectionLabel('History', Color(0xFF6B7280), Icons.history_rounded),
           const SizedBox(height: 8),
-          ...resolved.map((v) => _VersionCard(version: v)),
+          ...resolved.map((v) => _VersionCard(
+              version: v,
+              label: versionLabels?[(v['version_number'] as num?)?.toInt()])),
         ],
         if (pending.isEmpty && resolved.isEmpty)
           Center(
@@ -373,13 +385,15 @@ class _SectionLabel extends StatelessWidget {
 
 class _VersionCard extends StatelessWidget {
   final Map<String, dynamic> version;
+  final String? label;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
-  const _VersionCard({required this.version, this.onApprove, this.onReject});
+  const _VersionCard({required this.version, this.label, this.onApprove, this.onReject});
 
   @override
   Widget build(BuildContext context) {
     final vNum       = (version['version_number'] as int?) ?? 0;
+    final vLabel      = label ?? 'v$vNum';
     final status     = (version['status'] as String?) ?? 'pending';
     final createdBy  = (version['created_by'] as String?) ?? '';
     final approvedBy = (version['approved_by'] as String?) ?? '';
@@ -432,7 +446,7 @@ class _VersionCard extends StatelessWidget {
               color: _blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text('v$vNum',
+            child: Text(vLabel,
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.bold, color: _blue)),
           ),

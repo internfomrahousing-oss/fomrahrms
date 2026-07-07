@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
+import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF2563EB);
@@ -36,6 +37,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
   bool _saving = false;
   int _nextVersionNumber = 1;
   List<Map<String, dynamic>> _history = [];
+  Map<int, String> _versionLabels = {};
   bool _historyLoading = false;
 
   bool get _isManagement => UserSession.role == UserRole.management;
@@ -70,6 +72,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
     if (mounted) {
       setState(() {
         _history = versions;
+        _versionLabels = computeFormVersionLabels(versions);
         _historyLoading = false;
       });
     }
@@ -685,8 +688,10 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                           else if (_history.isEmpty)
                             _EmptyHistory()
                           else
-                            ..._history.map(
-                                (v) => _VersionHistoryCard(version: v)),
+                            ..._history.map((v) => _VersionHistoryCard(
+                                version: v,
+                                label: _versionLabels[
+                                    (v['version_number'] as num?)?.toInt()])),
 
                           const SizedBox(height: 32),
                         ],
@@ -1510,11 +1515,13 @@ class _TypeChip extends StatelessWidget {
 
 class _VersionHistoryCard extends StatelessWidget {
   final Map<String, dynamic> version;
-  const _VersionHistoryCard({required this.version});
+  final String? label;
+  const _VersionHistoryCard({required this.version, this.label});
 
   @override
   Widget build(BuildContext context) {
     final vNum = (version['version_number'] as int?) ?? 0;
+    final vLabel = label ?? 'v$vNum';
     final status = (version['status'] as String?) ?? 'pending';
     final createdBy = (version['created_by'] as String?) ?? '';
     final approvedBy = (version['approved_by'] as String?) ?? '';
@@ -1570,7 +1577,7 @@ class _VersionHistoryCard extends StatelessWidget {
               color: _blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text('v$vNum',
+            child: Text(vLabel,
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
