@@ -21,7 +21,6 @@ const _hrNavItems = [
   _NavItem('Team Leave Approvals', Icons.group_rounded,         '/manager/leave/team-approvals'),
   _NavItem('Task Management',      Icons.task_alt_rounded,      '/manager/task-management'),
   _NavItem('Notifications',        Icons.notifications_rounded, '/manager/notifications'),
-  _NavItem('Settings',             Icons.settings_rounded,      '/manager/settings'),
 ];
 
 const _personalNavItems = [
