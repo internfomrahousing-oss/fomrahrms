@@ -56,51 +56,47 @@ Widget _blockFor(int i) {
   }
 }
 
-/// Wraps the narrow-layout body with a floating vertical strip of 4 icons
-/// pinned to the top-right — visually below the bell and star in the AppBar.
+/// Places a row of small square quick-action icons above the narrow-layout
+/// body. Previously these floated on top of the scrollable content (a Stack
+/// overlay), which visually collided with cards underneath — now they sit
+/// inline, above the content, so nothing overlaps.
 class QuickActionsBody extends StatelessWidget {
   final Widget child;
   const QuickActionsBody({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          top: 10,
-          right: 10,
-          child: Column(
-            children: List.generate(_qData.length, (i) {
-              final q = _qData[i];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: List.generate(_qData.length, (i) {
+            final q = _qData[i];
+            return Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+              child: Tooltip(
+                message: q.label,
+                child: InkWell(
                   onTap: () => _showBlock(context, _blockFor(i)),
+                  borderRadius: BorderRadius.circular(10),
                   child: Container(
-                    width: 48, height: 48,
+                    width: 36, height: 36,
                     decoration: BoxDecoration(
                       color: q.color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(
-                          color: q.color.withValues(alpha: 0.45), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: q.color.withValues(alpha: 0.18),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: q.color.withValues(alpha: 0.35)),
                     ),
-                    child: Icon(q.icon, size: 24, color: q.color),
+                    child: Icon(q.icon, size: 18, color: q.color),
                   ),
                 ),
-              );
-            }),
-          ),
+              ),
+            );
+          }),
         ),
-      ],
-    );
+      ),
+      Expanded(child: child),
+    ]);
   }
 }
 

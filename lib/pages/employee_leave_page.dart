@@ -66,7 +66,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       .toList();
 
   List<LeaveApplication> get _filtered {
-    return _apps.where((a) {
+    final apps = _apps.where((a) {
       final matchType = _typeFilter == 'all'
           ? true
           : _typeFilter == 'leave'
@@ -77,6 +77,15 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
               a.from.month == _selectedMonth!.month);
       return matchType && matchMonth;
     }).toList();
+    // Pending requests need attention first, so surface them ahead of
+    // already-decided (approved/denied) ones.
+    apps.sort((a, b) {
+      final aPending = a.effectiveStatus == LeaveApprovalStatus.pending;
+      final bPending = b.effectiveStatus == LeaveApprovalStatus.pending;
+      if (aPending == bPending) return 0;
+      return aPending ? -1 : 1;
+    });
+    return apps;
   }
 
   int get _pending  => _filtered.where((a) => a.effectiveStatus == LeaveApprovalStatus.pending).length;
@@ -246,7 +255,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       ),
     ]);
 
-    final header = widget.embedded
+    final titleRow = widget.embedded
         ? Row(children: [
             Container(
               width: 36, height: 36,
@@ -259,9 +268,9 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
             const SizedBox(width: 10),
             const Expanded(
               child: Text('Leave',
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
-            balanceAndActions,
           ])
         : Row(children: [
             const NavBackButton(),
@@ -277,10 +286,33 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
             const SizedBox(width: 12),
             Expanded(
               child: Text('Leave Management',
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineMedium),
             ),
-            balanceAndActions,
           ]);
+
+    // On narrow screens there isn't room for the title AND the balance
+    // chip / Apply Leave button / refresh icon on one line — cramming them
+    // into a single Row starves the title's Expanded text down to almost
+    // no width, which makes it wrap one letter per line. Stack them
+    // instead, letting the actions row scroll sideways if still tight.
+    final header = LayoutBuilder(builder: (context, constraints) {
+      final narrow = constraints.maxWidth < 480;
+      if (!narrow) {
+        return Row(children: [
+          Expanded(child: titleRow),
+          balanceAndActions,
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        titleRow,
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: balanceAndActions,
+        ),
+      ]);
+    });
 
     // ── Leave history (shared between embedded / standalone) ──────────────
     final historyChildren = <Widget>[
