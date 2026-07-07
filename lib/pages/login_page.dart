@@ -245,9 +245,6 @@ class _LoginPageState extends State<LoginPage> {
 
               _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
 
-              const SizedBox(height: 20),
-              const _CredentialsHint(),
-
               const SizedBox(height: 28),
               Text('FOMRA Housing & Infrastructure © 2025',
                   textAlign: TextAlign.center,
@@ -449,64 +446,6 @@ class _LoginPageState extends State<LoginPage> {
         Expanded(
           child: Text(_error!,
               style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFFFF3B30))),
-        ),
-      ]),
-    );
-  }
-}
-
-class _CredentialsHint extends StatelessWidget {
-  const _CredentialsHint();
-
-  static const _iosBlue      = _LoginPageState._iosBlue;
-  static const _iosSecondary = _LoginPageState._iosSecondary;
-  static const _iosSeparator = _LoginPageState._iosSeparator;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.only(left: 16, bottom: 6),
-        child: Text('DEMO CREDENTIALS',
-            style: GoogleFonts.inter(
-                fontSize: 11, fontWeight: FontWeight.w600,
-                color: _iosSecondary, letterSpacing: 0.4)),
-      ),
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _iosSeparator),
-        ),
-        child: Column(children: [
-          _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123'),
-          const Padding(padding: EdgeInsets.only(left: 16), child: Divider(height: 1, thickness: 0.6, color: _iosSeparator)),
-          _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123'),
-          const Padding(padding: EdgeInsets.only(left: 16), child: Divider(height: 1, thickness: 0.6, color: _iosSeparator)),
-          _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123'),
-        ]),
-      ),
-      Padding(
-        padding: const EdgeInsets.only(left: 16, top: 6),
-        child: Text('Users created by Management set their own password on first login.',
-            style: GoogleFonts.inter(fontSize: 11, color: _iosSecondary)),
-      ),
-    ]);
-  }
-
-  Widget _cred(IconData icon, String role, String email, String pass) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 16, color: _iosBlue),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(role, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LoginPageState._iosLabel)),
-            const SizedBox(height: 2),
-            Text('$email  /  $pass',
-                style: GoogleFonts.inter(fontSize: 11.5, color: _iosSecondary)),
-          ]),
         ),
       ]),
     );
