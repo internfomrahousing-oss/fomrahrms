@@ -213,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
       color: _iosBg,
       alignment: Alignment.center,
       padding: const EdgeInsets.all(48),
-      child: const FomraLogoMark(wordmarkSize: 64),
+      child: const FomraLogoMark(height: 84),
     );
   }
 
@@ -229,7 +229,7 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (showCompactLogo) ...[
-                const Center(child: FomraLogoMark(wordmarkSize: 40)),
+                const Center(child: FomraLogoMark(height: 52)),
                 const SizedBox(height: 36),
               ],
 
