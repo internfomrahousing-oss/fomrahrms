@@ -31,26 +31,42 @@ class _MyProfilePageState extends State<MyProfilePage> {
     _load();
   }
 
+  void _showMessage(String message, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: error ? const Color(0xFFE53935) : null,
+    ));
+  }
+
   Future<void> _editPhoto() async {
     final empId = UserSession.employeeId;
-    if (empId.isEmpty || _uploadingPhoto) return;
+    if (empId.isEmpty) {
+      _showMessage('No employee ID on this account — cannot upload a photo.', error: true);
+      return;
+    }
+    if (_uploadingPhoto) return;
 
     XFile? picked;
     try {
       picked = await ImagePicker()
           .pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 85);
-    } catch (_) {
+    } catch (e) {
+      _showMessage('Could not open the photo picker: $e', error: true);
       return;
     }
-    if (picked == null) return;
+    if (picked == null) return; // user cancelled the picker
 
     setState(() => _uploadingPhoto = true);
     try {
       final bytes = await picked.readAsBytes();
       final url = await SupabaseService.updateCurrentUserPhoto(
           empId, bytes, picked.name, picked.mimeType ?? '');
-      if (url != null && mounted) {
-        setState(() => UserSession.photoUrl = url);
+      if (url != null) {
+        if (mounted) setState(() => UserSession.photoUrl = url);
+        _showMessage('Profile photo updated.');
+      } else {
+        _showMessage('Upload failed — please try again.', error: true);
       }
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
