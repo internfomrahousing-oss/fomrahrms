@@ -121,14 +121,6 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                 UserSession.clear();
                 context.go('/login');
               },
-              onEditPhoto: () {
-                Navigator.of(context).pop();
-                _editPhoto();
-              },
-              onDeletePhoto: () {
-                Navigator.of(context).pop();
-                _deletePhoto();
-              },
             ),
           ),
         ],
@@ -146,11 +138,10 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
 
   Widget _buildContent(BuildContext context, String photoUrl) {
     final name      = UserSession.name;
-    final empId     = UserSession.employeeId;
     final initial   = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     if (widget.large) {
-      // ── Banner variant: big avatar on top, name/ID below ─────────────
+      // ── Banner variant: avatar + camera menu + dropdown chevron ──────
       return GestureDetector(
         key: _key,
         onTap: _openMenu,
@@ -177,8 +168,33 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
             Positioned(
               right: -2,
               bottom: -2,
-              child: GestureDetector(
-                onTap: _editPhoto,
+              child: PopupMenuButton<String>(
+                tooltip: 'Edit photo',
+                onSelected: (value) {
+                  if (value == 'edit') _editPhoto();
+                  if (value == 'delete') _deletePhoto();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.camera_alt_rounded, size: 18),
+                      title: Text('Edit Profile Photo', style: TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                  if (photoUrl.isNotEmpty)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFE53935)),
+                        title: Text('Delete Photo', style: TextStyle(fontSize: 13, color: Color(0xFFE53935))),
+                      ),
+                    ),
+                ],
                 child: Container(
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
@@ -192,22 +208,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
               ),
             ),
           ]),
-          const SizedBox(height: 8),
-          Text(
-            name.isEmpty ? 'User' : name,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700),
-          ),
-          if (empId.isNotEmpty)
-            Text(
-              empId,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  fontSize: 11),
-            ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Icon(Icons.keyboard_arrow_down_rounded,
               color: Colors.white.withValues(alpha: 0.70), size: 18),
         ]),
@@ -243,14 +244,10 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
 class _ProfileDropdown extends StatelessWidget {
   final void Function(String route) onNavigate;
   final VoidCallback onSignOut;
-  final VoidCallback onEditPhoto;
-  final VoidCallback onDeletePhoto;
 
   const _ProfileDropdown({
     required this.onNavigate,
     required this.onSignOut,
-    required this.onEditPhoto,
-    required this.onDeletePhoto,
   });
 
   @override
@@ -263,6 +260,7 @@ class _ProfileDropdown extends StatelessWidget {
 
   Widget _buildContent(BuildContext context, String photoUrl) {
     final name       = UserSession.name;
+    final empId      = UserSession.employeeId;
     final designation= UserSession.designation;
     final manager    = UserSession.reportingManager;
     final initial    = name.isNotEmpty ? name[0].toUpperCase() : 'U';
@@ -287,8 +285,8 @@ class _ProfileDropdown extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Center(
-              child: InkWell(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              InkWell(
                 borderRadius: BorderRadius.circular(32),
                 onTap: () => onNavigate(UserSession.profileRoute),
                 child: CircleAvatar(
@@ -305,7 +303,22 @@ class _ProfileDropdown extends StatelessWidget {
                       : null,
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                name.isEmpty ? 'User' : name,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700),
+              ),
+              if (empId.isNotEmpty)
+                Text(
+                  empId,
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      fontSize: 11),
+                ),
+            ]),
           ),
 
           // ── Details ──────────────────────────────────────────────────
@@ -330,30 +343,6 @@ class _ProfileDropdown extends StatelessWidget {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             onTap: () => onNavigate(UserSession.profileRoute),
           ),
-
-          // ── Edit Profile ─────────────────────────────────────────────
-          ListTile(
-            dense: true,
-            leading: Icon(Icons.camera_alt_rounded, size: 18,
-                color: AppTheme.primaryBlue),
-            title: const Text('Edit Profile Photo',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-            onTap: onEditPhoto,
-          ),
-
-          // ── Delete Photo ─────────────────────────────────────────────
-          if (photoUrl.isNotEmpty)
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.delete_outline_rounded, size: 18,
-                  color: Color(0xFFE53935)),
-              title: const Text('Delete Photo',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFFE53935))),
-              onTap: onDeletePhoto,
-            ),
 
           const Divider(height: 1),
 
