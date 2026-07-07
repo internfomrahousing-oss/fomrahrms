@@ -30,8 +30,19 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color borderSubtle = Color(0xFFE5E7EB);
 
-  static const double cardRadius = 14;
+  static const double cardRadius = 16;
   static const double controlRadius = 12;
+  static const double pillRadius = 999;
+
+  // ── 8px spacing system ──────────────────────────────────────────────────
+  static const double space1 = 4;
+  static const double space2 = 8;
+  static const double space3 = 16;
+  static const double space4 = 24;
+  static const double space5 = 32;
+  static const double space6 = 40;
+
+  static const Duration fastAnim = Duration(milliseconds: 150);
 
   static TextTheme _interTextTheme(Color body, Color heading) {
     return GoogleFonts.interTextTheme().copyWith(
@@ -74,10 +85,13 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: white,
-        elevation: 1,
+        elevation: 0,
         surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.black.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+        shadowColor: Colors.black.withValues(alpha: 0.10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: const BorderSide(color: borderSubtle),
+        ),
         margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -85,27 +99,33 @@ class AppTheme {
           backgroundColor: primaryBlue,
           foregroundColor: white,
           elevation: 0,
+          shadowColor: primaryBlue.withValues(alpha: 0.35),
+          animationDuration: fastAnim,
           textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(controlRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(pillRadius)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ).copyWith(
           overlayColor: WidgetStateProperty.all(white.withValues(alpha: 0.08)),
+          elevation: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.hovered) ? 4 : 0),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryBlue,
           side: const BorderSide(color: borderSubtle),
+          animationDuration: fastAnim,
           textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(controlRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(pillRadius)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryBlue,
+          animationDuration: fastAnim,
           textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(controlRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(pillRadius)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

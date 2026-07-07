@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/color_theme_notifier.dart';
 import '../theme/app_theme.dart';
+import 'animated_counter.dart';
+import 'hover_lift.dart';
 
 // ── Public card ───────────────────────────────────────────────────────────────
 
@@ -33,62 +35,66 @@ class AppStatCard extends StatelessWidget {
   }
 
   Widget _card(Color color) {
-    return Card(
-      color: color.withValues(alpha: 0.08),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: color.withValues(alpha: 0.20), width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // ── header ────────────────────────────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(title,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: color.withValues(alpha: 0.85))),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: color.withValues(alpha: 0.14),
+    return HoverLift(
+      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+      child: Card(
+        color: AppTheme.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 132),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // ── header ────────────────────────────────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(title,
+                          style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondary)),
                     ),
-                    child: Icon(icon, color: color, size: 18),
-                  ),
-                ],
-              ),
-              // ── bottom row: value + visual ────────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(value,
-                      style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                          height: 1)),
-                  const Spacer(),
-                  if (gaugePercent != null)
-                    _GaugeWidget(percent: gaugePercent!.clamp(0.0, 1.0),
-                        color: color)
-                  else
-                    _BarChartWidget(color: color),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color.withValues(alpha: 0.12),
+                      ),
+                      child: Icon(icon, color: color, size: 18),
+                    ),
+                  ],
+                ),
+                // ── bottom row: value + visual ────────────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    AnimatedCounter(
+                        value: value,
+                        style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                            height: 1)),
+                    const Spacer(),
+                    if (gaugePercent != null)
+                      _GaugeWidget(percent: gaugePercent!.clamp(0.0, 1.0),
+                          color: color)
+                    else
+                      _BarChartWidget(color: color),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

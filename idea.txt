@@ -1,64 +1,149 @@
-You are a senior UI/UX designer and frontend engineer.
+Redesign the entire HRMS dashboard UI to look like a premium modern SaaS product similar to Linear, Notion, Vercel Dashboard, Stripe Dashboard and Deel.
 
-Redesign ONLY the visual appearance of the HRMS application.
+IMPORTANT:
+- Do NOT change any functionality.
+- Do NOT change routing.
+- Do NOT modify backend logic.
+- Do NOT remove or rename components.
+- Do NOT change any content or data.
+- Only redesign the visual appearance.
 
-STRICT RULES:
+Design Goals
 
-- Do NOT change any content.
-- Do NOT add new sections.
-- Do NOT remove any existing sections.
-- Do NOT change the page layout or information hierarchy.
-- Do NOT move components to different locations.
-- Do NOT rename buttons, headings, labels, or menu items.
-- Do NOT change any business logic.
-- Do NOT modify APIs.
-- Do NOT change routes.
-- Do NOT change database interactions.
-- Do NOT change functionality.
+• Minimal
+• Premium
+• Professional
+• Spacious
+• Enterprise-grade
+• Modern SaaS aesthetic
 
-Only improve the visual design of the existing pages.
+Layout
 
-Improve:
+- Reduce the height of the hero section by about 50%.
+- Replace the oversized welcome banner with a compact greeting.
+- Keep the profile section smaller and cleaner.
+- Improve spacing using an 8px spacing system.
+- Align all cards perfectly.
+- Maintain consistent margins throughout.
 
-• Color palette
-• Typography
-• Card styling
-• Button styling
-• Input fields
-• Dropdowns
-• Tables
-• Badges
-• Icons
-• Shadows
-• Border radius
-• Spacing
-• Alignment
-• Hover effects
-• Animations
-• Consistency
-• Responsive behavior
+Cards
 
-Use this design system:
+- Use white cards.
+- Very light border (#E5E7EB).
+- Soft shadow only on hover.
+- Border radius: 16px.
+- Increase card padding.
+- Large KPI numbers.
+- Smaller labels.
+- Add subtle hover animation.
+- Use consistent card heights.
 
-- Font: Inter
-- Background: #F8FAFC
-- Card Background: White
-- Primary: #2563EB
-- Success: #22C55E
-- Warning: #F59E0B
-- Error: #EF4444
-- Text: #111827
-- Secondary Text: #6B7280
+Colors
 
-Design principles:
+Primary:
+#2563EB
 
-- Modern enterprise SaaS
-- Clean and minimal
-- Soft shadows instead of heavy borders
-- Rounded corners (12–16px)
-- Consistent spacing using an 8px grid
-- Better visual hierarchy
-- Premium appearance
-- Smooth hover and transition effects
+Success:
+#22C55E
 
-The final result should look similar to BambooHR, Rippling, Linear, Notion, or Microsoft Fluent, while keeping every page's content and structure exactly the same.
+Danger:
+#EF4444
+
+Warning:
+#F59E0B
+
+Background:
+#F8FAFC
+
+Card:
+#FFFFFF
+
+Text Primary:
+#111827
+
+Text Secondary:
+#6B7280
+
+Borders:
+#E5E7EB
+
+Icons
+
+- Use one consistent icon style throughout.
+- Icons should have soft circular backgrounds.
+- Color-code icons by category.
+
+Typography
+
+Headings:
+Font Weight 700
+
+Card Titles:
+600
+
+Body:
+400
+
+KPI Numbers:
+36-40px bold
+
+Buttons
+
+- Modern pill buttons.
+- Subtle shadows.
+- Smooth hover transitions.
+- 150ms animations.
+
+Charts
+
+- Make charts cleaner.
+- Remove unnecessary decoration.
+- Use subtle gradients.
+- Improve readability.
+
+Sections
+
+Create stronger visual hierarchy:
+
+1. Greeting
+2. KPI Cards
+3. Quick Actions
+4. Announcements
+5. Holidays
+6. Employee of Month
+7. Birthdays
+8. My Space
+
+Quick Actions
+
+Convert Check In/Out and HR Policy into modern action buttons with matching icons.
+
+Spacing
+
+Increase whitespace between sections.
+Reduce excessive whitespace inside cards.
+
+Animations
+
+Add:
+
+- Hover lift
+- Fade-in
+- Smooth page transitions
+- Soft shadows
+- Animated counters for KPIs
+
+Responsiveness
+
+Maintain excellent responsiveness for desktop, tablet and mobile.
+
+Accessibility
+
+Ensure WCAG AA contrast.
+Improve readability.
+Increase click targets.
+
+Output
+
+Rewrite only the UI styling.
+Keep all existing functionality, APIs, components, routes, and business logic exactly the same.

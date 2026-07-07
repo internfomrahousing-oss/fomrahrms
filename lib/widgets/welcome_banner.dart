@@ -79,76 +79,47 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
       ),
       child: Stack(children: [
         Positioned(
-          right: -50,
-          top: -40,
+          right: -30,
+          top: -50,
           child: Container(
-            width: 200,
-            height: 200,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.05),
             ),
           ),
         ),
-        Positioned(
-          right: 80,
-          bottom: -70,
-          child: Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.04),
-            ),
-          ),
-        ),
         Padding(
-          padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 28, wide ? 28 : 16, 28),
+          padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 14, wide ? 28 : 16, 14),
           child: Row(children: [
+            Icon(_greetIcon, color: const Color(0xFFFFD54F), size: wide ? 20 : 17),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Welcome to FOMRA HRMS',
+                    '$_greeting, $name',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: wide ? 24 : 17,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.3,
+                      fontSize: wide ? 17 : 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     widget.subtitle,
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(_greetIcon, color: const Color(0xFFFFD54F), size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$_greeting, $name',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ]),
+                    style: const TextStyle(color: Colors.white60, fontSize: 11.5),
                   ),
                 ],
               ),
             ),
-            ProfileAvatarButton(large: true, avatarRadius: wide ? 52 : 34),
+            const ProfileAvatarButton(),
             if (widget.onRefresh != null) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Tooltip(
                 message: 'Refresh',
                 child: InkWell(

@@ -5,6 +5,8 @@ import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
+import '../theme/app_theme.dart';
+import 'hover_lift.dart';
 
 // ── Small tappable button shown on dashboards ─────────────────────────────────
 class AttendanceShortcutCard extends StatefulWidget {
@@ -414,71 +416,99 @@ Approved by: Sharad Fomra, CEO & MD
     return Row(children: [
         // ── Attendance check-in/out button ───────────────────────────────
         Flexible(
-          child: Card(
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: _loading ? null : _openSheet,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (_loading)
-                  SizedBox(
-                    width: 14, height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-                  )
-                else
-                  Icon(statusIcon, size: 18, color: statusColor),
-                const SizedBox(width: 7),
-                Flexible(
-                  child: Text(statusText,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _loading
-                              ? cs.onSurface.withValues(alpha: 0.5)
-                              : cs.onSurface)),
-                ),
-                if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
-                  const SizedBox(width: 7),
-                  Container(
-                    width: 6, height: 6,
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade400,
-                      shape: BoxShape.circle,
+          child: HoverLift(
+            liftPx: 2,
+            borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+            child: Material(
+              color: isDark ? statusColor.withValues(alpha: 0.14) : AppTheme.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                side: BorderSide(color: AppTheme.borderSubtle),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                onTap: _loading ? null : _openSheet,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      width: 28, height: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: statusColor.withValues(alpha: 0.14),
+                      ),
+                      child: _loading
+                          ? Padding(
+                              padding: const EdgeInsets.all(7),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+                            )
+                          : Icon(statusIcon, size: 16, color: statusColor),
                     ),
-                  ),
-                ],
-              ]),
+                    const SizedBox(width: 9),
+                    Flexible(
+                      child: Text(statusText,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: _loading
+                                  ? cs.onSurface.withValues(alpha: 0.5)
+                                  : cs.onSurface)),
+                    ),
+                    if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
+                      const SizedBox(width: 7),
+                      Container(
+                        width: 6, height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade400,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ]),
+                ),
+              ),
             ),
           ),
         ),
-        ),
 
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
 
         // ── HR Policy button ──────────────────────────────────────────────
-        Card(
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: _showHRPolicy,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.policy_rounded, size: 18,
-                    color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB)),
-                const SizedBox(width: 7),
-                Text('HR Policy',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))),
-              ]),
+        HoverLift(
+          liftPx: 2,
+          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+          child: Material(
+            color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.14) : AppTheme.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+              side: BorderSide(color: AppTheme.borderSubtle),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+              onTap: _showHRPolicy,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: (isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))
+                          .withValues(alpha: 0.14),
+                    ),
+                    child: Icon(Icons.policy_rounded, size: 16,
+                        color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB)),
+                  ),
+                  const SizedBox(width: 9),
+                  Text('HR Policy',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))),
+                ]),
+              ),
             ),
           ),
         ),

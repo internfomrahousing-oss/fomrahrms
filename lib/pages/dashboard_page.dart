@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/welcome_banner.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/fade_in.dart';
+import '../widgets/hover_lift.dart';
 import '../widgets/stat_strip.dart';
 
 
@@ -84,29 +87,31 @@ class _DashboardPageState extends State<DashboardPage> {
 
             Padding(
               padding: EdgeInsets.all(pad),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            _HrStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
-            SizedBox(height: narrow ? 20 : 28),
+              child: FadeIn(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _HrStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
+                    SizedBox(height: narrow ? 24 : 32),
 
-            const AttendanceShortcutCard(
-              attendanceRoute: '/hr/my-attendance',
-              accentColor: Color(0xFF3B82F6),
-            ),
-            SizedBox(height: narrow ? 20 : 28),
+                    const AttendanceShortcutCard(
+                      attendanceRoute: '/hr/my-attendance',
+                      accentColor: Color(0xFF3B82F6),
+                    ),
+                    SizedBox(height: narrow ? 24 : 32),
 
-            const DashboardInfoBlocks(canEdit: true),
-            SizedBox(height: narrow ? 20 : 28),
+                    const DashboardInfoBlocks(canEdit: true),
+                    SizedBox(height: narrow ? 24 : 32),
 
-            _SectionLabel(
-              icon: Icons.person_rounded,
-              label: 'My Space',
-            ),
-            const SizedBox(height: 12),
-            _PersonalGrid(items: _personalItems),
-            const SizedBox(height: 16),
-                ],
+                    _SectionLabel(
+                      icon: Icons.person_rounded,
+                      label: 'My Space',
+                    ),
+                    const SizedBox(height: 16),
+                    _PersonalGrid(items: _personalItems),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
           ],
@@ -241,36 +246,41 @@ class _DashCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: item.color.withValues(alpha: 0.1),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: item.color.withValues(alpha: 0.18), width: 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => context.go(item.route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
+    return HoverLift(
+      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+      child: Card(
+        color: AppTheme.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          onTap: () => context.go(item.route),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: item.color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(item.icon, color: item.color, size: 20),
                 ),
-                child: Icon(item.icon, color: item.color, size: 22),
-              ),
-              const SizedBox(height: 10),
-              Text(item.title,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: item.color)),
-              const SizedBox(height: 6),
-              Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
-            ],
+                const SizedBox(height: 12),
+                Text(item.title,
+                    style: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary)),
+                const SizedBox(height: 6),
+                Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
+              ],
+            ),
           ),
         ),
       ),

@@ -7,6 +7,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../theme/app_theme.dart';
+import 'hover_lift.dart';
 
 Color get _purple => AppTheme.primaryBlue;
 const _months = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -106,6 +107,7 @@ class InfoCard extends StatelessWidget {
   final VoidCallback? onAdd;
   final VoidCallback? onRefresh;
   final Widget child;
+  final Color? accentColor;
   const InfoCard({
     required this.icon,
     required this.title,
@@ -114,63 +116,68 @@ class InfoCard extends StatelessWidget {
     this.showIcon = true,
     this.onAdd,
     this.onRefresh,
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: _purple.withValues(alpha: 0.08),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: _purple.withValues(alpha: 0.18), width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(children: [
-              if (showIcon) ...[
-                Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: _purple.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+    final accent = accentColor ?? _purple;
+    return HoverLift(
+      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+      child: Card(
+        color: AppTheme.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(children: [
+                if (showIcon) ...[
+                  Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: accent, size: 18),
                   ),
-                  child: Icon(icon, color: _purple, size: 18),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Text(title,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary)),
                 ),
-                const SizedBox(width: 8),
-              ],
-              Expanded(
-                child: Text(title,
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700,
-                        color: _purple)),
-              ),
-              if (canEdit && onAdd != null)
-                GestureDetector(
-                  onTap: onAdd,
-                  child: Tooltip(
-                    message: 'Add',
-                    child: Icon(Icons.add_circle_outline_rounded,
-                        color: _purple, size: 20),
+                if (canEdit && onAdd != null)
+                  GestureDetector(
+                    onTap: onAdd,
+                    child: Tooltip(
+                      message: 'Add',
+                      child: Icon(Icons.add_circle_outline_rounded,
+                          color: accent, size: 20),
+                    ),
                   ),
-                ),
-              if (!canEdit && onRefresh != null)
-                GestureDetector(
-                  onTap: onRefresh,
-                  child: Tooltip(
-                    message: 'Refresh',
-                    child: Icon(Icons.refresh_rounded,
-                        color: _purple.withValues(alpha: 0.55), size: 18),
+                if (!canEdit && onRefresh != null)
+                  GestureDetector(
+                    onTap: onRefresh,
+                    child: Tooltip(
+                      message: 'Refresh',
+                      child: Icon(Icons.refresh_rounded,
+                          color: accent.withValues(alpha: 0.55), size: 18),
+                    ),
                   ),
-                ),
-            ]),
-            const SizedBox(height: 12),
-            child,
-          ],
+              ]),
+              const SizedBox(height: 14),
+              child,
+            ],
+          ),
         ),
       ),
     );
@@ -281,6 +288,7 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
     return InfoCard(
       icon: Icons.campaign_rounded,
       title: 'Announcements',
+      accentColor: AppTheme.primaryBlue,
       canEdit: widget.canEdit,
       showIcon: widget.showIcon,
       onAdd: _showAdd,
@@ -441,6 +449,7 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
     return InfoCard(
       icon: Icons.event_rounded,
       title: 'Holidays This Year',
+      accentColor: AppTheme.warning,
       canEdit: widget.canEdit,
       showIcon: widget.showIcon,
       onAdd: _showAdd,
@@ -618,6 +627,7 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
     return InfoCard(
       icon: Icons.emoji_events_rounded,
       title: 'Employee of the Month',
+      accentColor: _orange,
       canEdit: widget.canEdit,
       showIcon: widget.showIcon,
       onAdd: widget.canEdit ? _showEdit : null,
@@ -756,6 +766,7 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
     return InfoCard(
       icon: Icons.cake_rounded,
       title: 'Birthdays This Month',
+      accentColor: const Color(0xFFEC4899),
       canEdit: widget.canEdit,
       showIcon: widget.showIcon,
       onAdd: _showAdd,

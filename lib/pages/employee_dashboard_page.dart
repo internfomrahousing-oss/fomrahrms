@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/fade_in.dart';
+import '../widgets/hover_lift.dart';
 import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -55,7 +58,8 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
             ),
             Padding(
               padding: EdgeInsets.all(pad),
-              child: Column(
+              child: FadeIn(
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const AttendanceShortcutCard(
@@ -119,6 +123,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                   const SizedBox(height: 8),
                 ],
               ),
+              ),
             ),
           ],
         ),
@@ -165,36 +170,41 @@ class _DashCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: item.color.withValues(alpha: 0.1),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: item.color.withValues(alpha: 0.18), width: 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => context.go(item.route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
+    return HoverLift(
+      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+      child: Card(
+        color: AppTheme.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          onTap: () => context.go(item.route),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: item.color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(item.icon, color: item.color, size: 20),
                 ),
-                child: Icon(item.icon, color: item.color, size: 22),
-              ),
-              const SizedBox(height: 10),
-              Text(item.title,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: item.color)),
-              const SizedBox(height: 6),
-              Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
-            ],
+                const SizedBox(height: 12),
+                Text(item.title,
+                    style: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary)),
+                const SizedBox(height: 6),
+                Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
+              ],
+            ),
           ),
         ),
       ),
