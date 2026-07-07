@@ -12,7 +12,10 @@ import '../theme/app_theme.dart';
 class ProfileAvatarButton extends StatefulWidget {
   final bool large;
   final double avatarRadius;
-  const ProfileAvatarButton({super.key, this.large = false, this.avatarRadius = 52});
+  // When true, renders the compact variant for a light/white background
+  // (dark text, tinted-primary avatar) instead of the default white-on-blue.
+  final bool light;
+  const ProfileAvatarButton({super.key, this.large = false, this.avatarRadius = 52, this.light = false});
 
   @override
   State<ProfileAvatarButton> createState() => _ProfileAvatarButtonState();
@@ -156,25 +159,33 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
     }
 
     // ── Top-bar variant: compact horizontal ──────────────────────────────
+    final light = widget.light;
+    final fg      = light ? AppTheme.textPrimary : Colors.white;
+    final fgMuted = light ? AppTheme.textSecondary : Colors.white.withValues(alpha: 0.65);
+    final chipBg  = light ? AppTheme.pageBackground : Colors.white.withValues(alpha: 0.10);
+    final chipBorder = light ? AppTheme.borderSubtle : Colors.white.withValues(alpha: 0.20);
+    final avatarBg = light ? AppTheme.primaryBlue.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.20);
+    final avatarFg = light ? AppTheme.primaryBlue : Colors.white;
+
     return GestureDetector(
       key: _key,
       onTap: _openMenu,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
+          color: chipBg,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+          border: Border.all(color: chipBorder),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: Colors.white.withValues(alpha: 0.20),
+            backgroundColor: avatarBg,
             backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
             child: photoUrl.isEmpty
                 ? Text(initial,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: avatarFg,
                         fontWeight: FontWeight.bold,
                         fontSize: 14))
                 : null,
@@ -186,23 +197,20 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
             children: [
               Text(
                 name.isEmpty ? 'User' : name,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: fg,
                     fontSize: 12,
                     fontWeight: FontWeight.w600),
               ),
               if (empId.isNotEmpty)
                 Text(
                   empId,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.65),
-                      fontSize: 10),
+                  style: TextStyle(color: fgMuted, fontSize: 10),
                 ),
             ],
           ),
           const SizedBox(width: 4),
-          Icon(Icons.arrow_drop_down_rounded,
-              color: Colors.white.withValues(alpha: 0.70), size: 18),
+          Icon(Icons.arrow_drop_down_rounded, color: fgMuted, size: 18),
         ]),
       ),
     );

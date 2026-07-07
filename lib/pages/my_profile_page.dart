@@ -4,6 +4,7 @@ import '../models/app_user.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../widgets/my_space_blocks.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -129,19 +130,37 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Details card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(children: [
-                      _Row(Icons.badge_rounded,           'Employee ID',       _user?.employeeId ?? ''),
-                      _Row(Icons.email_rounded,           'Email',             _user?.email ?? ''),
-                      _Row(Icons.work_rounded,            'Designation',       _user?.designation ?? ''),
-                      _Row(Icons.manage_accounts_rounded, 'Reporting Manager', _user?.reportingManager ?? ''),
-                      _Row(Icons.calendar_today_rounded,  'Date of Joining',   _user?.dateOfJoining ?? ''),
-                    ]),
-                  ),
-                ),
+                // Details card + payslip summary side-by-side on wide screens
+                LayoutBuilder(builder: (context, constraints) {
+                  final detailsCard = Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(children: [
+                        _Row(Icons.badge_rounded,           'Employee ID',       _user?.employeeId ?? ''),
+                        _Row(Icons.email_rounded,           'Email',             _user?.email ?? ''),
+                        _Row(Icons.work_rounded,            'Designation',       _user?.designation ?? ''),
+                        _Row(Icons.manage_accounts_rounded, 'Reporting Manager', _user?.reportingManager ?? ''),
+                        _Row(Icons.calendar_today_rounded,  'Date of Joining',   _user?.dateOfJoining ?? ''),
+                      ]),
+                    ),
+                  );
+                  final payslipCard = MyPayslipBlock(viewRoute: _payslipsRoute());
+
+                  if (constraints.maxWidth > 700) {
+                    return IntrinsicHeight(
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Expanded(flex: 3, child: detailsCard),
+                        const SizedBox(width: 16),
+                        Expanded(flex: 2, child: payslipCard),
+                      ]),
+                    );
+                  }
+                  return Column(children: [
+                    detailsCard,
+                    const SizedBox(height: 16),
+                    payslipCard,
+                  ]);
+                }),
                 const SizedBox(height: 16),
 
                 // Forms section
@@ -177,6 +196,15 @@ String _rolePrefix() {
     case UserRole.hr:         return '/hr';
     case UserRole.reportingManager: return '/manager';
     default:                  return '/employee';
+  }
+}
+
+String _payslipsRoute() {
+  switch (UserSession.role) {
+    case UserRole.hr:               return '/hr/my-payslips';
+    case UserRole.reportingManager: return '/manager/my-payslips';
+    case UserRole.management:       return '/management/my-payslips';
+    default:                        return '/employee/payslips';
   }
 }
 

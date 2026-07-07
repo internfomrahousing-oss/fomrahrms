@@ -1,28 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
-import '../widgets/hover_lift.dart';
+import '../widgets/my_space_blocks.dart';
 import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
-
-
-class _Item {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String route;
-  const _Item(this.title, this.icon, this.color, this.route);
-}
-
-const _personalItems = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF3B82F6), '/manager/my-attendance'),
-  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF2563EB), '/manager/my-leave'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF111827), '/manager/my-payslips'),
-];
-
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 class ManagerDashboardPage extends StatelessWidget {
@@ -41,6 +24,10 @@ class ManagerDashboardPage extends StatelessWidget {
           children: [
             const WelcomeBanner(
               avatarIcon: Icons.manage_accounts_rounded,
+              calendarRoute: '/manager/attendance/employee-attendance-calendar',
+              performanceRoute: '/manager/performance-management',
+              notificationsRoute: '/manager/notifications',
+              searchRoute: '/manager/employee-management',
             ),
             Padding(
               padding: EdgeInsets.all(pad),
@@ -48,28 +35,22 @@ class ManagerDashboardPage extends StatelessWidget {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AttendanceShortcutCard(
+                  AttendanceShortcutCard(
                     attendanceRoute: '/manager/my-attendance',
-                    accentColor: Color(0xFF3B82F6),
+                    accentColor: const Color(0xFF3B82F6),
+                    extraTiles: [
+                      QuickTile(label: 'Leave', icon: Icons.beach_access_rounded,
+                          color: AppTheme.primaryBlue, route: '/manager/my-leave'),
+                      QuickTile(label: 'My Payslips', icon: Icons.account_balance_wallet_rounded,
+                          color: AppTheme.textPrimary, route: '/manager/my-payslips'),
+                      QuickTile(label: 'Team Approvals', icon: Icons.group_rounded,
+                          color: AppTheme.purple, route: '/manager/leave/team-approvals'),
+                      QuickTile(label: 'Approvals', icon: Icons.approval_rounded,
+                          color: AppTheme.warning, route: '/manager/approvals'),
+                      QuickTile(label: 'Help Center', icon: Icons.help_rounded,
+                          color: AppTheme.pink, onTap: () => showHelpCenterDialog(context)),
+                    ],
                   ),
-                  SizedBox(height: narrow ? 24 : 32),
-
-                  narrow
-                      ? const Column(children: [
-                          MyTasksBlock(viewAllRoute: '/manager/my-tasks'),
-                          SizedBox(height: 20),
-                          TaskAnalyticsBlock(showTeam: true),
-                        ])
-                      : const IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(child: MyTasksBlock(viewAllRoute: '/manager/my-tasks')),
-                              SizedBox(width: 16),
-                              Expanded(child: TaskAnalyticsBlock(showTeam: true)),
-                            ],
-                          ),
-                        ),
                   SizedBox(height: narrow ? 24 : 32),
 
                   _SectionLabel(
@@ -77,7 +58,13 @@ class ManagerDashboardPage extends StatelessWidget {
                     label: 'My Space',
                   ),
                   const SizedBox(height: 16),
-                  _PersonalGrid(items: _personalItems),
+                  _MySpaceRow(children: const [
+                    MyTasksBlock(viewAllRoute: '/manager/my-tasks'),
+                    TaskAnalyticsBlock(showTeam: true),
+                    MyLeaveBlock(applyRoute: '/manager/my-leave'),
+                    MyPayslipBlock(viewRoute: '/manager/my-payslips'),
+                    MyAttendanceSummaryBlock(viewRoute: '/manager/my-attendance'),
+                  ]),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -117,93 +104,34 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ── Personal grid ─────────────────────────────────────────────────────────────
-class _PersonalGrid extends StatelessWidget {
-  final List<_Item> items;
-  const _PersonalGrid({required this.items});
+// ── My Space responsive row ────────────────────────────────────────────────────
+class _MySpaceRow extends StatelessWidget {
+  final List<Widget> children;
+  const _MySpaceRow({required this.children});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final wide = constraints.maxWidth > 600;
-      final cols = wide ? (items.length % 4 == 0 ? 4 : 3) : 2;
-      final rows = <Widget>[];
-      for (int i = 0; i < items.length; i += cols) {
-        final end = (i + cols) > items.length ? items.length : i + cols;
-        final rowItems = items.sublist(i, end);
-        final missing = cols - rowItems.length;
-        rows.add(Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...rowItems.map((item) => Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: (item == rowItems.last && missing == 0) ? 0 : 12,
-                  bottom: 12,
-                ),
-                child: _DashCard(item: item),
-              ),
-            )),
-            for (int j = 0; j < missing; j++)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
-                  child: const SizedBox(),
-                ),
-              ),
-          ],
-        ));
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                Expanded(child: children[i]),
+              ],
+            ],
+          ),
+        );
       }
-      return Column(children: rows);
+      return Column(children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: 16),
+          children[i],
+        ],
+      ]);
     });
   }
 }
-
-class _DashCard extends StatelessWidget {
-  final _Item item;
-  const _DashCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return HoverLift(
-      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-      child: Card(
-        color: AppTheme.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          side: const BorderSide(color: AppTheme.borderSubtle),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          onTap: () => context.go(item.route),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: item.color.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(item.icon, color: item.color, size: 20),
-                ),
-                const SizedBox(height: 12),
-                Text(item.title,
-                    style: const TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
-                Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-

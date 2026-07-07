@@ -7,7 +7,9 @@ import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
 import '../widgets/hover_lift.dart';
+import '../widgets/my_space_blocks.dart';
 import '../widgets/stat_strip.dart';
+import '../widgets/task_analytics_block.dart';
 import '../widgets/theme_picker_block.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -84,6 +86,10 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
             WelcomeBanner(
               avatarIcon: Icons.manage_accounts_rounded,
               onRefresh: _loadCount,
+              calendarRoute: '/management/attendance/employee-attendance-calendar',
+              performanceRoute: '/management/performance-management',
+              notificationsRoute: '/management/notifications',
+              searchRoute: '/management/employee-management',
             ),
             Padding(
               padding: EdgeInsets.all(pad),
@@ -94,13 +100,38 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                   _MgmtStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
                   SizedBox(height: narrow ? 24 : 32),
 
-                  const AttendanceShortcutCard(
+                  AttendanceShortcutCard(
                     attendanceRoute: '/management/my-attendance',
-                    accentColor: Color(0xFF3B82F6),
+                    accentColor: const Color(0xFF3B82F6),
+                    extraTiles: [
+                      QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
+                          color: AppTheme.primaryBlue, route: '/management/my-leave'),
+                      QuickTile(label: 'View Reports', icon: Icons.bar_chart_rounded,
+                          color: AppTheme.purple, route: '/management/reports-analytics'),
+                      QuickTile(label: 'Add Employee', icon: Icons.person_add_alt_1_rounded,
+                          color: AppTheme.success, route: '/management/employee-management/add'),
+                      QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
+                          color: AppTheme.warning, route: '/management/attendance-management'),
+                      QuickTile(label: 'Payslips', icon: Icons.receipt_long_rounded,
+                          color: AppTheme.textPrimary, route: '/management/my-payslips'),
+                      QuickTile(label: 'Help Center', icon: Icons.help_rounded,
+                          color: AppTheme.pink, onTap: () => showHelpCenterDialog(context)),
+                    ],
                   ),
                   SizedBox(height: narrow ? 24 : 32),
 
                   const DashboardInfoBlocks(canEdit: true),
+                  SizedBox(height: narrow ? 24 : 32),
+
+                  _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
+                  const SizedBox(height: 16),
+                  _MySpaceRow(children: const [
+                    MyTasksBlock(viewAllRoute: '/management/my-tasks'),
+                    TaskAnalyticsBlock(),
+                    MyLeaveBlock(applyRoute: '/management/my-leave'),
+                    MyPayslipBlock(viewRoute: '/management/my-payslips'),
+                    MyAttendanceSummaryBlock(viewRoute: '/management/my-attendance'),
+                  ]),
                   SizedBox(height: narrow ? 24 : 32),
 
                   const ThemePickerBlock(),
@@ -146,6 +177,38 @@ class _SectionLabel extends StatelessWidget {
       const SizedBox(width: 16),
       Expanded(child: Divider(color: cs.outlineVariant)),
     ]);
+  }
+}
+
+// ── My Space responsive row ────────────────────────────────────────────────────
+class _MySpaceRow extends StatelessWidget {
+  final List<Widget> children;
+  const _MySpaceRow({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                Expanded(child: children[i]),
+              ],
+            ],
+          ),
+        );
+      }
+      return Column(children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: 16),
+          children[i],
+        ],
+      ]);
+    });
   }
 }
 

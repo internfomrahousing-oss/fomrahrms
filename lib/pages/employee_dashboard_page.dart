@@ -1,29 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
-import '../widgets/hover_lift.dart';
+import '../widgets/my_space_blocks.dart';
 import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
-
-class _Item {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String route;
-  const _Item(this.title, this.icon, this.color, this.route);
-}
-
-const _items = [
-  _Item('Leave',         Icons.beach_access_rounded,           Color(0xFF2563EB), '/employee/leave-management'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF111827), '/employee/payslips'),
-  _Item('Maintenance',   Icons.build_rounded,                  Color(0xFF4E342E), '/employee/maintenance-management'),
-  _Item('Notifications', Icons.notifications_rounded,          Color(0xFF2563EB), '/employee/notifications'),
-];
-
-const _blue = Color(0xFF2563EB);
 
 class EmployeeDashboardPage extends StatefulWidget {
   const EmployeeDashboardPage({super.key});
@@ -55,6 +37,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
           children: [
             const WelcomeBanner(
               avatarIcon: Icons.person_rounded,
+              notificationsRoute: '/employee/notifications',
             ),
             Padding(
               padding: EdgeInsets.all(pad),
@@ -62,64 +45,33 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AttendanceShortcutCard(
+                  AttendanceShortcutCard(
                     attendanceRoute: '/employee/attendance-management',
-                    accentColor: Color(0xFF2563EB),
+                    accentColor: const Color(0xFF2563EB),
+                    extraTiles: [
+                      QuickTile(label: 'Leave', icon: Icons.beach_access_rounded,
+                          color: AppTheme.primaryBlue, route: '/employee/leave-management'),
+                      QuickTile(label: 'My Payslips', icon: Icons.account_balance_wallet_rounded,
+                          color: AppTheme.textPrimary, route: '/employee/payslips'),
+                      QuickTile(label: 'Maintenance', icon: Icons.build_rounded,
+                          color: const Color(0xFF4E342E), route: '/employee/maintenance-management'),
+                      QuickTile(label: 'Notifications', icon: Icons.notifications_rounded,
+                          color: AppTheme.primaryBlue, route: '/employee/notifications'),
+                      QuickTile(label: 'Help Center', icon: Icons.help_rounded,
+                          color: AppTheme.pink, onTap: () => showHelpCenterDialog(context)),
+                    ],
                   ),
                   SizedBox(height: narrow ? 16 : 24),
 
-                  narrow
-                      ? const Column(children: [
-                          MyTasksBlock(viewAllRoute: '/employee/tasks'),
-                          SizedBox(height: 16),
-                          TaskAnalyticsBlock(),
-                        ])
-                      : const IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(child: MyTasksBlock(viewAllRoute: '/employee/tasks')),
-                              SizedBox(width: 16),
-                              Expanded(child: TaskAnalyticsBlock()),
-                            ],
-                          ),
-                        ),
-                  SizedBox(height: narrow ? 16 : 24),
-
-                  _SectionLabel(icon: Icons.apps_rounded, label: 'Quick Access'),
-                  const SizedBox(height: 12),
-                  LayoutBuilder(builder: (context, constraints) {
-                    final wide = constraints.maxWidth > 600;
-                    final cols = wide ? (_items.length % 4 == 0 ? 4 : 3) : 2;
-                    final rows = <Widget>[];
-                    for (int i = 0; i < _items.length; i += cols) {
-                      final end = (i + cols) > _items.length ? _items.length : i + cols;
-                      final rowItems = _items.sublist(i, end);
-                      final missing = cols - rowItems.length;
-                      rows.add(Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ...rowItems.map((item) => Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                right: (item == rowItems.last && missing == 0) ? 0 : 12,
-                                bottom: 12,
-                              ),
-                              child: _DashCard(item: item),
-                            ),
-                          )),
-                          for (int j = 0; j < missing; j++)
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
-                                child: const SizedBox(),
-                              ),
-                            ),
-                        ],
-                      ));
-                    }
-                    return Column(children: rows);
-                  }),
+                  _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
+                  const SizedBox(height: 16),
+                  _MySpaceRow(children: const [
+                    MyTasksBlock(viewAllRoute: '/employee/tasks'),
+                    TaskAnalyticsBlock(),
+                    MyLeaveBlock(applyRoute: '/employee/leave-management'),
+                    MyPayslipBlock(viewRoute: '/employee/payslips'),
+                    MyAttendanceSummaryBlock(viewRoute: '/employee/attendance-management'),
+                  ]),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -160,51 +112,34 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ── Dash card ─────────────────────────────────────────────────────────────────
-class _DashCard extends StatelessWidget {
-  final _Item item;
-  const _DashCard({required this.item});
+// ── My Space responsive row ────────────────────────────────────────────────────
+class _MySpaceRow extends StatelessWidget {
+  final List<Widget> children;
+  const _MySpaceRow({required this.children});
 
   @override
   Widget build(BuildContext context) {
-    return HoverLift(
-      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-      child: Card(
-        color: AppTheme.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          side: const BorderSide(color: AppTheme.borderSubtle),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          onTap: () => context.go(item.route),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: item.color.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(item.icon, color: item.color, size: 20),
-                ),
-                const SizedBox(height: 12),
-                Text(item.title,
-                    style: const TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
-                Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                Expanded(child: children[i]),
               ],
-            ),
+            ],
           ),
-        ),
-      ),
-    );
+        );
+      }
+      return Column(children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: 16),
+          children[i],
+        ],
+      ]);
+    });
   }
 }

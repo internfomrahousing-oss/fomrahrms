@@ -6,17 +6,39 @@ import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import 'dashboard_info_blocks.dart' show InfoCard;
 import 'hover_lift.dart';
 
-// ── Small tappable button shown on dashboards ─────────────────────────────────
+/// One extra static tile shown in the unified Quick Access grid, alongside
+/// the built-in Check In/Out and HR Policy tiles.
+class QuickTile {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final String? route;
+  final VoidCallback? onTap;
+  const QuickTile({
+    required this.label,
+    required this.icon,
+    required this.color,
+    this.route,
+    this.onTap,
+  }) : assert(route != null || onTap != null, 'QuickTile needs a route or onTap');
+}
+
+// ── Unified "Quick Access" grid: Check In/Out + HR Policy + extra tiles ──────
 class AttendanceShortcutCard extends StatefulWidget {
   final String attendanceRoute;
   final Color accentColor;
+  final String title;
+  final List<QuickTile> extraTiles;
 
   const AttendanceShortcutCard({
     super.key,
     required this.attendanceRoute,
     required this.accentColor,
+    this.title = 'Quick Access',
+    this.extraTiles = const [],
   });
 
   @override
@@ -385,156 +407,84 @@ Approved by: Sharad Fomra, CEO & MD
   @override
   Widget build(BuildContext context) {
     final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final cs      = Theme.of(context).colorScheme;
     final rec     = _record;
     final accent  = widget.accentColor;
+    final hrBlue  = isDark ? Colors.blue.shade300 : const Color(0xFF2563EB);
 
-    // Determine status visuals
-    final IconData  statusIcon;
-    final Color     statusColor;
-    final String    statusText;
+    // Determine status visuals for the Check In/Out tile
+    final IconData statusIcon;
+    final Color    statusColor;
+    final String   statusText; // full detail, shown as a tooltip
+    final String   tileLabel;  // short, actionable label for the tile itself
 
     if (_loading) {
       statusIcon  = Icons.access_time_rounded;
       statusColor = accent;
       statusText  = 'Attendance';
+      tileLabel   = 'Check In/Out';
     } else if (rec != null && rec.checkOutTime.isNotEmpty) {
       statusIcon  = Icons.check_circle_rounded;
       statusColor = isDark ? Colors.blue.shade300 : const Color(0xFF3B82F6);
       final dur   = _durationStr(rec);
       statusText  = 'Done · ${rec.checkInTime} – ${rec.checkOutTime}${dur != null ? ' ($dur)' : ''}';
+      tileLabel   = 'Checked Out';
     } else if (rec != null && rec.checkInTime.isNotEmpty) {
       statusIcon  = Icons.check_circle_rounded;
       statusColor = isDark ? Colors.green.shade300 : const Color(0xFF22C55E);
       statusText  = 'Checked in at ${rec.checkInTime}';
+      tileLabel   = 'Check Out';
     } else {
       statusIcon  = Icons.fingerprint_rounded;
       statusColor = accent;
       statusText  = 'Check In / Out';
+      tileLabel   = 'Check In';
     }
 
-    return Row(children: [
-        // ── Attendance check-in/out button ───────────────────────────────
-        Flexible(
-          child: HoverBuilder(
-            builder: (context, hovering) => AnimatedContainer(
-              duration: AppTheme.fastAnim,
-              curve: Curves.easeOut,
-              transform: Matrix4.translationValues(0, hovering ? -2 : 0, 0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                boxShadow: hovering ? AppTheme.cardShadowHover : AppTheme.cardShadow,
-              ),
-              child: Material(
-                color: isDark ? statusColor.withValues(alpha: 0.14) : AppTheme.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                  side: BorderSide(color: AppTheme.borderSubtle),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                  onTap: _loading ? null : _openSheet,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      AnimatedRotation(
-                        turns: hovering ? 0.04 : 0,
-                        duration: AppTheme.fastAnim,
-                        child: Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: statusColor.withValues(alpha: 0.14),
-                          ),
-                          child: _loading
-                              ? Padding(
-                                  padding: const EdgeInsets.all(7),
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-                                )
-                              : Icon(statusIcon, size: 16, color: statusColor),
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Flexible(
-                        child: Text(statusText,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: _loading
-                                    ? cs.onSurface.withValues(alpha: 0.5)
-                                    : cs.onSurface)),
-                      ),
-                      if (!_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) ...[
-                        const SizedBox(width: 7),
-                        Container(
-                          width: 6, height: 6,
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade400,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
-                    ]),
-                  ),
-                ),
-              ),
-            ),
-          ),
+    final tiles = <Widget>[
+      Tooltip(
+        message: statusText,
+        child: _QuickTileView(
+          icon: statusIcon,
+          color: statusColor,
+          label: tileLabel,
+          loading: _loading,
+          showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
+          onTap: _loading ? null : _openSheet,
         ),
-
-        const SizedBox(width: 10),
-
-        // ── HR Policy button ──────────────────────────────────────────────
-        HoverBuilder(
-          builder: (context, hovering) => AnimatedContainer(
-            duration: AppTheme.fastAnim,
-            curve: Curves.easeOut,
-            transform: Matrix4.translationValues(0, hovering ? -2 : 0, 0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-              boxShadow: hovering ? AppTheme.cardShadowHover : AppTheme.cardShadow,
-            ),
-            child: Material(
-              color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.14) : AppTheme.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                side: BorderSide(color: AppTheme.borderSubtle),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                onTap: _showHRPolicy,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    AnimatedRotation(
-                      turns: hovering ? 0.04 : 0,
-                      duration: AppTheme.fastAnim,
-                      child: Container(
-                        width: 28, height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: (isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))
-                              .withValues(alpha: 0.14),
-                        ),
-                        child: Icon(Icons.policy_rounded, size: 16,
-                            color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB)),
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    Text('HR Policy',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.blue.shade300 : const Color(0xFF2563EB))),
-                  ]),
-                ),
-              ),
-            ),
-          ),
+      ),
+      _QuickTileView(
+        icon: Icons.policy_rounded,
+        color: hrBlue,
+        label: 'HR Policy',
+        onTap: _showHRPolicy,
+      ),
+      for (final t in widget.extraTiles)
+        _QuickTileView(
+          icon: t.icon,
+          color: t.color,
+          label: t.label,
+          onTap: t.onTap ?? () => context.push(t.route!),
         ),
-      ]);
+    ];
+
+    return InfoCard(
+      icon: Icons.apps_rounded,
+      title: widget.title,
+      accentColor: AppTheme.primaryBlue,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final cols = constraints.maxWidth > 420 ? 4 : 2;
+        final rows = <Widget>[];
+        for (int i = 0; i < tiles.length; i += cols) {
+          final end = (i + cols).clamp(0, tiles.length);
+          final rowItems = tiles.sublist(i, end);
+          rows.add(Row(children: [
+            for (final w in rowItems) Expanded(child: w),
+            for (int j = rowItems.length; j < cols; j++) const Expanded(child: SizedBox()),
+          ]));
+        }
+        return Column(children: rows);
+      }),
+    );
   }
 
   static String? _durationStr(AttendanceRecord rec) {
@@ -552,6 +502,129 @@ Approved by: Sharad Fomra, CEO & MD
     } catch (_) {}
     return null;
   }
+}
+
+// ── A single Quick Access grid tile: icon-over-label with hover polish ───────
+class _QuickTileView extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback? onTap;
+  final bool loading;
+  final bool showLiveDot;
+  const _QuickTileView({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+    this.showLiveDot = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return HoverBuilder(builder: (context, hovering) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: AppTheme.fastAnim,
+            decoration: BoxDecoration(
+              color: hovering ? color.withValues(alpha: 0.06) : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              AnimatedRotation(
+                turns: hovering ? 0.04 : 0,
+                duration: AppTheme.fastAnim,
+                child: Stack(clipBehavior: Clip.none, children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: loading
+                        ? Padding(
+                            padding: const EdgeInsets.all(13),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                          )
+                        : Icon(icon, color: color, size: 22),
+                  ),
+                  if (showLiveDot)
+                    Positioned(
+                      right: -2, top: -2,
+                      child: Container(
+                        width: 10, height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade400,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.white, width: 1.5),
+                        ),
+                      ),
+                    ),
+                ]),
+              ),
+              const SizedBox(height: 8),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+            ]),
+          ),
+        ),
+      );
+    });
+  }
+}
+
+// ── Help Center dialog (static reference info, no data fetching) ─────────────
+void showHelpCenterDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (dlgCtx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.pink.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.support_agent_rounded, color: AppTheme.pink, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Help Center', style: AppTheme.cardHeading)),
+            ]),
+            const SizedBox(height: 16),
+            const Text(
+              "Need help with attendance, leave, payroll, or anything else on FOMRA HRMS? "
+              "Reach out to the HR Department and we'll get back to you as soon as possible.",
+              style: TextStyle(fontSize: 13, height: 1.5, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(dlgCtx),
+                child: const Text('Got it'),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ),
+  );
 }
 
 // ── HR Policy dialog ─────────────────────────────────────────────────────────

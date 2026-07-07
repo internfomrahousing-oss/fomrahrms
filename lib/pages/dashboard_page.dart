@@ -1,31 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
-import '../theme/app_theme.dart';
 import '../widgets/welcome_banner.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
-import '../widgets/hover_lift.dart';
+import '../widgets/my_space_blocks.dart';
 import '../widgets/stat_strip.dart';
-
-
-class _Item {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final String route;
-  const _Item(this.title, this.icon, this.color, this.route);
-}
-
-const _personalItems = [
-  _Item('My Attendance', Icons.access_time_rounded,            Color(0xFF3B82F6), '/hr/my-attendance'),
-  _Item('My Leave',      Icons.beach_access_rounded,           Color(0xFF2563EB), '/hr/my-leave'),
-  _Item('My Tasks',      Icons.task_alt_rounded,               Color(0xFF3B82F6), '/hr/my-tasks'),
-  _Item('My Payslips',   Icons.account_balance_wallet_rounded, Color(0xFF111827), '/hr/my-payslips'),
-];
-
+import '../widgets/task_analytics_block.dart';
+import '../theme/app_theme.dart';
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 class DashboardPage extends StatefulWidget {
@@ -78,11 +61,15 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Full-width welcome banner
+            // Full-width header
             WelcomeBanner(
               subtitle: 'Fomra Housing & Infrastructure',
               avatarIcon: Icons.admin_panel_settings_rounded,
               onRefresh: _loadCount,
+              calendarRoute: '/attendance/employee-attendance-calendar',
+              performanceRoute: '/performance-management',
+              notificationsRoute: '/notifications',
+              searchRoute: '/employee-management',
             ),
 
             Padding(
@@ -94,21 +81,38 @@ class _DashboardPageState extends State<DashboardPage> {
                     _HrStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
                     SizedBox(height: narrow ? 24 : 32),
 
-                    const AttendanceShortcutCard(
+                    AttendanceShortcutCard(
                       attendanceRoute: '/hr/my-attendance',
-                      accentColor: Color(0xFF3B82F6),
+                      accentColor: const Color(0xFF3B82F6),
+                      extraTiles: [
+                        QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
+                            color: AppTheme.primaryBlue, route: '/hr/my-leave'),
+                        QuickTile(label: 'View Reports', icon: Icons.bar_chart_rounded,
+                            color: AppTheme.purple, route: '/reports-analytics'),
+                        QuickTile(label: 'Add Employee', icon: Icons.person_add_alt_1_rounded,
+                            color: AppTheme.success, route: '/employee-management/add'),
+                        QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
+                            color: AppTheme.warning, route: '/attendance-management'),
+                        QuickTile(label: 'Payslips', icon: Icons.receipt_long_rounded,
+                            color: AppTheme.textPrimary, route: '/hr/my-payslips'),
+                        QuickTile(label: 'Help Center', icon: Icons.help_rounded,
+                            color: AppTheme.pink, onTap: () => showHelpCenterDialog(context)),
+                      ],
                     ),
                     SizedBox(height: narrow ? 24 : 32),
 
                     const DashboardInfoBlocks(canEdit: true),
                     SizedBox(height: narrow ? 24 : 32),
 
-                    _SectionLabel(
-                      icon: Icons.person_rounded,
-                      label: 'My Space',
-                    ),
+                    _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
                     const SizedBox(height: 16),
-                    _PersonalGrid(items: _personalItems),
+                    _MySpaceRow(children: const [
+                      MyTasksBlock(viewAllRoute: '/hr/my-tasks'),
+                      TaskAnalyticsBlock(),
+                      MyLeaveBlock(applyRoute: '/hr/my-leave'),
+                      MyPayslipBlock(viewRoute: '/hr/my-payslips'),
+                      MyAttendanceSummaryBlock(viewRoute: '/hr/my-attendance'),
+                    ]),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -195,93 +199,34 @@ class _HrStatStrip extends StatelessWidget {
   }
 }
 
-// ── Personal grid ─────────────────────────────────────────────────────────────
-class _PersonalGrid extends StatelessWidget {
-  final List<_Item> items;
-  const _PersonalGrid({required this.items});
+// ── My Space responsive row ────────────────────────────────────────────────────
+class _MySpaceRow extends StatelessWidget {
+  final List<Widget> children;
+  const _MySpaceRow({required this.children});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final wide = constraints.maxWidth > 600;
-      final cols = wide ? (items.length % 4 == 0 ? 4 : 3) : 2;
-      final rows = <Widget>[];
-      for (int i = 0; i < items.length; i += cols) {
-        final end = (i + cols) > items.length ? items.length : i + cols;
-        final rowItems = items.sublist(i, end);
-        final missing = cols - rowItems.length;
-        rows.add(Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...rowItems.map((item) => Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: (item == rowItems.last && missing == 0) ? 0 : 12,
-                  bottom: 12,
-                ),
-                child: _DashCard(item: item),
-              ),
-            )),
-            for (int j = 0; j < missing; j++)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: j < missing - 1 ? 12 : 0),
-                  child: const SizedBox(),
-                ),
-              ),
-          ],
-        ));
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                Expanded(child: children[i]),
+              ],
+            ],
+          ),
+        );
       }
-      return Column(children: rows);
+      return Column(children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: 16),
+          children[i],
+        ],
+      ]);
     });
   }
 }
-
-class _DashCard extends StatelessWidget {
-  final _Item item;
-  const _DashCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return HoverLift(
-      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-      child: Card(
-        color: AppTheme.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          side: const BorderSide(color: AppTheme.borderSubtle),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          onTap: () => context.go(item.route),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: item.color.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(item.icon, color: item.color, size: 20),
-                ),
-                const SizedBox(height: 12),
-                Text(item.title,
-                    style: const TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
-                Icon(Icons.arrow_upward_rounded, size: 16, color: item.color.withValues(alpha: 0.55)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
