@@ -12,7 +12,7 @@ class FomraLogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final swooshSize = wordmarkSize * 0.9;
+    final swooshSize = wordmarkSize * 0.78;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Stack(clipBehavior: Clip.none, children: [
         Text('FOMRA',
@@ -23,8 +23,8 @@ class FomraLogoMark extends StatelessWidget {
                 letterSpacing: -1.2,
                 height: 1)),
         Positioned(
-          right: -swooshSize * 0.32,
-          top: -swooshSize * 0.22,
+          right: -swooshSize * 0.5,
+          top: -swooshSize * 0.36,
           child: IgnorePointer(
             child: CustomPaint(
               size: Size(swooshSize, swooshSize),
@@ -47,22 +47,37 @@ class FomraLogoMark extends StatelessWidget {
   }
 }
 
+// A tapered wing/flame silhouette — wide at the base, curling up to a point
+// — rather than a uniform-width stroked arc, so it reads as a deliberate
+// mark instead of a stray comma.
 class _SwooshPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.2
-      ..strokeCap = StrokeCap.round
+    final w = size.width, h = size.height;
+    final rect = Rect.fromLTWH(0, 0, w, h);
+
+    final path = Path()
+      ..moveTo(w * 0.20, h * 0.94)
+      ..cubicTo(w * 0.02, h * 0.58, w * 0.22, h * 0.10, w * 0.86, h * 0.02)
+      ..cubicTo(w * 0.52, h * 0.14, w * 0.28, h * 0.40, w * 0.40, h * 0.70)
+      ..cubicTo(w * 0.44, h * 0.80, w * 0.32, h * 0.88, w * 0.20, h * 0.94)
+      ..close();
+
+    final fill = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.bottomLeft,
         end: Alignment.topRight,
-        colors: [Color(0xFF0F6FB8), Color(0xFF35B6E8)],
+        colors: [Color(0xFF0B6AB3), Color(0xFF4FC3F0)],
       ).createShader(rect);
-    final path = Path()
-      ..addArc(rect.deflate(size.width * 0.12), -1.55, 2.7);
-    canvas.drawPath(path, paint);
+    canvas.drawPath(path, fill);
+
+    // Thin light gap near the base, echoing the ribbon-fold in the real mark.
+    final gap = Path()
+      ..moveTo(w * 0.30, h * 0.80)
+      ..cubicTo(w * 0.22, h * 0.66, w * 0.26, h * 0.48, w * 0.40, h * 0.36)
+      ..cubicTo(w * 0.32, h * 0.52, w * 0.32, h * 0.68, w * 0.40, h * 0.80)
+      ..close();
+    canvas.drawPath(gap, Paint()..color = Colors.white.withValues(alpha: 0.35));
   }
 
   @override

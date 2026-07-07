@@ -213,12 +213,7 @@ class _LoginPageState extends State<LoginPage> {
       color: _iosBg,
       alignment: Alignment.center,
       padding: const EdgeInsets.all(48),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const FomraLogoMark(wordmarkSize: 64),
-        const SizedBox(height: 28),
-        Text('Employee & Management Portal',
-            style: GoogleFonts.inter(fontSize: 14, color: _iosSecondary, letterSpacing: 0.2)),
-      ]),
+      child: const FomraLogoMark(wordmarkSize: 64),
     );
   }
 
@@ -236,6 +231,16 @@ class _LoginPageState extends State<LoginPage> {
               if (showCompactLogo) ...[
                 const Center(child: FomraLogoMark(wordmarkSize: 40)),
                 const SizedBox(height: 36),
+              ],
+
+              if (_pendingUser == null) ...[
+                Text('Welcome back',
+                    style: GoogleFonts.inter(
+                        fontSize: 26, fontWeight: FontWeight.w700, color: _iosLabel)),
+                const SizedBox(height: 4),
+                Text('Sign in to continue to your dashboard.',
+                    style: GoogleFonts.inter(fontSize: 13.5, color: _iosSecondary)),
+                const SizedBox(height: 28),
               ],
 
               _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
@@ -333,7 +338,6 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildLoginCard() {
     return Column(children: [
-      _sectionLabel('Sign in'),
       _groupedCard(rows: [
         _groupedField(controller: _emailCtrl, hint: 'Email', keyboardType: TextInputType.emailAddress),
         _groupedField(
@@ -493,16 +497,16 @@ class _CredentialsHint extends StatelessWidget {
   Widget _cred(IconData icon, String role, String email, String pass) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, size: 16, color: _iosBlue),
         const SizedBox(width: 10),
-        Text(role, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LoginPageState._iosLabel)),
-        const Spacer(),
-        Flexible(
-          child: Text('$email / $pass',
-              textAlign: TextAlign.right,
-              style: GoogleFonts.inter(fontSize: 11.5, color: _iosSecondary),
-              overflow: TextOverflow.ellipsis),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(role, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LoginPageState._iosLabel)),
+            const SizedBox(height: 2),
+            Text('$email  /  $pass',
+                style: GoogleFonts.inter(fontSize: 11.5, color: _iosSecondary)),
+          ]),
         ),
       ]),
     );
