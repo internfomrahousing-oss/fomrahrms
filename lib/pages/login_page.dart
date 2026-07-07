@@ -7,6 +7,7 @@ import '../models/theme_notifier.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
+import '../widgets/fomra_logo.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,7 +19,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   // iOS system colors (light appearance only).
   static const _iosBlue      = Color(0xFF007AFF);
-  static const _iosBlueDark  = Color(0xFF0051D5);
   static const _iosBg        = Color(0xFFF2F2F7);
   static const _iosLabel     = Color(0xFF1C1C1E);
   static const _iosSecondary = Color(0xFF8E8E93);
@@ -192,55 +192,62 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _iosBg,
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 380),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // ── App icon (squircle, like an iOS app icon) ──────────
-                  Container(
-                    width: 76, height: 76,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft, end: Alignment.bottomRight,
-                        colors: [_iosBlue, _iosBlueDark],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _iosBlue.withValues(alpha: 0.28),
-                          blurRadius: 20, offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 38),
-                  ),
-                  const SizedBox(height: 20),
-                  Text('FOMRA HRMS',
-                      style: GoogleFonts.inter(
-                          fontSize: 26, fontWeight: FontWeight.w700,
-                          color: _iosLabel, letterSpacing: -0.4)),
-                  const SizedBox(height: 4),
-                  Text('Housing & Infrastructure',
-                      style: GoogleFonts.inter(fontSize: 13, color: _iosSecondary)),
-                  const SizedBox(height: 36),
+        child: LayoutBuilder(builder: (context, c) {
+          final wide = c.maxWidth >= 860;
+          if (!wide) return _formColumn(showCompactLogo: true);
+          return Row(children: [
+            Expanded(flex: 5, child: _logoPanel()),
+            const VerticalDivider(width: 1, thickness: 1, color: _iosSeparator),
+            Expanded(flex: 6, child: _formColumn(showCompactLogo: false)),
+          ]);
+        }),
+      ),
+    );
+  }
 
-                  _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
+  // ── Left panel: the company logo, large and centered ──────────────────
+  Widget _logoPanel() {
+    return Container(
+      color: _iosBg,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(48),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const FomraLogoMark(wordmarkSize: 64),
+        const SizedBox(height: 28),
+        Text('Employee & Management Portal',
+            style: GoogleFonts.inter(fontSize: 14, color: _iosSecondary, letterSpacing: 0.2)),
+      ]),
+    );
+  }
 
-                  const SizedBox(height: 20),
-                  const _CredentialsHint(),
+  // ── Right panel: the actual sign-in form ───────────────────────────────
+  Widget _formColumn({required bool showCompactLogo}) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showCompactLogo) ...[
+                const Center(child: FomraLogoMark(wordmarkSize: 40)),
+                const SizedBox(height: 36),
+              ],
 
-                  const SizedBox(height: 28),
-                  Text('FOMRA Housing & Infrastructure © 2025',
-                      style: GoogleFonts.inter(fontSize: 11, color: _iosSecondary)),
-                ],
-              ),
-            ),
+              _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
+
+              const SizedBox(height: 20),
+              const _CredentialsHint(),
+
+              const SizedBox(height: 28),
+              Text('FOMRA Housing & Infrastructure © 2025',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(fontSize: 11, color: _iosSecondary)),
+            ],
           ),
         ),
       ),
