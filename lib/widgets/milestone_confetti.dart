@@ -47,6 +47,22 @@ class _MilestoneConfettiState extends State<MilestoneConfetti> {
 
     if (message == null) {
       try {
+        final eom = await SupabaseService.fetchEmployeeOfMonth();
+        final eomName = (eom?['employee_name'] as String?)?.trim().toLowerCase() ?? '';
+        final announced = DateTime.tryParse((eom?['announced_date'] as String?) ?? '');
+        final today = DateTime.now();
+        final isAnnouncedToday = announced != null &&
+            announced.year == today.year &&
+            announced.month == today.month &&
+            announced.day == today.day;
+        if (eomName == name.toLowerCase() && isAnnouncedToday) {
+          message = 'You\'re the Employee of the Month, $name! \u{1F3C6}';
+        }
+      } catch (_) {}
+    }
+
+    if (message == null) {
+      try {
         final today = DateTime.now();
         final births = await SupabaseService.fetchBirthdaysForMonth(today.month);
         final isBirthday = births.any((b) {

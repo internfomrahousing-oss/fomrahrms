@@ -1441,6 +1441,7 @@ class SupabaseService {
   static Future<String?> upsertEmployeeOfMonth(
       String name, String reason, String monthYear) async {
     try {
+      final today = DateTime.now().toIso8601String().split('T').first;
       final existing = await _db
           ?.from('employee_of_month')
           .select('id')
@@ -1450,12 +1451,14 @@ class SupabaseService {
         await _db?.from('employee_of_month').update({
           'employee_name': name,
           'reason': reason,
+          'announced_date': today,
         }).eq('month_year', monthYear);
       } else {
         await _db?.from('employee_of_month').insert({
           'employee_name': name,
           'reason': reason,
           'month_year': monthYear,
+          'announced_date': today,
         });
       }
       return null;
