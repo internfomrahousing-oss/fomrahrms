@@ -70,7 +70,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
           end: Alignment.centerRight,
         ),
       ),
-      padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 16, wide ? 28 : 16, 16),
+      padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 18, wide ? 28 : 16, 18),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Expanded(
           child: Column(
@@ -106,7 +106,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
           ),
           const SizedBox(width: 4),
         ],
-        const ProfileAvatarButton(),
+        const ProfileAvatarButton(large: true, avatarRadius: 36),
       ]),
     );
   }

@@ -12,10 +12,18 @@ import '../theme/app_theme.dart';
 class ProfileAvatarButton extends StatefulWidget {
   final bool large;
   final double avatarRadius;
+  // Radius of the circle in the compact (non-large) top-bar variant.
+  final double compactAvatarRadius;
   // When true, renders the compact variant for a light/white background
   // (dark text, tinted-primary avatar) instead of the default white-on-blue.
   final bool light;
-  const ProfileAvatarButton({super.key, this.large = false, this.avatarRadius = 52, this.light = false});
+  const ProfileAvatarButton({
+    super.key,
+    this.large = false,
+    this.avatarRadius = 52,
+    this.compactAvatarRadius = 16,
+    this.light = false,
+  });
 
   @override
   State<ProfileAvatarButton> createState() => _ProfileAvatarButtonState();
@@ -192,11 +200,12 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
     final avatarBg = light ? AppTheme.primaryBlue.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.20);
     final avatarFg = light ? AppTheme.primaryBlue : Colors.white;
 
+    final r = widget.compactAvatarRadius;
     return GestureDetector(
       key: _key,
       onTap: _openMenu,
       child: CircleAvatar(
-        radius: 16,
+        radius: r,
         backgroundColor: avatarBg,
         backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
         child: photoUrl.isEmpty
@@ -204,7 +213,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                 style: TextStyle(
                     color: avatarFg,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14))
+                    fontSize: r * 0.875))
             : null,
       ),
     );
