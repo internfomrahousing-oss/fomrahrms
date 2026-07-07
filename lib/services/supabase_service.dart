@@ -200,6 +200,16 @@ import '../models/user_session.dart';
   alter table candidate_applications add column if not exists manager_comment text default '';
   alter table candidate_applications add column if not exists management_status text default 'pending';
   alter table candidate_applications add column if not exists management_comment text default '';
+  alter table candidate_applications add column if not exists standing_arrears text default '';
+  alter table candidate_applications add column if not exists education_history jsonb default '[]';
+  alter table candidate_applications add column if not exists employment_history jsonb default '[]';
+  alter table candidate_applications add column if not exists referrals jsonb default '[]';
+  alter table candidate_applications add column if not exists address text default '';
+  alter table candidate_applications add column if not exists declaration_name text default '';
+  alter table candidate_applications add column if not exists signature_date text default '';
+  alter table candidate_applications add column if not exists declaration_agreed boolean default false;
+  alter table candidate_applications add column if not exists resume_url text default '';
+  alter table candidate_applications add column if not exists custom_field_values jsonb default '{}';
 
   create table if not exists app_users (
     email text primary key,

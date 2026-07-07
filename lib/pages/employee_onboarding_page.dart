@@ -673,6 +673,69 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     }
   }
 
+  Future<void> _approveManagement(BuildContext context) async {
+    final d = widget.data;
+    final email   = (d['assigned_email']   as String?) ?? '';
+    final empId   = (d['assigned_emp_id']  as String?) ?? '';
+    final manager = (d['assigned_manager'] as String?) ?? '';
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No email assigned. Ask HR to re-forward this submission.'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
+
+    setState(() => _acting = true);
+    try {
+      final user = AppUser(
+        name:             (d['name']            as String?) ?? '',
+        email:            email,
+        employeeId:       empId,
+        designation:      (d['designation']     as String?) ?? '',
+        role:             'Employee',
+        active:           true,
+        reportingManager: manager,
+        dateOfJoining:    (d['date_of_joining'] as String?) ?? '',
+      );
+      await UserStore.upsertOne(user);
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({'status': 'access_granted'})
+          .eq('id', d['id'].toString());
+      widget.onRefresh();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Account created for ${user.name} (${user.email})'),
+          backgroundColor: Colors.green.shade700,
+        ));
+      }
+    } catch (e) {
+      setState(() => _acting = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 8),
+        ));
+      }
+    }
+  }
+
+  Future<void> _denyManagement() async {
+    setState(() => _acting = true);
+    try {
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({'status': 'mgmt_denied'})
+          .eq('id', widget.data['id'].toString());
+      widget.onRefresh();
+    } catch (_) {
+      setState(() => _acting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = widget.data;
@@ -855,6 +918,38 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                     Text('Manager: ${d['assigned_manager'] ?? '—'}', style: const TextStyle(fontSize: 11, color: _blue)),
                   ]),
                 ),
+                // Management: final approve/deny — creates the employee account.
+                if (UserSession.role == UserRole.management) ...[
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        label: const Text('Deny'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: _acting ? null : _denyManagement,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.check_rounded, size: 16),
+                        label: const Text('Approve'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF22C55E),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: _acting ? null : () => _approveManagement(context),
+                      ),
+                    ),
+                  ]),
+                ],
               ],
             ]),
           ),
