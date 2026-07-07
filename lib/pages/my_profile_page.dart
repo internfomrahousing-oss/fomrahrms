@@ -18,6 +18,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   static const _color = Color(0xFF3B82F6);
   AppUser? _user;
   bool _loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -34,6 +35,80 @@ class _MyProfilePageState extends State<MyProfilePage> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _requestOnRoll() async {
+    final user = _user;
+    if (user == null) return;
+    setState(() => _saving = true);
+    user.onrollRequestedAt = DateTime.now().toIso8601String();
+    await UserStore.upsertOne(user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _buildOnRollCard(AppUser user) {
+    final months = fullMonthsSince(user.dateOfJoining);
+    final pending = user.onrollRequestedAt.isNotEmpty;
+
+    final Color bg, fg;
+    final IconData icon;
+    final String text;
+    Widget? action;
+
+    if (months < 6) {
+      bg = Colors.grey.shade100;
+      fg = Colors.grey.shade700;
+      icon = Icons.hourglass_top_rounded;
+      final left = 6 - months;
+      text = 'You can request On-Roll confirmation after completing 6 months '
+          '($left ${left == 1 ? 'month' : 'months'} to go).';
+    } else if (pending) {
+      bg = Colors.orange.shade50;
+      fg = const Color(0xFF7B4F00);
+      icon = Icons.pending_actions_rounded;
+      text = 'On-Roll confirmation requested — awaiting approval from HR '
+          'or your Reporting Manager.';
+    } else {
+      bg = Colors.green.shade50;
+      fg = const Color(0xFF15803D);
+      icon = Icons.verified_rounded;
+      text = "You've completed 6 months and are eligible for On-Roll confirmation.";
+      action = SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _saving ? null : _requestOnRoll,
+          icon: _saving
+              ? const SizedBox(
+                  width: 14, height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.send_rounded, size: 16),
+          label: const Text('Request On-Roll Confirmation'),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+        ),
+      );
+    }
+
+    return Card(
+      color: bg,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, color: fg, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(text,
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: fg)),
+            ),
+          ]),
+          if (action != null) ...[
+            const SizedBox(height: 12),
+            action,
+          ],
+        ]),
+      ),
+    );
   }
 
   @override
@@ -164,6 +239,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   ]);
                 }),
                 const SizedBox(height: 16),
+
+                // Employment status / on-roll request
+                if (_user != null && !_user!.isOnroll) ...[
+                  _buildOnRollCard(_user!),
+                  const SizedBox(height: 16),
+                ],
 
                 // Forms section
                 Row(children: [

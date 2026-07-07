@@ -349,6 +349,11 @@ class _UserCard extends StatelessWidget {
                   _RoleChip(user.role, c),
                   const SizedBox(width: 6),
                   _StatusPill(user.leaveStatus),
+                  if (user.onrollRequestedAt.isNotEmpty && !user.isOnroll) ...[
+                    const SizedBox(width: 6),
+                    _Badge('On-Roll Requested', Colors.orange.shade50,
+                        Colors.orange.shade200, Colors.orange.shade800),
+                  ],
                 ]),
                 if (user.designation.isNotEmpty) ...[
                   const SizedBox(height: 3),
@@ -460,6 +465,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
   Future<void> _confirmOnroll() async {
     setState(() => _saving = true);
     _user.onrollConfirmedAt = DateTime.now().toIso8601String();
+    _user.onrollRequestedAt = '';
     await widget.onSave(_user);
     _onrollTimer?.cancel();
     if (mounted) { setState(() => _saving = false); _startTimers(); }
@@ -496,6 +502,10 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     final c = _roleColor(_user.role);
     final canEdit = UserSession.role == UserRole.hr ||
         UserSession.role == UserRole.management;
+    // On-roll requests go to HR and the employee's own reporting manager.
+    final isReportingManager = UserSession.role == UserRole.reportingManager &&
+        UserSession.name.trim().toLowerCase() == _user.reportingManager.trim().toLowerCase();
+    final canManageOnroll = canEdit || isReportingManager;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -556,7 +566,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
 
             // ── Employment status management ──────────────────────────────
-            if (canEdit) ...[
+            if (canManageOnroll) ...[
               const SizedBox(height: 14),
               const Divider(),
               const SizedBox(height: 10),
@@ -570,7 +580,29 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               const SizedBox(height: 10),
 
               // On-Roll
-              if (!_user.isOnroll)
+              if (!_user.isOnroll) ...[
+                if (_user.onrollRequestedAt.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.pending_actions_rounded, size: 15, color: Colors.orange.shade800),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text('Employee requested On-Roll confirmation',
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                                  color: Colors.orange.shade800)),
+                        ),
+                      ]),
+                    ),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -584,7 +616,8 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
-                )
+                ),
+              ]
               else
                 Row(children: [
                   Expanded(
@@ -616,8 +649,8 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                   ],
                 ]),
 
-              // EL Eligibility (only visible once on-roll)
-              if (_user.isOnroll) ...[
+              // EL Eligibility (HR/Management only, once on-roll)
+              if (_user.isOnroll && canEdit) ...[
                 const SizedBox(height: 8),
                 if (!_user.isElEligible)
                   SizedBox(

@@ -14,6 +14,7 @@ class AppUser {
   String address;
   String dateOfJoining;       // ISO date string, set when management creates the user
   String onrollConfirmedAt;   // ISO datetime when HR confirmed on-roll; empty = probation
+  String onrollRequestedAt;   // ISO datetime when employee requested on-roll confirmation; empty = no pending request
   String elEligibleAt;        // ISO datetime when HR confirmed EL eligibility; empty = not eligible
   String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
   String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
@@ -34,6 +35,7 @@ class AppUser {
     this.address = '',
     this.dateOfJoining = '',
     this.onrollConfirmedAt = '',
+    this.onrollRequestedAt = '',
     this.elEligibleAt = '',
     this.biometricId = '',
     this.elAvailRequestedAt = '',
@@ -88,6 +90,7 @@ class AppUser {
     'address':               address,
     'dateOfJoining':         dateOfJoining,
     'onrollConfirmedAt':     onrollConfirmedAt,
+    'onrollRequestedAt':     onrollRequestedAt,
     'elEligibleAt':          elEligibleAt,
     'biometricId':           biometricId,
     'elAvailRequestedAt':    elAvailRequestedAt,
@@ -109,6 +112,7 @@ class AppUser {
     address:              j['address']              as String? ?? '',
     dateOfJoining:        j['dateOfJoining']        as String? ?? '',
     onrollConfirmedAt:    j['onrollConfirmedAt']    as String? ?? '',
+    onrollRequestedAt:    j['onrollRequestedAt']    as String? ?? '',
     elEligibleAt:         j['elEligibleAt']         as String? ?? '',
     biometricId:          j['biometricId']          as String? ?? '',
     elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',

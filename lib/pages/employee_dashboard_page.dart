@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
+import '../widgets/milestone_confetti.dart';
 import '../widgets/my_space_blocks.dart';
 import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
@@ -26,7 +27,8 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     final narrow = MediaQuery.of(context).size.width < 700;
     final pad    = narrow ? 16.0 : 24.0;
 
-    return Material(
+    return MilestoneConfetti(
+      child: Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: RefreshIndicator(
         onRefresh: _refresh,
@@ -72,6 +74,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
             ),
           ],
         ),
+      ),
       ),
       ),
     );

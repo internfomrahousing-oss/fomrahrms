@@ -5,6 +5,7 @@ import '../widgets/welcome_banner.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
+import '../widgets/milestone_confetti.dart';
 import '../widgets/my_space_blocks.dart';
 import '../widgets/stat_strip.dart';
 import '../widgets/task_analytics_block.dart';
@@ -55,7 +56,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final narrow = MediaQuery.of(context).size.width < 700;
     final pad    = narrow ? 16.0 : 24.0;
 
-    return Material(
+    return MilestoneConfetti(
+      child: Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
         child: Column(
@@ -108,6 +110,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

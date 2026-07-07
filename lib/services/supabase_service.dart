@@ -226,6 +226,7 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists el_avail_requested_at text default '';
   alter table app_users add column if not exists el_last_availed_at text default '';
   alter table app_users add column if not exists gross_pay numeric default 0;
+  alter table app_users add column if not exists onroll_requested_at text default '';
 
   create table if not exists tasks (
     id text primary key,
@@ -654,6 +655,7 @@ class SupabaseService {
         address:              (row['address']                 as String?) ?? '',
         dateOfJoining:        (row['date_of_joining']         as String?) ?? '',
         onrollConfirmedAt:    (row['onroll_confirmed_at']     as String?) ?? '',
+        onrollRequestedAt:    (row['onroll_requested_at']     as String?) ?? '',
         elEligibleAt:         (row['el_eligible_at']          as String?) ?? '',
         biometricId:          (row['biometric_id']            as String?) ?? '',
         elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
@@ -680,6 +682,7 @@ class SupabaseService {
       'address':                  u.address,
       'date_of_joining':          u.dateOfJoining,
       'onroll_confirmed_at':      u.onrollConfirmedAt,
+      'onroll_requested_at':      u.onrollRequestedAt,
       'el_eligible_at':           u.elEligibleAt,
       'biometric_id':             u.biometricId,
       'el_avail_requested_at':    u.elAvailRequestedAt,

@@ -7,6 +7,7 @@ import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
 import '../widgets/hover_lift.dart';
+import '../widgets/milestone_confetti.dart';
 import '../widgets/stat_strip.dart';
 import '../widgets/theme_picker_block.dart';
 import '../widgets/welcome_banner.dart';
@@ -75,7 +76,8 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
     final narrow = MediaQuery.of(context).size.width < 700;
     final pad = narrow ? 16.0 : 24.0;
 
-    return Material(
+    return MilestoneConfetti(
+      child: Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
         child: Column(
@@ -128,6 +130,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
