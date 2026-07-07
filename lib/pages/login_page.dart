@@ -7,6 +7,7 @@ import '../models/theme_notifier.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
+import '../widgets/space_backdrop.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,9 +17,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const _color = Color(0xFF2563EB);
-  static const _colorDark = Color(0xFF1D4ED8);
-  static const _borderSubtle = Color(0xFFE7EBF2);
+  // Deep-space navy palette — swapped in for the graphical split-screen login.
+  static const _panelBg    = Color(0xFF080C15);
+  static const _accent     = Color(0xFF8FB4EE); // soft pastel blue (button, highlights)
+  static const _accentDeep = Color(0xFF3E7BDE); // used for focus rings / icons
+  static const _border     = Color(0xFF1E2740);
+  static const _fieldFill  = Color(0xFF0E1424);
+  static const _textMuted  = Color(0xFF8A93AC);
 
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -187,285 +192,248 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (!isDark) ...[
-            Positioned(top: -140, left: -120, child: _glow(_color, 340)),
-            Positioned(bottom: -160, right: -140, child: _glow(_color, 380)),
-          ],
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 88, height: 88,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                          colors: [_color, _colorDark],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _color.withValues(alpha: 0.28),
-                            blurRadius: 28, offset: const Offset(0, 12),
-                          ),
-                        ],
+      backgroundColor: _panelBg,
+      body: LayoutBuilder(builder: (context, c) {
+        final wide = c.maxWidth >= 900;
+        final formPanel = _formPanel(wide);
+        if (!wide) return formPanel;
+        return Row(children: [
+          Expanded(flex: 5, child: formPanel),
+          const Expanded(flex: 6, child: SpaceBackdrop()),
+        ]);
+      }),
+    );
+  }
+
+  Widget _formPanel(bool wide) {
+    return Container(
+      color: _panelBg,
+      child: Stack(children: [
+        Positioned.fill(child: CustomPaint(painter: _CornerGridPainter())),
+        SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(wide ? 56 : 28, 40, wide ? 56 : 28, 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Logo ──────────────────────────────────────────
+                Row(children: [
+                  Container(
+                    width: 30, height: 30,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        colors: [_accent, _accentDeep],
                       ),
-                      child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 44),
                     ),
-                    const SizedBox(height: 24),
-                    Text('FOMRA HRMS',
-                        style: GoogleFonts.inter(
-                            fontSize: 30, fontWeight: FontWeight.w800,
-                            color: _color, letterSpacing: 1.5)),
-                    const SizedBox(height: 6),
-                    Text('Housing & Infrastructure',
-                        style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white54 : const Color(0xFF6B7280),
-                            letterSpacing: 1.4)),
-                    const SizedBox(height: 32),
-
-                    _pendingUser != null
-                        ? _buildSetPasswordCard(isDark)
-                        : _buildLoginCard(isDark),
-
-                    const SizedBox(height: 24),
-                    Text('FOMRA Housing & Infrastructure © 2025',
-                        style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: isDark ? Colors.white30 : Colors.grey.shade400)),
-                  ],
+                    child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 16),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('FOMRA HRMS',
+                      style: GoogleFonts.inter(
+                          fontSize: 15, fontWeight: FontWeight.w700,
+                          color: Colors.white, letterSpacing: 0.4)),
+                ]),
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 40),
+                  child: Text('Housing & Infrastructure',
+                      style: GoogleFonts.inter(fontSize: 11, color: _textMuted, letterSpacing: 1.2)),
                 ),
-              ),
+                SizedBox(height: wide ? 72 : 48),
+
+                // ── Headline ──────────────────────────────────────
+                Text("We're managing your\nworkforce so you\ndon't have to",
+                    style: GoogleFonts.inter(
+                        fontSize: 30, fontWeight: FontWeight.w600,
+                        color: Colors.white, height: 1.28, letterSpacing: -0.3)),
+                const SizedBox(height: 36),
+
+                _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
+
+                const SizedBox(height: 20),
+                const _CredentialsHint(),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _glow(Color color, double size) {
-    return IgnorePointer(
-      child: Container(
-        width: size, height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.10), color.withValues(alpha: 0.0)],
-          ),
         ),
-      ),
+      ]),
     );
   }
 
-  Widget _cardShell(bool isDark, {required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2036) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? const Color(0xFF283252) : _borderSubtle),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
-            blurRadius: 40, offset: const Offset(0, 18),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 6, offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
+  Widget _fieldLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(text,
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _textMuted)),
+      );
 
-  Widget _buildLoginCard(bool isDark) {
-    return _cardShell(isDark, child: Column(children: [
+  Widget _buildLoginCard() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _fieldLabel('Email'),
       TextField(
         controller: _emailCtrl,
         keyboardType: TextInputType.emailAddress,
-        style: GoogleFonts.inter(fontSize: 14),
-        decoration: _inputDecoration('Email', Icons.email_rounded, isDark),
+        style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+        decoration: _inputDecoration('you@fomrahousing.in'),
       ),
       const SizedBox(height: 16),
+      _fieldLabel('Password'),
       TextField(
         controller: _passwordCtrl,
         obscureText: _obscure,
-        style: GoogleFonts.inter(fontSize: 14),
+        style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
         onSubmitted: (_) => _login(),
-        decoration: _inputDecoration('Password', Icons.lock_rounded, isDark).copyWith(
+        decoration: _inputDecoration('••••••••').copyWith(
           suffixIcon: IconButton(
             icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
+                size: 18, color: _textMuted),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
         ),
       ),
-      _errorBanner(isDark),
-      const SizedBox(height: 24),
+      _errorBanner(),
+      const SizedBox(height: 22),
       SizedBox(
         width: double.infinity,
-        height: 52,
+        height: 50,
         child: ElevatedButton.icon(
           onPressed: _loading ? null : _login,
           icon: _loading
               ? const SizedBox(width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.login_rounded, size: 20),
-          label: Text(_loading ? 'Signing in…' : 'Sign In',
-              style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: _panelBg))
+              : const Icon(Icons.login_rounded, size: 18, color: _panelBg),
+          label: Text(_loading ? 'Signing in…' : 'Continue',
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _panelBg)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _color, foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            backgroundColor: _accent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             elevation: 0,
           ),
         ),
       ),
-      const SizedBox(height: 20),
-      const _CredentialsHint(),
-    ]));
+    ]);
   }
 
-  Widget _buildSetPasswordCard(bool isDark) {
+  Widget _buildSetPasswordCard() {
     final user = _pendingUser!;
-    return _cardShell(isDark, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(
-          width: 40, height: 40,
+          width: 36, height: 36,
           decoration: BoxDecoration(
-            color: _color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: _accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.lock_open_rounded, color: _color, size: 22),
+          child: const Icon(Icons.lock_open_rounded, color: _accent, size: 19),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Welcome, ${user.name}!',
-                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: _color)),
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
             Text('Set your password to continue.',
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
+                style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
           ]),
         ),
       ]),
-      const SizedBox(height: 24),
+      const SizedBox(height: 22),
+      _fieldLabel('Create Password'),
       TextField(
         controller: _newPassCtrl,
         obscureText: _obscureNew,
-        style: GoogleFonts.inter(fontSize: 14),
-        decoration: _inputDecoration('Create Password', Icons.lock_rounded, isDark).copyWith(
+        style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+        decoration: _inputDecoration('••••••••').copyWith(
           suffixIcon: IconButton(
             icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
+                size: 18, color: _textMuted),
             onPressed: () => setState(() => _obscureNew = !_obscureNew),
           ),
         ),
       ),
       const SizedBox(height: 16),
+      _fieldLabel('Confirm Password'),
       TextField(
         controller: _confirmCtrl,
         obscureText: _obscureConfirm,
-        style: GoogleFonts.inter(fontSize: 14),
+        style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
         onSubmitted: (_) => _savePassword(),
-        decoration: _inputDecoration('Confirm Password', Icons.lock_outline_rounded, isDark).copyWith(
+        decoration: _inputDecoration('••••••••').copyWith(
           suffixIcon: IconButton(
             icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
+                size: 18, color: _textMuted),
             onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
           ),
         ),
       ),
-      _errorBanner(isDark),
-      const SizedBox(height: 24),
+      _errorBanner(),
+      const SizedBox(height: 22),
       SizedBox(
         width: double.infinity,
-        height: 52,
+        height: 50,
         child: ElevatedButton.icon(
           onPressed: _loading ? null : _savePassword,
           icon: _loading
               ? const SizedBox(width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.check_rounded, size: 20),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: _panelBg))
+              : const Icon(Icons.check_rounded, size: 18, color: _panelBg),
           label: Text(_loading ? 'Saving…' : 'Set Password & Continue',
-              style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700)),
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _panelBg)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _color, foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            backgroundColor: _accent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             elevation: 0,
           ),
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 10),
       Center(
         child: TextButton(
           onPressed: () => setState(() { _pendingUser = null; _error = null; }),
-          child: Text('Back to Login',
-              style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
+          child: Text('Back to Login', style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
         ),
       ),
-    ]));
+    ]);
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, bool isDark) {
+  InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
-      labelText: label,
-      labelStyle: GoogleFonts.inter(
-          fontSize: 13, color: isDark ? Colors.white54 : const Color(0xFF6B7280)),
-      prefixIcon: Icon(icon, color: _color, size: 20),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      hintText: hint,
+      hintStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted.withValues(alpha: 0.6)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-            color: isDark ? const Color(0xFF3A4A6A) : _borderSubtle,
-            width: 1.2),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _border, width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _color, width: 2),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _accentDeep, width: 1.6),
       ),
       filled: true,
-      fillColor: isDark ? const Color(0xFF1E2740) : const Color(0xFFF7F9FC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      fillColor: _fieldFill,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     );
   }
 
-  Widget _errorBanner(bool isDark) {
+  Widget _errorBanner() {
     if (_error == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isDark ? Colors.red.shade900.withValues(alpha: 0.4) : Colors.red.shade50,
+          color: Colors.red.shade900.withValues(alpha: 0.25),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: isDark ? Colors.red.shade700 : Colors.red.shade200),
+          border: Border.all(color: Colors.red.shade700.withValues(alpha: 0.6)),
         ),
         child: Row(children: [
-          Icon(Icons.error_outline_rounded,
-              size: 16, color: isDark ? Colors.red.shade300 : Colors.red.shade600),
+          Icon(Icons.error_outline_rounded, size: 16, color: Colors.red.shade300),
           const SizedBox(width: 8),
           Expanded(
             child: Text(_error!,
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isDark ? Colors.red.shade300 : Colors.red.shade700)),
+                style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade200)),
           ),
         ]),
       ),
@@ -473,46 +441,74 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+// Faint diagonal cross-hatch in the lower-left corner of the form panel —
+// echoes the graphic panel's grid without competing with the form itself.
+class _CornerGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.035)
+      ..strokeWidth = 1;
+    const spacing = 26.0;
+    final mask = Paint()
+      ..shader = RadialGradient(
+        colors: [Colors.white, Colors.white.withValues(alpha: 0)],
+        stops: const [0.0, 1.0],
+      ).createShader(Rect.fromCircle(
+          center: Offset(0, size.height), radius: size.height * 0.85));
+
+    final layer = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.saveLayer(layer, Paint());
+    for (double x = -size.height; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), paint);
+    }
+    canvas.drawRect(layer, Paint()
+      ..blendMode = BlendMode.dstIn
+      ..shader = mask.shader);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _CornerGridPainter oldDelegate) => false;
+}
+
 class _CredentialsHint extends StatelessWidget {
   const _CredentialsHint();
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2540) : const Color(0xFFF7F9FC),
+        color: const Color(0xFF0E1424),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isDark ? const Color(0xFF2A3A6A) : const Color(0xFFE3E9F5)),
+        border: Border.all(color: const Color(0xFF1E2740)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Admin Credentials',
-            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF2563EB))),
+            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: _LoginPageState._accent)),
         const SizedBox(height: 2),
         Text('Users created by Management set their own password on first login.',
-            style: GoogleFonts.inter(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
+            style: GoogleFonts.inter(fontSize: 10, color: _LoginPageState._textMuted)),
         const SizedBox(height: 6),
-        _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123', isDark),
+        _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123'),
         const SizedBox(height: 4),
-        _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123', isDark),
+        _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123'),
         const SizedBox(height: 4),
-        _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123', isDark),
+        _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123'),
       ]),
     );
   }
 
-  Widget _cred(IconData icon, String role, String email, String pass, bool isDark) {
+  Widget _cred(IconData icon, String role, String email, String pass) {
     return Row(children: [
-      Icon(icon, size: 13, color: const Color(0xFF2563EB)),
+      Icon(icon, size: 13, color: _LoginPageState._accent),
       const SizedBox(width: 6),
       Text('$role: ', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white70 : const Color(0xFF6B7280))),
+          color: Colors.white70)),
       Expanded(
         child: Text('$email / $pass',
-            style: GoogleFonts.inter(fontSize: 11,
-                color: isDark ? Colors.white54 : const Color(0xFF6B7280)),
+            style: GoogleFonts.inter(fontSize: 11, color: _LoginPageState._textMuted),
             overflow: TextOverflow.ellipsis),
       ),
     ]);
