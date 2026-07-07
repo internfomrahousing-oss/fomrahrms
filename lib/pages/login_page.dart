@@ -87,7 +87,46 @@ class _LoginPageState extends State<LoginPage> {
       setState(() { _error = 'Invalid email or password.'; _loading = false; });
       return;
     }
-    _completeLogin(match.$2, match.$3, match.$4);
+    final systemEmail = email.toLowerCase();
+    await _ensureSystemUserProvisioned(systemEmail, match);
+    _completeLogin(match.$2, match.$3, match.$4, email: systemEmail);
+  }
+
+  // System-credential logins (HR/Manager/Employee demo accounts) never had a
+  // matching AppUser row, so they never showed up as a regular employee
+  // record (e.g. in Employee Management, or in the leave/payslip lookups
+  // that key off the app_users table) even though HR and Manager are
+  // employees too. Management is not an employee record, so it's excluded.
+  static String _roleString(UserRole role) => switch (role) {
+        UserRole.hr => 'HR',
+        UserRole.reportingManager => 'Manager',
+        UserRole.management => 'Management',
+        UserRole.employee => 'Employee',
+      };
+
+  static String _designationFor(UserRole role) => switch (role) {
+        UserRole.hr => 'HR Administrator',
+        UserRole.reportingManager => 'Reporting Manager',
+        UserRole.management => 'Director',
+        UserRole.employee => 'Employee',
+      };
+
+  Future<void> _ensureSystemUserProvisioned(
+      String email, (String, UserRole, String, String) match) async {
+    if (match.$2 == UserRole.management) return;
+    final existing = await UserStore.findByEmail(email);
+    if (existing != null) return;
+    final now = DateTime.now().toIso8601String();
+    await UserStore.upsertOne(AppUser(
+      name: match.$3,
+      email: email,
+      employeeId: match.$4,
+      designation: _designationFor(match.$2),
+      role: _roleString(match.$2),
+      password: match.$1,
+      dateOfJoining: now,
+      onrollConfirmedAt: now,
+    ));
   }
 
   Future<void> _savePassword() async {
