@@ -2,6 +2,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:js_util' as js_util;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -253,6 +255,22 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         ),
       );
 
+  // Opens a calendar picker and writes the chosen month/year into [ctrl] as
+  // 'MM<sep>YYYY', matching the existing hint format for education/experience rows.
+  Future<void> _pickMonthYearInto(TextEditingController ctrl, String sep) async {
+    DateTime initial = DateTime.now();
+    final parts = ctrl.text.trim().split(RegExp(r'[/-]'));
+    if (parts.length == 2) {
+      final m = int.tryParse(parts[0]);
+      final y = int.tryParse(parts[1]);
+      if (m != null && y != null && m >= 1 && m <= 12) initial = DateTime(y, m);
+    }
+    final picked = await _pickDate(initial: initial);
+    if (picked != null) {
+      setState(() => ctrl.text = '${picked.month.toString().padLeft(2, '0')}$sep${picked.year}');
+    }
+  }
+
   // ── File helpers ──────────────────────────────────────────────────────────
 
   // Reads bytes from a raw html.File via data-URL.
@@ -275,8 +293,18 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         final compressed = await _compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       } else {
-        // Documents: reject if > 1 MB
-        if (bytes.length > 1024 * 1024) throw 'File too large (max 1 MB). Please choose a smaller file.';
+        final isPdf = mime == 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        if (isPdf && bytes.length > 500 * 1024) {
+          // PDFs: auto-compress toward ≤500 KB (best effort)
+          final compressed = await _compressPdf(bytes);
+          if (compressed != null && compressed.length < bytes.length) bytes = compressed;
+        }
+        // Reject if still too large after compression (Word docs can't be
+        // auto-compressed client-side)
+        if (bytes.length > 1024 * 1024) {
+          throw 'File too large (${(bytes.length / 1024).round()} KB) even after '
+              'compression. Please reduce the file size and re-upload.';
+        }
       }
       return _AttachFile(name: file.name, bytes: bytes, mime: mime);
     } catch (e) {
@@ -326,6 +354,26 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       canvas.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
       return Uint8List.fromList(
           base64Decode(canvas.toDataUrl('image/jpeg', 0.05).split(',').last));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Best-effort PDF compression via pdf-lib (loaded from CDN in web/index.html):
+  // re-serializes the PDF with object-stream compression. This shrinks
+  // redundant objects/streams but can't guarantee hitting an exact target for
+  // image-heavy/scanned PDFs without re-rendering pages, which this does not do.
+  Future<Uint8List?> _compressPdf(Uint8List bytes) async {
+    try {
+      final pdfLib   = js_util.getProperty(html.window, 'PDFLib');
+      final docClass = js_util.getProperty(pdfLib, 'PDFDocument');
+      final doc = await js_util.promiseToFuture(
+          js_util.callMethod(docClass, 'load', [bytes]));
+      final opts = js_util.newObject();
+      js_util.setProperty(opts, 'useObjectStreams', true);
+      final saved = await js_util.promiseToFuture<Uint8List>(
+          js_util.callMethod(doc, 'save', [opts]));
+      return saved;
     } catch (_) {
       return null;
     }
@@ -1010,7 +1058,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     child: Column(children: [
       _field(_name, 'Name *', required: true),
       _field(_phone, 'Phone Number *', required: true,
-          keyboardType: TextInputType.phone,
+          keyboardType: TextInputType.phone, maxLength: 10,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
       _field(_fatherName, 'Father Name'),
       _field(_motherName, 'Mother Name'),
@@ -1183,8 +1231,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       Row(children: [
         Expanded(
           child: _field(row['year']!, 'Year of Passing', compact: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+              hint: 'MM/YYYY', readOnly: true,
+              onTap: () => _pickMonthYearInto(row['year']!, '/')),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -1240,9 +1288,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       _field(row['organisation']!, 'Organisation', compact: true),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: _field(row['from']!, 'Period From', compact: true, hint: 'MM/YYYY')),
+        Expanded(child: _field(row['from']!, 'Period From', compact: true, hint: 'MM/YYYY',
+            readOnly: true, onTap: () => _pickMonthYearInto(row['from']!, '/'))),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['to']!,   'Period To',   compact: true, hint: 'MM/YYYY')),
+        Expanded(child: _field(row['to']!,   'Period To',   compact: true, hint: 'MM/YYYY',
+            readOnly: true, onTap: () => _pickMonthYearInto(row['to']!, '/'))),
       ]),
       const SizedBox(height: 8),
       Row(children: [
@@ -1292,9 +1342,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     icon: Icons.info_outline_rounded,
     child: Column(children: [
       Row(children: [
-        Expanded(child: _field(_esiNumber, 'ESI Number')),
+        Expanded(child: _field(_esiNumber, 'ESI Number',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
         const SizedBox(width: 12),
-        Expanded(child: _field(_pfNumber,  'PF Number')),
+        Expanded(child: _field(_pfNumber,  'PF Number',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
       ]),
       _field(_languages,          'Languages Known'),
       _field(_hobbies,            'Your Hobbies'),
@@ -1329,7 +1383,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       _field(_majorIllness,    'Any Major Illness', maxLines: 2),
       _field(_emergencyName,   'Emergency Contact Person Name'),
       _field(_emergencyNumber, 'Emergency Contact Person Number',
-          keyboardType: TextInputType.phone,
+          keyboardType: TextInputType.phone, maxLength: 10,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
       _field(_emergencyAddress,'Emergency Contact Person Address', maxLines: 2),
       // Aadhar Copy upload
@@ -1734,7 +1788,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     TextInputType? keyboardType,
     String? hint,
     bool compact = false,
+    int? maxLength,
     List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) =>
       Padding(
         padding: EdgeInsets.only(bottom: compact ? 0 : 12),
@@ -1742,13 +1799,20 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           controller: ctrl,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          maxLength: maxLength,
           inputFormatters: inputFormatters,
+          readOnly: readOnly,
+          onTap: onTap,
           validator: required
               ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
               : null,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
+            counterText: maxLength != null ? '' : null,
+            suffixIcon: onTap != null
+                ? const Icon(Icons.calendar_today_rounded, size: 17, color: _primary)
+                : null,
             filled: true,
             fillColor: Colors.white,
             contentPadding:

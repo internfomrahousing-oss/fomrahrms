@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
+import '../models/candidate_store.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
@@ -63,6 +65,52 @@ class _MyProfilePageState extends State<MyProfilePage> {
     user.onrollManagementDecidedAt = '';
     await UserStore.upsertOne(user);
     if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _openMyInterviewForm(BuildContext context) async {
+    try {
+      final db    = Supabase.instance.client;
+      final email = UserSession.email.trim();
+      final name  = UserSession.name.trim();
+
+      List<dynamic> rows = [];
+      if (email.isNotEmpty) {
+        rows = await db
+            .from('candidate_applications')
+            .select()
+            .eq('email', email)
+            .order('submitted_at', ascending: false)
+            .limit(1);
+      }
+      if (rows.isEmpty && name.isNotEmpty) {
+        rows = await db
+            .from('candidate_applications')
+            .select()
+            .ilike('name', '%$name%')
+            .order('submitted_at', ascending: false)
+            .limit(1);
+      }
+
+      if (rows.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('No interview application found for your account.'),
+            backgroundColor: Colors.orange,
+          ));
+        }
+        return;
+      }
+
+      CandidateStore.selected = Map<String, dynamic>.from(rows.first as Map);
+      if (context.mounted) context.go('${_rolePrefix()}/interview-form');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Could not load your interview application: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
   }
 
   String _resubmitDate(String deniedAtIso) {
@@ -341,7 +389,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       title: 'Interview Form',
                       subtitle: 'View your interview details',
                       color: const Color(0xFF3B82F6),
-                      onTap: () => context.go('${_rolePrefix()}/interview-form'),
+                      onTap: () => _openMyInterviewForm(context),
                     ),
                   ),
                   const SizedBox(width: 12),

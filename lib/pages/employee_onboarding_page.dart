@@ -958,99 +958,166 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     );
   }
 
-  Widget _section(String title, List<Widget> rows) {
-    final visible = rows.whereType<Padding>().toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 14),
-      Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
-      const Divider(height: 10),
-      ...rows,
-    ]);
-  }
+}
 
-  Widget _row(String label, dynamic value) {
-    final v = (value?.toString() ?? '').trim();
-    if (v.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 190,
-            child: Text(label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)))),
-        Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF111827)))),
+// Shared read-only rendering helpers — used by _SubmissionCard's expanded
+// view and by MyOnboardingFormPage (the employee's own read-only viewer).
+Widget _section(String title, List<Widget> rows) {
+  final visible = rows.whereType<Padding>().toList();
+  if (visible.isEmpty) return const SizedBox.shrink();
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    const SizedBox(height: 14),
+    Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+    const Divider(height: 10),
+    ...rows,
+  ]);
+}
+
+Widget _row(String label, dynamic value) {
+  final v = (value?.toString() ?? '').trim();
+  if (v.isEmpty) return const SizedBox.shrink();
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(width: 190,
+          child: Text(label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)))),
+      Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF111827)))),
+    ]),
+  );
+}
+
+Widget _jsonSection(String title, dynamic jsonData, List<String> keys) {
+  final rows = jsonData is List ? jsonData : [];
+  final nonEmpty = rows.where((item) =>
+      item is Map && keys.any((k) => (item[k]?.toString() ?? '').isNotEmpty)).toList();
+  if (nonEmpty.isEmpty) return const SizedBox.shrink();
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    const SizedBox(height: 14),
+    Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+    const Divider(height: 10),
+    ...nonEmpty.asMap().entries.map((e) {
+      final item = e.value as Map;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+            children: keys.map((k) => _row(_keyLabel(k), item[k])).toList()),
+      );
+    }),
+  ]);
+}
+
+Widget _attachmentsSection(dynamic data) {
+  final items = data is List ? data : [];
+  if (items.isEmpty) return const SizedBox.shrink();
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    const SizedBox(height: 14),
+    const Text('Attachments', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+    const Divider(height: 10),
+    ...items.map((item) {
+      final name = item['name']?.toString() ?? '';
+      final type = item['doc_type']?.toString() ?? '';
+      final url  = item['url']?.toString() ?? '';
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(children: [
+          const Icon(Icons.insert_drive_file_rounded, size: 14, color: _blue),
+          const SizedBox(width: 6),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF111827))),
+          ])),
+          if (url.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                final a = html.AnchorElement(href: url)
+                  ..target = '_blank'
+                  ..rel = 'noopener noreferrer';
+                html.document.body?.append(a);
+                a.click();
+                a.remove();
+              },
+              child: const Text('View', style: TextStyle(fontSize: 12)),
+            ),
+        ]),
+      );
+    }),
+  ]);
+}
+
+String _keyLabel(String k) => k
+    .replaceAll('_', ' ')
+    .split(' ')
+    .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+    .join(' ');
+
+// ── Read-only detail body — reused by the employee's "My Onboarding Form" page ──
+class OnboardingFormReadOnlyBody extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const OnboardingFormReadOnlyBody({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = data;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _section('Basic Information', [
+        _row('Name',            d['name']),
+        _row('Phone Number',    d['phone_number']),
+        _row('Father Name',     d['father_name']),
+        _row('Designation',     d['designation']),
+        _row('Date of Joining', d['date_of_joining']),
       ]),
-    );
-  }
-
-  Widget _jsonSection(String title, dynamic jsonData, List<String> keys) {
-    final rows = jsonData is List ? jsonData : [];
-    final nonEmpty = rows.where((item) =>
-        item is Map && keys.any((k) => (item[k]?.toString() ?? '').isNotEmpty)).toList();
-    if (nonEmpty.isEmpty) return const SizedBox.shrink();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 14),
-      Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
-      const Divider(height: 10),
-      ...nonEmpty.asMap().entries.map((e) {
-        final item = e.value as Map;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-              children: keys.map((k) => _row(_keyLabel(k), item[k])).toList()),
-        );
-      }),
+      _section('Personal Data', [
+        _row('Full Name',         d['full_name']),
+        _row('Date of Birth',     d['date_of_birth']),
+        _row('Postal Address',    d['postal_address']),
+        _row('Permanent Address', d['permanent_address']),
+      ]),
+      _jsonSection('Family Details', d['family_details'],
+          ['name','age','gender','relation','occupation','aadhar']),
+      _jsonSection('Education Qualification', d['education'],
+          ['qualification','university','year','marks','subject']),
+      _jsonSection('Experience', d['experience'],
+          ['organisation','from','to','desig_joining','desig_relieving','job_resp','superior','salary','reason']),
+      _section('Last Position Held', [
+        _row('Last Reporting Person',      d['last_reporting_name']),
+        _row('Last Reporting Designation', d['last_reporting_designation']),
+        _row('Last Company',               d['last_company']),
+        _row('Reference 1',                d['reference1']),
+        _row('Reference 2',                d['reference2']),
+      ]),
+      _section('Additional Information', [
+        _row('ESI Number',              d['esi_number']),
+        _row('PF Number',               d['pf_number']),
+        _row('Languages Known',         d['languages_known']),
+        _row('Hobbies',                 d['hobbies']),
+        _row('Interests',               d['interests']),
+        _row('Related to Employee',     d['related_to_employee']),
+        _row('Professional Membership', d['professional_membership']),
+        _row('Specialized Training',    d['specialized_training']),
+        _row('Other Information',       d['other_information']),
+      ]),
+      _section('Emergency Details', [
+        _row('Blood Group',               d['blood_group']),
+        _row('Allergic To',               d['allergic_to']),
+        _row('Major Illness',             d['major_illness']),
+        _row('Emergency Contact Name',    d['emergency_contact_name']),
+        _row('Emergency Contact Number',  d['emergency_contact_number']),
+        _row('Emergency Contact Address', d['emergency_contact_address']),
+        _row('Aadhar Number',             d['aadhar_number']),
+      ]),
+      _section('Declaration', [
+        _row('Date',  d['declaration_date']),
+        _row('Place', d['declaration_place']),
+      ]),
+      _attachmentsSection(d['attachments']),
     ]);
   }
-
-  Widget _attachmentsSection(dynamic data) {
-    final items = data is List ? data : [];
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 14),
-      const Text('Attachments', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
-      const Divider(height: 10),
-      ...items.map((item) {
-        final name = item['name']?.toString() ?? '';
-        final type = item['doc_type']?.toString() ?? '';
-        final url  = item['url']?.toString() ?? '';
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(children: [
-            const Icon(Icons.insert_drive_file_rounded, size: 14, color: _blue),
-            const SizedBox(width: 6),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-              Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF111827))),
-            ])),
-            if (url.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  final a = html.AnchorElement(href: url)
-                    ..target = '_blank'
-                    ..rel = 'noopener noreferrer';
-                  html.document.body?.append(a);
-                  a.click();
-                  a.remove();
-                },
-                child: const Text('View', style: TextStyle(fontSize: 12)),
-              ),
-          ]),
-        );
-      }),
-    ]);
-  }
-
-  String _keyLabel(String k) => k
-      .replaceAll('_', ' ')
-      .split(' ')
-      .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
 }
 
 // ── Linked interview banner ────────────────────────────────────────────────────

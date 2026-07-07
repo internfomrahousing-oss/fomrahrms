@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
@@ -407,6 +409,26 @@ class _CandidateApplicationFormPageState
     } catch (_) { return null; }
   }
 
+  // Best-effort PDF compression via pdf-lib (loaded from CDN in web/index.html):
+  // re-serializes the PDF with object-stream compression. This shrinks
+  // redundant objects/streams but can't guarantee hitting an exact target for
+  // image-heavy/scanned PDFs without re-rendering pages, which this does not do.
+  Future<Uint8List?> _compressPdf(Uint8List bytes) async {
+    try {
+      final pdfLib   = js_util.getProperty(html.window, 'PDFLib');
+      final docClass = js_util.getProperty(pdfLib, 'PDFDocument');
+      final doc = await js_util.promiseToFuture(
+          js_util.callMethod(docClass, 'load', [bytes]));
+      final opts = js_util.newObject();
+      js_util.setProperty(opts, 'useObjectStreams', true);
+      final saved = await js_util.promiseToFuture<Uint8List>(
+          js_util.callMethod(doc, 'save', [opts]));
+      return saved;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if ((!_fHide('interview_details', 'interview_date') && _interviewDate == null) ||
@@ -683,7 +705,8 @@ class _CandidateApplicationFormPageState
                           if (!_fHide('personal_info', 'mobile'))
                             _Field(label: 'Mobile Number', controller: _mobile,
                                 keyboard: TextInputType.phone, required: true,
-                                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))]),
+                                maxLength: 10,
+                                inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
                         ]),
                         _row(narrow, [
                           if (!_fHide('personal_info', 'place'))
@@ -938,8 +961,19 @@ class _CandidateApplicationFormPageState
                                       final c = await _compressImage(bytes, mime);
                                       if (c != null) { bytes = c; mime = 'image/jpeg'; name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg'; }
                                     } else {
-                                      // Documents: reject if > 1 MB
-                                      if (bytes.length > 1024 * 1024) throw 'File too large (max 1 MB). Please choose a smaller file.';
+                                      final isPdf = mime == 'application/pdf' ||
+                                          name.toLowerCase().endsWith('.pdf');
+                                      if (isPdf && bytes.length > 500 * 1024) {
+                                        // PDFs: auto-compress toward ≤500 KB (best effort)
+                                        final c = await _compressPdf(bytes);
+                                        if (c != null && c.length < bytes.length) bytes = c;
+                                      }
+                                      // Reject if still too large after compression (Word docs
+                                      // can't be auto-compressed client-side)
+                                      if (bytes.length > 1024 * 1024) {
+                                        throw 'File too large (${(bytes.length / 1024).round()} KB) even '
+                                            'after compression. Please reduce the file size and re-upload.';
+                                      }
                                     }
                                     final url = await SupabaseService.uploadResume(bytes, name, mime);
                                     if (mounted) setState(() { _resumeFileName = name; _resumeUrl = url; });
@@ -1080,6 +1114,33 @@ class _CandidateApplicationFormPageState
   }
 }
 
+// Opens a calendar picker and writes the chosen month/year into [ctrl] as
+// 'MM<sep>YYYY', matching the existing hint format for these table cells.
+Future<void> _pickMonthYearInto(
+    BuildContext context, TextEditingController ctrl, String sep) async {
+  DateTime initial = DateTime.now();
+  final parts = ctrl.text.trim().split(RegExp(r'[/-]'));
+  if (parts.length == 2) {
+    final m = int.tryParse(parts[0]);
+    final y = int.tryParse(parts[1]);
+    if (m != null && y != null && m >= 1 && m <= 12) initial = DateTime(y, m);
+  }
+  final picked = await showDatePicker(
+    context: context,
+    initialDate: initial,
+    firstDate: DateTime(1950),
+    lastDate: DateTime(2100),
+    initialDatePickerMode: DatePickerMode.year,
+    builder: (ctx, child) => Theme(
+      data: Theme.of(ctx).copyWith(colorScheme: const ColorScheme.light(primary: _blue)),
+      child: child!,
+    ),
+  );
+  if (picked != null) {
+    ctrl.text = '${picked.month.toString().padLeft(2, '0')}$sep${picked.year}';
+  }
+}
+
 // ── Education data holder ───────────────────────────────────────────────────────
 class _EduRow {
   final String academics;
@@ -1205,7 +1266,9 @@ class _EducationTableState extends State<_EducationTable> {
                   ),
                   _eCell(row.degree,  colWidths[1]),
                   _eCell(row.college, colWidths[2]),
-                  _eCell(row.passing, colWidths[3], hint: 'MM/YYYY'),
+                  _eCell(row.passing, colWidths[3], hint: 'MM/YYYY',
+                      readOnly: true,
+                      onTap: () => _pickMonthYearInto(context, row.passing, '/')),
                   _eCell(row.marks, colWidths[4],
                       keyboard: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
@@ -1260,7 +1323,8 @@ class _EducationTableState extends State<_EducationTable> {
 
   Widget _eCell(TextEditingController ctrl, double width,
       {String? hint, TextInputType keyboard = TextInputType.text,
-      List<TextInputFormatter>? inputFormatters}) {
+      List<TextInputFormatter>? inputFormatters,
+      bool readOnly = false, VoidCallback? onTap}) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -1271,10 +1335,15 @@ class _EducationTableState extends State<_EducationTable> {
         controller: ctrl,
         keyboardType: keyboard,
         inputFormatters: inputFormatters,
+        readOnly: readOnly,
+        onTap: onTap,
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFE5E7EB)),
+          suffixIcon: onTap != null
+              ? const Icon(Icons.calendar_today_rounded, size: 14, color: _blue)
+              : null,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(
@@ -1404,8 +1473,12 @@ class _EmpHistoryTable extends StatelessWidget {
                 children: [
                   _tableCell(e.value.org,      widths[0], last: false),
                   _tableCell(e.value.position, widths[1], last: false),
-                  _tableCell(e.value.from,     widths[2], last: false, hint: 'MM-YYYY'),
-                  _tableCell(e.value.to,       widths[3], last: false, hint: 'MM-YYYY'),
+                  _tableCell(e.value.from,     widths[2], last: false, hint: 'MM-YYYY',
+                      readOnly: true,
+                      onTap: () => _pickMonthYearInto(context, e.value.from, '-')),
+                  _tableCell(e.value.to,       widths[3], last: false, hint: 'MM-YYYY',
+                      readOnly: true,
+                      onTap: () => _pickMonthYearInto(context, e.value.to, '-')),
                   _tableCell(e.value.ctc, widths[4], last: false,
                       keyboard: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
@@ -1424,7 +1497,8 @@ class _EmpHistoryTable extends StatelessWidget {
   Widget _tableCell(TextEditingController ctrl, double width,
       {required bool last, String? hint,
       TextInputType keyboard = TextInputType.text,
-      List<TextInputFormatter>? inputFormatters}) {
+      List<TextInputFormatter>? inputFormatters,
+      bool readOnly = false, VoidCallback? onTap}) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -1439,10 +1513,15 @@ class _EmpHistoryTable extends StatelessWidget {
         controller: ctrl,
         keyboardType: keyboard,
         inputFormatters: inputFormatters,
+        readOnly: readOnly,
+        onTap: onTap,
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFE5E7EB)),
+          suffixIcon: onTap != null
+              ? const Icon(Icons.calendar_today_rounded, size: 14, color: _blue)
+              : null,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(
@@ -1511,7 +1590,8 @@ class _ReferralTable extends StatelessWidget {
               _rCell(e.value.designation,  widths[2], last: false),
               _rCell(e.value.relationship, widths[3], last: false),
               _rCell(e.value.contact,      widths[4], last: true,
-                  keyboard: TextInputType.phone),
+                  keyboard: TextInputType.phone, maxLength: 10,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
             ]),
             if (e.key < rows.length - 1)
               const Divider(height: 1, color: Color(0xFFE5E7EB)),
@@ -1522,7 +1602,8 @@ class _ReferralTable extends StatelessWidget {
   }
 
   Widget _rCell(TextEditingController ctrl, double width,
-      {required bool last, TextInputType keyboard = TextInputType.text}) {
+      {required bool last, TextInputType keyboard = TextInputType.text,
+      List<TextInputFormatter>? inputFormatters, int? maxLength}) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -1536,8 +1617,11 @@ class _ReferralTable extends StatelessWidget {
       child: TextField(
         controller: ctrl,
         keyboardType: keyboard,
+        inputFormatters: inputFormatters,
+        maxLength: maxLength,
         style: const TextStyle(fontSize: 12),
         decoration: InputDecoration(
+          counterText: '',
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(
@@ -1631,11 +1715,13 @@ class _Field extends StatelessWidget {
   final String? hint;
   final int maxLines;
   final bool required;
+  final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
   const _Field({
     required this.label, required this.controller,
     this.keyboard = TextInputType.text, this.hint,
     this.maxLines = 1, this.required = false,
+    this.maxLength,
     this.inputFormatters,
   });
 
@@ -1645,6 +1731,7 @@ class _Field extends StatelessWidget {
       controller: controller,
       keyboardType: keyboard,
       maxLines: maxLines,
+      maxLength: maxLength,
       inputFormatters: inputFormatters,
       style: const TextStyle(fontSize: 13),
       validator: required
@@ -1652,6 +1739,7 @@ class _Field extends StatelessWidget {
           : null,
       decoration: InputDecoration(
         labelText: required ? '$label *' : label,
+        counterText: maxLength != null ? '' : null,
         hintText: hint,
         hintStyle: const TextStyle(fontSize: 12, color: Color(0xFFE5E7EB)),
         labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),

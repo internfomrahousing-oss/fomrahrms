@@ -60,6 +60,7 @@ import 'pages/team_leave_approvals_page.dart';
 import 'widgets/management_shell.dart';
 import 'pages/management_dashboard_page.dart';
 import 'pages/onroll_approvals_page.dart';
+import 'pages/my_onboarding_form_page.dart';
 import 'pages/candidate_detail_page.dart';
 import 'pages/manager_interview_review_page.dart';
 import 'pages/management_interview_review_page.dart';
@@ -223,8 +224,8 @@ final _router = GoRouter(
         GoRoute(path: '/hr/my-tasks',               builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/hr/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/hr/my-profile',             builder: (_, __) => const MyProfilePage()),
-        GoRoute(path: '/hr/interview-form',         builder: (_, __) => const InterviewProcessPage()),
-        GoRoute(path: '/hr/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
+        GoRoute(path: '/hr/interview-form',         builder: (_, __) => const CandidateDetailPage()),
+        GoRoute(path: '/hr/employee-onboarding',    builder: (_, __) => const MyOnboardingFormPage()),
         GoRoute(path: '/hr/maintenance-management', builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/settings',                  builder: (_, __) => const SettingsPage()),
       ],
@@ -257,8 +258,8 @@ final _router = GoRouter(
         GoRoute(path: '/employee/payslips',                 builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/employee/profile',                  builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/employee/maintenance-management',   builder: (_, __) => const MaintenanceManagementPage()),
-        GoRoute(path: '/employee/employee-onboarding',      builder: (_, __) => const EmployeeOnboardingPage()),
-        GoRoute(path: '/employee/interview-form',           builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/employee/employee-onboarding',      builder: (_, __) => const MyOnboardingFormPage()),
+        GoRoute(path: '/employee/interview-form',           builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee/my-journey',               builder: (_, __) => const MyJourneyPage()),
         GoRoute(path: '/employee/notifications',            builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/employee/settings',                 builder: (_, __) => const SettingsPage()),
@@ -299,7 +300,7 @@ final _router = GoRouter(
         GoRoute(path: '/manager/interview-process',       builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/manager/interview-review',        builder: (_, __) => const ManagerInterviewReviewPage()),
         GoRoute(path: '/manager/candidate-detail',        builder: (_, __) => const CandidateDetailPage()),
-        GoRoute(path: '/manager/employee-onboarding',     builder: (_, __) => const EmployeeOnboardingPage()),
+        GoRoute(path: '/manager/employee-onboarding',     builder: (_, __) => const MyOnboardingFormPage()),
         GoRoute(path: '/manager/maintenance-management',  builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/manager/approvals',               builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/manager/notifications',           builder: (_, __) => const NotificationsPage()),
@@ -314,7 +315,7 @@ final _router = GoRouter(
         GoRoute(path: '/manager/my-tasks/add',            builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/manager/my-payslips',             builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/manager/my-profile',              builder: (_, __) => const MyProfilePage()),
-        GoRoute(path: '/manager/interview-form',          builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/manager/interview-form',          builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/manager/my-journey',              builder: (_, __) => const MyJourneyPage()),
         GoRoute(path: '/manager/settings',                builder: (_, __) => const SettingsPage()),
       ],
