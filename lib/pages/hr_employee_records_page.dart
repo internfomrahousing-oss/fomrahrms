@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
+import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
 
 enum _SortOrder { newestFirst, oldestFirst, alphabetical, joinOldNew, joinNewOld }
@@ -551,6 +552,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
             _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
             _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   _user.dateOfJoining),
+            _InfoRow(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user.dateOfJoining)),
             _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
 
             // ── Employment status management ──────────────────────────────

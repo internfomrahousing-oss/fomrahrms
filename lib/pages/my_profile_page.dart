@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
+import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
 import '../widgets/my_space_blocks.dart';
 
@@ -141,6 +142,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         _Row(Icons.work_rounded,            'Designation',       _user?.designation ?? ''),
                         _Row(Icons.manage_accounts_rounded, 'Reporting Manager', _user?.reportingManager ?? ''),
                         _Row(Icons.calendar_today_rounded,  'Date of Joining',   _user?.dateOfJoining ?? ''),
+                        _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
                       ]),
                     ),
                   );
