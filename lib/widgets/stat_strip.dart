@@ -50,7 +50,7 @@ class AppStatCard extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: 156),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 // ── header ────────────────────────────────────────────────────
                 Row(
@@ -80,6 +80,7 @@ class AppStatCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                const Spacer(),
                 // ── value + visual ───────────────────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -99,18 +100,25 @@ class AppStatCard extends StatelessWidget {
                       _BarChartWidget(color: color),
                   ],
                 ),
-                if (gaugePercent != null) ...[
-                  const SizedBox(height: 6),
-                  Row(mainAxisSize: MainAxisSize.min, children: [
+                const SizedBox(height: 6),
+                // Reserve the same height whether or not a percentage is
+                // shown, so the number row above lines up at the same
+                // vertical position across every card in the strip.
+                Visibility(
+                  visible: gaugePercent != null,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.pie_chart_rounded, size: 13, color: color.withValues(alpha: 0.7)),
                     const SizedBox(width: 4),
-                    Text('${(gaugePercent!.clamp(0.0, 1.0) * 100).round()}% of total',
+                    Text('${((gaugePercent ?? 0).clamp(0.0, 1.0) * 100).round()}% of total',
                         style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
                             color: color.withValues(alpha: 0.75))),
                   ]),
-                ],
+                ),
               ],
             ),
           ),

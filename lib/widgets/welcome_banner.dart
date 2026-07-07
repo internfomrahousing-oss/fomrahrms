@@ -40,19 +40,12 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
     super.dispose();
   }
 
-  static const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  static const _months = ['January', 'February', 'March', 'April', 'May', 'June',
-                           'July', 'August', 'September', 'October', 'November', 'December'];
-
   String get _greeting {
     final h = _now.hour;
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (h < 12) return 'Happy Morning';
+    if (h < 17) return 'Happy Afternoon';
+    return 'Happy Evening';
   }
-
-  String get _dateLabel =>
-      '${_weekdays[_now.weekday - 1]}, ${_now.day} ${_months[_now.month - 1]} ${_now.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -94,8 +87,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(_dateLabel,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.3)),
               Text(widget.subtitle,
                   style: const TextStyle(color: Colors.white60, fontSize: 12.5, height: 1.3)),
             ],
