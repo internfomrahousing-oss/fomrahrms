@@ -28,6 +28,7 @@ const _sections = [
   _Section('Attendance Summary',   Icons.access_time_rounded,     _teal, '/management/attendance-management'),
   _Section('Leave Management',     Icons.event_available_rounded, _teal, '/management/leave-management'),
   _Section('Team Leave Approvals', Icons.group_rounded,           _teal, '/management/leave/team-approvals'),
+  _Section('On-Roll Approvals',    Icons.verified_user_rounded,   _teal, '/management/onroll-approvals'),
   _Section('Maintenance Summary',  Icons.build_rounded,           _teal, '/management/maintenance-management'),
   _Section('Interview Review',     Icons.rate_review_rounded,     _teal, '/management/interview-review'),
   _Section('Approvals Summary',    Icons.approval_rounded,        _teal, '/management/approvals'),

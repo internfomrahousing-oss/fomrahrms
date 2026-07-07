@@ -46,9 +46,36 @@ class _MyProfilePageState extends State<MyProfilePage> {
     if (mounted) setState(() => _saving = false);
   }
 
+  /// Resubmits after a denial: resets all 3 review stages back to pending.
+  Future<void> _resubmitOnRoll() async {
+    final user = _user;
+    if (user == null) return;
+    setState(() => _saving = true);
+    user.onrollRequestedAt = DateTime.now().toIso8601String();
+    user.onrollHrStatus = 'pending';
+    user.onrollHrComment = '';
+    user.onrollHrDecidedAt = '';
+    user.onrollManagerStatus = 'pending';
+    user.onrollManagerComment = '';
+    user.onrollManagerDecidedAt = '';
+    user.onrollManagementStatus = 'pending';
+    user.onrollManagementComment = '';
+    user.onrollManagementDecidedAt = '';
+    await UserStore.upsertOne(user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  String _resubmitDate(String deniedAtIso) {
+    try {
+      final d = DateTime.parse(deniedAtIso).add(const Duration(days: 7));
+      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    } catch (_) {
+      return '';
+    }
+  }
+
   Widget _buildOnRollCard(AppUser user) {
     final months = fullMonthsSince(user.dateOfJoining);
-    final pending = user.onrollRequestedAt.isNotEmpty;
 
     final Color bg, fg;
     final IconData icon;
@@ -62,31 +89,91 @@ class _MyProfilePageState extends State<MyProfilePage> {
       final left = 6 - months;
       text = 'You can request On-Roll confirmation after completing 6 months '
           '($left ${left == 1 ? 'month' : 'months'} to go).';
-    } else if (pending) {
-      bg = Colors.orange.shade50;
-      fg = const Color(0xFF7B4F00);
-      icon = Icons.pending_actions_rounded;
-      text = 'On-Roll confirmation requested — awaiting approval from HR '
-          'or your Reporting Manager.';
     } else {
-      bg = Colors.green.shade50;
-      fg = const Color(0xFF15803D);
-      icon = Icons.verified_rounded;
-      text = "You've completed 6 months and are eligible for On-Roll confirmation.";
-      action = SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _saving ? null : _requestOnRoll,
-          icon: _saving
-              ? const SizedBox(
-                  width: 14, height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.send_rounded, size: 16),
-          label: const Text('Request On-Roll Confirmation'),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
-        ),
-      );
+      switch (user.onrollStage) {
+        case 'not_requested':
+          bg = Colors.green.shade50;
+          fg = const Color(0xFF15803D);
+          icon = Icons.verified_rounded;
+          text = "You've completed 6 months and are eligible for On-Roll confirmation.";
+          action = SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _saving ? null : _requestOnRoll,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send_rounded, size: 16),
+              label: const Text('Request On-Roll Confirmation'),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+            ),
+          );
+          break;
+        case 'pending_both':
+          bg = Colors.orange.shade50;
+          fg = const Color(0xFF7B4F00);
+          icon = Icons.pending_actions_rounded;
+          text = 'On-Roll confirmation requested — awaiting review from HR '
+              'and your Reporting Manager.';
+          break;
+        case 'pending_manager':
+          bg = Colors.orange.shade50;
+          fg = const Color(0xFF7B4F00);
+          icon = Icons.pending_actions_rounded;
+          text = 'HR has accepted your On-Roll request — awaiting review from '
+              'your Reporting Manager.';
+          break;
+        case 'pending_hr':
+          bg = Colors.orange.shade50;
+          fg = const Color(0xFF7B4F00);
+          icon = Icons.pending_actions_rounded;
+          text = 'Your Reporting Manager has accepted your On-Roll request — '
+              'awaiting review from HR.';
+          break;
+        case 'awaiting_management':
+          bg = Colors.blue.shade50;
+          fg = const Color(0xFF1D4ED8);
+          icon = Icons.hourglass_top_rounded;
+          text = 'HR and your Reporting Manager have approved your On-Roll '
+              'request — awaiting final approval from Management.';
+          break;
+        case 'denied':
+          bg = Colors.red.shade50;
+          fg = const Color(0xFFB91C1C);
+          icon = Icons.cancel_rounded;
+          final comment = user.onrollDeniedComment;
+          final base = 'Your On-Roll request was denied by ${user.onrollDeniedBy}'
+              '${comment.isNotEmpty ? ': "$comment"' : '.'}';
+          if (user.onrollCanResubmit) {
+            text = base;
+            action = SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : _resubmitOnRoll,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send_rounded, size: 16),
+                label: const Text('Request Again'),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+              ),
+            );
+          } else {
+            text = '$base You can request again on ${_resubmitDate(user.onrollDeniedAt)}.';
+          }
+          break;
+        case 'confirmed':
+        default:
+          bg = Colors.green.shade50;
+          fg = const Color(0xFF15803D);
+          icon = Icons.verified_rounded;
+          text = 'On-Roll confirmed — you now receive 1 Casual Leave + '
+              '1 Medical Leave every month.';
+      }
     }
 
     return Card(
@@ -241,7 +328,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 const SizedBox(height: 16),
 
                 // Employment status / on-roll request
-                if (_user != null && !_user!.isOnroll) ...[
+                if (_user != null) ...[
                   _buildOnRollCard(_user!),
                   const SizedBox(height: 16),
                 ],

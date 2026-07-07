@@ -227,6 +227,15 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists el_last_availed_at text default '';
   alter table app_users add column if not exists gross_pay numeric default 0;
   alter table app_users add column if not exists onroll_requested_at text default '';
+  alter table app_users add column if not exists onroll_hr_status text default 'pending';
+  alter table app_users add column if not exists onroll_hr_comment text default '';
+  alter table app_users add column if not exists onroll_hr_decided_at text default '';
+  alter table app_users add column if not exists onroll_manager_status text default 'pending';
+  alter table app_users add column if not exists onroll_manager_comment text default '';
+  alter table app_users add column if not exists onroll_manager_decided_at text default '';
+  alter table app_users add column if not exists onroll_management_status text default 'pending';
+  alter table app_users add column if not exists onroll_management_comment text default '';
+  alter table app_users add column if not exists onroll_management_decided_at text default '';
 
   create table if not exists tasks (
     id text primary key,
@@ -656,6 +665,15 @@ class SupabaseService {
         dateOfJoining:        (row['date_of_joining']         as String?) ?? '',
         onrollConfirmedAt:    (row['onroll_confirmed_at']     as String?) ?? '',
         onrollRequestedAt:    (row['onroll_requested_at']     as String?) ?? '',
+        onrollHrStatus:            (row['onroll_hr_status']            as String?) ?? 'pending',
+        onrollHrComment:           (row['onroll_hr_comment']           as String?) ?? '',
+        onrollHrDecidedAt:         (row['onroll_hr_decided_at']         as String?) ?? '',
+        onrollManagerStatus:       (row['onroll_manager_status']       as String?) ?? 'pending',
+        onrollManagerComment:      (row['onroll_manager_comment']      as String?) ?? '',
+        onrollManagerDecidedAt:    (row['onroll_manager_decided_at']    as String?) ?? '',
+        onrollManagementStatus:    (row['onroll_management_status']    as String?) ?? 'pending',
+        onrollManagementComment:   (row['onroll_management_comment']   as String?) ?? '',
+        onrollManagementDecidedAt: (row['onroll_management_decided_at'] as String?) ?? '',
         elEligibleAt:         (row['el_eligible_at']          as String?) ?? '',
         biometricId:          (row['biometric_id']            as String?) ?? '',
         elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
@@ -683,6 +701,15 @@ class SupabaseService {
       'date_of_joining':          u.dateOfJoining,
       'onroll_confirmed_at':      u.onrollConfirmedAt,
       'onroll_requested_at':      u.onrollRequestedAt,
+      'onroll_hr_status':             u.onrollHrStatus,
+      'onroll_hr_comment':            u.onrollHrComment,
+      'onroll_hr_decided_at':         u.onrollHrDecidedAt,
+      'onroll_manager_status':        u.onrollManagerStatus,
+      'onroll_manager_comment':       u.onrollManagerComment,
+      'onroll_manager_decided_at':    u.onrollManagerDecidedAt,
+      'onroll_management_status':    u.onrollManagementStatus,
+      'onroll_management_comment':   u.onrollManagementComment,
+      'onroll_management_decided_at': u.onrollManagementDecidedAt,
       'el_eligible_at':           u.elEligibleAt,
       'biometric_id':             u.biometricId,
       'el_avail_requested_at':    u.elAvailRequestedAt,

@@ -59,6 +59,7 @@ import 'pages/manager_leave_page.dart';
 import 'pages/team_leave_approvals_page.dart';
 import 'widgets/management_shell.dart';
 import 'pages/management_dashboard_page.dart';
+import 'pages/onroll_approvals_page.dart';
 import 'pages/candidate_detail_page.dart';
 import 'pages/manager_interview_review_page.dart';
 import 'pages/management_interview_review_page.dart';
@@ -348,6 +349,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/leave/balance',          builder: (_, __) => const LeaveBalancePage()),
         GoRoute(path: '/management/leave/team-approvals',   builder: (_, __) => const TeamLeaveApprovalsPage(isManagement: true, showAll: false)),
         GoRoute(path: '/management/leave/employee-records', builder: (_, __) => const HrLeaveRecordsPage()),
+        GoRoute(path: '/management/onroll-approvals',       builder: (_, __) => const OnrollApprovalsPage()),
         GoRoute(path: '/management/task-management',        builder: (_, __) => const TaskManagementPage()),
         GoRoute(path: '/management/task-management/add',    builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/management/performance-management', builder: (_, __) => const PerformanceManagementPage()),

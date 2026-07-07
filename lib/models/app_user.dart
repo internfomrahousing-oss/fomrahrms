@@ -13,8 +13,18 @@ class AppUser {
   String mobile;
   String address;
   String dateOfJoining;       // ISO date string, set when management creates the user
-  String onrollConfirmedAt;   // ISO datetime when HR confirmed on-roll; empty = probation
+  String onrollConfirmedAt;   // ISO datetime when Management approved on-roll; empty = probation
   String onrollRequestedAt;   // ISO datetime when employee requested on-roll confirmation; empty = no pending request
+  // On-roll 3-stage review: HR and Reporting Manager decide independently, then Management.
+  String onrollHrStatus;           // 'pending' | 'accepted' | 'denied'
+  String onrollHrComment;
+  String onrollHrDecidedAt;
+  String onrollManagerStatus;      // 'pending' | 'accepted' | 'denied'
+  String onrollManagerComment;
+  String onrollManagerDecidedAt;
+  String onrollManagementStatus;   // 'pending' | 'accepted' | 'denied'
+  String onrollManagementComment;
+  String onrollManagementDecidedAt;
   String elEligibleAt;        // ISO datetime when HR confirmed EL eligibility; empty = not eligible
   String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
   String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
@@ -36,6 +46,15 @@ class AppUser {
     this.dateOfJoining = '',
     this.onrollConfirmedAt = '',
     this.onrollRequestedAt = '',
+    this.onrollHrStatus = 'pending',
+    this.onrollHrComment = '',
+    this.onrollHrDecidedAt = '',
+    this.onrollManagerStatus = 'pending',
+    this.onrollManagerComment = '',
+    this.onrollManagerDecidedAt = '',
+    this.onrollManagementStatus = 'pending',
+    this.onrollManagementComment = '',
+    this.onrollManagementDecidedAt = '',
     this.elEligibleAt = '',
     this.biometricId = '',
     this.elAvailRequestedAt = '',
@@ -45,6 +64,72 @@ class AppUser {
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
+
+  // On-roll 3-stage review helpers
+  bool get onrollHrAccepted       => onrollHrStatus == 'accepted';
+  bool get onrollHrDenied         => onrollHrStatus == 'denied';
+  bool get onrollManagerAccepted  => onrollManagerStatus == 'accepted';
+  bool get onrollManagerDenied    => onrollManagerStatus == 'denied';
+  bool get onrollManagementDenied => onrollManagementStatus == 'denied';
+
+  /// True once both HR and Manager have accepted and Management hasn't decided yet.
+  bool get onrollAwaitingManagement =>
+      onrollRequestedAt.isNotEmpty && onrollHrAccepted && onrollManagerAccepted &&
+      onrollManagementStatus == 'pending';
+
+  /// True if the request is currently denied by any stage.
+  bool get onrollDenied => onrollHrDenied || onrollManagerDenied || onrollManagementDenied;
+
+  /// Which party issued the denial: 'HR' | 'Manager' | 'Management' | ''.
+  String get onrollDeniedBy {
+    if (onrollHrDenied) return 'HR';
+    if (onrollManagerDenied) return 'Manager';
+    if (onrollManagementDenied) return 'Management';
+    return '';
+  }
+
+  /// The comment attached to whichever stage denied it; '' if none.
+  String get onrollDeniedComment {
+    if (onrollHrDenied) return onrollHrComment;
+    if (onrollManagerDenied) return onrollManagerComment;
+    if (onrollManagementDenied) return onrollManagementComment;
+    return '';
+  }
+
+  /// ISO timestamp of whichever stage denied it; drives the 7-day resubmit cooldown.
+  String get onrollDeniedAt {
+    if (onrollHrDenied) return onrollHrDecidedAt;
+    if (onrollManagerDenied) return onrollManagerDecidedAt;
+    if (onrollManagementDenied) return onrollManagementDecidedAt;
+    return '';
+  }
+
+  /// True once 7 days have passed since the denial, i.e. the employee may resubmit.
+  bool get onrollCanResubmit {
+    if (!onrollDenied) return false;
+    final ts = onrollDeniedAt;
+    if (ts.isEmpty) return true;
+    try {
+      return DateTime.now().difference(DateTime.parse(ts)) >= const Duration(days: 7);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Overall stage, used to drive UI without duplicating conditionals across pages.
+  /// 'not_requested' | 'pending_both' | 'pending_hr' | 'pending_manager' |
+  /// 'awaiting_management' | 'denied' | 'confirmed'
+  String get onrollStage {
+    if (isOnroll) return 'confirmed';
+    if (onrollDenied) return 'denied';
+    if (onrollRequestedAt.isEmpty) return 'not_requested';
+    if (onrollAwaitingManagement) return 'awaiting_management';
+    final hrDone = onrollHrStatus != 'pending';
+    final mgrDone = onrollManagerStatus != 'pending';
+    if (hrDone && !mgrDone) return 'pending_manager';
+    if (!hrDone && mgrDone) return 'pending_hr';
+    return 'pending_both';
+  }
 
   // Monthly leave allocation per type
   int get monthlyCl => 1;                    // all employees (probation: emergency CL)
@@ -91,6 +176,15 @@ class AppUser {
     'dateOfJoining':         dateOfJoining,
     'onrollConfirmedAt':     onrollConfirmedAt,
     'onrollRequestedAt':     onrollRequestedAt,
+    'onrollHrStatus':            onrollHrStatus,
+    'onrollHrComment':           onrollHrComment,
+    'onrollHrDecidedAt':         onrollHrDecidedAt,
+    'onrollManagerStatus':       onrollManagerStatus,
+    'onrollManagerComment':      onrollManagerComment,
+    'onrollManagerDecidedAt':    onrollManagerDecidedAt,
+    'onrollManagementStatus':    onrollManagementStatus,
+    'onrollManagementComment':   onrollManagementComment,
+    'onrollManagementDecidedAt': onrollManagementDecidedAt,
     'elEligibleAt':          elEligibleAt,
     'biometricId':           biometricId,
     'elAvailRequestedAt':    elAvailRequestedAt,
@@ -113,6 +207,15 @@ class AppUser {
     dateOfJoining:        j['dateOfJoining']        as String? ?? '',
     onrollConfirmedAt:    j['onrollConfirmedAt']    as String? ?? '',
     onrollRequestedAt:    j['onrollRequestedAt']    as String? ?? '',
+    onrollHrStatus:            j['onrollHrStatus']            as String? ?? 'pending',
+    onrollHrComment:           j['onrollHrComment']           as String? ?? '',
+    onrollHrDecidedAt:         j['onrollHrDecidedAt']         as String? ?? '',
+    onrollManagerStatus:       j['onrollManagerStatus']       as String? ?? 'pending',
+    onrollManagerComment:      j['onrollManagerComment']      as String? ?? '',
+    onrollManagerDecidedAt:    j['onrollManagerDecidedAt']    as String? ?? '',
+    onrollManagementStatus:    j['onrollManagementStatus']    as String? ?? 'pending',
+    onrollManagementComment:   j['onrollManagementComment']   as String? ?? '',
+    onrollManagementDecidedAt: j['onrollManagementDecidedAt'] as String? ?? '',
     elEligibleAt:         j['elEligibleAt']         as String? ?? '',
     biometricId:          j['biometricId']          as String? ?? '',
     elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',

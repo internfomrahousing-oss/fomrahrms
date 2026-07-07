@@ -422,11 +422,11 @@ class _ProfileDialogState extends State<_ProfileDialog> {
   }
 
   void _startTimers() {
-    if (_canUndoOnroll) {
+    if (_canUndoHr || _canUndoManager || _canUndoConfirmed) {
       _onrollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
         setState(() {});
-        if (!_canUndoOnroll) _onrollTimer?.cancel();
+        if (!_canUndoHr && !_canUndoManager && !_canUndoConfirmed) _onrollTimer?.cancel();
       });
     }
     if (_canUndoEl) {
@@ -438,7 +438,17 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     }
   }
 
-  bool get _canUndoOnroll {
+  bool _canUndo(String status, String decidedAt) {
+    if (status == 'pending' || decidedAt.isEmpty) return false;
+    try {
+      return DateTime.now().difference(DateTime.parse(decidedAt)) < _undoWindow;
+    } catch (_) { return false; }
+  }
+
+  bool get _canUndoHr => _canUndo(_user.onrollHrStatus, _user.onrollHrDecidedAt);
+  bool get _canUndoManager => _canUndo(_user.onrollManagerStatus, _user.onrollManagerDecidedAt);
+
+  bool get _canUndoConfirmed {
     if (_user.onrollConfirmedAt.isEmpty) return false;
     try {
       return DateTime.now().difference(DateTime.parse(_user.onrollConfirmedAt)) < _undoWindow;
@@ -462,23 +472,208 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     } catch (_) { return ''; }
   }
 
-  Future<void> _confirmOnroll() async {
+  Future<String?> _promptDenyComment(String title) async {
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Reason for denial (optional):',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+          const SizedBox(height: 10),
+          TextField(
+            controller: ctrl,
+            maxLines: 3,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'e.g. Attendance concerns / Performance',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+            child: const Text('Deny'),
+          ),
+        ],
+      ),
+    );
+    final result = (ok == true) ? ctrl.text.trim() : null;
+    ctrl.dispose();
+    return result;
+  }
+
+  Future<void> _decideHr(bool accept, {String comment = ''}) async {
     setState(() => _saving = true);
-    _user.onrollConfirmedAt = DateTime.now().toIso8601String();
-    _user.onrollRequestedAt = '';
+    _user.onrollHrStatus = accept ? 'accepted' : 'denied';
+    _user.onrollHrComment = comment;
+    _user.onrollHrDecidedAt = DateTime.now().toIso8601String();
     await widget.onSave(_user);
-    _onrollTimer?.cancel();
     if (mounted) { setState(() => _saving = false); _startTimers(); }
   }
 
-  Future<void> _undoOnroll() async {
+  Future<void> _decideManager(bool accept, {String comment = ''}) async {
+    setState(() => _saving = true);
+    _user.onrollManagerStatus = accept ? 'accepted' : 'denied';
+    _user.onrollManagerComment = comment;
+    _user.onrollManagerDecidedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    if (mounted) { setState(() => _saving = false); _startTimers(); }
+  }
+
+  Future<void> _undoOnrollStage(String stage) async {
+    setState(() => _saving = true);
+    _onrollTimer?.cancel();
+    if (stage == 'hr') {
+      _user.onrollHrStatus = 'pending';
+      _user.onrollHrComment = '';
+      _user.onrollHrDecidedAt = '';
+    } else if (stage == 'manager') {
+      _user.onrollManagerStatus = 'pending';
+      _user.onrollManagerComment = '';
+      _user.onrollManagerDecidedAt = '';
+    }
+    await widget.onSave(_user);
+    if (mounted) { setState(() => _saving = false); _startTimers(); }
+  }
+
+  Future<void> _undoFinalOnroll() async {
     setState(() => _saving = true);
     _onrollTimer?.cancel();
     _elTimer?.cancel();
     _user.onrollConfirmedAt = '';
+    _user.onrollManagementStatus = 'pending';
+    _user.onrollManagementComment = '';
+    _user.onrollManagementDecidedAt = '';
     _user.elEligibleAt = '';
     await widget.onSave(_user);
     if (mounted) setState(() => _saving = false);
+  }
+
+  String _resubmitDate(String deniedAtIso) {
+    try {
+      final d = DateTime.parse(deniedAtIso).add(const Duration(days: 7));
+      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Widget _onrollStageBlock({
+    required String label,
+    required String status,
+    required String comment,
+    required bool canAct,
+    required bool canUndo,
+    required String countdown,
+    required VoidCallback onAccept,
+    required VoidCallback onDeny,
+    required VoidCallback onUndo,
+  }) {
+    if (status == 'pending') {
+      if (!canAct) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(children: [
+            Icon(Icons.pending_actions_rounded, size: 15, color: Colors.orange.shade800),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('Awaiting $label review',
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                      color: Colors.orange.shade800)),
+            ),
+          ]),
+        );
+      }
+      return Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : onDeny,
+            icon: const Icon(Icons.close_rounded, size: 16),
+            label: const Text('Deny'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red.shade400,
+              side: BorderSide(color: Colors.red.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _saving ? null : onAccept,
+            icon: const Icon(Icons.check_rounded, size: 16),
+            label: Text('Accept as $label'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ]);
+    }
+
+    final accepted = status == 'accepted';
+    final color = accepted ? Colors.green : Colors.red;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: color.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.shade200),
+            ),
+            child: Row(children: [
+              Icon(accepted ? Icons.verified_rounded : Icons.cancel_rounded,
+                  size: 15, color: color.shade700),
+              const SizedBox(width: 8),
+              Text('$label: ${accepted ? 'Accepted' : 'Denied'}',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color.shade700)),
+            ]),
+          ),
+        ),
+        if (canUndo && canAct) ...[
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: _saving ? null : onUndo,
+            icon: const Icon(Icons.undo_rounded, size: 14),
+            label: Text('Undo ($countdown)', style: const TextStyle(fontSize: 11)),
+            style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
+          ),
+        ],
+      ]),
+      if (!accepted && comment.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Text(comment, style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
+          ),
+        ),
+    ]);
   }
 
   Future<void> _confirmEl() async {
@@ -502,10 +697,15 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     final c = _roleColor(_user.role);
     final canEdit = UserSession.role == UserRole.hr ||
         UserSession.role == UserRole.management;
-    // On-roll requests go to HR and the employee's own reporting manager.
+    final isHr = UserSession.role == UserRole.hr;
+    final isManagement = UserSession.role == UserRole.management;
+    // On-roll requests go to HR and the employee's own reporting manager, independently.
+    // Management only acts on the separate On-Roll Approvals page once both have accepted.
     final isReportingManager = UserSession.role == UserRole.reportingManager &&
         UserSession.name.trim().toLowerCase() == _user.reportingManager.trim().toLowerCase();
-    final canManageOnroll = canEdit || isReportingManager;
+    final canActHr = isHr;
+    final canActManager = isReportingManager;
+    final canSeeOnrollSection = isHr || isManagement || isReportingManager;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -566,7 +766,8 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
 
             // ── Employment status management ──────────────────────────────
-            if (canManageOnroll) ...[
+            if (canSeeOnrollSection &&
+                (_user.onrollRequestedAt.isNotEmpty || _user.isOnroll)) ...[
               const SizedBox(height: 14),
               const Divider(),
               const SizedBox(height: 10),
@@ -579,46 +780,40 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               ]),
               const SizedBox(height: 10),
 
-              // On-Roll
-              if (!_user.isOnroll) ...[
-                if (_user.onrollRequestedAt.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(children: [
-                        Icon(Icons.pending_actions_rounded, size: 15, color: Colors.orange.shade800),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text('Employee requested On-Roll confirmation',
-                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
-                                  color: Colors.orange.shade800)),
-                        ),
-                      ]),
-                    ),
-                  ),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _saving ? null : _confirmOnroll,
-                    icon: const Icon(Icons.verified_rounded, size: 16),
-                    label: const Text('Confirm On-Roll (unlocks ML + CL)'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.green.shade700,
-                      side: BorderSide(color: Colors.green.shade400),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ]
-              else
+              // On-Roll — 3-stage review: HR + Reporting Manager independently, then Management.
+              _onrollStageBlock(
+                label: 'HR',
+                status: _user.onrollHrStatus,
+                comment: _user.onrollHrComment,
+                canAct: canActHr,
+                canUndo: _canUndoHr,
+                countdown: _countdown(_user.onrollHrDecidedAt),
+                onAccept: () => _decideHr(true),
+                onDeny: () async {
+                  final c = await _promptDenyComment('Deny HR On-Roll Request');
+                  if (c != null) await _decideHr(false, comment: c);
+                },
+                onUndo: () => _undoOnrollStage('hr'),
+              ),
+              const SizedBox(height: 8),
+              _onrollStageBlock(
+                label: 'Reporting Manager',
+                status: _user.onrollManagerStatus,
+                comment: _user.onrollManagerComment,
+                canAct: canActManager,
+                canUndo: _canUndoManager,
+                countdown: _countdown(_user.onrollManagerDecidedAt),
+                onAccept: () => _decideManager(true),
+                onDeny: () async {
+                  final c = await _promptDenyComment('Deny Manager On-Roll Request');
+                  if (c != null) await _decideManager(false, comment: c);
+                },
+                onUndo: () => _undoOnrollStage('manager'),
+              ),
+              const SizedBox(height: 8),
+
+              // Management stage — read-only here; actioned from the On-Roll Approvals page.
+              if (_user.isOnroll)
                 Row(children: [
                   Expanded(
                     child: Container(
@@ -631,23 +826,74 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                       child: Row(children: [
                         Icon(Icons.verified_rounded, size: 15, color: Colors.green.shade700),
                         const SizedBox(width: 8),
-                        Text('On-Roll confirmed',
+                        Text('On-Roll confirmed (unlocks ML + CL)',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                                 color: Colors.green.shade700)),
                       ]),
                     ),
                   ),
-                  if (_canUndoOnroll) ...[
+                  if (_canUndoConfirmed && canEdit) ...[
                     const SizedBox(width: 8),
                     TextButton.icon(
-                      onPressed: _saving ? null : _undoOnroll,
+                      onPressed: _saving ? null : _undoFinalOnroll,
                       icon: const Icon(Icons.undo_rounded, size: 14),
                       label: Text('Undo (${_countdown(_user.onrollConfirmedAt)})',
                           style: const TextStyle(fontSize: 11)),
                       style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
                     ),
                   ],
-                ]),
+                ])
+              else if (_user.onrollManagementDenied)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(Icons.cancel_rounded, size: 15, color: Colors.red.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _user.onrollManagementComment.isNotEmpty
+                            ? 'Denied by Management: "${_user.onrollManagementComment}"'
+                            : 'Denied by Management',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                            color: Colors.red.shade700),
+                      ),
+                    ),
+                  ]),
+                )
+              else if (_user.onrollAwaitingManagement)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Awaiting Management review',
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade700)),
+                    ),
+                  ]),
+                ),
+
+              if (_user.onrollDenied && !_user.onrollCanResubmit)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Employee can resubmit on ${_resubmitDate(_user.onrollDeniedAt)}.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  ),
+                ),
 
               // EL Eligibility (HR/Management only, once on-roll)
               if (_user.isOnroll && canEdit) ...[
