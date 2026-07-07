@@ -53,7 +53,14 @@ class _MyOnboardingFormPageState extends State<MyOnboardingFormPage> {
 
       if (mounted) {
         setState(() {
-          _data    = rows.isNotEmpty ? Map<String, dynamic>.from(rows.first as Map) : null;
+          if (rows.isNotEmpty) {
+            final row = Map<String, dynamic>.from(rows.first as Map);
+            final fd  = row['form_data'];
+            if (fd is Map) row.addAll(Map<String, dynamic>.from(fd));
+            _data = row;
+          } else {
+            _data = null;
+          }
           _loading = false;
         });
       }
