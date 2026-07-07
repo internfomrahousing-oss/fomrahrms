@@ -40,15 +40,11 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
     super.dispose();
   }
 
-  static const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  static const _months = ['January', 'February', 'March', 'April', 'May', 'June',
-                           'July', 'August', 'September', 'October', 'November', 'December'];
-
   String get _greeting {
     final h = _now.hour;
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (h < 12) return 'Happy Morning';
+    if (h < 17) return 'Happy Afternoon';
+    return 'Happy Evening';
   }
 
   IconData get _greetIcon {
@@ -57,9 +53,6 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
     if (h < 17) return Icons.light_mode_rounded;
     return Icons.nights_stay_rounded;
   }
-
-  String get _todayLabel =>
-      'Today is ${_weekdays[_now.weekday - 1]}, ${_now.day} ${_months[_now.month - 1]}';
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +88,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$_greeting \u{1F44B}',
+                  '$_greeting \u{1F44B} $name',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: wide ? 15 : 13,
@@ -105,16 +98,7 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
                   ),
                 ),
                 Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                ),
-                Text(
-                  '$_todayLabel  ·  ${widget.subtitle}',
+                  widget.subtitle,
                   style: const TextStyle(color: Colors.white60, fontSize: 11, height: 1.3),
                 ),
               ],
