@@ -1052,7 +1052,14 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
       final ob = await db.from('onboarding_forms').select().or('name.ilike.%$name%,phone_number.eq.$email').limit(1);
       final ca = await db.from('candidate_applications').select().or('name.ilike.%$name%,email.eq.$email').limit(1);
       setState(() {
-        _onboarding = (ob as List).isNotEmpty ? ob.first : null;
+        if ((ob as List).isNotEmpty) {
+          final row = Map<String, dynamic>.from(ob.first as Map);
+          final fd  = row['form_data'];
+          if (fd is Map) row.addAll(Map<String, dynamic>.from(fd));
+          _onboarding = row;
+        } else {
+          _onboarding = null;
+        }
         _interview  = (ca as List).isNotEmpty ? ca.first : null;
         _loading = false;
       });
