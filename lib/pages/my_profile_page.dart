@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/candidate_store.dart';
 import '../models/user_session.dart';
+import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
@@ -21,11 +23,38 @@ class _MyProfilePageState extends State<MyProfilePage> {
   AppUser? _user;
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingPhoto = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _editPhoto() async {
+    final empId = UserSession.employeeId;
+    if (empId.isEmpty || _uploadingPhoto) return;
+
+    XFile? picked;
+    try {
+      picked = await ImagePicker()
+          .pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 85);
+    } catch (_) {
+      return;
+    }
+    if (picked == null) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final url = await SupabaseService.updateCurrentUserPhoto(
+          empId, bytes, picked.name, picked.mimeType ?? '');
+      if (url != null && mounted) {
+        setState(() => UserSession.photoUrl = url);
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   Future<void> _load() async {
@@ -299,21 +328,45 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(children: [
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundColor: const Color(0xFF111827),
-                        backgroundImage: UserSession.photoUrl.isNotEmpty
-                            ? NetworkImage(UserSession.photoUrl)
-                            : null,
-                        child: UserSession.photoUrl.isNotEmpty
-                            ? null
-                            : Text(
-                                (_user?.name.isNotEmpty == true)
-                                    ? _user!.name[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                      Stack(clipBehavior: Clip.none, children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: const Color(0xFF111827),
+                          backgroundImage: UserSession.photoUrl.isNotEmpty
+                              ? NetworkImage(UserSession.photoUrl)
+                              : null,
+                          child: _uploadingPhoto
+                              ? const SizedBox(
+                                  width: 20, height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
+                              : (UserSession.photoUrl.isNotEmpty
+                                  ? null
+                                  : Text(
+                                      (_user?.name.isNotEmpty == true)
+                                          ? _user!.name[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                                    )),
+                        ),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: GestureDetector(
+                            onTap: _editPhoto,
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: _color,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
                               ),
-                      ),
+                              child: const Icon(Icons.camera_alt_rounded,
+                                  size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ]),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
