@@ -16,9 +16,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const _color = Color(0xFF2563EB);
-  static const _colorDark = Color(0xFF1D4ED8);
-  static const _borderSubtle = Color(0xFFE7EBF2);
+  // iOS system colors (light appearance only).
+  static const _iosBlue      = Color(0xFF007AFF);
+  static const _iosBlueDark  = Color(0xFF0051D5);
+  static const _iosBg        = Color(0xFFF2F2F7);
+  static const _iosLabel     = Color(0xFF1C1C1E);
+  static const _iosSecondary = Color(0xFF8E8E93);
+  static const _iosSeparator = Color(0xFFE5E5EA);
 
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -187,288 +191,255 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (!isDark) ...[
-            Positioned(top: -140, left: -120, child: _glow(_color, 340)),
-            Positioned(bottom: -160, right: -140, child: _glow(_color, 380)),
-          ],
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 88, height: 88,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                          colors: [_color, _colorDark],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _color.withValues(alpha: 0.28),
-                            blurRadius: 28, offset: const Offset(0, 12),
-                          ),
-                        ],
+      backgroundColor: _iosBg,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // ── App icon (squircle, like an iOS app icon) ──────────
+                  Container(
+                    width: 76, height: 76,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        colors: [_iosBlue, _iosBlueDark],
                       ),
-                      child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 44),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _iosBlue.withValues(alpha: 0.28),
+                          blurRadius: 20, offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    Text('FOMRA HRMS',
-                        style: GoogleFonts.inter(
-                            fontSize: 30, fontWeight: FontWeight.w800,
-                            color: _color, letterSpacing: 1.5)),
-                    const SizedBox(height: 6),
-                    Text('Housing & Infrastructure',
-                        style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white54 : const Color(0xFF6B7280),
-                            letterSpacing: 1.4)),
-                    const SizedBox(height: 32),
+                    child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 38),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('FOMRA HRMS',
+                      style: GoogleFonts.inter(
+                          fontSize: 26, fontWeight: FontWeight.w700,
+                          color: _iosLabel, letterSpacing: -0.4)),
+                  const SizedBox(height: 4),
+                  Text('Housing & Infrastructure',
+                      style: GoogleFonts.inter(fontSize: 13, color: _iosSecondary)),
+                  const SizedBox(height: 36),
 
-                    _pendingUser != null
-                        ? _buildSetPasswordCard(isDark)
-                        : _buildLoginCard(isDark),
+                  _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
 
-                    const SizedBox(height: 24),
-                    Text('FOMRA Housing & Infrastructure © 2025',
-                        style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: isDark ? Colors.white30 : Colors.grey.shade400)),
-                  ],
-                ),
+                  const SizedBox(height: 20),
+                  const _CredentialsHint(),
+
+                  const SizedBox(height: 28),
+                  Text('FOMRA Housing & Infrastructure © 2025',
+                      style: GoogleFonts.inter(fontSize: 11, color: _iosSecondary)),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _glow(Color color, double size) {
-    return IgnorePointer(
-      child: Container(
-        width: size, height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.10), color.withValues(alpha: 0.0)],
-          ),
         ),
       ),
     );
   }
 
-  Widget _cardShell(bool isDark, {required Widget child}) {
+  // A grouped, inset iOS-style list card: rows separated by hairline
+  // dividers, no per-field borders — only the outer card is rounded.
+  Widget _groupedCard({required List<Widget> rows}) {
+    final children = <Widget>[];
+    for (var i = 0; i < rows.length; i++) {
+      children.add(rows[i]);
+      if (i != rows.length - 1) {
+        children.add(const Padding(
+          padding: EdgeInsets.only(left: 16),
+          child: Divider(height: 1, thickness: 0.6, color: _iosSeparator),
+        ));
+      }
+    }
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2036) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? const Color(0xFF283252) : _borderSubtle),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _iosSeparator),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
-            blurRadius: 40, offset: const Offset(0, 18),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 6, offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
-      child: child,
+      child: Column(children: children),
     );
   }
 
-  Widget _buildLoginCard(bool isDark) {
-    return _cardShell(isDark, child: Column(children: [
-      TextField(
-        controller: _emailCtrl,
-        keyboardType: TextInputType.emailAddress,
-        style: GoogleFonts.inter(fontSize: 14),
-        decoration: _inputDecoration('Email', Icons.email_rounded, isDark),
+  Widget _groupedField({
+    required TextEditingController controller,
+    required String hint,
+    bool obscure = false,
+    TextInputType? keyboardType,
+    Widget? suffix,
+    ValueChanged<String>? onSubmitted,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: keyboardType,
+      onSubmitted: onSubmitted,
+      style: GoogleFonts.inter(fontSize: 15, color: _iosLabel),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.inter(fontSize: 15, color: _iosSecondary),
+        border: InputBorder.none,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        suffixIcon: suffix,
       ),
-      const SizedBox(height: 16),
-      TextField(
-        controller: _passwordCtrl,
-        obscureText: _obscure,
-        style: GoogleFonts.inter(fontSize: 14),
-        onSubmitted: (_) => _login(),
-        decoration: _inputDecoration('Password', Icons.lock_rounded, isDark).copyWith(
-          suffixIcon: IconButton(
+    );
+  }
+
+  Widget _sectionLabel(String text) => Padding(
+        padding: const EdgeInsets.only(left: 16, bottom: 6),
+        child: Text(text.toUpperCase(),
+            style: GoogleFonts.inter(
+                fontSize: 11, fontWeight: FontWeight.w600,
+                color: _iosSecondary, letterSpacing: 0.4)),
+      );
+
+  Widget _pillButton({required VoidCallback? onPressed, required Widget child}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _iosBlue,
+          disabledBackgroundColor: _iosBlue.withValues(alpha: 0.5),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildLoginCard() {
+    return Column(children: [
+      _sectionLabel('Sign in'),
+      _groupedCard(rows: [
+        _groupedField(controller: _emailCtrl, hint: 'Email', keyboardType: TextInputType.emailAddress),
+        _groupedField(
+          controller: _passwordCtrl,
+          hint: 'Password',
+          obscure: _obscure,
+          onSubmitted: (_) => _login(),
+          suffix: IconButton(
             icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
+                size: 19, color: _iosSecondary),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
         ),
-      ),
-      _errorBanner(isDark),
-      const SizedBox(height: 24),
-      SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: ElevatedButton.icon(
-          onPressed: _loading ? null : _login,
-          icon: _loading
-              ? const SizedBox(width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.login_rounded, size: 20),
-          label: Text(_loading ? 'Signing in…' : 'Sign In',
-              style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _color, foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            elevation: 0,
-          ),
-        ),
-      ),
-      const SizedBox(height: 20),
-      const _CredentialsHint(),
-    ]));
-  }
-
-  Widget _buildSetPasswordCard(bool isDark) {
-    final user = _pendingUser!;
-    return _cardShell(isDark, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            color: _color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.lock_open_rounded, color: _color, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Welcome, ${user.name}!',
-                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: _color)),
-            Text('Set your password to continue.',
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
-          ]),
-        ),
       ]),
-      const SizedBox(height: 24),
-      TextField(
-        controller: _newPassCtrl,
-        obscureText: _obscureNew,
-        style: GoogleFonts.inter(fontSize: 14),
-        decoration: _inputDecoration('Create Password', Icons.lock_rounded, isDark).copyWith(
-          suffixIcon: IconButton(
-            icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
-            onPressed: () => setState(() => _obscureNew = !_obscureNew),
-          ),
-        ),
+      _errorBanner(),
+      const SizedBox(height: 22),
+      _pillButton(
+        onPressed: _loading ? null : _login,
+        child: _loading
+            ? const SizedBox(width: 18, height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : Text('Sign In',
+                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
-      const SizedBox(height: 16),
-      TextField(
-        controller: _confirmCtrl,
-        obscureText: _obscureConfirm,
-        style: GoogleFonts.inter(fontSize: 14),
-        onSubmitted: (_) => _savePassword(),
-        decoration: _inputDecoration('Confirm Password', Icons.lock_outline_rounded, isDark).copyWith(
-          suffixIcon: IconButton(
-            icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 18, color: isDark ? Colors.white38 : const Color(0xFF6B7280)),
-            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
-          ),
-        ),
-      ),
-      _errorBanner(isDark),
-      const SizedBox(height: 24),
-      SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: ElevatedButton.icon(
-          onPressed: _loading ? null : _savePassword,
-          icon: _loading
-              ? const SizedBox(width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.check_rounded, size: 20),
-          label: Text(_loading ? 'Saving…' : 'Set Password & Continue',
-              style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _color, foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            elevation: 0,
-          ),
-        ),
-      ),
-      const SizedBox(height: 12),
-      Center(
-        child: TextButton(
-          onPressed: () => setState(() { _pendingUser = null; _error = null; }),
-          child: Text('Back to Login',
-              style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
-        ),
-      ),
-    ]));
+    ]);
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, bool isDark) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: GoogleFonts.inter(
-          fontSize: 13, color: isDark ? Colors.white54 : const Color(0xFF6B7280)),
-      prefixIcon: Icon(icon, color: _color, size: 20),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-            color: isDark ? const Color(0xFF3A4A6A) : _borderSubtle,
-            width: 1.2),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _color, width: 2),
-      ),
-      filled: true,
-      fillColor: isDark ? const Color(0xFF1E2740) : const Color(0xFFF7F9FC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    );
-  }
-
-  Widget _errorBanner(bool isDark) {
-    if (_error == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  Widget _buildSetPasswordCard() {
+    final user = _pendingUser!;
+    return Column(children: [
+      Container(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? Colors.red.shade900.withValues(alpha: 0.4) : Colors.red.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: isDark ? Colors.red.shade700 : Colors.red.shade200),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _iosSeparator),
         ),
         child: Row(children: [
-          Icon(Icons.error_outline_rounded,
-              size: 16, color: isDark ? Colors.red.shade300 : Colors.red.shade600),
-          const SizedBox(width: 8),
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: _iosBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.lock_open_rounded, color: _iosBlue, size: 20),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(_error!,
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isDark ? Colors.red.shade300 : Colors.red.shade700)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Welcome, ${user.name}!',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _iosLabel)),
+              Text('Set your password to continue.',
+                  style: GoogleFonts.inter(fontSize: 12, color: _iosSecondary)),
+            ]),
           ),
         ]),
       ),
+      const SizedBox(height: 18),
+      _sectionLabel('New password'),
+      _groupedCard(rows: [
+        _groupedField(
+          controller: _newPassCtrl,
+          hint: 'Create Password',
+          obscure: _obscureNew,
+          suffix: IconButton(
+            icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                size: 19, color: _iosSecondary),
+            onPressed: () => setState(() => _obscureNew = !_obscureNew),
+          ),
+        ),
+        _groupedField(
+          controller: _confirmCtrl,
+          hint: 'Confirm Password',
+          obscure: _obscureConfirm,
+          onSubmitted: (_) => _savePassword(),
+          suffix: IconButton(
+            icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                size: 19, color: _iosSecondary),
+            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+          ),
+        ),
+      ]),
+      _errorBanner(),
+      const SizedBox(height: 22),
+      _pillButton(
+        onPressed: _loading ? null : _savePassword,
+        child: _loading
+            ? const SizedBox(width: 18, height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : Text('Set Password & Continue',
+                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
+      ),
+      const SizedBox(height: 8),
+      TextButton(
+        onPressed: () => setState(() { _pendingUser = null; _error = null; }),
+        child: Text('Back to Login',
+            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _iosBlue)),
+      ),
+    ]);
+  }
+
+  Widget _errorBanner() {
+    if (_error == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(children: [
+        const Icon(Icons.error_outline_rounded, size: 15, color: Color(0xFFFF3B30)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(_error!,
+              style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFFFF3B30))),
+        ),
+      ]),
     );
   }
 }
@@ -476,45 +447,57 @@ class _LoginPageState extends State<LoginPage> {
 class _CredentialsHint extends StatelessWidget {
   const _CredentialsHint();
 
+  static const _iosBlue      = _LoginPageState._iosBlue;
+  static const _iosSecondary = _LoginPageState._iosSecondary;
+  static const _iosSeparator = _LoginPageState._iosSeparator;
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2540) : const Color(0xFFF7F9FC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isDark ? const Color(0xFF2A3A6A) : const Color(0xFFE3E9F5)),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.only(left: 16, bottom: 6),
+        child: Text('DEMO CREDENTIALS',
+            style: GoogleFonts.inter(
+                fontSize: 11, fontWeight: FontWeight.w600,
+                color: _iosSecondary, letterSpacing: 0.4)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Admin Credentials',
-            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF2563EB))),
-        const SizedBox(height: 2),
-        Text('Users created by Management set their own password on first login.',
-            style: GoogleFonts.inter(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF6B7280))),
-        const SizedBox(height: 6),
-        _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123', isDark),
-        const SizedBox(height: 4),
-        _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123', isDark),
-        const SizedBox(height: 4),
-        _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123', isDark),
-      ]),
-    );
-  }
-
-  Widget _cred(IconData icon, String role, String email, String pass, bool isDark) {
-    return Row(children: [
-      Icon(icon, size: 13, color: const Color(0xFF2563EB)),
-      const SizedBox(width: 6),
-      Text('$role: ', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white70 : const Color(0xFF6B7280))),
-      Expanded(
-        child: Text('$email / $pass',
-            style: GoogleFonts.inter(fontSize: 11,
-                color: isDark ? Colors.white54 : const Color(0xFF6B7280)),
-            overflow: TextOverflow.ellipsis),
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _iosSeparator),
+        ),
+        child: Column(children: [
+          _cred(Icons.manage_accounts_rounded, 'Management', 'management@fomrahousing.in', 'Mgmt@123'),
+          const Padding(padding: EdgeInsets.only(left: 16), child: Divider(height: 1, thickness: 0.6, color: _iosSeparator)),
+          _cred(Icons.admin_panel_settings_rounded, 'HR', 'hr@fomrahousing.in', 'Admin@123'),
+          const Padding(padding: EdgeInsets.only(left: 16), child: Divider(height: 1, thickness: 0.6, color: _iosSeparator)),
+          _cred(Icons.supervisor_account_rounded, 'Manager', 'manager@fomrahousing.in', 'Manager@123'),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(left: 16, top: 6),
+        child: Text('Users created by Management set their own password on first login.',
+            style: GoogleFonts.inter(fontSize: 11, color: _iosSecondary)),
       ),
     ]);
+  }
+
+  Widget _cred(IconData icon, String role, String email, String pass) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(children: [
+        Icon(icon, size: 16, color: _iosBlue),
+        const SizedBox(width: 10),
+        Text(role, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LoginPageState._iosLabel)),
+        const Spacer(),
+        Flexible(
+          child: Text('$email / $pass',
+              textAlign: TextAlign.right,
+              style: GoogleFonts.inter(fontSize: 11.5, color: _iosSecondary),
+              overflow: TextOverflow.ellipsis),
+        ),
+      ]),
+    );
   }
 }
