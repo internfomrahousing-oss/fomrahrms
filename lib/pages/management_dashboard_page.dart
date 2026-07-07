@@ -86,10 +86,6 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
             WelcomeBanner(
               avatarIcon: Icons.manage_accounts_rounded,
               onRefresh: _loadCount,
-              calendarRoute: '/management/attendance/employee-attendance-calendar',
-              performanceRoute: '/management/performance-management',
-              notificationsRoute: '/management/notifications',
-              searchRoute: '/management/employee-management',
             ),
             Padding(
               padding: EdgeInsets.all(pad),

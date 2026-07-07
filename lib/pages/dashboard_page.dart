@@ -66,10 +66,6 @@ class _DashboardPageState extends State<DashboardPage> {
               subtitle: 'Fomra Housing & Infrastructure',
               avatarIcon: Icons.admin_panel_settings_rounded,
               onRefresh: _loadCount,
-              calendarRoute: '/attendance/employee-attendance-calendar',
-              performanceRoute: '/performance-management',
-              notificationsRoute: '/notifications',
-              searchRoute: '/employee-management',
             ),
 
             Padding(

@@ -12,6 +12,7 @@ class ShellTopBar extends StatelessWidget {
   final String homeRoute;
   final String notificationsRoute;
   final bool hideProfile;
+  final String? searchRoute;
 
   const ShellTopBar({
     super.key,
@@ -20,6 +21,7 @@ class ShellTopBar extends StatelessWidget {
     required this.homeRoute,
     required this.notificationsRoute,
     this.hideProfile = false,
+    this.searchRoute,
   });
 
   @override
@@ -105,6 +107,39 @@ class ShellTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        if (searchRoute != null && MediaQuery.of(context).size.width > 900) ...[
+          SizedBox(
+            width: 220,
+            height: 38,
+            child: TextField(
+              onSubmitted: (_) => context.go(searchRoute!),
+              style: const TextStyle(fontSize: 13, color: Colors.white),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search employees, reports...',
+                hintStyle: const TextStyle(fontSize: 12.5, color: Colors.white60),
+                prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.white60),
+                prefixIconConstraints: const BoxConstraints(minWidth: 32),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.20)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.20)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.45)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         // Quick actions
         const QuickActionIcons(),
         const SizedBox(width: 8),

@@ -100,6 +100,7 @@ class _WideLayoutState extends State<_WideLayout> {
             onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
             homeRoute: '/management/dashboard',
             notificationsRoute: '/management/notifications',
+            searchRoute: '/management/employee-management',
             hideProfile: widget.location == '/management/dashboard',
           ),
           Expanded(

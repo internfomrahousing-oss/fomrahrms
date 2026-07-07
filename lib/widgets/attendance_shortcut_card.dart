@@ -535,30 +535,30 @@ class _QuickTileView extends StatelessWidget {
               color: hovering ? color.withValues(alpha: 0.06) : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               AnimatedRotation(
                 turns: hovering ? 0.04 : 0,
                 duration: AppTheme.fastAnim,
                 child: Stack(clipBehavior: Clip.none, children: [
                   Container(
-                    width: 44, height: 44,
+                    width: 32, height: 32,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(9),
                     ),
                     child: loading
                         ? Padding(
-                            padding: const EdgeInsets.all(13),
+                            padding: const EdgeInsets.all(9),
                             child: CircularProgressIndicator(strokeWidth: 2, color: color),
                           )
-                        : Icon(icon, color: color, size: 22),
+                        : Icon(icon, color: color, size: 16),
                   ),
                   if (showLiveDot)
                     Positioned(
                       right: -2, top: -2,
                       child: Container(
-                        width: 10, height: 10,
+                        width: 8, height: 8,
                         decoration: BoxDecoration(
                           color: Colors.green.shade400,
                           shape: BoxShape.circle,
@@ -568,13 +568,13 @@ class _QuickTileView extends StatelessWidget {
                     ),
                 ]),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
               Text(label,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                      fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
             ]),
           ),
         ),

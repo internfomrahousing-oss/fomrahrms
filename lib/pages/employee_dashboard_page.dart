@@ -37,7 +37,6 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
           children: [
             const WelcomeBanner(
               avatarIcon: Icons.person_rounded,
-              notificationsRoute: '/employee/notifications',
             ),
             Padding(
               padding: EdgeInsets.all(pad),

@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
@@ -24,10 +26,6 @@ class ManagerDashboardPage extends StatelessWidget {
           children: [
             const WelcomeBanner(
               avatarIcon: Icons.manage_accounts_rounded,
-              calendarRoute: '/manager/attendance/employee-attendance-calendar',
-              performanceRoute: '/manager/performance-management',
-              notificationsRoute: '/manager/notifications',
-              searchRoute: '/manager/employee-management',
             ),
             Padding(
               padding: EdgeInsets.all(pad),
