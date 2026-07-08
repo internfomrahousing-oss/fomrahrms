@@ -237,45 +237,13 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
             ),
             const SizedBox(height: 10),
 
-            // ── Sort chips ───────────────────────────────────────────────
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                _FilterChip(
-                  label: 'Recently Added',
-                  icon: Icons.new_releases_rounded,
-                  selected: _sort == _SortOrder.newestFirst,
-                  onTap: () => setState(() { _sort = _SortOrder.newestFirst; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Added First',
-                  icon: Icons.history_rounded,
-                  selected: _sort == _SortOrder.oldestFirst,
-                  onTap: () => setState(() { _sort = _SortOrder.oldestFirst; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'A → Z',
-                  icon: Icons.sort_by_alpha_rounded,
-                  selected: _sort == _SortOrder.alphabetical,
-                  onTap: () => setState(() { _sort = _SortOrder.alphabetical; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Join Date ↑',
-                  icon: Icons.calendar_today_rounded,
-                  selected: _sort == _SortOrder.joinOldNew,
-                  onTap: () => setState(() { _sort = _SortOrder.joinOldNew; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Join Date ↓',
-                  icon: Icons.calendar_month_rounded,
-                  selected: _sort == _SortOrder.joinNewOld,
-                  onTap: () => setState(() { _sort = _SortOrder.joinNewOld; _applyFilter(); }),
-                ),
-              ]),
+            // ── Sort dropdown ────────────────────────────────────────────
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _SortDropdown(
+                value: _sort,
+                onChanged: (v) => setState(() { _sort = v; _applyFilter(); }),
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -2283,6 +2251,63 @@ class _EmergencyAttendanceBannerState extends State<_EmergencyAttendanceBanner> 
           ]),
         );
       },
+    );
+  }
+}
+
+// ── Sort dropdown ───────────────────────────────────────────────────────────────
+
+class _SortDropdown extends StatelessWidget {
+  final _SortOrder value;
+  final ValueChanged<_SortOrder> onChanged;
+  const _SortDropdown({required this.value, required this.onChanged});
+
+  static const _labels = {
+    _SortOrder.newestFirst:  ('Recently Added', Icons.new_releases_rounded),
+    _SortOrder.oldestFirst:  ('Added First',    Icons.history_rounded),
+    _SortOrder.alphabetical: ('A → Z',          Icons.sort_by_alpha_rounded),
+    _SortOrder.joinOldNew:   ('Join Date ↑',    Icons.calendar_today_rounded),
+    _SortOrder.joinNewOld:   ('Join Date ↓',    Icons.calendar_month_rounded),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, icon) = _labels[value]!;
+    return PopupMenuButton<_SortOrder>(
+      initialValue: value,
+      onSelected: onChanged,
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => _SortOrder.values.map((o) {
+        final (l, i) = _labels[o]!;
+        return PopupMenuItem(
+          value: o,
+          child: Row(children: [
+            Icon(i, size: 16, color: o == value ? AppTheme.primaryBlue : const Color(0xFF6B7280)),
+            const SizedBox(width: 10),
+            Text(l, style: TextStyle(
+                fontSize: 13,
+                fontWeight: o == value ? FontWeight.w700 : FontWeight.w500,
+                color: o == value ? AppTheme.primaryBlue : const Color(0xFF111827))),
+          ]),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.swap_vert_rounded, size: 16, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text('Sort: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+        ]),
+      ),
     );
   }
 }
