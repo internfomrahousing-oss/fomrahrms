@@ -8,6 +8,39 @@ import '../theme/app_theme.dart';
 
 Color get _blue => AppTheme.primaryBlue;
 
+// Keyword-based status color/icon so any sheet's status vocabulary (New,
+// Follow Up, Qualified, Contacted, Converted, Lost, …) gets a consistent
+// look without hardcoding one sheet's exact values.
+Color leadStatusColor(String status) {
+  final s = status.toLowerCase();
+  if (s.contains('new')) return const Color(0xFF2563EB);
+  if (s.contains('follow')) return const Color(0xFFF59E0B);
+  if (s.contains('contact')) return const Color(0xFF0EA5E9);
+  if (s.contains('qualif') || (s.contains('interest') && !s.contains('not'))) {
+    return const Color(0xFF8B5CF6);
+  }
+  if (s.contains('convert')) return const Color(0xFF22C55E);
+  if (s.contains('lost') || s.contains('not interest') || s.contains('reject')) {
+    return const Color(0xFFEF4444);
+  }
+  return const Color(0xFF6B7280);
+}
+
+IconData leadStatusIcon(String status) {
+  final s = status.toLowerCase();
+  if (s.contains('new')) return Icons.fiber_new_rounded;
+  if (s.contains('follow')) return Icons.phone_callback_rounded;
+  if (s.contains('contact')) return Icons.chat_bubble_rounded;
+  if (s.contains('qualif') || (s.contains('interest') && !s.contains('not'))) {
+    return Icons.filter_alt_rounded;
+  }
+  if (s.contains('convert')) return Icons.check_circle_rounded;
+  if (s.contains('lost') || s.contains('not interest') || s.contains('reject')) {
+    return Icons.cancel_rounded;
+  }
+  return Icons.label_rounded;
+}
+
 
 class LeadManagementPage extends StatefulWidget {
   final String url;
@@ -37,7 +70,46 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   Map<String, double>       _numMax      = {};
   Map<String, RangeValues>  _numRange    = {};
 
+  bool _sortLatestFirst = true;
+
   final _searchCtrl = TextEditingController();
+
+  // Quick-filter columns, picked out of the auto-detected categorical set by
+  // keyword so the header controls read like "Status / Owner / Source"
+  // regardless of what this particular sheet calls its columns. Any sheet
+  // without a matching column just doesn't get that quick filter — the rest
+  // still show up in the "More Filters" panel.
+  String? _pickCol(List<String> keywords, {Set<String> exclude = const {}}) {
+    for (final col in _catOptions.keys) {
+      if (exclude.contains(col)) continue;
+      final c = col.toUpperCase();
+      if (keywords.any((kw) => c.contains(kw))) return col;
+    }
+    return null;
+  }
+
+  String? get _statusCol => _pickCol(['STATUS', 'STAGE']);
+  String? get _ownerCol => _pickCol(
+      ['OWNER', 'ASSIGNED', 'AGENT', 'EXECUTIVE'],
+      exclude: {if (_statusCol != null) _statusCol!});
+  String? get _sourceCol => _pickCol(
+      ['SOURCE', 'REFERRAL', 'CHANNEL'],
+      exclude: {if (_statusCol != null) _statusCol!, if (_ownerCol != null) _ownerCol!});
+
+  Set<String> get _quickFilterCols =>
+      {if (_statusCol != null) _statusCol!, if (_ownerCol != null) _ownerCol!, if (_sourceCol != null) _sourceCol!};
+
+  // Status counts for the stat-card row, ordered by the sheet's own category
+  // order (falls back to nothing if no status-like column is detected).
+  Map<String, int> get _statusCounts {
+    final col = _statusCol;
+    if (col == null) return {};
+    final counts = <String, int>{};
+    for (final v in _catOptions[col]!) {
+      counts[v] = _all.where((l) => (l.fields[col] ?? '') == v).length;
+    }
+    return counts;
+  }
 
   // Extract first numeric value from a string
   double? _parseNum(String s) {
@@ -169,7 +241,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
 
   List<Lead> _computeFilter(List<Lead> source) {
     final q = _searchCtrl.text.trim().toLowerCase();
-    return source.where((lead) {
+    var result = source.where((lead) {
       if (q.isNotEmpty &&
           !lead.fields.values.any((v) => v.toLowerCase().contains(q))) return false;
       for (final col in _catSelected.keys) {
@@ -183,6 +255,10 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
       }
       return true;
     }).toList();
+    // Sheet rows come back in sheet order (oldest first) — "Latest" reverses
+    // that so the most recently added row shows up top, same as every sheet.
+    if (_sortLatestFirst) result = result.reversed.toList();
+    return result;
   }
 
   void _applyFilter() {
@@ -190,41 +266,11 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
   }
 
   Widget _statusBadge(String status) {
-    Color bg;
-    Color fg;
-    switch (status.toLowerCase()) {
-      case 'new':
-        bg = const Color(0xFFEFF6FF);
-        fg = const Color(0xFF2563EB);
-        break;
-      case 'follow-up':
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFFF59E0B);
-        break;
-      case 'interested':
-        bg = const Color(0xFFDCFCE7);
-        fg = const Color(0xFF22C55E);
-        break;
-      case 'not interested':
-        bg = const Color(0xFFFEE2E2);
-        fg = const Color(0xFFEF4444);
-        break;
-      case 'converted':
-        bg = const Color(0xFFEFF6FF);
-        fg = const Color(0xFF2563EB);
-        break;
-      case 'lost':
-        bg = const Color(0xFFE5E7EB);
-        fg = const Color(0xFF616161);
-        break;
-      default:
-        bg = const Color(0xFFF8FAFC);
-        fg = const Color(0xFF757575);
-    }
+    final fg = leadStatusColor(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+          BoxDecoration(color: fg.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
       child: Text(
         status.isEmpty ? 'Unknown' : status,
         style: TextStyle(
@@ -673,33 +719,77 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                         : Icon(Icons.refresh_rounded, color: _blue),
                   ),
                 ]),
+
+                // Stat cards — Total plus one tile per detected status value,
+                // so any sheet with a status-like column gets these for free.
+                if (_all.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _LeadStatCardsRow(total: _all.length, statusCounts: _statusCounts),
+                ],
                 const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      decoration: InputDecoration(
-                        hintText: 'Search by name, phone, project…',
-                        prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                onPressed: _searchCtrl.clear,
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
+
+                LayoutBuilder(builder: (context, constraints) {
+                  final search = TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Search by name, phone, project…',
+                      prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: _searchCtrl.clear,
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                  );
+
+                  final ownerCol = _ownerCol;
+                  final sourceCol = _sourceCol;
+                  final quickDropdowns = [
+                    if (ownerCol != null)
+                      _DropdownField<String>(
+                        label: _prettyCol(ownerCol),
+                        value: _catSelected[ownerCol] ?? 'All',
+                        icon: Icons.person_rounded,
+                        options: ['All', ..._catOptions[ownerCol]!],
+                        onChanged: (v) {
+                          setState(() => _catSelected[ownerCol] = v);
+                          _applyFilter();
+                        },
+                      ),
+                    if (sourceCol != null)
+                      _DropdownField<String>(
+                        label: _prettyCol(sourceCol),
+                        value: _catSelected[sourceCol] ?? 'All',
+                        icon: Icons.share_rounded,
+                        options: ['All', ..._catOptions[sourceCol]!],
+                        onChanged: (v) {
+                          setState(() => _catSelected[sourceCol] = v);
+                          _applyFilter();
+                        },
+                      ),
+                    _DropdownField<bool>(
+                      label: 'Sort',
+                      value: _sortLatestFirst,
+                      icon: Icons.swap_vert_rounded,
+                      optionLabel: (v) => v ? 'Latest' : 'Oldest',
+                      options: const [true, false],
+                      onChanged: (v) {
+                        setState(() => _sortLatestFirst = v);
+                        _applyFilter();
+                      },
+                    ),
+                  ];
+
                   // Filter toggle button
-                  Stack(
+                  final moreFiltersBtn = Stack(
                     clipBehavior: Clip.none,
                     children: [
                       InkWell(
@@ -718,7 +808,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                             Icon(Icons.tune_rounded, size: 16,
                                 color: _showFilter ? Colors.white : _blue),
                             const SizedBox(width: 5),
-                            Text('Filter',
+                            Text('More Filters',
                                 style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -737,8 +827,62 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           ),
                         ),
                     ],
+                  );
+
+                  if (constraints.maxWidth < 760) {
+                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Expanded(child: search),
+                        const SizedBox(width: 8),
+                        moreFiltersBtn,
+                      ]),
+                      if (quickDropdowns.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(spacing: 8, runSpacing: 8, children: quickDropdowns),
+                      ],
+                    ]);
+                  }
+                  return Row(children: [
+                    Expanded(child: search),
+                    const SizedBox(width: 8),
+                    ...quickDropdowns.expand((w) => [w, const SizedBox(width: 8)]),
+                    moreFiltersBtn,
+                  ]);
+                }),
+
+                // Status chips — quick access to the detected status column
+                if (_statusCol != null) ...[
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [
+                      _StatusFilterChip(
+                        label: 'All (${_all.length})',
+                        selected: (_catSelected[_statusCol!] ?? 'All') == 'All',
+                        color: const Color(0xFF111827),
+                        onTap: () {
+                          setState(() => _catSelected[_statusCol!] = 'All');
+                          _applyFilter();
+                        },
+                      ),
+                      ..._catOptions[_statusCol!]!.map((v) {
+                        final count = _all.where((l) => (l.fields[_statusCol!] ?? '') == v).length;
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: _StatusFilterChip(
+                            label: '$v ($count)',
+                            selected: _catSelected[_statusCol!] == v,
+                            color: leadStatusColor(v),
+                            onTap: () {
+                              setState(() => _catSelected[_statusCol!] = v);
+                              _applyFilter();
+                            },
+                          ),
+                        );
+                      }),
+                    ]),
                   ),
-                ]),
+                ],
 
                 // Filter panel
                 if (_showFilter && _all.isNotEmpty) ...[
@@ -803,8 +947,14 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                          // ── Categorical chip filters (one group per column)
-                          ..._catOptions.entries.map((entry) {
+                          // ── Categorical chip filters (one group per column,
+                          // excluding whichever columns are already surfaced
+                          // as the status chips / quick dropdowns above)
+                          ...() {
+                            final entries = _catOptions.entries
+                                .where((e) => !_quickFilterCols.contains(e.key))
+                                .toList();
+                            return entries.map((entry) {
                             final col = entry.key;
                             final vals = entry.value;
                             final sel = _catSelected[col]!;
@@ -844,13 +994,14 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                                     );
                                   }).toList(),
                                 ),
-                                if (entry.key != _catOptions.keys.last || _numRange.isNotEmpty) ...[
+                                if (entry.key != entries.last.key || _numRange.isNotEmpty) ...[
                                   const SizedBox(height: 12),
                                   const Divider(height: 1),
                                 ],
                               ]),
                             );
-                          }),
+                            });
+                          }(),
 
                           // ── Numeric range sliders (one per column) ─────────
                           ..._numRange.keys.map((col) {
@@ -876,12 +1027,16 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
                           }),
 
                           // ── No filterable columns ─────────────────────────
-                          if (_catOptions.isEmpty && _numRange.isEmpty)
-                            const Center(
+                          if (_catOptions.keys.every(_quickFilterCols.contains) && _numRange.isEmpty)
+                            Center(
                               child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                                child: Text('No filterable columns detected in this sheet.',
-                                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Text(
+                                  _catOptions.isEmpty
+                                      ? 'No filterable columns detected in this sheet.'
+                                      : 'No more filterable columns — everything is above.',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                                ),
                               ),
                             ),
                         ]),
@@ -959,6 +1114,201 @@ class _RangeRow extends StatelessWidget {
   );
 }
 
+// ── Stat cards ───────────────────────────────────────────────────────────────
+
+class _LeadStatCardsRow extends StatelessWidget {
+  final int total;
+  final Map<String, int> statusCounts;
+  const _LeadStatCardsRow({required this.total, required this.statusCounts});
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = [
+      _LeadStatTile(
+        icon: Icons.groups_rounded,
+        color: AppTheme.primaryBlue,
+        label: 'Total Leads',
+        value: '$total',
+      ),
+      for (final e in statusCounts.entries)
+        _LeadStatTile(
+          icon: leadStatusIcon(e.key),
+          color: leadStatusColor(e.key),
+          label: e.key.isEmpty ? 'Unknown' : e.key,
+          value: '${e.value}',
+        ),
+    ];
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return Row(children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(child: tiles[i]),
+          ],
+        ]);
+      }
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [for (final t in tiles) SizedBox(width: 160, child: t)],
+      );
+    });
+  }
+}
+
+class _LeadStatTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  const _LeadStatTile({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(icon, color: color, size: 17),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 19, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Status filter chip ──────────────────────────────────────────────────────
+
+class _StatusFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+  const _StatusFilterChip({
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : const Color(0xFFDDE3ED)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Colors.white : const Color(0xFF6B7280))),
+      ),
+    );
+  }
+}
+
+// ── Generic dropdown field ────────────────────────────────────────────────────
+
+class _DropdownField<T> extends StatelessWidget {
+  final String label;
+  final T value;
+  final IconData icon;
+  final List<T> options;
+  final ValueChanged<T> onChanged;
+  final String Function(T)? optionLabel;
+
+  const _DropdownField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.options,
+    required this.onChanged,
+    this.optionLabel,
+  });
+
+  String _display(T v) => optionLabel != null ? optionLabel!(v) : v.toString();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<T>(
+      initialValue: value,
+      onSelected: onChanged,
+      offset: const Offset(0, 42),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => options.map((o) {
+        final selected = o == value;
+        return PopupMenuItem<T>(
+          value: o,
+          child: Text(_display(o),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? AppTheme.primaryBlue : const Color(0xFF111827))),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFDDDDDD)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text('$label: ',
+              style: const TextStyle(
+                  fontSize: 12.5, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 100),
+            child: Text(_display(value),
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+        ]),
+      ),
+    );
+  }
+}
+
 // ── Lead Card (compact — tap to view full details) ───────────────────────────
 
 class _LeadCard extends StatelessWidget {
@@ -997,17 +1347,21 @@ class _LeadCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Avatar
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(width: 4, color: leadStatusColor(lead.status)),
+          Expanded(
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // Avatar
             CircleAvatar(
               radius: 20,
               backgroundColor: _blue.withValues(alpha: 0.1),
@@ -1078,8 +1432,11 @@ class _LeadCard extends StatelessWidget {
                 _SmallIconBtn(icon: Icons.delete_outline_rounded, color: const Color(0xFFEF4444), onTap: onDelete),
               ]),
             ]),
-          ]),
-        ),
+                ]),
+              ),
+            ),
+          ),
+        ]),
       ),
     );
   }
