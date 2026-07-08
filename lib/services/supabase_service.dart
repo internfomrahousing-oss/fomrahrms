@@ -1147,6 +1147,93 @@ class SupabaseService {
     }
   }
 
+  // ── Maintenance Form Configs ────────────────────────────────────────────
+  /*
+    create table if not exists maintenance_form_configs (
+      id uuid default gen_random_uuid() primary key,
+      created_at timestamptz default now(),
+      created_by text default '',
+      status text default 'pending',
+      form_config jsonb not null default '{}',
+      version_number integer default 1,
+      approved_at timestamptz,
+      approved_by text default '',
+      rejection_note text default ''
+    );
+    alter table maintenance_form_configs disable row level security;
+  */
+
+  static Future<List<Map<String, dynamic>>> fetchMaintenanceFormVersions() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db
+          .from('maintenance_form_configs')
+          .select()
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchActiveMaintenanceFormConfig() async {
+    final db = _db;
+    if (db == null) return null;
+    try {
+      final data = await db
+          .from('maintenance_form_configs')
+          .select()
+          .eq('status', 'approved')
+          .order('approved_at', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveMaintenanceFormVersion(Map<String, dynamic> data) async {
+    final db = _db;
+    if (db == null) throw Exception('Database not initialized.');
+    await db.from('maintenance_form_configs').insert(data);
+  }
+
+  static Future<void> updateMaintenanceFormVersionStatus(
+    String id,
+    String status, {
+    String decidedBy = '',
+    String note = '',
+  }) async {
+    final db = _db;
+    if (db == null) return;
+    final update = <String, dynamic>{'status': status};
+    if (status == 'approved') {
+      update['approved_at'] = DateTime.now().toUtc().toIso8601String();
+      update['approved_by'] = decidedBy;
+    }
+    if (note.isNotEmpty) update['rejection_note'] = note;
+    await db.from('maintenance_form_configs').update(update).eq('id', id);
+  }
+
+  static Future<int> getNextMaintenanceFormVersionNumber() async {
+    final db = _db;
+    if (db == null) return 1;
+    try {
+      final data = await db
+          .from('maintenance_form_configs')
+          .select('version_number')
+          .order('version_number', ascending: false)
+          .limit(1);
+      final list = List<Map<String, dynamic>>.from(data as List);
+      if (list.isEmpty) return 1;
+      return ((list.first['version_number'] as int?) ?? 0) + 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
   // ── Attendance Records ────────────────────────────────────────────────
 
   static String _attendanceId(String employeeId, String date) =>

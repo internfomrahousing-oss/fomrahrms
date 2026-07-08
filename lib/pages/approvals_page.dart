@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/leave_form_config.dart';
+import '../models/maintenance_form_config.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -28,6 +29,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
   List<Map<String, dynamic>> _interviewVersions = [];
   List<Map<String, dynamic>> _onboardingVersions = [];
   List<Map<String, dynamic>> _policyVersions = [];
+  List<Map<String, dynamic>> _maintenanceVersions = [];
   Map<int, String> _interviewLabels = {};
   Map<int, String> _onboardingLabels = {};
 
@@ -47,6 +49,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
         SupabaseService.fetchFormVersions(),
         SupabaseService.fetchOnboardingFormVersions(),
         SupabaseService.fetchHRPolicyVersions(),
+        SupabaseService.fetchMaintenanceFormVersions(),
       ]);
       final leaves = results[0] as List<LeaveApplication>;
       if (leaves.isNotEmpty) {
@@ -64,6 +67,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
         _interviewVersions = interviewVersions;
         _onboardingVersions = onboardingVersions;
         _policyVersions = results[5] as List<Map<String, dynamic>>;
+        _maintenanceVersions = results[6] as List<Map<String, dynamic>>;
         _interviewLabels = computeFormVersionLabels(interviewVersions);
         _onboardingLabels = computeFormVersionLabels(onboardingVersions);
         _loading = false;
@@ -98,6 +102,30 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
   List<Map<String, dynamic>> _pendingOf(List<Map<String, dynamic>> versions) =>
       versions.where((v) => (v['status'] as String?) == 'pending').toList();
 
+  // ── Past (decided) slices ───────────────────────────────────────────────
+
+  List<LeaveApplication> _decidedSorted(Iterable<LeaveApplication> src) {
+    final list = src.where((a) => a.managerStatus != LeaveApprovalStatus.pending).toList();
+    list.sort((a, b) => (b.decidedAt ?? DateTime(0)).compareTo(a.decidedAt ?? DateTime(0)));
+    return list;
+  }
+
+  List<LeaveApplication> get _historyLeave =>
+      _decidedSorted(LeaveStore.applications.where((a) => !_isPermCompOff(a)));
+  List<LeaveApplication> get _historyPermission =>
+      _decidedSorted(LeaveStore.applications.where((a) => a.leaveType == 'Permission'));
+  List<LeaveApplication> get _historyCompOff =>
+      _decidedSorted(LeaveStore.applications.where((a) => a.leaveType == 'Comp Off'));
+
+  List<AppUser> get _historyOnroll {
+    final list = _users.where((u) => u.onrollManagementStatus != 'pending').toList();
+    list.sort((a, b) => b.onrollManagementDecidedAt.compareTo(a.onrollManagementDecidedAt));
+    return list;
+  }
+
+  List<Map<String, dynamic>> _historyOf(List<Map<String, dynamic>> versions) =>
+      versions.where((v) => (v['status'] as String?) != 'pending').toList();
+
   int get _totalPending =>
       _pendingLeave.length +
       _pendingPermission.length +
@@ -108,7 +136,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
       _pendingOf(_leaveVersions).length +
       _pendingOf(_interviewVersions).length +
       _pendingOf(_onboardingVersions).length +
-      _pendingOf(_policyVersions).length;
+      _pendingOf(_policyVersions).length +
+      _pendingOf(_maintenanceVersions).length;
 
   // ── Leave / Permission / Comp Off actions ───────────────────────────────
 
@@ -198,6 +227,9 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
         await SupabaseService.updateOnboardingFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
       case 'policy':
         await SupabaseService.updateHRPolicyVersionStatus(id, 'approved', decidedBy: UserSession.name);
+      case 'maintenance':
+        await SupabaseService.updateMaintenanceFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
+        MaintenanceFormConfig.invalidate();
     }
     _load();
   }
@@ -214,6 +246,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
         await SupabaseService.updateOnboardingFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
       case 'policy':
         await SupabaseService.updateHRPolicyVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
+      case 'maintenance':
+        await SupabaseService.updateMaintenanceFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
     }
     _load();
   }
@@ -318,6 +352,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                 children: _pendingLeave
                     .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
                     .toList(),
+                history: _historyLeave.map(_leaveHistoryCard).toList(),
               ),
               _ApprovalSection(
                 icon: Icons.access_time_rounded,
@@ -328,6 +363,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                 children: _pendingPermission
                     .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
                     .toList(),
+                history: _historyPermission.map(_leaveHistoryCard).toList(),
               ),
               _ApprovalSection(
                 icon: Icons.swap_horiz_rounded,
@@ -338,6 +374,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                 children: _pendingCompOff
                     .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
                     .toList(),
+                history: _historyCompOff.map(_leaveHistoryCard).toList(),
               ),
               _ApprovalSection(
                 icon: Icons.verified_user_rounded,
@@ -348,6 +385,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                 children: _pendingOnroll
                     .map((u) => _onrollCard(u, onApprove: () => _approveOnroll(u), onDeny: () => _denyOnroll(u)))
                     .toList(),
+                history: _historyOnroll.map(_onrollHistoryCard).toList(),
               ),
               _ApprovalSection(
                 icon: Icons.currency_rupee_rounded,
@@ -380,6 +418,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                         onApprove: () => _approveForm('leave', v['id'] as String),
                         onDeny: () => _rejectForm('leave', v['id'] as String)))
                     .toList(),
+                history: _historyOf(_leaveVersions).map((v) => _formHistoryCard(v)).toList(),
               ),
               _ApprovalSection(
                 icon: Icons.assignment_rounded,
@@ -392,6 +431,9 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                         label: _interviewLabels[(v['version_number'] as num?)?.toInt()],
                         onApprove: () => _approveForm('interview', v['id'] as String),
                         onDeny: () => _rejectForm('interview', v['id'] as String)))
+                    .toList(),
+                history: _historyOf(_interviewVersions)
+                    .map((v) => _formHistoryCard(v, label: _interviewLabels[(v['version_number'] as num?)?.toInt()]))
                     .toList(),
               ),
               _ApprovalSection(
@@ -406,6 +448,9 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                         onApprove: () => _approveForm('onboarding', v['id'] as String),
                         onDeny: () => _rejectForm('onboarding', v['id'] as String)))
                     .toList(),
+                history: _historyOf(_onboardingVersions)
+                    .map((v) => _formHistoryCard(v, label: _onboardingLabels[(v['version_number'] as num?)?.toInt()]))
+                    .toList(),
               ),
               _ApprovalSection(
                 icon: Icons.policy_rounded,
@@ -418,6 +463,20 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                         onApprove: () => _approveForm('policy', v['id'] as String),
                         onDeny: () => _rejectForm('policy', v['id'] as String)))
                     .toList(),
+                history: _historyOf(_policyVersions).map((v) => _formHistoryCard(v)).toList(),
+              ),
+              _ApprovalSection(
+                icon: Icons.build_rounded,
+                color: AppTheme.primaryBlue,
+                label: 'Maintenance Form Approvals',
+                count: _pendingOf(_maintenanceVersions).length,
+                onViewAll: () => context.push('/management/form-approvals'),
+                children: _pendingOf(_maintenanceVersions)
+                    .map((v) => _formCard(v, kind: 'maintenance', label: null,
+                        onApprove: () => _approveForm('maintenance', v['id'] as String),
+                        onDeny: () => _rejectForm('maintenance', v['id'] as String)))
+                    .toList(),
+                history: _historyOf(_maintenanceVersions).map((v) => _formHistoryCard(v)).toList(),
               ),
             ],
           ]),
@@ -509,6 +568,56 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
     );
   }
 
+  // ── Past-decision (history) cards ────────────────────────────────────────
+
+  Widget _leaveHistoryCard(LeaveApplication a) {
+    final denied = a.managerStatus == LeaveApprovalStatus.denied;
+    return _ApprovalCard(
+      title: a.employeeName,
+      subtitle: a.department,
+      details: [
+        '${a.leaveType} · ${_fmt(a.from)} → ${_fmt(a.to)}',
+        '${a.isHalfDay ? '½ day' : '${a.days} day${a.days == 1 ? '' : 's'}'}'
+            '${a.reason.isNotEmpty ? ' · ${a.reason}' : ''}',
+      ],
+      meta: a.decidedAt != null ? _fmt(a.decidedAt!) : '',
+      decision: denied
+          ? _DecisionInfo.denied(by: a.decidedBy, note: a.rejectionComment)
+          : _DecisionInfo.approved(by: a.decidedBy),
+    );
+  }
+
+  Widget _onrollHistoryCard(AppUser u) {
+    final denied = u.onrollManagementStatus == 'denied';
+    return _ApprovalCard(
+      title: u.name,
+      subtitle: u.designation,
+      details: const [],
+      meta: _fmtIso(u.onrollManagementDecidedAt),
+      decision: denied
+          ? _DecisionInfo.denied(note: u.onrollManagementComment)
+          : _DecisionInfo.approved(),
+    );
+  }
+
+  Widget _formHistoryCard(Map<String, dynamic> v, {String? label}) {
+    final vNum = (v['version_number'] as num?)?.toInt() ?? 0;
+    final vLabel = label ?? 'v$vNum';
+    final createdBy = (v['created_by'] as String?) ?? '';
+    final approvedBy = (v['approved_by'] as String?) ?? '';
+    final rejectionNote = (v['rejection_note'] as String?) ?? '';
+    final denied = (v['status'] as String?) == 'rejected';
+    return _ApprovalCard(
+      title: vLabel,
+      subtitle: createdBy.isNotEmpty ? 'Submitted by $createdBy' : '',
+      details: const [],
+      meta: _fmtIso(v['created_at']?.toString() ?? ''),
+      decision: denied
+          ? _DecisionInfo.denied(by: approvedBy, note: rejectionNote)
+          : _DecisionInfo.approved(by: approvedBy),
+    );
+  }
+
   static String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
@@ -531,6 +640,7 @@ class _ApprovalSection extends StatelessWidget {
   final int count;
   final VoidCallback? onViewAll;
   final List<Widget> children;
+  final List<Widget> history;
   const _ApprovalSection({
     required this.icon,
     required this.color,
@@ -538,11 +648,12 @@ class _ApprovalSection extends StatelessWidget {
     required this.count,
     this.onViewAll,
     required this.children,
+    this.history = const [],
   });
 
   @override
   Widget build(BuildContext context) {
-    if (count == 0) return const SizedBox.shrink();
+    if (count == 0 && history.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -576,7 +687,28 @@ class _ApprovalSection extends StatelessWidget {
             ),
         ]),
         const SizedBox(height: 10),
+        if (children.isEmpty && history.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('Nothing pending — all $label have been decided',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          ),
         ...children,
+        if (history.isNotEmpty)
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(top: 4),
+              title: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.history_rounded, size: 15, color: color.withValues(alpha: 0.7)),
+                const SizedBox(width: 6),
+                Text('Past Approvals (${history.length})',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color.withValues(alpha: 0.8))),
+              ]),
+              children: history,
+            ),
+          ),
       ]),
     );
   }
@@ -589,15 +721,18 @@ class _ApprovalCard extends StatelessWidget {
   final String subtitle;
   final List<String> details;
   final String meta;
-  final VoidCallback onApprove;
-  final VoidCallback onDeny;
+  final VoidCallback? onApprove;
+  final VoidCallback? onDeny;
+  // When set, the card renders read-only (a past decision) instead of action buttons.
+  final _DecisionInfo? decision;
   const _ApprovalCard({
     required this.title,
     required this.subtitle,
     required this.details,
     required this.meta,
-    required this.onApprove,
-    required this.onDeny,
+    this.onApprove,
+    this.onDeny,
+    this.decision,
   });
 
   @override
@@ -631,40 +766,88 @@ class _ApprovalCard extends StatelessWidget {
                 Text(d, style: const TextStyle(fontSize: 12, color: Color(0xFF374151))),
               ],
               const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onDeny,
-                    icon: const Icon(Icons.close_rounded, size: 14),
-                    label: const Text('Deny'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade400,
-                      side: BorderSide(color: Colors.red.shade300),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              if (decision != null) ...[
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: decision!.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(decision!.icon, size: 13, color: decision!.color),
+                      const SizedBox(width: 5),
+                      Text(
+                          decision!.by.isEmpty
+                              ? decision!.label
+                              : '${decision!.label} by ${decision!.by}',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600, color: decision!.color)),
+                    ]),
+                  ),
+                ]),
+                if (decision!.note.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text('Reason: ${decision!.note}',
+                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF6B7280))),
+                ],
+              ] else
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onDeny,
+                      icon: const Icon(Icons.close_rounded, size: 14),
+                      label: const Text('Deny'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade400,
+                        side: BorderSide(color: Colors.red.shade300),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check_rounded, size: 14),
-                    label: const Text('Approve'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onApprove,
+                      icon: const Icon(Icons.check_rounded, size: 14),
+                      label: const Text('Approve'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
                     ),
                   ),
-                ),
-              ]),
+                ]),
             ]),
           ),
         ]),
       ),
     );
   }
+}
+
+/// Read-only decision summary shown on a past-approval card in place of the
+/// Approve/Deny buttons.
+class _DecisionInfo {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final String by;
+  final String note;
+  const _DecisionInfo({
+    required this.label,
+    required this.color,
+    required this.icon,
+    this.by = '',
+    this.note = '',
+  });
+
+  factory _DecisionInfo.approved({String by = '', String note = ''}) => _DecisionInfo(
+      label: 'Approved', color: Colors.green.shade700, icon: Icons.check_circle_rounded, by: by, note: note);
+  factory _DecisionInfo.denied({String by = '', String note = ''}) => _DecisionInfo(
+      label: 'Denied', color: Colors.red.shade700, icon: Icons.cancel_rounded, by: by, note: note);
 }

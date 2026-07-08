@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/leave_form_config.dart';
+import '../models/maintenance_form_config.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../utils/form_version_label.dart';
@@ -25,13 +26,14 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
   List<Map<String, dynamic>> _interviewVersions   = [];
   List<Map<String, dynamic>> _onboardingVersions  = [];
   List<Map<String, dynamic>> _policyVersions      = [];
+  List<Map<String, dynamic>> _maintenanceVersions = [];
   Map<int, String> _interviewVersionLabels  = {};
   Map<int, String> _onboardingVersionLabels = {};
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
     _load();
   }
 
@@ -49,12 +51,14 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
         SupabaseService.fetchFormVersions(),
         SupabaseService.fetchOnboardingFormVersions(),
         SupabaseService.fetchHRPolicyVersions(),
+        SupabaseService.fetchMaintenanceFormVersions(),
       ]);
       if (mounted) setState(() {
         _leaveVersions      = results[0];
         _interviewVersions  = results[1];
         _onboardingVersions = results[2];
         _policyVersions     = results[3];
+        _maintenanceVersions = results[4];
         _interviewVersionLabels  = computeFormVersionLabels(results[1]);
         _onboardingVersionLabels = computeFormVersionLabels(results[2]);
         _loading = false;
@@ -115,6 +119,19 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
     _load();
   }
 
+  Future<void> _approveMaintenance(String id) async {
+    await SupabaseService.updateMaintenanceFormVersionStatus(
+      id, 'approved', decidedBy: UserSession.name);
+    MaintenanceFormConfig.invalidate();
+    _load();
+  }
+
+  Future<void> _rejectMaintenance(String id, String note) async {
+    await SupabaseService.updateMaintenanceFormVersionStatus(
+      id, 'rejected', decidedBy: UserSession.name, note: note);
+    _load();
+  }
+
   // ── Reject dialog ─────────────────────────────────────────────────────────
 
   Future<String?> _rejectDialog() async {
@@ -160,6 +177,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
     final pendingInterview  = _interviewVersions.where(_isPending).length;
     final pendingOnboarding = _onboardingVersions.where(_isPending).length;
     final pendingPolicy     = _policyVersions.where(_isPending).length;
+    final pendingMaintenance = _maintenanceVersions.where(_isPending).length;
 
     return Scaffold(
       backgroundColor: null,
@@ -207,6 +225,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                 _PendingTab('Interview Form',           Icons.assignment_rounded,       pendingInterview),
                 _PendingTab('Onboarding Form',          Icons.how_to_reg_rounded,       pendingOnboarding),
                 _PendingTab('HR Policy',                Icons.policy_rounded,           pendingPolicy),
+                _PendingTab('Maintenance Form',         Icons.build_rounded,            pendingMaintenance),
               ],
             ),
           ]),
@@ -253,6 +272,15 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
                       onReject: (id) async {
                         final note = await _rejectDialog();
                         if (note != null) _rejectPolicy(id, note);
+                      },
+                    ),
+                    _VersionList(
+                      versions: _maintenanceVersions,
+                      formLabel: 'Maintenance Issue Report Form',
+                      onApprove: (id) => _approveMaintenance(id),
+                      onReject: (id) async {
+                        final note = await _rejectDialog();
+                        if (note != null) _rejectMaintenance(id, note);
                       },
                     ),
                   ],

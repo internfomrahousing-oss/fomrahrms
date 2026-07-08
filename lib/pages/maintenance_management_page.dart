@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../models/maintenance_form_config.dart';
 import '../models/maintenance_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -14,18 +16,6 @@ class MaintenanceManagementPage extends StatefulWidget {
       _MaintenanceManagementPageState();
 }
 
-const _kIssueTypes = [
-  'Attendance Issues',
-  'Salary & Payroll Issues',
-  'Leave Issues',
-  'Manager-Related Issues',
-  'Team Issues',
-  'Workplace Behavior Issues',
-  'IT Issues',
-];
-
-const _kIssueForOptions = ['IT', 'HR', 'Admin'];
-
 class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   String? _selectedIssueFor;
   String? _selectedIssueType;
@@ -33,10 +23,14 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   String? _filterIssueFor;
   final _descController = TextEditingController();
 
+  List<String> _issueForOptions = List<String>.from(MaintenanceFormConfig.defaultIssueForOptions);
+  List<String> _issueTypes      = List<String>.from(MaintenanceFormConfig.defaultIssueTypes);
+
   @override
   void initState() {
     super.initState();
     _reload();
+    _loadFormConfig();
   }
 
   @override
@@ -57,6 +51,25 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     } catch (_) {}
   }
 
+  Future<void> _loadFormConfig() async {
+    try {
+      var cfg = MaintenanceFormConfig.cached;
+      if (cfg == null) {
+        final active = await SupabaseService.fetchActiveMaintenanceFormConfig()
+            .timeout(const Duration(seconds: 8));
+        cfg = active != null
+            ? Map<String, dynamic>.from(active['form_config'] as Map)
+            : MaintenanceFormConfig.defaults();
+        MaintenanceFormConfig.setCache(cfg);
+      }
+      if (!mounted) return;
+      setState(() {
+        _issueForOptions = MaintenanceFormConfig.getIssueForOptions(cfg!);
+        _issueTypes      = MaintenanceFormConfig.getIssueTypes(cfg);
+      });
+    } catch (_) {}
+  }
+
   Future<void> _submitTicket() async {
     final issueFor  = _selectedIssueFor;
     final issueType = _selectedIssueType;
@@ -65,7 +78,11 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     final role         = UserSession.role;
     final reporterName = UserSession.name.isNotEmpty
         ? UserSession.name
-        : (role == UserRole.reportingManager ? 'Manager' : 'Employee');
+        : switch (role) {
+            UserRole.reportingManager => 'Manager',
+            UserRole.hr => 'HR',
+            _ => 'Employee',
+          };
     final ticket = MaintenanceTicket(
       id:             MaintenanceStore.generateId(),
       reportedByRole: role,
@@ -178,7 +195,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         itemBuilder: (_) => [
           const PopupMenuItem<String?>(value: null, child: Text('All Departments')),
-          ..._kIssueForOptions.map((o) => PopupMenuItem<String?>(value: o, child: Text(o))),
+          ..._issueForOptions.map((o) => PopupMenuItem<String?>(value: o, child: Text(o))),
         ],
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -230,7 +247,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     final sentMgmt = tickets.where((t) => t.sentToManagement && !_isResolved(t)).toList();
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         backgroundColor: null,
         body: Column(children: [
@@ -238,6 +255,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
             onRefresh: _reload,
             monthFilter: _buildMonthFilterRow(),
             bottom: TabBar(
+              isScrollable: true,
               labelColor: Theme.of(context).colorScheme.primary,
               unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               indicatorColor: Theme.of(context).colorScheme.primary,
@@ -246,6 +264,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                 Tab(text: 'Pending (${pending.length})'),
                 Tab(text: 'Resolved (${resolved.length})'),
                 Tab(text: 'Sent to Management (${sentMgmt.length})'),
+                const Tab(text: 'Report an Issue'),
               ],
             ),
           ),
@@ -291,6 +310,19 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                         ),
                       ]
                     : [],
+              ),
+              // Report an Issue tab
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _buildReportFormCard(context),
+                  const SizedBox(height: 24),
+                  _SectionLabel(context: context,
+                      icon: Icons.receipt_long_rounded,
+                      label: 'My Reported Issues'),
+                  const SizedBox(height: 12),
+                  _buildMyReportedIssuesList(context),
+                ]),
               ),
             ]),
           ),
@@ -361,11 +393,6 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   // ── Reporter Page (Employee / Manager) ───────────────────────────────────
 
   Widget _buildReporterPage(BuildContext context) {
-    final myRole    = UserSession.role;
-    final myTickets = MaintenanceStore.tickets
-        .where((t) => t.reportedByRole == myRole && _matchesFilters(t))
-        .toList();
-
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -375,97 +402,131 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
           const SizedBox(height: 12),
           _buildMonthFilterRow(),
           const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _SectionLabel(context: context,
-                    icon: Icons.add_circle_outline_rounded,
-                    label: 'Report an Issue'),
-                const SizedBox(height: 16),
-                Text('Issue For',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _selectedIssueFor,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.groups_rounded,
-                        color: AppTheme.primaryBlue, size: 20),
-                    hintText: 'Select department',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 14),
-                  ),
-                  items: _kIssueForOptions
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedIssueFor = v),
-                ),
-                const SizedBox(height: 16),
-                Text('Issue Type',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _selectedIssueType,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.build_circle_rounded,
-                        color: AppTheme.primaryBlue, size: 20),
-                    hintText: 'Select issue type',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 14),
-                  ),
-                  items: _kIssueTypes
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedIssueType = v),
-                ),
-                const SizedBox(height: 16),
-                Text('Description',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _descController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: 'Describe the problem in detail…',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.all(12),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _submitTicket,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    label: const Text('Submit Issue'),
-                  ),
-                ),
-              ]),
-            ),
-          ),
+          _buildReportFormCard(context),
           const SizedBox(height: 24),
           _SectionLabel(context: context,
               icon: Icons.receipt_long_rounded,
               label: 'My Reported Issues'),
           const SizedBox(height: 12),
-          if (myTickets.isEmpty)
-            const _EmptyState(message: 'You have not reported any issues yet.')
-          else
-            ...myTickets.map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _TicketCard(ticket: t, actions: const []),
-                )),
+          _buildMyReportedIssuesList(context),
         ]),
       ),
     );
+  }
+
+  // ── Shared "Report an Issue" form + "My Reported Issues" list ─────────────
+  // Used by both the reporter page (Employee/Manager) and HR's own
+  // "Report an Issue" tab, so the submission flow and approval process are
+  // identical regardless of who is reporting.
+
+  Widget _buildReportFormCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(
+              child: _SectionLabel(context: context,
+                  icon: Icons.add_circle_outline_rounded,
+                  label: 'Report an Issue'),
+            ),
+            if (UserSession.role == UserRole.hr)
+              TextButton.icon(
+                onPressed: () => context.push('/edit-maintenance-form'),
+                icon: const Icon(Icons.edit_note_rounded, size: 16),
+                label: const Text('Edit Form', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.primaryBlue,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+          ]),
+          const SizedBox(height: 16),
+          Text('Issue For',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _selectedIssueFor,
+            decoration: InputDecoration(
+              prefixIcon: Icon(Icons.groups_rounded,
+                  color: AppTheme.primaryBlue, size: 20),
+              hintText: 'Select department',
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 14),
+            ),
+            items: _issueForOptions
+                .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedIssueFor = v),
+          ),
+          const SizedBox(height: 16),
+          Text('Issue Type',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _selectedIssueType,
+            decoration: InputDecoration(
+              prefixIcon: Icon(Icons.build_circle_rounded,
+                  color: AppTheme.primaryBlue, size: 20),
+              hintText: 'Select issue type',
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 14),
+            ),
+            items: _issueTypes
+                .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedIssueType = v),
+          ),
+          const SizedBox(height: 16),
+          Text('Description',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _descController,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: 'Describe the problem in detail…',
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _submitTicket,
+              icon: const Icon(Icons.send_rounded, size: 18),
+              label: const Text('Submit Issue'),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildMyReportedIssuesList(BuildContext context) {
+    final myRole    = UserSession.role;
+    final myTickets = MaintenanceStore.tickets
+        .where((t) => t.reportedByRole == myRole && _matchesFilters(t))
+        .toList();
+    if (myTickets.isEmpty) {
+      return const _EmptyState(message: 'You have not reported any issues yet.');
+    }
+    return Column(children: myTickets
+        .map((t) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _TicketCard(ticket: t, actions: const []),
+            ))
+        .toList());
   }
 
   Widget _buildHeaderRow(BuildContext context) {
