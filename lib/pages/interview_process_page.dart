@@ -1109,12 +1109,14 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                               final row = _filtered[idx];
                               final status = _compositeStatus(row);
                               final preOfferSent = row['pre_offer_sent'] == true;
+                              final meta = _statusMeta(status, preOfferSent: preOfferSent);
                               return _ApplicationCard(
                                 row: row,
                                 dateStr: _cell(row, 'submitted_at'),
                                 status: status,
                                 statusBadge: _statusBadge(status, preOfferSent: preOfferSent),
-                                borderColor: _statusMeta(status, preOfferSent: preOfferSent).fg,
+                                borderColor: meta.fg,
+                                statusLabel: meta.label,
                                 stages: _buildStages(row),
                                 onAccept: () => _showAcceptDialog(row),
                                 onReject: () => _showRejectDialog(row),
@@ -1267,6 +1269,7 @@ class _ApplicationCard extends StatelessWidget {
   final String status;
   final Widget statusBadge;
   final Color borderColor;
+  final String statusLabel;
   final List<_StageInfo> stages;
   final VoidCallback onAccept;
   final VoidCallback onReject;
@@ -1281,6 +1284,7 @@ class _ApplicationCard extends StatelessWidget {
     required this.status,
     required this.statusBadge,
     required this.borderColor,
+    required this.statusLabel,
     required this.stages,
     required this.onAccept,
     required this.onReject,
@@ -1473,6 +1477,10 @@ class _ApplicationCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 12),
                 _StageTimeline(stages: stages),
+                const SizedBox(height: 6),
+                Text(statusLabel,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: borderColor)),
                 const SizedBox(height: 10),
                 assignedBlock,
                 comments,
@@ -1488,7 +1496,13 @@ class _ApplicationCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 SizedBox(width: 190, child: infoBlock),
                 const SizedBox(width: 20),
-                Expanded(child: _StageTimeline(stages: stages)),
+                Expanded(child: Column(children: [
+                  _StageTimeline(stages: stages),
+                  const SizedBox(height: 6),
+                  Text(statusLabel,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: borderColor)),
+                ])),
                 const SizedBox(width: 20),
                 SizedBox(width: 120, child: assignedBlock),
                 const SizedBox(width: 12),
@@ -1546,13 +1560,11 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  final bool highlight;
   const _ActionButton({
     required this.label,
     required this.icon,
     required this.color,
     required this.onTap,
-    this.highlight = false,
   });
 
   @override
@@ -1563,18 +1575,15 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: highlight ? color : color.withValues(alpha: 0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: highlight ? color : color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: highlight ? Colors.white : color),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 5),
           Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: highlight ? Colors.white : color,
-                  fontWeight: FontWeight.w600)),
+              style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
         ]),
       ),
     );
