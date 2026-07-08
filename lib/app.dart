@@ -7,6 +7,7 @@ import 'models/theme_notifier.dart';
 import 'pages/settings_page.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/employee_shell.dart';
+import 'widgets/notification_popup_overlay.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/summary_detail_page.dart';
@@ -106,6 +107,7 @@ String? _guard(GoRouterState state) {
 }
 
 final _router = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/login',
   redirect: (_, state) => _guard(state),
   errorBuilder: (context, state) => Scaffold(

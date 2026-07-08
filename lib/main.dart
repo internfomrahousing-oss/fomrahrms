@@ -11,6 +11,7 @@ import 'models/user_session.dart';
 import 'services/notification_service.dart';
 import 'services/supabase_service.dart';
 import 'services/session_storage.dart';
+import 'widgets/notification_popup_overlay.dart';
 
 void main() async {
   setUrlStrategy(HashUrlStrategy());
@@ -56,10 +57,14 @@ void main() async {
   Timer.periodic(const Duration(seconds: 45), (_) async {
     if (!UserSession.loggedIn) return;
     final list = await SupabaseService.fetchNotifications();
+    final newArrivals = NotificationStore.diffNewArrivals(list);
     NotificationStore.all
       ..clear()
       ..addAll(list);
     NotificationStore.recomputeUnread();
     NotificationService.checkDailyReminders();
+    for (var i = 0; i < newArrivals.length; i++) {
+      showNotificationPopup(newArrivals[i], stackIndex: i);
+    }
   });
 }

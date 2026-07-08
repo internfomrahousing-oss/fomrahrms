@@ -58,24 +58,23 @@ class NotificationStore {
   /// "don't send me this kind" rather than just "hide it right now".
   static Set<String> mutedCategories = {};
 
-  /// Notifications addressed to the signed-in user: directly (by email),
+  /// True if [n] is addressed to the signed-in user: directly (by email),
   /// by role broadcast, by "everyone" broadcast, or by team (their RM name
   /// matches the notification's target_reporting_manager — same matching
   /// rule as AppUser.reportingManager elsewhere, e.g. add_task_page.dart).
   /// Excludes any category the user has muted.
-  static List<AppNotification> forCurrentUser() {
+  static bool isForCurrentUser(AppNotification n) {
+    if (mutedCategories.contains(categoryFor(n.type).id)) return false;
     final email = UserSession.email.trim().toLowerCase();
-    final role = currentRoleLabel();
-    final name = UserSession.name;
-    final list = all.where((n) {
-      if (mutedCategories.contains(categoryFor(n.type).id)) return false;
-      if (n.targetEmail.isNotEmpty &&
-          n.targetEmail.trim().toLowerCase() == email) return true;
-      if (n.targetRole == role || n.targetRole == 'ALL') return true;
-      if (n.targetReportingManager.isNotEmpty &&
-          n.targetReportingManager == name) return true;
-      return false;
-    }).toList();
+    if (n.targetEmail.isNotEmpty && n.targetEmail.trim().toLowerCase() == email) return true;
+    if (n.targetRole == currentRoleLabel() || n.targetRole == 'ALL') return true;
+    if (n.targetReportingManager.isNotEmpty &&
+        n.targetReportingManager == UserSession.name) return true;
+    return false;
+  }
+
+  static List<AppNotification> forCurrentUser() {
+    final list = all.where(isForCurrentUser).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
@@ -89,9 +88,36 @@ class NotificationStore {
         .length;
   }
 
+  // ── New-arrival detection (drives the top-right popup) ─────────────────
+
+  static Set<String> _knownIds = {};
+  static bool _seeded = false;
+
+  /// Call with a freshly-fetched list *before* replacing [all] with it.
+  /// The first call after login/app-start just seeds the baseline (so
+  /// existing unread history doesn't pop up as if it just arrived); every
+  /// call after that returns whichever entries are both brand new and
+  /// relevant to the signed-in user, for the popup to show.
+  static List<AppNotification> diffNewArrivals(List<AppNotification> freshList) {
+    final freshIds = freshList.map((n) => n.id).toSet();
+    if (!_seeded) {
+      _knownIds = freshIds;
+      _seeded = true;
+      return [];
+    }
+    final newIds = freshIds.difference(_knownIds);
+    _knownIds = freshIds;
+    if (newIds.isEmpty) return [];
+    return freshList
+        .where((n) => newIds.contains(n.id) && isForCurrentUser(n) && !n.isReadBy(UserSession.email))
+        .toList();
+  }
+
   static void reset() {
     all.clear();
     mutedCategories = {};
     unreadCount.value = 0;
+    _knownIds = {};
+    _seeded = false;
   }
 }

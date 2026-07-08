@@ -1900,6 +1900,9 @@ class SupabaseService {
 
   static Future<void> _loadNotifications() async {
     final list = await fetchNotifications();
+    // Seeds the new-arrival baseline before anything else touches it, so
+    // existing history never pops up as if it just arrived.
+    NotificationStore.diffNewArrivals(list);
     NotificationStore.all
       ..clear()
       ..addAll(list);
