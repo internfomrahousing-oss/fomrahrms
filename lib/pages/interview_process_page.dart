@@ -20,6 +20,8 @@ class InterviewProcessPage extends StatefulWidget {
   State<InterviewProcessPage> createState() => _InterviewProcessPageState();
 }
 
+enum _SortOrder { latest, oldest, nameAz, expHighLow }
+
 class _InterviewProcessPageState extends State<InterviewProcessPage> {
   List<Map<String, dynamic>> _all      = [];
   List<Map<String, dynamic>> _filtered = [];
@@ -29,6 +31,47 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   String _filter = 'pending';
   final _searchCtrl = TextEditingController();
   String _activeFormLink = FormConfig.baseLink;
+
+  String _deptFilter     = 'All';
+  String _expFilter      = 'All';
+  String _assignedFilter = 'All';
+  _SortOrder _sort       = _SortOrder.latest;
+
+  static const _expBuckets = ['All', '0–2 yrs', '3–5 yrs', '6+ yrs'];
+  static const _unassignedLabel = 'Unassigned';
+
+  List<String> get _departmentOptions {
+    final s = _all
+        .map((r) => (r['post_applied'] ?? '').toString().trim())
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...s];
+  }
+
+  List<String> get _assignedOptions {
+    final s = _all
+        .map((r) => (r['assigned_manager'] ?? '').toString().trim())
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...s, _unassignedLabel];
+  }
+
+  bool _matchesExpBucket(Map<String, dynamic> row, String bucket) {
+    if (bucket == 'All') return true;
+    final exp = double.tryParse(
+            (row['total_experience'] ?? '').toString().replaceAll(RegExp('[^0-9.]'), '')) ??
+        0;
+    switch (bucket) {
+      case '0–2 yrs': return exp <= 2;
+      case '3–5 yrs': return exp > 2 && exp <= 5;
+      case '6+ yrs':  return exp > 5;
+      default: return true;
+    }
+  }
 
   @override
   void initState() {
@@ -92,12 +135,44 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
       default:
         base = _all;
     }
-    setState(() {
-      _filtered = q.isEmpty
-          ? base
-          : base.where((r) => r.values.any(
-              (v) => v.toString().toLowerCase().contains(q))).toList();
-    });
+
+    if (_deptFilter != 'All') {
+      base = base.where((r) => (r['post_applied'] ?? '').toString().trim() == _deptFilter).toList();
+    }
+    if (_expFilter != 'All') {
+      base = base.where((r) => _matchesExpBucket(r, _expFilter)).toList();
+    }
+    if (_assignedFilter != 'All') {
+      base = base.where((r) {
+        final m = (r['assigned_manager'] ?? '').toString().trim();
+        return _assignedFilter == _unassignedLabel ? m.isEmpty : m == _assignedFilter;
+      }).toList();
+    }
+    if (q.isNotEmpty) {
+      base = base.where((r) => r.values.any(
+          (v) => v.toString().toLowerCase().contains(q))).toList();
+    }
+
+    base = List.of(base);
+    switch (_sort) {
+      case _SortOrder.latest:
+        base.sort((a, b) => (b['submitted_at'] ?? '').toString().compareTo((a['submitted_at'] ?? '').toString()));
+        break;
+      case _SortOrder.oldest:
+        base.sort((a, b) => (a['submitted_at'] ?? '').toString().compareTo((b['submitted_at'] ?? '').toString()));
+        break;
+      case _SortOrder.nameAz:
+        base.sort((a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo((b['name'] ?? '').toString().toLowerCase()));
+        break;
+      case _SortOrder.expHighLow:
+        double exp(Map<String, dynamic> r) => double.tryParse(
+                (r['total_experience'] ?? '').toString().replaceAll(RegExp('[^0-9.]'), '')) ??
+            0;
+        base.sort((a, b) => exp(b).compareTo(exp(a)));
+        break;
+    }
+
+    setState(() => _filtered = base);
   }
 
   bool _isRejected(Map<String, dynamic> r) => _compositeStatus(r).startsWith('rejected');
@@ -132,46 +207,92 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     return 'pending';
   }
 
-  Widget _statusBadge(String status) {
-    late Color bg;
-    late Color fg;
-    late String label;
-    late IconData icon;
+  ({Color bg, Color fg, String label, IconData icon}) _statusMeta(String status, {bool preOfferSent = false}) {
+    if (status == 'approved' && preOfferSent) {
+      return (bg: const Color(0xFFDCFCE7), fg: const Color(0xFF22C55E),
+          label: 'Pre Offer & Onboarding Sent', icon: Icons.mark_email_read_rounded);
+    }
     switch (status) {
       case 'approved':
-        bg = const Color(0xFFDCFCE7); fg = const Color(0xFF22C55E);
-        label = 'Approved'; icon = Icons.check_circle_rounded; break;
+        return (bg: const Color(0xFFDCFCE7), fg: const Color(0xFF22C55E),
+            label: 'Approved', icon: Icons.check_circle_rounded);
       case 'rejected_mgmt':
-        bg = const Color(0xFFFEE2E2); fg = const Color(0xFFEF4444);
-        label = 'Rejected by Management'; icon = Icons.cancel_rounded; break;
+        return (bg: const Color(0xFFFEE2E2), fg: const Color(0xFFEF4444),
+            label: 'Rejected by Management', icon: Icons.cancel_rounded);
       case 'rejected_manager':
-        bg = const Color(0xFFFEE2E2); fg = const Color(0xFFEF4444);
-        label = 'Rejected by Manager'; icon = Icons.cancel_rounded; break;
+        return (bg: const Color(0xFFFEE2E2), fg: const Color(0xFFEF4444),
+            label: 'Rejected by Manager', icon: Icons.cancel_rounded);
       case 'rejected_hr':
-        bg = const Color(0xFFFEE2E2); fg = const Color(0xFFEF4444);
-        label = 'Rejected'; icon = Icons.cancel_rounded; break;
+        return (bg: const Color(0xFFFEE2E2), fg: const Color(0xFFEF4444),
+            label: 'Rejected', icon: Icons.cancel_rounded);
       case 'with_management':
-        bg = const Color(0xFFEFF6FF); fg = const Color(0xFF2563EB);
-        label = 'With Management'; icon = Icons.business_rounded; break;
+        return (bg: const Color(0xFFEFF6FF), fg: const Color(0xFF2563EB),
+            label: 'With Management', icon: Icons.business_rounded);
       case 'with_manager':
-        bg = const Color(0xFFEFF6FF); fg = _blue;
-        label = 'With Manager'; icon = Icons.person_rounded; break;
+        return (bg: const Color(0xFFEFF6FF), fg: _blue,
+            label: 'With Manager', icon: Icons.person_rounded);
       default:
-        bg = const Color(0xFFFEF3C7); fg = const Color(0xFFF59E0B);
-        label = 'Pending Review'; icon = Icons.hourglass_empty_rounded;
+        return (bg: const Color(0xFFFEF3C7), fg: const Color(0xFFF59E0B),
+            label: 'Pending Review', icon: Icons.hourglass_empty_rounded);
     }
+  }
+
+  Widget _statusBadge(String status, {bool preOfferSent = false}) {
+    final m = _statusMeta(status, preOfferSent: preOfferSent);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: bg,
+        color: m.bg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: fg),
+        Icon(m.icon, size: 12, color: m.fg),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600)),
+        Text(m.label, style: TextStyle(fontSize: 11, color: m.fg, fontWeight: FontWeight.w600)),
       ]),
     );
+  }
+
+  static const _monthAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  String _shortDate(dynamic v) {
+    if (v == null) return '';
+    try {
+      final dt = DateTime.parse(v.toString()).toLocal();
+      return '${dt.day.toString().padLeft(2, '0')} ${_monthAbbr[dt.month - 1]}';
+    } catch (_) { return ''; }
+  }
+
+  List<_StageInfo> _buildStages(Map<String, dynamic> row) {
+    final hrStatus      = (row['hr_status'] ?? 'pending').toString();
+    final managerStatus = (row['manager_status'] ?? 'pending').toString();
+    final mgmtStatus    = (row['management_status'] ?? 'pending').toString();
+    final preOfferSent  = row['pre_offer_sent'] == true;
+
+    _StageState of(String status, bool reached) {
+      if (status == 'accepted') return _StageState.completed;
+      if (status == 'rejected') return _StageState.rejected;
+      return reached ? _StageState.current : _StageState.pending;
+    }
+
+    final hrState = of(hrStatus, true);
+    final managerReached = hrStatus == 'accepted';
+    final managerState = of(managerStatus, managerReached);
+    final mgmtReached = managerStatus == 'accepted';
+    final mgmtState = of(mgmtStatus, mgmtReached);
+    final approved = mgmtStatus == 'accepted';
+    final offerState = !approved
+        ? _StageState.pending
+        : (preOfferSent ? _StageState.completed : _StageState.current);
+
+    return [
+      _StageInfo('Applied', _shortDate(row['submitted_at']), _StageState.completed),
+      _StageInfo('HR Review', '', hrState),
+      _StageInfo('Manager', '', managerState),
+      _StageInfo('Management', '', mgmtState),
+      _StageInfo('Offer Sent', _shortDate(row['pre_offer_sent_at']), offerState),
+      _StageInfo('Onboarding', '', _StageState.pending),
+    ];
   }
 
   Future<void> _showAcceptDialog(Map<String, dynamic> row) async {
@@ -889,27 +1010,84 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     ),
                   ]),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Search applications…',
-                      prefixIcon: Icon(Icons.search_rounded,
-                          color: _blue, size: 20),
-                      suffixIcon: _searchCtrl.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: _searchCtrl.clear,
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+                  LayoutBuilder(builder: (context, constraints) {
+                    final search = TextField(
+                      controller: _searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, email, role, experience…',
+                        prefixIcon: Icon(Icons.search_rounded,
+                            color: _blue, size: 20),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: _searchCtrl.clear,
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                    final dropdowns = Wrap(spacing: 8, runSpacing: 8, children: [
+                      _FilterDropdown(
+                        icon: Icons.apartment_rounded,
+                        label: 'Department',
+                        value: _deptFilter,
+                        options: _departmentOptions,
+                        onChanged: (v) => setState(() { _deptFilter = v; _applyFilter(); }),
+                      ),
+                      _FilterDropdown(
+                        icon: Icons.timeline_rounded,
+                        label: 'Experience',
+                        value: _expFilter,
+                        options: _expBuckets,
+                        onChanged: (v) => setState(() { _expFilter = v; _applyFilter(); }),
+                      ),
+                      _FilterDropdown(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Assigned',
+                        value: _assignedFilter,
+                        options: _assignedOptions,
+                        onChanged: (v) => setState(() { _assignedFilter = v; _applyFilter(); }),
+                      ),
+                      _FilterDropdown(
+                        icon: Icons.swap_vert_rounded,
+                        label: 'Sort',
+                        value: switch (_sort) {
+                          _SortOrder.latest     => 'Latest',
+                          _SortOrder.oldest     => 'Oldest',
+                          _SortOrder.nameAz     => 'Name A–Z',
+                          _SortOrder.expHighLow => 'Experience',
+                        },
+                        options: const ['Latest', 'Oldest', 'Name A–Z', 'Experience'],
+                        onChanged: (v) => setState(() {
+                          _sort = switch (v) {
+                            'Oldest'     => _SortOrder.oldest,
+                            'Name A–Z'   => _SortOrder.nameAz,
+                            'Experience' => _SortOrder.expHighLow,
+                            _            => _SortOrder.latest,
+                          };
+                          _applyFilter();
+                        }),
+                      ),
+                    ]);
+                    if (constraints.maxWidth < 760) {
+                      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        search,
+                        const SizedBox(height: 8),
+                        dropdowns,
+                      ]);
+                    }
+                    return Row(children: [
+                      Expanded(child: search),
+                      const SizedBox(width: 10),
+                      dropdowns,
+                    ]);
+                  }),
                 ],
               ],
             ),
@@ -929,11 +1107,15 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                             itemCount: _filtered.length,
                             itemBuilder: (context, idx) {
                               final row = _filtered[idx];
+                              final status = _compositeStatus(row);
+                              final preOfferSent = row['pre_offer_sent'] == true;
                               return _ApplicationCard(
                                 row: row,
                                 dateStr: _cell(row, 'submitted_at'),
-                                status: _compositeStatus(row),
-                                statusBadge: _statusBadge(_compositeStatus(row)),
+                                status: status,
+                                statusBadge: _statusBadge(status, preOfferSent: preOfferSent),
+                                borderColor: _statusMeta(status, preOfferSent: preOfferSent).fg,
+                                stages: _buildStages(row),
                                 onAccept: () => _showAcceptDialog(row),
                                 onReject: () => _showRejectDialog(row),
                                 onComment: () => _showCommentDialog(row),
@@ -953,6 +1135,130 @@ Fomra Housing & Infrastructure Pvt Ltd''';
   }
 }
 
+// ── Filter dropdown ────────────────────────────────────────────────────────────
+
+class _FilterDropdown extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String> onChanged;
+  const _FilterDropdown({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      initialValue: value,
+      onSelected: onChanged,
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => options.map((o) {
+        final selected = o == value;
+        return PopupMenuItem(
+          value: o,
+          child: Row(children: [
+            Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                size: 15, color: selected ? AppTheme.primaryBlue : const Color(0xFF9CA3AF)),
+            const SizedBox(width: 10),
+            Text(o, style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? AppTheme.primaryBlue : const Color(0xFF111827))),
+          ]),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text('$label: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Stage timeline ─────────────────────────────────────────────────────────────
+
+enum _StageState { completed, current, rejected, pending }
+
+class _StageInfo {
+  final String label;
+  final String date;
+  final _StageState state;
+  const _StageInfo(this.label, this.date, this.state);
+}
+
+class _StageTimeline extends StatelessWidget {
+  final List<_StageInfo> stages;
+  const _StageTimeline({required this.stages});
+
+  Color _nodeColor(_StageState s) => switch (s) {
+    _StageState.completed => const Color(0xFF22C55E),
+    _StageState.current   => AppTheme.primaryBlue,
+    _StageState.rejected  => const Color(0xFFEF4444),
+    _StageState.pending   => const Color(0xFFD1D5DB),
+  };
+
+  IconData _nodeIcon(_StageState s) => switch (s) {
+    _StageState.completed => Icons.check_circle_rounded,
+    _StageState.current   => Icons.radio_button_checked_rounded,
+    _StageState.rejected  => Icons.cancel_rounded,
+    _StageState.pending   => Icons.circle_outlined,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: stages.map((s) => Expanded(
+          child: Column(children: [
+            Text(s.label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text(s.date.isEmpty ? '—' : s.date,
+                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          ]),
+        )).toList(),
+      ),
+      const SizedBox(height: 6),
+      Row(children: [
+        for (var i = 0; i < stages.length; i++) ...[
+          Icon(_nodeIcon(stages[i].state), size: 16, color: _nodeColor(stages[i].state)),
+          if (i != stages.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                color: stages[i].state == _StageState.completed
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFFE5E7EB),
+              ),
+            ),
+        ],
+      ]),
+    ]);
+  }
+}
+
 // ── Application Card ──────────────────────────────────────────────────────────
 
 class _ApplicationCard extends StatelessWidget {
@@ -960,6 +1266,8 @@ class _ApplicationCard extends StatelessWidget {
   final String dateStr;
   final String status;
   final Widget statusBadge;
+  final Color borderColor;
+  final List<_StageInfo> stages;
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onComment;
@@ -972,6 +1280,8 @@ class _ApplicationCard extends StatelessWidget {
     required this.dateStr,
     required this.status,
     required this.statusBadge,
+    required this.borderColor,
+    required this.stages,
     required this.onAccept,
     required this.onReject,
     required this.onComment,
@@ -980,235 +1290,217 @@ class _ApplicationCard extends StatelessWidget {
     this.onDelete,
   });
 
+  static const _avatarPalette = [
+    Color(0xFF2563EB), Color(0xFFEF4444), Color(0xFF8B5CF6),
+    Color(0xFFF97316), Color(0xFF22C55E), Color(0xFF0EA5E9),
+  ];
+
+  Color _avatarColor(String name) =>
+      _avatarPalette[name.isEmpty ? 0 : name.codeUnitAt(0) % _avatarPalette.length];
+
+  void _quickEmail(String email) {
+    if (email.isEmpty) return;
+    html.window.open('mailto:$email', '_self');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final name          = (row['name']          ?? '').toString().trim();
-    final post          = (row['post_applied']   ?? '').toString().trim();
-    final exp           = (row['total_experience']?? '').toString().trim();
-    final manager       = (row['assigned_manager']?? '').toString().trim();
-    final hrComment     = (row['hr_comment']      ?? '').toString().trim();
-    final managerComment= (row['manager_comment'] ?? '').toString().trim();
-    final mgmtComment   = (row['management_comment']?? '').toString().trim();
-    final managerStatus = (row['manager_status']  ?? 'pending').toString();
-    final mgmtStatus    = (row['management_status']?? 'pending').toString();
+    final name           = (row['name']            ?? '').toString().trim();
+    final email          = (row['email']            ?? '').toString().trim();
+    final mobile         = (row['mobile']           ?? '').toString().trim();
+    final post           = (row['post_applied']     ?? '').toString().trim();
+    final exp            = (row['total_experience'] ?? '').toString().trim();
+    final manager        = (row['assigned_manager'] ?? '').toString().trim();
+    final hrComment      = (row['hr_comment']        ?? '').toString().trim();
+    final managerComment = (row['manager_comment']   ?? '').toString().trim();
+    final mgmtComment    = (row['management_comment']?? '').toString().trim();
 
-    final isPending      = status == 'pending';
-    final isApproved     = status == 'approved';
-    final preOfferSent   = row['pre_offer_sent'] == true;
+    final isPending  = status == 'pending';
+    final isApproved = status == 'approved';
+    final avatarColor = _avatarColor(name);
+
+    final avatar = CircleAvatar(
+      radius: 22,
+      backgroundColor: avatarColor.withValues(alpha: 0.12),
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: TextStyle(color: avatarColor, fontWeight: FontWeight.bold, fontSize: 17),
+      ),
+    );
+
+    final infoBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(name.isEmpty ? 'Unknown' : name,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+      if (post.isNotEmpty || exp.isNotEmpty) ...[
+        const SizedBox(height: 3),
+        Text(
+          [if (post.isNotEmpty) post.toUpperCase(), if (exp.isNotEmpty) '$exp yrs exp.'].join('  •  '),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+        ),
+      ],
+      if (email.isNotEmpty) ...[
+        const SizedBox(height: 4),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.email_rounded, size: 11, color: Colors.grey.shade500),
+          const SizedBox(width: 4),
+          Text(email, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        ]),
+      ],
+      if (mobile.isNotEmpty) ...[
+        const SizedBox(height: 2),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.phone_rounded, size: 11, color: Colors.grey.shade500),
+          const SizedBox(width: 4),
+          Text(mobile, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        ]),
+      ],
+      const SizedBox(height: 4),
+      Text('Submitted: $dateStr', style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500)),
+    ]);
+
+    final assignedBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Assigned to', style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 6),
+      if (manager.isEmpty)
+        Text('Unassigned', style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontStyle: FontStyle.italic))
+      else
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: _blue.withValues(alpha: 0.12),
+            child: Text(manager[0].toUpperCase(),
+                style: TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 10)),
+          ),
+          const SizedBox(width: 6),
+          Flexible(child: Text(manager,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827)))),
+        ]),
+    ]);
+
+    final actions = Row(mainAxisSize: MainAxisSize.min, children: [
+      _ActionButton(
+        label: 'View',
+        icon: Icons.visibility_outlined,
+        color: _blue,
+        onTap: onView,
+      ),
+      const SizedBox(width: 6),
+      _ActionButton(
+        label: 'Email',
+        icon: Icons.mail_outline_rounded,
+        color: AppTheme.accentBlue,
+        onTap: isApproved && onSendEmail != null ? onSendEmail! : () => _quickEmail(email),
+      ),
+      const SizedBox(width: 6),
+      _ActionButton(
+        label: 'Comment',
+        icon: Icons.comment_outlined,
+        color: const Color(0xFF6B7280),
+        onTap: onComment,
+      ),
+      const SizedBox(width: 6),
+      PopupMenuButton<String>(
+        tooltip: 'More',
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        onSelected: (v) {
+          switch (v) {
+            case 'accept': onAccept(); break;
+            case 'reject': onReject(); break;
+            case 'delete': onDelete?.call(); break;
+          }
+        },
+        itemBuilder: (context) => [
+          if (isPending) ...const [
+            PopupMenuItem(value: 'accept', child: Row(children: [
+              Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF22C55E)),
+              SizedBox(width: 10), Text('Accept', style: TextStyle(fontSize: 13)),
+            ])),
+            PopupMenuItem(value: 'reject', child: Row(children: [
+              Icon(Icons.cancel_outlined, size: 16, color: Color(0xFFEF4444)),
+              SizedBox(width: 10), Text('Reject', style: TextStyle(fontSize: 13)),
+            ])),
+          ],
+          if (onDelete != null)
+            const PopupMenuItem(value: 'delete', child: Row(children: [
+              Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+              SizedBox(width: 10), Text('Delete', style: TextStyle(fontSize: 13)),
+            ])),
+        ],
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.more_vert_rounded, size: 16, color: Color(0xFF6B7280)),
+        ),
+      ),
+    ]);
+
+    final comments = (hrComment.isNotEmpty || managerComment.isNotEmpty || mgmtComment.isNotEmpty)
+        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
+            const SizedBox(height: 6),
+            if (hrComment.isNotEmpty) _CommentChip(label: 'HR', comment: hrComment),
+            if (managerComment.isNotEmpty) _CommentChip(label: 'Manager', comment: managerComment),
+            if (mgmtComment.isNotEmpty) _CommentChip(label: 'Management', comment: mgmtComment),
+          ])
+        : const SizedBox.shrink();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isApproved
-              ? const Color(0xFF86EFAC)
-              : status.startsWith('rejected')
-                  ? const Color(0xFFFCA5A5)
-                  : const Color(0xFFE5E7EB),
-          width: isApproved || status.startsWith('rejected') ? 1.5 : 1,
-        ),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top row: avatar, name, status ─────────────────────────
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                      color: _blue, fontWeight: FontWeight.bold, fontSize: 17),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name.isEmpty ? 'Unknown' : name,
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700, color: _blue)),
-                  const SizedBox(height: 3),
-                  Text('Submitted: $dateStr',
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF6B7280))),
-                  if (post.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      post + (exp.isNotEmpty ? '  •  $exp yrs exp.' : ''),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                    ),
-                  ],
-                ],
-              )),
-              const SizedBox(width: 8),
-              statusBadge,
-            ]),
-
-            // ── Extra info: manager assignment / approval message ──────
-            if (manager.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFE5E7EB)),
-              const SizedBox(height: 8),
-              Row(children: [
-                const Icon(Icons.person_outline_rounded,
-                    size: 14, color: Color(0xFF6B7280)),
-                const SizedBox(width: 6),
-                Text('Assigned to: $manager',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                const SizedBox(width: 16),
-                if (managerStatus != 'pending') ...[
-                  Icon(
-                    managerStatus == 'accepted'
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.cancel_outlined,
-                    size: 14,
-                    color: managerStatus == 'accepted'
-                        ? const Color(0xFF22C55E)
-                        : const Color(0xFFEF4444),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Manager: ${managerStatus == 'accepted' ? 'Accepted' : 'Rejected'}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: managerStatus == 'accepted'
-                          ? const Color(0xFF22C55E)
-                          : const Color(0xFFEF4444),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+      child: Container(
+        decoration: BoxDecoration(border: Border(left: BorderSide(color: borderColor, width: 4))),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: LayoutBuilder(builder: (context, constraints) {
+            if (constraints.maxWidth < 900) {
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  avatar,
+                  const SizedBox(width: 12),
+                  Expanded(child: infoBlock),
+                  const SizedBox(width: 8),
+                  statusBadge,
+                ]),
+                const SizedBox(height: 12),
+                _StageTimeline(stages: stages),
+                const SizedBox(height: 10),
+                assignedBlock,
+                comments,
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 8),
+                actions,
+              ]);
+            }
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                avatar,
+                const SizedBox(width: 12),
+                SizedBox(width: 190, child: infoBlock),
+                const SizedBox(width: 20),
+                Expanded(child: _StageTimeline(stages: stages)),
+                const SizedBox(width: 20),
+                SizedBox(width: 120, child: assignedBlock),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  statusBadge,
+                  const SizedBox(height: 10),
+                  actions,
+                ]),
               ]),
-            ],
-
-            if (isApproved) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(children: [
-                  Icon(Icons.verified_rounded,
-                      size: 15, color: Color(0xFF22C55E)),
-                  SizedBox(width: 6),
-                  Text('Approved by Management and Manager',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF22C55E),
-                          fontWeight: FontWeight.w600)),
-                ]),
-              ),
-              if (preOfferSent) ...[
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE7F6),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.mark_email_read_rounded,
-                        size: 15, color: AppTheme.primaryBlue),
-                    SizedBox(width: 6),
-                    Text('Pre Offer & Onboarding Sent',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.primaryBlue,
-                            fontWeight: FontWeight.w600)),
-                  ]),
-                ),
-              ],
-            ],
-
-            if (mgmtStatus == 'rejected') ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(children: [
-                  Icon(Icons.cancel_rounded, size: 15, color: Color(0xFFEF4444)),
-                  SizedBox(width: 6),
-                  Text('Rejected by Management',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFEF4444),
-                          fontWeight: FontWeight.w600)),
-                ]),
-              ),
-            ],
-
-            // ── Comments ───────────────────────────────────────────────
-            if (hrComment.isNotEmpty || managerComment.isNotEmpty || mgmtComment.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFE5E7EB)),
-              const SizedBox(height: 6),
-              if (hrComment.isNotEmpty)
-                _CommentChip(label: 'HR', comment: hrComment),
-              if (managerComment.isNotEmpty)
-                _CommentChip(label: 'Manager', comment: managerComment),
-              if (mgmtComment.isNotEmpty)
-                _CommentChip(label: 'Management', comment: mgmtComment),
-            ],
-
-            // ── Action buttons ─────────────────────────────────────────
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFE5E7EB)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 6, children: [
-              if (isPending) ...[
-                _ActionButton(
-                  label: 'Accept',
-                  icon: Icons.check_circle_outline_rounded,
-                  color: const Color(0xFF22C55E),
-                  onTap: onAccept,
-                ),
-                _ActionButton(
-                  label: 'Reject',
-                  icon: Icons.cancel_outlined,
-                  color: const Color(0xFFEF4444),
-                  onTap: onReject,
-                ),
-              ],
-              _ActionButton(
-                label: 'Comment',
-                icon: Icons.comment_outlined,
-                color: const Color(0xFF6B7280),
-                onTap: onComment,
-              ),
-              _ActionButton(
-                label: 'View',
-                icon: Icons.open_in_new_rounded,
-                color: _blue,
-                onTap: onView,
-              ),
-              if (isApproved && onSendEmail != null)
-                _ActionButton(
-                  label: 'Send Email',
-                  icon: Icons.mail_outline_rounded,
-                  color: AppTheme.accentBlue,
-                  onTap: onSendEmail!,
-                  highlight: true,
-                ),
-              if (onDelete != null)
-                _ActionButton(
-                  label: 'Delete',
-                  icon: Icons.delete_outline_rounded,
-                  color: Colors.red.shade700,
-                  onTap: onDelete!,
-                ),
-            ]),
-          ],
+              comments,
+            ]);
+          }),
         ),
       ),
     );
