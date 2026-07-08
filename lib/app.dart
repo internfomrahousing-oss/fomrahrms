@@ -212,7 +212,6 @@ final _router = GoRouter(
           return LeadManagementPage(url: x['url'] ?? '', name: x['name'] ?? 'Leads');
         }),
         GoRoute(path: '/maintenance-management',          builder: (_, __) => const MaintenanceManagementPage()),
-        GoRoute(path: '/approvals',                       builder: (_, __) => const ApprovalsPage()),
         GoRoute(path: '/notifications',                   builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/reports-analytics',               builder: (_, __) => const ReportsAnalyticsPage()),
         // HR personal pages (My Space)

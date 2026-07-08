@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
-import '../models/leave_form_config.dart';
-import '../models/maintenance_form_config.dart';
 import '../models/leave_store.dart';
-import '../models/user_session.dart';
-import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
-import '../utils/form_version_label.dart';
+import '../utils/month_picker.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -32,13 +28,11 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<Map<String, dynamic>> _onboardingVersions = [];
   List<Map<String, dynamic>> _policyVersions = [];
   List<Map<String, dynamic>> _maintenanceVersions = [];
-  Map<int, String> _interviewLabels = {};
-  Map<int, String> _onboardingLabels = {};
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 5, vsync: this);
+    _tabs = TabController(length: 7, vsync: this);
     _load();
   }
 
@@ -68,17 +62,13 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         LeaveStore.syncCounter();
       }
       if (!mounted) return;
-      final interviewVersions = results[3] as List<Map<String, dynamic>>;
-      final onboardingVersions = results[4] as List<Map<String, dynamic>>;
       setState(() {
         _users = results[1] as List<AppUser>;
         _leaveVersions = results[2] as List<Map<String, dynamic>>;
-        _interviewVersions = interviewVersions;
-        _onboardingVersions = onboardingVersions;
+        _interviewVersions = results[3] as List<Map<String, dynamic>>;
+        _onboardingVersions = results[4] as List<Map<String, dynamic>>;
         _policyVersions = results[5] as List<Map<String, dynamic>>;
         _maintenanceVersions = results[6] as List<Map<String, dynamic>>;
-        _interviewLabels = computeFormVersionLabels(interviewVersions);
-        _onboardingLabels = computeFormVersionLabels(onboardingVersions);
         _loading = false;
       });
     } catch (_) {
@@ -126,15 +116,6 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<LeaveApplication> get _historyCompOff =>
       _decidedSorted(LeaveStore.applications.where((a) => a.leaveType == 'Comp Off'));
 
-  List<AppUser> get _historyOnroll {
-    final list = _users.where((u) => u.onrollManagementStatus != 'pending').toList();
-    list.sort((a, b) => b.onrollManagementDecidedAt.compareTo(a.onrollManagementDecidedAt));
-    return list;
-  }
-
-  List<Map<String, dynamic>> _historyOf(List<Map<String, dynamic>> versions) =>
-      versions.where((v) => (v['status'] as String?) != 'pending').toList();
-
   int get _totalPending =>
       _pendingLeave.length +
       _pendingPermission.length +
@@ -148,81 +129,35 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _pendingOf(_policyVersions).length +
       _pendingOf(_maintenanceVersions).length;
 
-  // ── Leave / Permission / Comp Off actions ───────────────────────────────
+  // ── This-month approval-rate stats (banner) ─────────────────────────────
+  // Only categories that retain a permanent, timestamped decision record can
+  // feed this — gross pay / work location changes clear their pending flag
+  // on decision without keeping a dated history entry, so they're excluded.
 
-  Future<void> _approveLeave(LeaveApplication app) async {
-    final by = UserSession.name;
-    setState(() {
-      app.managerStatus = LeaveApprovalStatus.approved;
-      app.decidedBy = by;
-      app.rejectionComment = '';
-      app.decidedAt = DateTime.now();
-      app.managementDecided = true;
-    });
-    await SupabaseService.updateLeaveManagementStatus(
-        app.id, LeaveApprovalStatus.approved, decidedBy: by);
-    _notifyLeaveDecision(app, true);
-  }
+  DateTime _statsMonth = DateTime.now();
 
-  Future<void> _denyLeave(LeaveApplication app) async {
-    final comment = await _reasonDialog(
-        title: 'Deny Leave', hint: 'e.g. Insufficient notice / Busy period');
-    if (comment == null) return;
-    final by = UserSession.name;
-    setState(() {
-      app.managerStatus = LeaveApprovalStatus.denied;
-      app.decidedBy = by;
-      app.rejectionComment = comment;
-      app.decidedAt = DateTime.now();
-      app.managementDecided = true;
-    });
-    await SupabaseService.updateLeaveManagementStatus(
-        app.id, LeaveApprovalStatus.denied, decidedBy: by, rejectionComment: comment);
-    _notifyLeaveDecision(app, false);
-  }
-
-  void _notifyLeaveDecision(LeaveApplication app, bool approved) {
-    final user = _users.where((u) => u.name == app.employeeName).firstOrNull;
-    if (user == null || user.email.isEmpty) return;
-    NotificationService.leaveDecided(
-      employeeEmail: user.email,
-      leaveType: app.leaveType,
-      approved: approved,
-      employeeRoutePrefix: _routePrefixForRole(user.role),
-    ).catchError((_) {});
-  }
-
-  String _routePrefixForRole(String role) {
-    switch (role) {
-      case 'Manager':    return '/manager';
-      case 'Management': return '/management';
-      case 'HR':         return '';
-      default:           return '/employee';
+  Iterable<(bool approved, DateTime? when)> get _allDecisions sync* {
+    for (final a in LeaveStore.applications.where((a) => a.managerStatus != LeaveApprovalStatus.pending)) {
+      yield (a.managerStatus == LeaveApprovalStatus.approved, a.decidedAt);
+    }
+    for (final u in _users.where((u) => u.onrollManagementStatus != 'pending')) {
+      yield (u.onrollManagementStatus == 'accepted', DateTime.tryParse(u.onrollManagementDecidedAt));
+    }
+    for (final versions in [_leaveVersions, _interviewVersions, _onboardingVersions, _policyVersions, _maintenanceVersions]) {
+      for (final v in versions.where((v) => (v['status'] as String?) != 'pending')) {
+        yield ((v['status'] as String?) == 'approved', DateTime.tryParse(v['created_at']?.toString() ?? ''));
+      }
     }
   }
 
-  // ── On-Roll actions ──────────────────────────────────────────────────────
+  Iterable<(bool approved, DateTime? when)> get _decisionsThisMonth => _allDecisions.where(
+      (d) => d.$2 != null && d.$2!.year == _statsMonth.year && d.$2!.month == _statsMonth.month);
 
-  Future<void> _approveOnroll(AppUser u) async {
-    setState(() {
-      u.onrollManagementStatus = 'accepted';
-      u.onrollManagementComment = '';
-      u.onrollManagementDecidedAt = DateTime.now().toIso8601String();
-      u.onrollConfirmedAt = DateTime.now().toIso8601String();
-    });
-    await UserStore.upsertOne(u);
-  }
-
-  Future<void> _denyOnroll(AppUser u) async {
-    final comment = await _reasonDialog(
-        title: 'Deny On-Roll Request', hint: 'e.g. Performance concerns');
-    if (comment == null) return;
-    setState(() {
-      u.onrollManagementStatus = 'denied';
-      u.onrollManagementComment = comment;
-      u.onrollManagementDecidedAt = DateTime.now().toIso8601String();
-    });
-    await UserStore.upsertOne(u);
+  int get _approvedThisMonth => _decisionsThisMonth.where((d) => d.$1).length;
+  int get _rejectedThisMonth => _decisionsThisMonth.where((d) => !d.$1).length;
+  double get _approvalRateThisMonth {
+    final total = _approvedThisMonth + _rejectedThisMonth;
+    return total == 0 ? 100 : (_approvedThisMonth / total) * 100;
   }
 
   // ── Gross Pay / Work Location actions ────────────────────────────────────
@@ -245,250 +180,192 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     await UserStore.upsertOne(u);
   }
 
-  // ── Form version actions ─────────────────────────────────────────────────
-
-  Future<void> _approveForm(String kind, String id) async {
-    switch (kind) {
-      case 'leave':
-        await SupabaseService.updateLeaveFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
-        LeaveFormConfig.invalidate();
-        NotificationService.formEditDecided(formName: 'Leave Form', approved: true);
-      case 'interview':
-        await SupabaseService.updateFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
-        NotificationService.formEditDecided(formName: 'Interview Form', approved: true);
-      case 'onboarding':
-        await SupabaseService.updateOnboardingFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
-        NotificationService.formEditDecided(formName: 'Onboarding Form', approved: true);
-      case 'policy':
-        await SupabaseService.updateHRPolicyVersionStatus(id, 'approved', decidedBy: UserSession.name);
-      case 'maintenance':
-        await SupabaseService.updateMaintenanceFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
-        MaintenanceFormConfig.invalidate();
-        NotificationService.formEditDecided(formName: 'Maintenance Form', approved: true);
-    }
-    _load();
-  }
-
-  Future<void> _rejectForm(String kind, String id) async {
-    final note = await _reasonDialog(title: 'Reject — Reason', hint: 'Optional note for HR…');
-    if (note == null) return;
-    switch (kind) {
-      case 'leave':
-        await SupabaseService.updateLeaveFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
-        NotificationService.formEditDecided(formName: 'Leave Form', approved: false);
-      case 'interview':
-        await SupabaseService.updateFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
-        NotificationService.formEditDecided(formName: 'Interview Form', approved: false);
-      case 'onboarding':
-        await SupabaseService.updateOnboardingFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
-        NotificationService.formEditDecided(formName: 'Onboarding Form', approved: false);
-      case 'policy':
-        await SupabaseService.updateHRPolicyVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
-      case 'maintenance':
-        await SupabaseService.updateMaintenanceFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
-        NotificationService.formEditDecided(formName: 'Maintenance Form', approved: false);
-    }
-    _load();
-  }
-
-  Future<String?> _reasonDialog({required String title, required String hint}) async {
-    final ctrl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 3,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: hint,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.all(12),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    final text = ctrl.text.trim();
-    ctrl.dispose();
-    return result == true ? text : null;
-  }
-
   // ── Build ─────────────────────────────────────────────────────────────────
 
-  Widget get _leaveSection => _ApprovalSection(
+  _CategoryInfo get _leaveCategory => _CategoryInfo(
         icon: Icons.event_note_rounded,
         color: const Color(0xFF111827),
         label: 'Leave Applications',
-        count: _pendingLeave.length,
+        pending: _pendingLeave.length,
+        approved: _historyLeave.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length,
+        rejected: _historyLeave.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length,
+        total: LeaveStore.applications.where((a) => !_isPermCompOff(a)).length,
         onViewAll: () => context.push('/management/leave/overview'),
-        children: _pendingLeave
-            .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
-            .toList(),
-        history: _historyLeave.map(_leaveHistoryCard).toList(),
       );
 
-  Widget get _permissionSection => _ApprovalSection(
+  _CategoryInfo get _permissionCategory => _CategoryInfo(
         icon: Icons.access_time_rounded,
         color: AppTheme.accentBlue,
         label: 'Permission Applications',
-        count: _pendingPermission.length,
+        pending: _pendingPermission.length,
+        approved: _historyPermission.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length,
+        rejected: _historyPermission.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length,
+        total: LeaveStore.applications.where((a) => a.leaveType == 'Permission').length,
         onViewAll: () => context.push('/management/leave/overview'),
-        children: _pendingPermission
-            .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
-            .toList(),
-        history: _historyPermission.map(_leaveHistoryCard).toList(),
       );
 
-  Widget get _compOffSection => _ApprovalSection(
+  _CategoryInfo get _compOffCategory => _CategoryInfo(
         icon: Icons.swap_horiz_rounded,
         color: const Color(0xFF22C55E),
         label: 'Comp Off Applications',
-        count: _pendingCompOff.length,
+        pending: _pendingCompOff.length,
+        approved: _historyCompOff.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length,
+        rejected: _historyCompOff.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length,
+        total: LeaveStore.applications.where((a) => a.leaveType == 'Comp Off').length,
         onViewAll: () => context.push('/management/leave/overview'),
-        children: _pendingCompOff
-            .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
-            .toList(),
-        history: _historyCompOff.map(_leaveHistoryCard).toList(),
       );
 
-  Widget get _onrollSection => _ApprovalSection(
-        icon: Icons.verified_user_rounded,
-        color: AppTheme.sidebarSelectedBg,
-        label: 'On-Roll Requests',
-        count: _pendingOnroll.length,
-        onViewAll: () => context.push('/management/onroll-approvals'),
-        children: _pendingOnroll
-            .map((u) => _onrollCard(u, onApprove: () => _approveOnroll(u), onDeny: () => _denyOnroll(u)))
-            .toList(),
-        history: _historyOnroll.map(_onrollHistoryCard).toList(),
-      );
+  _CategoryInfo get _onrollCategory {
+    final approved = _users.where((u) => u.onrollManagementStatus == 'accepted').length;
+    final rejected = _users.where((u) => u.onrollManagementStatus == 'denied').length;
+    return _CategoryInfo(
+      icon: Icons.verified_user_rounded,
+      color: AppTheme.sidebarSelectedBg,
+      label: 'On-Roll Requests',
+      pending: _pendingOnroll.length,
+      approved: approved,
+      rejected: rejected,
+      total: approved + rejected + _pendingOnroll.length,
+      onViewAll: () => context.push('/management/onroll-approvals'),
+    );
+  }
 
-  Widget get _grossPaySection => _ApprovalSection(
+  _CategoryInfo get _grossPayCategory => _CategoryInfo(
         icon: Icons.currency_rupee_rounded,
         color: Colors.indigo.shade700,
         label: 'Gross Pay Change Requests',
-        count: _pendingGrossPay.length,
-        children: _pendingGrossPay
-            .map((u) => _grossPayCard(u,
-                onApprove: () => _decideGrossPay(u, true), onDeny: () => _decideGrossPay(u, false)))
-            .toList(),
+        pending: _pendingGrossPay.length,
+        approved: 0,
+        rejected: 0,
+        total: _pendingGrossPay.length,
+        onViewAll: () => _showPendingSheet(
+          label: 'Gross Pay Change Requests',
+          color: Colors.indigo.shade700,
+          cards: _pendingGrossPay
+              .map((u) => _grossPayCard(u,
+                  onApprove: () => _decideGrossPay(u, true), onDeny: () => _decideGrossPay(u, false)))
+              .toList(),
+        ),
       );
 
-  Widget get _workLocationSection => _ApprovalSection(
+  _CategoryInfo get _workLocationCategory => _CategoryInfo(
         icon: Icons.location_on_rounded,
         color: Colors.teal.shade700,
         label: 'Work Location Change Requests',
-        count: _pendingWorkLocation.length,
-        children: _pendingWorkLocation
-            .map((u) => _workLocationCard(u,
-                onApprove: () => _decideWorkLocation(u, true), onDeny: () => _decideWorkLocation(u, false)))
-            .toList(),
+        pending: _pendingWorkLocation.length,
+        approved: 0,
+        rejected: 0,
+        total: _pendingWorkLocation.length,
+        onViewAll: () => _showPendingSheet(
+          label: 'Work Location Change Requests',
+          color: Colors.teal.shade700,
+          cards: _pendingWorkLocation
+              .map((u) => _workLocationCard(u,
+                  onApprove: () => _decideWorkLocation(u, true), onDeny: () => _decideWorkLocation(u, false)))
+              .toList(),
+        ),
       );
 
-  Widget get _leaveFormSection => _ApprovalSection(
-        icon: Icons.event_available_rounded,
+  _CategoryInfo _formCategory(String label, List<Map<String, dynamic>> versions) => _CategoryInfo(
+        icon: Icons.description_rounded,
         color: AppTheme.primaryBlue,
-        label: 'Leave / Permission / Comp Off Form Approvals',
-        count: _pendingOf(_leaveVersions).length,
+        label: label,
+        pending: _pendingOf(versions).length,
+        approved: versions.where((v) => (v['status'] as String?) == 'approved').length,
+        rejected: versions.where((v) => (v['status'] as String?) == 'rejected').length,
+        total: versions.length,
         onViewAll: () => context.push('/management/form-approvals'),
-        children: _pendingOf(_leaveVersions)
-            .map((v) => _formCard(v, kind: 'leave', label: null,
-                onApprove: () => _approveForm('leave', v['id'] as String),
-                onDeny: () => _rejectForm('leave', v['id'] as String)))
-            .toList(),
-        history: _historyOf(_leaveVersions).map((v) => _formHistoryCard(v)).toList(),
       );
 
-  Widget get _interviewFormSection => _ApprovalSection(
-        icon: Icons.assignment_rounded,
-        color: AppTheme.primaryBlue,
-        label: 'Interview Form Approvals',
-        count: _pendingOf(_interviewVersions).length,
-        onViewAll: () => context.push('/management/form-approvals'),
-        children: _pendingOf(_interviewVersions)
-            .map((v) => _formCard(v, kind: 'interview',
-                label: _interviewLabels[(v['version_number'] as num?)?.toInt()],
-                onApprove: () => _approveForm('interview', v['id'] as String),
-                onDeny: () => _rejectForm('interview', v['id'] as String)))
-            .toList(),
-        history: _historyOf(_interviewVersions)
-            .map((v) => _formHistoryCard(v, label: _interviewLabels[(v['version_number'] as num?)?.toInt()]))
-            .toList(),
-      );
+  _CategoryInfo get _leaveFormCategory =>
+      _formCategory('Leave / Permission / Comp Off Form Approvals', _leaveVersions);
+  _CategoryInfo get _interviewFormCategory => _formCategory('Interview Form Approvals', _interviewVersions);
+  _CategoryInfo get _onboardingFormCategory => _formCategory('Onboarding Form Approvals', _onboardingVersions);
+  _CategoryInfo get _policyCategory => _formCategory('HR Policy Approvals', _policyVersions);
+  _CategoryInfo get _maintenanceFormCategory => _formCategory('Maintenance Form Approvals', _maintenanceVersions);
 
-  Widget get _onboardingFormSection => _ApprovalSection(
-        icon: Icons.how_to_reg_rounded,
-        color: AppTheme.primaryBlue,
-        label: 'Onboarding Form Approvals',
-        count: _pendingOf(_onboardingVersions).length,
-        onViewAll: () => context.push('/management/form-approvals'),
-        children: _pendingOf(_onboardingVersions)
-            .map((v) => _formCard(v, kind: 'onboarding',
-                label: _onboardingLabels[(v['version_number'] as num?)?.toInt()],
-                onApprove: () => _approveForm('onboarding', v['id'] as String),
-                onDeny: () => _rejectForm('onboarding', v['id'] as String)))
-            .toList(),
-        history: _historyOf(_onboardingVersions)
-            .map((v) => _formHistoryCard(v, label: _onboardingLabels[(v['version_number'] as num?)?.toInt()]))
-            .toList(),
-      );
+  List<_CategoryInfo> get _allCategories => [
+        _leaveCategory, _permissionCategory, _compOffCategory,
+        _onrollCategory, _grossPayCategory, _workLocationCategory,
+        _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
+        _policyCategory, _maintenanceFormCategory,
+      ];
 
-  Widget get _policySection => _ApprovalSection(
-        icon: Icons.policy_rounded,
-        color: AppTheme.primaryBlue,
-        label: 'HR Policy Approvals',
-        count: _pendingOf(_policyVersions).length,
-        onViewAll: () => context.push('/management/form-approvals'),
-        children: _pendingOf(_policyVersions)
-            .map((v) => _formCard(v, kind: 'policy', label: null,
-                onApprove: () => _approveForm('policy', v['id'] as String),
-                onDeny: () => _rejectForm('policy', v['id'] as String)))
-            .toList(),
-        history: _historyOf(_policyVersions).map((v) => _formHistoryCard(v)).toList(),
-      );
+  void _showPendingSheet({required String label, required Color color, required List<Widget> cards}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (ctx, scrollController) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.pending_actions_rounded, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(label,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color))),
+              IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
+            ]),
+            const Divider(),
+            Expanded(
+              child: cards.isEmpty
+                  ? Center(child: Text('Nothing pending',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 13)))
+                  : ListView(controller: scrollController, children: cards),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 
-  Widget get _maintenanceFormSection => _ApprovalSection(
-        icon: Icons.build_rounded,
-        color: AppTheme.primaryBlue,
-        label: 'Maintenance Form Approvals',
-        count: _pendingOf(_maintenanceVersions).length,
-        onViewAll: () => context.push('/management/form-approvals'),
-        children: _pendingOf(_maintenanceVersions)
-            .map((v) => _formCard(v, kind: 'maintenance', label: null,
-                onApprove: () => _approveForm('maintenance', v['id'] as String),
-                onDeny: () => _rejectForm('maintenance', v['id'] as String)))
-            .toList(),
-        history: _historyOf(_maintenanceVersions).map((v) => _formHistoryCard(v)).toList(),
-      );
-
-  Widget _tabView(List<Widget> sections) {
+  Widget _tabView(List<_CategoryInfo> categories, {bool pendingOnly = false}) {
+    final visible = pendingOnly ? categories.where((c) => c.pending > 0).toList() : categories;
     return RefreshIndicator(
       onRefresh: _load,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          crossAxisAlignment: WrapCrossAlignment.start,
-          children: sections.map((s) => SizedBox(width: 400, child: s)).toList(),
-        ),
+        child: visible.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(
+                  child: Text('Nothing pending in this view',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                ),
+              )
+            : Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: visible.map((c) => SizedBox(width: 300, child: _CategorySummaryCard(info: c))).toList(),
+              ),
       ),
     );
   }
 
+  static const _tabIcons = [
+    Icons.grid_view_rounded,
+    Icons.pending_actions_rounded,
+    Icons.event_note_rounded,
+    Icons.payments_rounded,
+    Icons.group_add_rounded,
+    Icons.list_alt_rounded,
+    Icons.edit_document,
+  ];
+  static const _tabLabels = ['All', 'Pending', 'Leave', 'Payroll', 'Onboarding', 'Requests', 'Form Edit'];
+
+  Future<void> _pickStatsMonth() async {
+    final picked = await showMonthPicker(context, _statsMonth);
+    if (picked != null && mounted) setState(() => _statsMonth = picked);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final categories = _allCategories;
     return Scaffold(
       backgroundColor: null,
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -503,30 +380,16 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                 color: AppTheme.primaryBlueDark.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.approval_rounded, color: AppTheme.primaryBlueDark, size: 26),
+              child: Icon(Icons.person_rounded, color: AppTheme.primaryBlueDark, size: 26),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Approvals', style: Theme.of(context).textTheme.headlineMedium),
-                const Text('Everything awaiting your decision, in one place',
+                const Text('Review and take action on pending requests',
                     style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),
-            if (!_loading)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: (_totalPending > 0 ? Colors.orange.shade700 : Colors.green.shade700)
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text('$_totalPending pending',
-                    style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w700,
-                        color: _totalPending > 0 ? Colors.orange.shade700 : Colors.green.shade700)),
-              ),
-            const SizedBox(width: 4),
             IconButton(
               tooltip: 'Refresh',
               icon: Icon(Icons.refresh_rounded, color: AppTheme.primaryBlueDark),
@@ -535,56 +398,62 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
           ]),
         ),
         const SizedBox(height: 16),
-        if (!_loading && _totalPending == 0)
+        if (!_loading)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _allCaughtUpBanner(),
+            child: _summaryBanner(),
           ),
         const SizedBox(height: 12),
-        TabBar(
-          controller: _tabs,
-          isScrollable: true,
-          labelColor: AppTheme.primaryBlueDark,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryBlueDark,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Newly Placed'),
-            Tab(text: 'Applications'),
-            Tab(text: 'Requests'),
-            Tab(text: 'Form Edit Approvals'),
-          ],
-        ),
+        Row(children: [
+          Expanded(
+            child: TabBar(
+              controller: _tabs,
+              isScrollable: true,
+              labelColor: AppTheme.primaryBlueDark,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: AppTheme.primaryBlueDark,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+              tabs: [
+                for (var i = 0; i < _tabLabels.length; i++)
+                  Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_tabIcons[i], size: 15),
+                    const SizedBox(width: 6),
+                    Text(i == 1 ? 'Pending ($_totalPending)' : _tabLabels[i]),
+                  ])),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: OutlinedButton.icon(
+              onPressed: _pickStatsMonth,
+              icon: const Icon(Icons.filter_list_rounded, size: 16),
+              label: Text(monthLabel(_statsMonth)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF374151),
+                side: const BorderSide(color: Color(0xFFE5E7EB)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ]),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : TabBarView(
                   controller: _tabs,
                   children: [
+                    _tabView(categories),
+                    _tabView(categories, pendingOnly: true),
+                    _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
+                    _tabView([_grossPayCategory]),
+                    _tabView([_onrollCategory]),
+                    _tabView([_workLocationCategory]),
                     _tabView([
-                      _leaveSection,
-                      _permissionSection,
-                      _compOffSection,
-                      _onrollSection,
-                      _grossPaySection,
-                      _workLocationSection,
-                      _leaveFormSection,
-                      _interviewFormSection,
-                      _onboardingFormSection,
-                      _policySection,
-                      _maintenanceFormSection,
-                    ]),
-                    _tabView([_onrollSection]),
-                    _tabView([_leaveSection, _permissionSection, _compOffSection]),
-                    _tabView([_grossPaySection, _workLocationSection]),
-                    _tabView([
-                      _leaveFormSection,
-                      _interviewFormSection,
-                      _onboardingFormSection,
-                      _policySection,
-                      _maintenanceFormSection,
+                      _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
+                      _policyCategory, _maintenanceFormCategory,
                     ]),
                   ],
                 ),
@@ -593,49 +462,64 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     );
   }
 
-  Widget _allCaughtUpBanner() {
+  Widget _summaryBanner() {
+    final caughtUp = _totalPending == 0;
     return Card(
+      color: caughtUp ? const Color(0xFFF0FDF4) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: caughtUp ? const Color(0xFFBBF7D0) : const Color(0xFFE5E7EB)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Center(
-          child: Column(children: [
-            Icon(Icons.task_alt_rounded, size: 44, color: Colors.green.shade400),
-            const SizedBox(height: 10),
-            Text('All caught up — nothing pending your approval',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w600)),
-          ]),
-        ),
+        padding: const EdgeInsets.all(18),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final message = Row(children: [
+            Icon(caughtUp ? Icons.celebration_rounded : Icons.pending_actions_rounded,
+                color: caughtUp ? Colors.green.shade400 : Colors.orange.shade600, size: 34),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(caughtUp ? "You're all caught up!" : '$_totalPending item${_totalPending == 1 ? '' : 's'} need your attention',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                const SizedBox(height: 2),
+                Text(
+                    caughtUp ? 'No pending approvals at the moment.' : 'Review the categories below to take action.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                const SizedBox(height: 4),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.schedule_rounded, size: 12, color: Colors.grey.shade400),
+                  const SizedBox(width: 4),
+                  Text('Last updated just now', style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                ]),
+              ]),
+            ),
+          ]);
+          final stats = Wrap(spacing: 10, runSpacing: 10, children: [
+            _MiniStat(icon: Icons.hourglass_top_rounded, color: Colors.orange.shade700,
+                value: '$_totalPending', label: 'Pending'),
+            _MiniStat(icon: Icons.check_circle_rounded, color: const Color(0xFF22C55E),
+                value: '$_approvedThisMonth', label: 'Approved This Month'),
+            _MiniStat(icon: Icons.cancel_rounded, color: const Color(0xFFEF4444),
+                value: '$_rejectedThisMonth', label: 'Rejected This Month'),
+            _MiniStat(icon: Icons.donut_large_rounded, color: AppTheme.primaryBlue,
+                value: '${_approvalRateThisMonth.toStringAsFixed(0)}%', label: 'Approval Rate This Month'),
+          ]);
+          if (constraints.maxWidth < 760) {
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              message, const SizedBox(height: 16), stats,
+            ]);
+          }
+          return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Expanded(child: message),
+            const SizedBox(width: 16),
+            stats,
+          ]);
+        }),
       ),
     );
   }
 
   // ── Category-specific compact cards ──────────────────────────────────────
-
-  Widget _leaveCard(LeaveApplication a, {required VoidCallback onApprove, required VoidCallback onDeny}) {
-    return _ApprovalCard(
-      title: a.employeeName,
-      subtitle: a.department,
-      details: [
-        '${a.leaveType} · ${_fmt(a.from)} → ${_fmt(a.to)}',
-        '${a.isHalfDay ? '½ day' : '${a.days} day${a.days == 1 ? '' : 's'}'}'
-            '${a.reason.isNotEmpty ? ' · ${a.reason}' : ''}',
-      ],
-      meta: _fmt(a.appliedOn),
-      onApprove: onApprove,
-      onDeny: onDeny,
-    );
-  }
-
-  Widget _onrollCard(AppUser u, {required VoidCallback onApprove, required VoidCallback onDeny}) {
-    return _ApprovalCard(
-      title: u.name,
-      subtitle: u.designation,
-      details: const ['Accepted by HR and Reporting Manager — awaiting final sign-off'],
-      meta: _fmtIso(u.onrollRequestedAt),
-      onApprove: onApprove,
-      onDeny: onDeny,
-    );
-  }
 
   Widget _grossPayCard(AppUser u, {required VoidCallback onApprove, required VoidCallback onDeny}) {
     return _ApprovalCard(
@@ -661,71 +545,6 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     );
   }
 
-  Widget _formCard(Map<String, dynamic> v,
-      {required String kind, required String? label, required VoidCallback onApprove, required VoidCallback onDeny}) {
-    final vNum = (v['version_number'] as num?)?.toInt() ?? 0;
-    final vLabel = label ?? 'v$vNum';
-    final createdBy = (v['created_by'] as String?) ?? '';
-    return _ApprovalCard(
-      title: vLabel,
-      subtitle: createdBy.isNotEmpty ? 'Submitted by $createdBy' : '',
-      details: const [],
-      meta: _fmtIso(v['created_at']?.toString() ?? ''),
-      onApprove: onApprove,
-      onDeny: onDeny,
-    );
-  }
-
-  // ── Past-decision (history) cards ────────────────────────────────────────
-
-  Widget _leaveHistoryCard(LeaveApplication a) {
-    final denied = a.managerStatus == LeaveApprovalStatus.denied;
-    return _ApprovalCard(
-      title: a.employeeName,
-      subtitle: a.department,
-      details: [
-        '${a.leaveType} · ${_fmt(a.from)} → ${_fmt(a.to)}',
-        '${a.isHalfDay ? '½ day' : '${a.days} day${a.days == 1 ? '' : 's'}'}'
-            '${a.reason.isNotEmpty ? ' · ${a.reason}' : ''}',
-      ],
-      meta: a.decidedAt != null ? _fmt(a.decidedAt!) : '',
-      decision: denied
-          ? _DecisionInfo.denied(by: a.decidedBy, note: a.rejectionComment)
-          : _DecisionInfo.approved(by: a.decidedBy),
-    );
-  }
-
-  Widget _onrollHistoryCard(AppUser u) {
-    final denied = u.onrollManagementStatus == 'denied';
-    return _ApprovalCard(
-      title: u.name,
-      subtitle: u.designation,
-      details: const [],
-      meta: _fmtIso(u.onrollManagementDecidedAt),
-      decision: denied
-          ? _DecisionInfo.denied(note: u.onrollManagementComment)
-          : _DecisionInfo.approved(),
-    );
-  }
-
-  Widget _formHistoryCard(Map<String, dynamic> v, {String? label}) {
-    final vNum = (v['version_number'] as num?)?.toInt() ?? 0;
-    final vLabel = label ?? 'v$vNum';
-    final createdBy = (v['created_by'] as String?) ?? '';
-    final approvedBy = (v['approved_by'] as String?) ?? '';
-    final rejectionNote = (v['rejection_note'] as String?) ?? '';
-    final denied = (v['status'] as String?) == 'rejected';
-    return _ApprovalCard(
-      title: vLabel,
-      subtitle: createdBy.isNotEmpty ? 'Submitted by $createdBy' : '',
-      details: const [],
-      meta: _fmtIso(v['created_at']?.toString() ?? ''),
-      decision: denied
-          ? _DecisionInfo.denied(by: approvedBy, note: rejectionNote)
-          : _DecisionInfo.approved(by: approvedBy),
-    );
-  }
-
   static String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
@@ -739,98 +558,138 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   }
 }
 
-// ── Section wrapper ──────────────────────────────────────────────────────
+// ── Category summary (dashboard card) ────────────────────────────────────
 
-class _ApprovalSection extends StatelessWidget {
+class _CategoryInfo {
   final IconData icon;
   final Color color;
   final String label;
-  final int count;
-  final VoidCallback? onViewAll;
-  final List<Widget> children;
-  final List<Widget> history;
-  const _ApprovalSection({
+  final int pending;
+  final int approved;
+  final int rejected;
+  final int total;
+  final VoidCallback onViewAll;
+  const _CategoryInfo({
     required this.icon,
     required this.color,
     required this.label,
-    required this.count,
-    this.onViewAll,
-    required this.children,
-    this.history = const [],
+    required this.pending,
+    required this.approved,
+    required this.rejected,
+    required this.total,
+    required this.onViewAll,
   });
+}
+
+class _CategorySummaryCard extends StatelessWidget {
+  final _CategoryInfo info;
+  const _CategorySummaryCard({required this.info});
+
+  Widget _stat(String value, String label, Color color) => Expanded(
+        child: Column(children: [
+          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color)),
+          Text(label, style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500)),
+        ]),
+      );
 
   @override
   Widget build(BuildContext context) {
+    final c = info.color;
     return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: color.withValues(alpha: 0.2)),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 6),
-              Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-                child: Text('$count',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
-              ),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      child: Container(
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: c, width: 3))),
+        child: InkWell(
+          onTap: info.onViewAll,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(color: c.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(9)),
+                  child: Icon(info.icon, color: c, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(info.label,
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: info.pending > 0 ? Colors.orange.shade50 : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text('${info.pending} Pending',
+                      style: TextStyle(
+                          fontSize: 10.5, fontWeight: FontWeight.w700,
+                          color: info.pending > 0 ? Colors.orange.shade700 : Colors.grey.shade500)),
+                ),
+              ]),
+              const SizedBox(height: 14),
+              Row(children: [
+                _stat('${info.approved}', 'Approved', const Color(0xFF22C55E)),
+                _stat('${info.rejected}', 'Rejected', const Color(0xFFEF4444)),
+                _stat('${info.total}', 'Total', const Color(0xFF6B7280)),
+              ]),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              Row(children: [
+                Text('View all', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: c)),
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_forward_rounded, size: 14, color: c),
+              ]),
             ]),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Divider(color: color.withValues(alpha: 0.2))),
-          if (onViewAll != null)
-            TextButton(
-              onPressed: onViewAll,
-              child: const Text('View all', style: TextStyle(fontSize: 12)),
-            ),
-        ]),
-        const SizedBox(height: 10),
-        if (children.isEmpty && history.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text('No requests yet',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
-          )
-        else if (children.isEmpty && history.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text('Nothing pending — all $label have been decided',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
-          ),
-        ...children,
-        if (history.isNotEmpty)
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.only(top: 4),
-              title: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.history_rounded, size: 15, color: color.withValues(alpha: 0.7)),
-                const SizedBox(width: 6),
-                Text('Past Approvals (${history.length})',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color.withValues(alpha: 0.8))),
-              ]),
-              children: history,
-            ),
-          ),
-        ]),
+        ),
       ),
     );
   }
 }
 
-// ── Generic compact approval card ────────────────────────────────────────
+// ── Mini stat tile (summary banner) ──────────────────────────────────────
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
+  const _MiniStat({required this.icon, required this.color, required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+            Text(label,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 9.5, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Generic compact approval card (used by the gross pay / work location
+// pending sheets, which have no dedicated management page of their own) ───
 
 class _ApprovalCard extends StatelessWidget {
   final String title;
@@ -839,8 +698,6 @@ class _ApprovalCard extends StatelessWidget {
   final String meta;
   final VoidCallback? onApprove;
   final VoidCallback? onDeny;
-  // When set, the card renders read-only (a past decision) instead of action buttons.
-  final _DecisionInfo? decision;
   const _ApprovalCard({
     required this.title,
     required this.subtitle,
@@ -848,7 +705,6 @@ class _ApprovalCard extends StatelessWidget {
     required this.meta,
     this.onApprove,
     this.onDeny,
-    this.decision,
   });
 
   @override
@@ -882,88 +738,40 @@ class _ApprovalCard extends StatelessWidget {
                 Text(d, style: const TextStyle(fontSize: 12, color: Color(0xFF374151))),
               ],
               const SizedBox(height: 10),
-              if (decision != null) ...[
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: decision!.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(decision!.icon, size: 13, color: decision!.color),
-                      const SizedBox(width: 5),
-                      Text(
-                          decision!.by.isEmpty
-                              ? decision!.label
-                              : '${decision!.label} by ${decision!.by}',
-                          style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600, color: decision!.color)),
-                    ]),
-                  ),
-                ]),
-                if (decision!.note.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text('Reason: ${decision!.note}',
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF6B7280))),
-                ],
-              ] else
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onDeny,
-                      icon: const Icon(Icons.close_rounded, size: 14),
-                      label: const Text('Deny'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red.shade400,
-                        side: BorderSide(color: Colors.red.shade300),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onDeny,
+                    icon: const Icon(Icons.close_rounded, size: 14),
+                    label: const Text('Deny'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade400,
+                      side: BorderSide(color: Colors.red.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onApprove,
-                      icon: const Icon(Icons.check_rounded, size: 14),
-                      label: const Text('Approve'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
-                      ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onApprove,
+                    icon: const Icon(Icons.check_rounded, size: 14),
+                    label: const Text('Approve'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
                     ),
                   ),
-                ]),
+                ),
+              ]),
             ]),
           ),
         ]),
       ),
     );
   }
-}
-
-/// Read-only decision summary shown on a past-approval card in place of the
-/// Approve/Deny buttons.
-class _DecisionInfo {
-  final String label;
-  final Color color;
-  final IconData icon;
-  final String by;
-  final String note;
-  const _DecisionInfo({
-    required this.label,
-    required this.color,
-    required this.icon,
-    this.by = '',
-    this.note = '',
-  });
-
-  factory _DecisionInfo.approved({String by = '', String note = ''}) => _DecisionInfo(
-      label: 'Approved', color: Colors.green.shade700, icon: Icons.check_circle_rounded, by: by, note: note);
-  factory _DecisionInfo.denied({String by = '', String note = ''}) => _DecisionInfo(
-      label: 'Denied', color: Colors.red.shade700, icon: Icons.cancel_rounded, by: by, note: note);
 }

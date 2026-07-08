@@ -41,7 +41,6 @@ const _navItems = [
   _NavItem('Employee Onboarding', Icons.how_to_reg_rounded, '/employee-onboarding'),
   _NavItem('Lead Management', Icons.leaderboard_rounded, '/lead-management'),
   _NavItem('Maintenance Management', Icons.build_rounded, '/maintenance-management'),
-  _NavItem('Approvals', Icons.approval_rounded, '/approvals'),
   _NavItem('Notifications', Icons.notifications_rounded, '/notifications'),
   _NavItem('Reports & Analytics', Icons.bar_chart_rounded, '/reports-analytics'),
 ];
