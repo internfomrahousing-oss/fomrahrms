@@ -228,6 +228,10 @@ import '../models/user_session.dart';
   alter table candidate_applications add column if not exists declaration_agreed boolean default false;
   alter table candidate_applications add column if not exists resume_url text default '';
   alter table candidate_applications add column if not exists custom_field_values jsonb default '{}';
+  alter table candidate_applications add column if not exists pre_offer_sent boolean default false;
+  alter table candidate_applications add column if not exists pre_offer_sent_at text default '';
+  alter table candidate_applications add column if not exists department text default '';
+  alter table candidate_applications add column if not exists designation text default '';
 
   create table if not exists app_users (
     email text primary key,
@@ -268,6 +272,7 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists work_location_pending text default '';
   alter table app_users add column if not exists work_location_requested_at text default '';
   alter table app_users add column if not exists emergency_attendance_enabled boolean default false;
+  alter table app_users add column if not exists department text default '';
 
   create table if not exists tasks (
     id text primary key,
@@ -323,6 +328,8 @@ import '../models/user_session.dart';
   alter table onboarding_forms add column if not exists assigned_email text default '';
   alter table onboarding_forms add column if not exists assigned_emp_id text default '';
   alter table onboarding_forms add column if not exists assigned_manager text default '';
+  alter table onboarding_forms add column if not exists assigned_department text default '';
+  alter table onboarding_forms add column if not exists assigned_designation text default '';
 
   create table if not exists attendance_records (
     id text primary key,
@@ -764,6 +771,7 @@ class SupabaseService {
         email:                (row['email']                   as String?) ?? '',
         employeeId:           (row['employee_id']             as String?) ?? '',
         designation:          (row['designation']             as String?) ?? '',
+        department:           (row['department']              as String?) ?? '',
         role:                 (row['role']                    as String?) ?? 'Employee',
         active:               (row['active']                  as bool?)   ?? true,
         password:             (row['password']                as String?) ?? '',
@@ -806,6 +814,7 @@ class SupabaseService {
       'name':                     u.name,
       'employee_id':              u.employeeId,
       'designation':              u.designation,
+      'department':               u.department,
       'role':                     u.role,
       'active':                   u.active,
       'password':                 u.password,

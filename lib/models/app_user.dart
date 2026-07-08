@@ -5,6 +5,7 @@ class AppUser {
   String email;
   String employeeId;
   String designation;
+  String department;
   String role; // 'Employee' | 'Manager' | 'HR' | 'Management'
   bool active;
   String password;            // individual password; empty = use role default
@@ -47,6 +48,7 @@ class AppUser {
     required this.email,
     required this.employeeId,
     required this.designation,
+    this.department = '',
     required this.role,
     this.active = true,
     this.password = '',
@@ -191,6 +193,7 @@ class AppUser {
     'email':                 email,
     'employeeId':            employeeId,
     'designation':           designation,
+    'department':            department,
     'role':                  role,
     'active':                active,
     'password':              password,
@@ -228,6 +231,7 @@ class AppUser {
     email:                j['email']                as String? ?? '',
     employeeId:           j['employeeId']           as String? ?? '',
     designation:          j['designation']          as String? ?? '',
+    department:           j['department']           as String? ?? '',
     role:                 j['role']                 as String? ?? 'Employee',
     active:               j['active']               as bool?   ?? true,
     password:             j['password']             as String? ?? '',

@@ -7,6 +7,7 @@ import '../services/notification_service.dart';
 import '../services/user_store.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
+import '../constants/org_lists.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -75,7 +76,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     List<Map<String, dynamic>> base;
     switch (_filter) {
       case 'pending':
-        base = _all.where((r) => _compositeStatus(r) != 'approved').toList();
+        base = _all.where((r) => !_isRejected(r) && _compositeStatus(r) != 'approved').toList();
         break;
       case 'done':
         // approved but NOT yet marked pre-offer sent
@@ -84,6 +85,9 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
         break;
       case 'pre_offer':
         base = _all.where((r) => r['pre_offer_sent'] == true).toList();
+        break;
+      case 'rejected':
+        base = _all.where(_isRejected).toList();
         break;
       default:
         base = _all;
@@ -96,9 +100,12 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     });
   }
 
-  int get _pendingCount   => _all.where((r) => _compositeStatus(r) != 'approved').length;
+  bool _isRejected(Map<String, dynamic> r) => _compositeStatus(r).startsWith('rejected');
+
+  int get _pendingCount   => _all.where((r) => !_isRejected(r) && _compositeStatus(r) != 'approved').length;
   int get _doneCount      => _all.where((r) => _compositeStatus(r) == 'approved' && r['pre_offer_sent'] != true).length;
   int get _preOfferCount  => _all.where((r) => r['pre_offer_sent'] == true).length;
+  int get _rejectedCount  => _all.where(_isRejected).length;
 
   String _cell(Map<String, dynamic> row, String key) {
     final v = row[key];
@@ -388,20 +395,22 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     final name  = (row['name']  ?? '').toString().trim();
     final email = (row['email'] ?? '').toString().trim();
 
-    const positions = [
-      'HR', 'ADMIN', 'OPERATION', 'CRM', 'PROJECTS',
-      'LAND ACQUISITION', 'ACCOUNTS', 'SALES', 'DIGITAL MARKETING',
-    ];
+    const positions = kDepartments;
 
     const formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form';
 
-    String? selectedPosition = (row['post_applied'] ?? '').toString().trim();
-    if (!positions.contains(selectedPosition)) selectedPosition = null;
+    final appliedRaw = (row['post_applied'] ?? '').toString().trim();
+    String? selectedPosition = positions.firstWhere(
+      (d) => d.toLowerCase() == appliedRaw.toLowerCase(),
+      orElse: () => '',
+    );
+    if (selectedPosition.isEmpty) selectedPosition = null;
+
+    String? selectedDesignation = 'Manager';
 
     DateTime joiningDate = DateTime.now().add(const Duration(days: 7));
     TimeOfDay joiningTime = const TimeOfDay(hour: 9, minute: 30);
 
-    final titleCtrl  = TextEditingController(text: 'Manager');
     final letterCtrl = TextEditingController();
 
     String _fmtDate(DateTime d) =>
@@ -415,7 +424,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     }
 
     void _refreshLetter(setDlgState) {
-      final title = titleCtrl.text.trim();
+      final title = selectedDesignation ?? '';
       final pos   = selectedPosition ?? 'the applied role';
       final designation = title.isNotEmpty ? '$title- $pos' : pos;
       final body = '''Dear $name,
@@ -503,17 +512,22 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                         const Text('Title / Designation',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                         const SizedBox(height: 4),
-                        TextField(
-                          controller: titleCtrl,
+                        DropdownButtonFormField<String>(
+                          value: selectedDesignation,
+                          hint: const Text('Select designation', style: TextStyle(fontSize: 13)),
                           decoration: InputDecoration(
-                            hintText: 'e.g. Manager, Executive',
-                            hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             isDense: true,
                           ),
-                          style: const TextStyle(fontSize: 13),
-                          onChanged: (_) => _refreshLetter(setDlgState),
+                          items: kDesignations.map((d) => DropdownMenuItem(
+                            value: d,
+                            child: Text(d, style: const TextStyle(fontSize: 13)),
+                          )).toList(),
+                          onChanged: (v) {
+                            setDlgState(() => selectedDesignation = v);
+                            _refreshLetter(setDlgState);
+                          },
                         ),
                       ]),
                     ),
@@ -674,7 +688,6 @@ Fomra Housing & Infrastructure Pvt Ltd''';
             actions: [
               TextButton(
                 onPressed: () {
-                  titleCtrl.dispose();
                   letterCtrl.dispose();
                   Navigator.pop(ctx);
                 },
@@ -697,6 +710,8 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                       await SupabaseService.updateCandidateStatus(id, {
                         'pre_offer_sent': true,
                         'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
+                        'department': selectedPosition ?? '',
+                        'designation': selectedDesignation ?? '',
                       });
                     } catch (_) {}
                     _fetch();
@@ -844,6 +859,19 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                           fontWeight: _filter == 'pending' ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12),
                       side: BorderSide(color: _filter == 'pending' ? const Color(0xFFF59E0B) : Colors.grey.shade300),
+                    ),
+                    FilterChip(
+                      avatar: const Icon(Icons.cancel_rounded, size: 13, color: Color(0xFFEF4444)),
+                      label: Text('Rejected ($_rejectedCount)'),
+                      selected: _filter == 'rejected',
+                      onSelected: (_) => setState(() { _filter = 'rejected'; _applyFilter(); }),
+                      selectedColor: const Color(0xFFFEE2E2),
+                      checkmarkColor: const Color(0xFFEF4444),
+                      labelStyle: TextStyle(
+                          color: _filter == 'rejected' ? const Color(0xFFEF4444) : Colors.grey.shade600,
+                          fontWeight: _filter == 'rejected' ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 12),
+                      side: BorderSide(color: _filter == 'rejected' ? const Color(0xFFEF4444) : Colors.grey.shade300),
                     ),
                     FilterChip(
                       avatar: const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF22C55E)),

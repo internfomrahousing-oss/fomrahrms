@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/candidate_store.dart';
 import '../models/payslip_store.dart';
-import '../models/profile_store.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
 import '../services/payslip_pdf_service.dart';
@@ -475,7 +474,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
 
                       final statCells = [
                         _MiniStat(Icons.badge_rounded,           'Employee ID',       _user?.employeeId ?? ''),
-                        _MiniStat(Icons.apartment_rounded,       'Department',        ProfileStore.current.department),
+                        _MiniStat(Icons.apartment_rounded,       'Department',        _user?.department ?? ''),
                         _MiniStat(Icons.manage_accounts_rounded, 'Reporting Manager', _user?.reportingManager ?? ''),
                         _MiniStat(Icons.calendar_today_rounded,  'Date of Joining',   _user?.dateOfJoining ?? ''),
                       ];
@@ -521,7 +520,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             _Row(Icons.email_rounded,      'Email',       _user?.email ?? ''),
                             _Row(Icons.phone_rounded,      'Phone Number', _user?.mobile ?? ''),
                             _Row(Icons.work_rounded,       'Designation', _user?.designation ?? ''),
-                            _Row(Icons.apartment_rounded,  'Department',  ProfileStore.current.department),
+                            _Row(Icons.apartment_rounded,  'Department',  _user?.department ?? ''),
                           ]),
                         ),
                         const SizedBox(width: 8),

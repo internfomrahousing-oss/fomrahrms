@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/emergency_attendance_notifier.dart';
 import '../models/user_session.dart';
@@ -286,6 +287,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   label: 'All (${_all.length})',
                   icon: Icons.groups_rounded,
                   selected: _statusFilter == _StatusFilter.all,
+                  color: const Color(0xFF111827),
                   onTap: () => setState(() { _statusFilter = _StatusFilter.all; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
@@ -293,6 +295,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   label: 'On-Roll ($_countOnroll)',
                   icon: Icons.verified_rounded,
                   selected: _statusFilter == _StatusFilter.onroll,
+                  color: const Color(0xFF22C55E),
                   onTap: () => setState(() { _statusFilter = _StatusFilter.onroll; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
@@ -300,6 +303,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   label: 'Probation ($_countProbation)',
                   icon: Icons.timelapse_rounded,
                   selected: _statusFilter == _StatusFilter.probation,
+                  color: Colors.orange.shade700,
                   onTap: () => setState(() { _statusFilter = _StatusFilter.probation; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
@@ -307,6 +311,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   label: 'EL Eligible ($_countEligible)',
                   icon: Icons.event_available_rounded,
                   selected: _statusFilter == _StatusFilter.eligible,
+                  color: AppTheme.primaryBlue,
                   onTap: () => setState(() { _statusFilter = _StatusFilter.eligible; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
@@ -314,6 +319,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   label: 'Deactivated ($_countDeactivated)',
                   icon: Icons.person_off_rounded,
                   selected: _statusFilter == _StatusFilter.deactivated,
+                  color: Colors.red.shade600,
                   onTap: () => setState(() { _statusFilter = _StatusFilter.deactivated; _applyFilter(); }),
                 ),
               ]),
@@ -1812,7 +1818,8 @@ class _EditDialogState extends State<_EditDialog> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _empIdCtrl;
   late final TextEditingController _bioIdCtrl;
-  late final TextEditingController _desigCtrl;
+  late String? _designation;
+  late String? _department;
   late final TextEditingController _mobileCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _joiningCtrl;
@@ -1835,7 +1842,8 @@ class _EditDialogState extends State<_EditDialog> {
     _emailCtrl   = TextEditingController(text: u != null ? _prefix(u.email) : '');
     _empIdCtrl   = TextEditingController(text: u?.employeeId ?? '');
     _bioIdCtrl   = TextEditingController(text: u?.biometricId ?? '');
-    _desigCtrl   = TextEditingController(text: u?.designation ?? '');
+    _designation = (u?.designation.isNotEmpty ?? false) ? u!.designation : null;
+    _department  = (u?.department.isNotEmpty ?? false) ? u!.department : null;
     _mobileCtrl  = TextEditingController(text: u?.mobile ?? '');
     _addressCtrl = TextEditingController(text: u?.address ?? '');
     _joiningCtrl = TextEditingController(text: u?.dateOfJoining ?? '');
@@ -1851,7 +1859,7 @@ class _EditDialogState extends State<_EditDialog> {
   @override
   void dispose() {
     for (final c in [
-      _nameCtrl, _emailCtrl, _empIdCtrl, _bioIdCtrl, _desigCtrl,
+      _nameCtrl, _emailCtrl, _empIdCtrl, _bioIdCtrl,
       _mobileCtrl, _addressCtrl, _joiningCtrl, _leaveCtrl, _grossPayCtrl,
     ]) {
       c.dispose();
@@ -1879,7 +1887,8 @@ class _EditDialogState extends State<_EditDialog> {
       email:            '$prefix$_domain',
       employeeId:       _empIdCtrl.text.trim(),
       biometricId:      _bioIdCtrl.text.trim(),
-      designation:      _desigCtrl.text.trim(),
+      designation:      _designation ?? '',
+      department:       _department ?? '',
       role:             _role,
       active:           _active,
       password:         widget.user?.password ?? '',
@@ -2052,7 +2061,28 @@ class _EditDialogState extends State<_EditDialog> {
 
             _field(_empIdCtrl,   'Employee ID',               Icons.badge_rounded),
             _field(_bioIdCtrl,   'Biometric ID (Device PIN)', Icons.fingerprint_rounded),
-            _field(_desigCtrl,   'Designation',               Icons.work_rounded),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: DropdownButtonFormField<String>(
+                value: _department != null && kDepartments.contains(_department) ? _department : null,
+                decoration: _dropDeco(context, 'Department', Icons.account_tree_rounded),
+                hint: _department != null ? Text(_department!) : null,
+                items: kDepartments.map((dep) =>
+                    DropdownMenuItem(value: dep, child: Text(dep))).toList(),
+                onChanged: (v) => setState(() => _department = v),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: DropdownButtonFormField<String>(
+                value: _designation != null && kDesignations.contains(_designation) ? _designation : null,
+                decoration: _dropDeco(context, 'Designation', Icons.work_rounded),
+                hint: _designation != null ? Text(_designation!) : null,
+                items: kDesignations.map((des) =>
+                    DropdownMenuItem(value: des, child: Text(des))).toList(),
+                onChanged: (v) => setState(() => _designation = v),
+              ),
+            ),
             _field(_mobileCtrl,  'Mobile',                    Icons.phone_rounded,
                 keyboard: TextInputType.phone),
             _field(_addressCtrl, 'Address',                   Icons.location_on_rounded,
@@ -2264,10 +2294,11 @@ class _FilterChip extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final Color? color;
   const _FilterChip({required this.label, required this.icon,
-      required this.selected, required this.onTap});
+      required this.selected, required this.onTap, this.color});
 
-  static Color get _color => AppTheme.primaryBlue;
+  Color get _color => color ?? AppTheme.primaryBlue;
 
   @override
   Widget build(BuildContext context) {

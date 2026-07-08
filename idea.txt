@@ -1,14 +1,3 @@
-can u ensure if the employee db gets following notification ( any employee incll manager , hr)
-you are eligible for requesting onroll
-6 month employee completed congrats , 1 year done...
-el eligible 
-leave, permisson , comp off , approved / denied
-tasks pending 
-newtasks ssigned 
-task due on ( near due date)
-maintaince issue submitted on... by  me is resolved on... by..
-check in done at.. on...
-check out done at.. on..
-payslip req denied / accepted
-announcemtns 
-on roll req accepted / denied 
+
+
+

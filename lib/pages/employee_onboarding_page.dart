@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
@@ -524,7 +525,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     try {
       final results = await Supabase.instance.client
           .from('candidate_applications')
-          .select('name, post_applied, hr_status, manager_status, management_status')
+          .select('name, post_applied, hr_status, manager_status, management_status, department, designation')
           .or('name.ilike.%$name%${phone.isNotEmpty ? ",mobile.eq.$phone" : ""}')
           .limit(1);
       if (results.isNotEmpty && mounted) {
@@ -549,6 +550,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
   Future<void> _sendToManagement(BuildContext context) async {
     final allUsers = await _loadAllUsers();
     final managers = allUsers.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+    await _fetchLinkedInterview();
     if (!context.mounted) return;
 
     final d = widget.data;
@@ -556,6 +558,13 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     final emailCtrl = TextEditingController(text: _autoEmail(name));
     final empIdCtrl  = TextEditingController(text: _nextEmpId(allUsers));
     String selectedManager = managers.isNotEmpty ? managers.first : '';
+
+    // Department/designation chosen by HR on the pre-offer letter carry over here,
+    // still editable in case the role changed before joining.
+    final linkedDept  = (_linkedInterview?['department']  as String?)?.trim() ?? '';
+    final linkedDesig = (_linkedInterview?['designation'] as String?)?.trim() ?? '';
+    String? selectedDepartment   = kDepartments.contains(linkedDept)  ? linkedDept  : null;
+    String? selectedDesignation  = kDesignations.contains(linkedDesig) ? linkedDesig : null;
 
     await showDialog(
       context: context,
@@ -603,6 +612,32 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedDepartment,
+                hint: const Text('Select department'),
+                decoration: InputDecoration(
+                  labelText: 'Department',
+                  prefixIcon: Icon(Icons.account_tree_rounded, color: _blue, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: kDepartments.map((dep) => DropdownMenuItem(value: dep, child: Text(dep))).toList(),
+                onChanged: (v) => setS(() => selectedDepartment = v),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedDesignation,
+                hint: const Text('Select designation'),
+                decoration: InputDecoration(
+                  labelText: 'Designation',
+                  prefixIcon: Icon(Icons.work_rounded, color: _blue, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: kDesignations.map((des) => DropdownMenuItem(value: des, child: Text(des))).toList(),
+                onChanged: (v) => setS(() => selectedDesignation = v),
+              ),
               if (managers.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -637,10 +672,12 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   await Supabase.instance.client
                       .from('onboarding_forms')
                       .update({
-                        'status':           'hr_approved',
-                        'assigned_email':   '${emailCtrl.text.trim()}@fomrahousing.in',
-                        'assigned_emp_id':  empIdCtrl.text.trim(),
-                        'assigned_manager': selectedManager,
+                        'status':                'hr_approved',
+                        'assigned_email':        '${emailCtrl.text.trim()}@fomrahousing.in',
+                        'assigned_emp_id':       empIdCtrl.text.trim(),
+                        'assigned_manager':      selectedManager,
+                        'assigned_department':   selectedDepartment ?? '',
+                        'assigned_designation':  selectedDesignation ?? '',
                       })
                       .eq('id', widget.data['id'].toString());
                   widget.onRefresh();
@@ -694,9 +731,11 @@ class _SubmissionCardState extends State<_SubmissionCard> {
 
   Future<void> _approveManagement(BuildContext context) async {
     final d = widget.data;
-    final email   = (d['assigned_email']   as String?) ?? '';
-    final empId   = (d['assigned_emp_id']  as String?) ?? '';
-    final manager = (d['assigned_manager'] as String?) ?? '';
+    final email       = (d['assigned_email']       as String?) ?? '';
+    final empId       = (d['assigned_emp_id']      as String?) ?? '';
+    final manager     = (d['assigned_manager']     as String?) ?? '';
+    final department  = (d['assigned_department']  as String?) ?? '';
+    final designation = (d['assigned_designation'] as String?) ?? (d['designation'] as String?) ?? '';
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -712,7 +751,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         name:             (d['name']            as String?) ?? '',
         email:            email,
         employeeId:       empId,
-        designation:      (d['designation']     as String?) ?? '',
+        designation:      designation,
+        department:       department,
         role:             'Employee',
         active:           true,
         reportingManager: manager,

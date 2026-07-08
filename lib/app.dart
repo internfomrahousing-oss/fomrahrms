@@ -226,7 +226,7 @@ final _router = GoRouter(
         GoRoute(path: '/hr/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/hr/interview-form',         builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/hr/employee-onboarding',    builder: (_, __) => const MyOnboardingFormPage()),
-        GoRoute(path: '/hr/maintenance-management', builder: (_, __) => const MaintenanceManagementPage()),
+        GoRoute(path: '/hr/maintenance-management', builder: (_, __) => const MaintenanceManagementPage(personalView: true)),
         GoRoute(path: '/settings',                  builder: (_, __) => const SettingsPage()),
       ],
     ),

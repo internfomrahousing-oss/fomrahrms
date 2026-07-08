@@ -12,7 +12,10 @@ import '../utils/month_picker.dart';
 import '../widgets/back_button.dart';
 
 class MaintenanceManagementPage extends StatefulWidget {
-  const MaintenanceManagementPage({super.key});
+  // When true (HR's "My Space" entry), always show the personal
+  // report-an-issue view instead of the admin dashboard.
+  final bool personalView;
+  const MaintenanceManagementPage({super.key, this.personalView = false});
 
   @override
   State<MaintenanceManagementPage> createState() =>
@@ -269,6 +272,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.personalView) return _buildReporterPage(context);
     switch (UserSession.role) {
       case UserRole.hr:
         return _buildHrPage(context);
