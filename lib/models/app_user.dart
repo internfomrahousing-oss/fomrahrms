@@ -35,6 +35,10 @@ class AppUser {
   String workLocation;
   String workLocationPending;      // proposed new value awaiting Management approval; empty = none
   String workLocationRequestedAt;  // ISO datetime the change was requested
+  // Office employees are normally tracked via the ESSL X990 biometric device and
+  // don't see app check-in/out. HR can flip this on per-employee for emergencies,
+  // which restores app check-in/out for that employee until turned off again.
+  bool emergencyAttendanceEnabled;
 
   AppUser({
     required this.name,
@@ -68,11 +72,18 @@ class AppUser {
     this.workLocation = '',
     this.workLocationPending = '',
     this.workLocationRequestedAt = '',
+    this.emergencyAttendanceEnabled = false,
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
+
+  /// Whether this employee should see app-based Check In / Check Out.
+  /// Office employees are tracked via the biometric device instead, unless
+  /// HR has granted emergency app access. Onsite (or not-yet-assigned)
+  /// employees always use the app.
+  bool get usesAppAttendance => workLocation != 'Office' || emergencyAttendanceEnabled;
 
   // On-roll 3-stage review helpers
   bool get onrollHrAccepted       => onrollHrStatus == 'accepted';
@@ -202,6 +213,7 @@ class AppUser {
     'workLocation':          workLocation,
     'workLocationPending':   workLocationPending,
     'workLocationRequestedAt': workLocationRequestedAt,
+    'emergencyAttendanceEnabled': emergencyAttendanceEnabled,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -236,5 +248,6 @@ class AppUser {
     workLocation:            j['workLocation']            as String? ?? '',
     workLocationPending:     j['workLocationPending']     as String? ?? '',
     workLocationRequestedAt: j['workLocationRequestedAt'] as String? ?? '',
+    emergencyAttendanceEnabled: j['emergencyAttendanceEnabled'] as bool? ?? false,
   );
 }

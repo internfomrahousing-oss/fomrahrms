@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
+import '../services/attendance_access.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
@@ -54,6 +55,7 @@ class AttendanceShortcutCard extends StatefulWidget {
 class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
   bool _loading = true;
   AttendanceRecord? _record;
+  bool _canCheckInOut = true;
   Timer? _ticker;
 
   @override
@@ -70,10 +72,15 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    final results = await Future.wait([
+      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
+      AttendanceAccess.canCheckInOut(),
+    ]);
     if (!mounted) return;
+    final rec = results[0] as AttendanceRecord?;
     setState(() {
       _record = rec;
+      _canCheckInOut = results[1] as bool;
       _loading = false;
     });
     if (rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) {
@@ -447,17 +454,28 @@ Approved by: Sharad Fomra, CEO & MD
     }
 
     final tiles = <Widget>[
-      Tooltip(
-        message: statusText,
-        child: _QuickTileView(
-          icon: statusIcon,
-          color: statusColor,
-          label: tileLabel,
-          loading: _loading,
-          showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
-          onTap: _loading ? null : _openSheet,
+      if (_loading || _canCheckInOut)
+        Tooltip(
+          message: statusText,
+          child: _QuickTileView(
+            icon: statusIcon,
+            color: statusColor,
+            label: tileLabel,
+            loading: _loading,
+            showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
+            onTap: _loading ? null : _openSheet,
+          ),
+        )
+      else
+        Tooltip(
+          message: 'Attendance is tracked automatically via the biometric device',
+          child: _QuickTileView(
+            icon: Icons.fingerprint_rounded,
+            color: accent,
+            label: 'Biometric',
+            onTap: null,
+          ),
         ),
-      ),
       _QuickTileView(
         icon: Icons.policy_rounded,
         color: hrBlue,

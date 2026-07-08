@@ -258,6 +258,7 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists work_location text default '';
   alter table app_users add column if not exists work_location_pending text default '';
   alter table app_users add column if not exists work_location_requested_at text default '';
+  alter table app_users add column if not exists emergency_attendance_enabled boolean default false;
 
   create table if not exists tasks (
     id text primary key,
@@ -739,6 +740,7 @@ class SupabaseService {
         workLocation:            (row['work_location']             as String?) ?? '',
         workLocationPending:     (row['work_location_pending']     as String?) ?? '',
         workLocationRequestedAt: (row['work_location_requested_at'] as String?) ?? '',
+        emergencyAttendanceEnabled: (row['emergency_attendance_enabled'] as bool?) ?? false,
       )).toList();
     } catch (_) {
       return [];
@@ -778,6 +780,7 @@ class SupabaseService {
       'work_location':            u.workLocation,
       'work_location_pending':    u.workLocationPending,
       'work_location_requested_at': u.workLocationRequestedAt,
+      'emergency_attendance_enabled': u.emergencyAttendanceEnabled,
     });
   }
 

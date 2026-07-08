@@ -969,6 +969,43 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     return chip;
   }
 
+  Future<void> _setEmergencyAttendance(bool v) async {
+    setState(() => _saving = true);
+    _user.emergencyAttendanceEnabled = v;
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _emergencyAttendanceToggle() {
+    final on = _user.emergencyAttendanceEnabled;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(children: [
+        Icon(Icons.emergency_rounded, size: 16,
+            color: on ? Colors.red.shade600 : Colors.grey.shade400),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Emergency App Check-In/Out',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+            Text(
+                on ? 'Enabled — can check in/out via the app' : 'Off — attendance tracked via biometric device',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          ]),
+        ),
+        Switch(
+          value: on,
+          onChanged: _saving ? null : _setEmergencyAttendance,
+          activeColor: Colors.red.shade600,
+        ),
+      ]),
+    );
+  }
+
   Future<void> _confirmEl() async {
     setState(() => _saving = true);
     _user.elEligibleAt = DateTime.now().toIso8601String();
@@ -1071,6 +1108,10 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             ]),
             const SizedBox(height: 10),
             _workLocationBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
+            if (_user.workLocation == 'Office' && canEdit) ...[
+              const SizedBox(height: 8),
+              _emergencyAttendanceToggle(),
+            ],
             const SizedBox(height: 4),
 
             // ── Employment status management ──────────────────────────────

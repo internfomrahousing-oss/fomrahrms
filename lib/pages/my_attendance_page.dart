@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
+import '../services/attendance_access.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -39,6 +40,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   Map<int, AttendanceRecord> _attendance = {};
   Set<int> _leaveDays = {};
   Set<int> _holidayDays = {};
+  bool _canCheckInOut = true;
 
   @override
   void initState() {
@@ -54,12 +56,14 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       SupabaseService.fetchTodayAttendance(UserSession.employeeId),
       SupabaseService.fetchAttendanceForMonth(UserSession.employeeId, _month.year, _month.month),
       SupabaseService.fetchHolidays(_month.year),
+      AttendanceAccess.canCheckInOut(),
     ]);
     if (!mounted) return;
 
     final today    = results[0] as AttendanceRecord?;
     final records  = results[1] as List<AttendanceRecord>;
     final holidays = results[2] as List<Map<String, dynamic>>;
+    _canCheckInOut = results[3] as bool;
 
     if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
       AttendanceStore.isCheckedIn = true;
@@ -173,6 +177,38 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     );
   }
 
+  Widget get _checkInOutAction {
+    if (!_canCheckInOut) {
+      return Tooltip(
+        message: 'Attendance is tracked automatically via the biometric device',
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.fingerprint_rounded, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 6),
+            Text('Biometric', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          ]),
+        ),
+      );
+    }
+    return ElevatedButton.icon(
+      onPressed: () => context.go(widget.checkInRoute),
+      icon: const Icon(Icons.fingerprint_rounded, size: 16),
+      label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _blue,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 2,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs  = Theme.of(context).colorScheme;
@@ -195,18 +231,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
               child: Text('Attendance',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
-            ElevatedButton.icon(
-              onPressed: () => context.go(widget.checkInRoute),
-              icon: const Icon(Icons.fingerprint_rounded, size: 16),
-              label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 2,
-              ),
-            ),
+            _checkInOutAction,
           ])
         : Row(children: [
             const NavBackButton(),
@@ -228,18 +253,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                     style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),
-            ElevatedButton.icon(
-              onPressed: () => context.go(widget.checkInRoute),
-              icon: const Icon(Icons.fingerprint_rounded, size: 16),
-              label: const Text('Check In / Out', style: TextStyle(fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 2,
-              ),
-            ),
+            _checkInOutAction,
           ]);
 
     final content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
