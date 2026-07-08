@@ -174,7 +174,7 @@ class QuickActionIcons extends StatelessWidget {
                   border: Border.all(
                       color: q.color.withValues(alpha: 0.35), width: 1),
                 ),
-                child: Icon(q.icon, color: q.color, size: 20),
+                child: Icon(q.icon, color: Colors.white, size: 20),
               ),
             ),
           ),
