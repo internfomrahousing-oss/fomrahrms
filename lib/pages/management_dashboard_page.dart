@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
+import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/employee_list_dialog.dart';
 import '../widgets/fade_in.dart';
 import '../widgets/hover_lift.dart';
 import '../widgets/milestone_confetti.dart';
@@ -48,6 +51,8 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
   String _totalEmployees = '—';
   String _present = '—';
   String _absent  = '—';
+  List<AppUser> _users = [];
+  List<AttendanceRecord> _records = [];
 
   @override
   void initState() {
@@ -68,6 +73,8 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
         _totalEmployees = '$total';
         _present = '$present';
         _absent  = '$absent';
+        _users = users;
+        _records = records;
       });
     }
   }
@@ -94,7 +101,13 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MgmtStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
+                  _MgmtStatStrip(
+                    totalEmployees: _totalEmployees,
+                    present: _present,
+                    absent: _absent,
+                    users: _users,
+                    records: _records,
+                  ),
                   SizedBox(height: narrow ? 24 : 32),
 
                   AttendanceShortcutCard(
@@ -167,10 +180,14 @@ class _MgmtStatStrip extends StatelessWidget {
   final String totalEmployees;
   final String present;
   final String absent;
+  final List<AppUser> users;
+  final List<AttendanceRecord> records;
   const _MgmtStatStrip(
       {required this.totalEmployees,
       required this.present,
-      required this.absent});
+      required this.absent,
+      required this.users,
+      required this.records});
 
   double? _pct(String num, String denom) {
     final n = int.tryParse(num);
@@ -179,25 +196,95 @@ class _MgmtStatStrip extends StatelessWidget {
     return (n / d).clamp(0.0, 1.0);
   }
 
+  bool _isOffice(AppUser u) => u.workLocation == 'Office';
+
+  String _locTag(AppUser u) => u.workLocation.isEmpty ? 'Not set' : u.workLocation;
+
+  String _locTagByName(Map<String, AppUser> byName, String name) {
+    final u = byName[name];
+    return u == null ? 'Not set' : _locTag(u);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final presentByName = {
+      for (final r in records)
+        if (r.checkInTime.isNotEmpty) r.employeeName: r,
+    };
+    final sortedUsers = [...users]..sort((a, b) => a.name.compareTo(b.name));
+    final presentList = presentByName.values.toList()
+      ..sort((a, b) => a.employeeName.compareTo(b.employeeName));
+    final absentUsers = sortedUsers.where((u) => !presentByName.containsKey(u.name)).toList();
+    final usersByName = {for (final u in sortedUsers) u.name: u};
+
+    final totalOffice = sortedUsers.where(_isOffice).length;
+    final totalOnsite = sortedUsers.length - totalOffice;
+    final presentOffice = presentList.where((r) {
+      final u = usersByName[r.employeeName];
+      return u != null && _isOffice(u);
+    }).length;
+    final presentOnsite = presentList.length - presentOffice;
+    final absentOffice = absentUsers.where(_isOffice).length;
+    final absentOnsite = absentUsers.length - absentOffice;
+
     return AppStatStrip(cards: [
       AppStatCard(
         title: 'Total Employees',
         value: totalEmployees,
         icon: Icons.groups_rounded,
+        officeCount: totalOffice,
+        onsiteCount: totalOnsite,
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Total Employees',
+          icon: Icons.groups_rounded,
+          color: AppTheme.primaryBlue,
+          items: [
+            for (final u in sortedUsers)
+              EmployeeListItem(name: u.name, subtitle: '${u.designation} • ${_locTag(u)}'),
+          ],
+        ),
       ),
       AppStatCard(
         title: 'Present Today',
         value: present,
         icon: Icons.check_circle_rounded,
         gaugePercent: _pct(present, totalEmployees),
+        officeCount: presentOffice,
+        onsiteCount: presentOnsite,
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Present Today',
+          icon: Icons.check_circle_rounded,
+          color: AppTheme.success,
+          items: [
+            for (final r in presentList)
+              EmployeeListItem(
+                name: r.employeeName,
+                subtitle: 'Checked in ${r.checkInTime} • ${_locTagByName(usersByName, r.employeeName)}',
+              ),
+          ],
+          emptyLabel: 'No one has checked in yet',
+        ),
       ),
       AppStatCard(
         title: 'Absent Today',
         value: absent,
         icon: Icons.cancel_rounded,
         gaugePercent: _pct(absent, totalEmployees),
+        officeCount: absentOffice,
+        onsiteCount: absentOnsite,
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Absent Today',
+          icon: Icons.cancel_rounded,
+          color: AppTheme.error,
+          items: [
+            for (final u in absentUsers)
+              EmployeeListItem(name: u.name, subtitle: '${u.designation} • ${_locTag(u)}'),
+          ],
+          emptyLabel: 'Everyone is present today',
+        ),
       ),
       const AppStatCard(
         title: 'Pending Leaves',

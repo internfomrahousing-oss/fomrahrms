@@ -17,6 +17,8 @@ class AppStatCard extends StatelessWidget {
   final Color? color;
   final double? gaugePercent;
   final VoidCallback? onTap;
+  final int? officeCount;
+  final int? onsiteCount;
 
   const AppStatCard({
     super.key,
@@ -26,6 +28,8 @@ class AppStatCard extends StatelessWidget {
     this.color,
     this.gaugePercent,
     this.onTap,
+    this.officeCount,
+    this.onsiteCount,
   });
 
   @override
@@ -124,6 +128,20 @@ class AppStatCard extends StatelessWidget {
                             color: color.withValues(alpha: 0.75))),
                   ]),
                 ),
+                if (officeCount != null && onsiteCount != null) ...[
+                  const SizedBox(height: 6),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.apartment_rounded, size: 12, color: Colors.indigo.shade400),
+                    const SizedBox(width: 3),
+                    Text('$officeCount Office',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.indigo.shade700)),
+                    const SizedBox(width: 10),
+                    Icon(Icons.location_on_rounded, size: 12, color: Colors.teal.shade400),
+                    const SizedBox(width: 3),
+                    Text('$onsiteCount Onsite',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.teal.shade700)),
+                  ]),
+                ],
               ],
             ),
           ),

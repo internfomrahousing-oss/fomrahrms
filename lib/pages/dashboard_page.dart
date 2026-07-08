@@ -179,6 +179,15 @@ class _HrStatStrip extends StatelessWidget {
     return (n / d).clamp(0.0, 1.0);
   }
 
+  bool _isOffice(AppUser u) => u.workLocation == 'Office';
+
+  String _locTag(AppUser u) => u.workLocation.isEmpty ? 'Not set' : u.workLocation;
+
+  String _locTagByName(Map<String, AppUser> byName, String name) {
+    final u = byName[name];
+    return u == null ? 'Not set' : _locTag(u);
+  }
+
   @override
   Widget build(BuildContext context) {
     final presentByName = {
@@ -189,18 +198,35 @@ class _HrStatStrip extends StatelessWidget {
     final presentList = presentByName.values.toList()
       ..sort((a, b) => a.employeeName.compareTo(b.employeeName));
     final absentUsers = sortedUsers.where((u) => !presentByName.containsKey(u.name)).toList();
+    final onsiteUsers = sortedUsers.where((u) => !_isOffice(u)).toList();
+
+    final totalOffice  = sortedUsers.where(_isOffice).length;
+    final totalOnsite  = sortedUsers.length - totalOffice;
+    final presentUsersByName = {for (final u in sortedUsers) u.name: u};
+    final presentOffice = presentList.where((r) {
+      final u = presentUsersByName[r.employeeName];
+      return u != null && _isOffice(u);
+    }).length;
+    final presentOnsite = presentList.length - presentOffice;
+    final absentOffice = absentUsers.where(_isOffice).length;
+    final absentOnsite = absentUsers.length - absentOffice;
 
     return AppStatStrip(cards: [
       AppStatCard(
         title: 'Total Employees',
         value: totalEmployees,
         icon: Icons.groups_rounded,
+        officeCount: totalOffice,
+        onsiteCount: totalOnsite,
         onTap: () => showEmployeeListDialog(
           context,
           title: 'Total Employees',
           icon: Icons.groups_rounded,
           color: AppTheme.primaryBlue,
-          items: [for (final u in sortedUsers) EmployeeListItem(name: u.name, subtitle: u.designation)],
+          items: [
+            for (final u in sortedUsers)
+              EmployeeListItem(name: u.name, subtitle: '${u.designation} • ${_locTag(u)}'),
+          ],
         ),
       ),
       AppStatCard(
@@ -208,6 +234,8 @@ class _HrStatStrip extends StatelessWidget {
         value: present,
         icon: Icons.check_circle_rounded,
         gaugePercent: _pct(present, totalEmployees),
+        officeCount: presentOffice,
+        onsiteCount: presentOnsite,
         onTap: () => showEmployeeListDialog(
           context,
           title: 'Present Today',
@@ -215,7 +243,10 @@ class _HrStatStrip extends StatelessWidget {
           color: AppTheme.success,
           items: [
             for (final r in presentList)
-              EmployeeListItem(name: r.employeeName, subtitle: 'Checked in ${r.checkInTime}'),
+              EmployeeListItem(
+                name: r.employeeName,
+                subtitle: 'Checked in ${r.checkInTime} • ${_locTagByName(presentUsersByName, r.employeeName)}',
+              ),
           ],
           emptyLabel: 'No one has checked in yet',
         ),
@@ -225,20 +256,40 @@ class _HrStatStrip extends StatelessWidget {
         value: absent,
         icon: Icons.cancel_rounded,
         gaugePercent: _pct(absent, totalEmployees),
+        officeCount: absentOffice,
+        onsiteCount: absentOnsite,
         onTap: () => showEmployeeListDialog(
           context,
           title: 'Absent Today',
           icon: Icons.cancel_rounded,
           color: AppTheme.error,
-          items: [for (final u in absentUsers) EmployeeListItem(name: u.name, subtitle: u.designation)],
+          items: [
+            for (final u in absentUsers)
+              EmployeeListItem(name: u.name, subtitle: '${u.designation} • ${_locTag(u)}'),
+          ],
           emptyLabel: 'Everyone is present today',
         ),
       ),
-      const AppStatCard(
+      AppStatCard(
         title: 'On-site',
-        value: '—',
+        value: '$totalOnsite',
         icon: Icons.location_on_rounded,
-        gaugePercent: 0,
+        color: Colors.teal,
+        gaugePercent: _pct('$totalOnsite', totalEmployees),
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'On-site Employees',
+          icon: Icons.location_on_rounded,
+          color: Colors.teal,
+          items: [
+            for (final u in onsiteUsers)
+              EmployeeListItem(
+                name: u.name,
+                subtitle: '${u.designation} • ${presentByName.containsKey(u.name) ? 'Present' : 'Absent'}',
+              ),
+          ],
+          emptyLabel: 'No onsite employees',
+        ),
       ),
     ]);
   }
