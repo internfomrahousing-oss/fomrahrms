@@ -173,7 +173,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
       .where((a) =>
           a.managerStatus == LeaveApprovalStatus.approved &&
           _isThisMonth(a) &&
-          LeaveStore.effectiveBucket(a.leaveType) == bucket)
+          a.bucket == bucket)
       .fold(0.0, (s, a) => s + a.effectiveDays);
 
   double _usedElSinceAvail() {

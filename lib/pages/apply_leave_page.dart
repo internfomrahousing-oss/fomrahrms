@@ -28,6 +28,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   DateTime? _fromDate;
   DateTime? _toDate;
   String _leaveType  = 'Casual Leave';
+  String _bucket     = 'CL'; // CL / ML / EL / LOP — balance this leave draws from
   bool   _isHalfDay  = false;
   final _reasonController = TextEditingController();
 
@@ -45,26 +46,47 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   bool   _uploadingProof = false;
 
   List<String> get _leaveTypes {
-    if (_isElEligible) {
-      return _allLeaveTypes; // all types
+    // EL is only offered as a reason once the employee is EL-eligible.
+    // Medical/other reasons stay selectable regardless of ML eligibility —
+    // if the employee has no ML balance, _syncBucket() falls it back to CL.
+    if (_isElEligible) return _allLeaveTypes;
+    return _allLeaveTypes.where((t) => LeaveStore.effectiveBucket(t) != 'EL').toList();
+  }
+
+  static const _bucketLabels = {'CL': 'Casual Leave', 'ML': 'Medical Leave', 'EL': 'Earned Leave'};
+
+  /// Balance buckets actually available to this employee.
+  List<String> get _applicableBuckets {
+    final b = <String>['CL'];
+    if (_isOnroll) b.add('ML');
+    if (_isElEligible) b.add('EL');
+    return b;
+  }
+
+  /// Whether the employee needs to pick which balance this leave draws
+  /// from — only relevant when the reason doesn't already force a bucket
+  /// (Earned Leave → EL, LOP or Others → LOP) and more than one applies.
+  bool get _showBucketPicker {
+    final reasonBucket = LeaveStore.effectiveBucket(_leaveType);
+    if (reasonBucket == 'LOP' || reasonBucket == 'EL') return false;
+    return _applicableBuckets.length > 1;
+  }
+
+  /// Resets [_bucket] to the sensible default for the current reason —
+  /// its own bucket if applicable to this employee, else CL.
+  void _syncBucket() {
+    final reasonBucket = LeaveStore.effectiveBucket(_leaveType);
+    if (reasonBucket == 'LOP') {
+      _bucket = 'LOP';
+    } else if (reasonBucket == 'EL') {
+      _bucket = _isElEligible ? 'EL' : 'CL';
+    } else {
+      _bucket = _applicableBuckets.contains(reasonBucket) ? reasonBucket : 'CL';
     }
-    if (_isOnroll) {
-      return _allLeaveTypes
-          .where((t) => LeaveStore.effectiveBucket(t) != 'EL')
-          .toList();
-    }
-    // Probation: CL only (+ special types like maternity, bereavement etc.)
-    return _allLeaveTypes
-        .where((t) {
-          final bucket = LeaveStore.effectiveBucket(t);
-          return bucket != 'EL' && bucket != 'ML';
-        })
-        .toList();
   }
 
   double get _remaining {
-    final bucket = LeaveStore.effectiveBucket(_leaveType);
-    switch (bucket) {
+    switch (_bucket) {
       case 'ML':  return _isOnroll ? (1.0 - _usedMl).clamp(0.0, 1.0) : 0.0;
       case 'EL':  return (_accruedEl.toDouble() - _usedEl).clamp(0.0, _accruedEl.toDouble());
       case 'LOP': return double.infinity;
@@ -136,7 +158,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       for (final a in leaves) {
         if (a.employeeName != UserSession.name ||
             a.managerStatus != LeaveApprovalStatus.approved) continue;
-        final bucket = LeaveStore.effectiveBucket(a.leaveType);
+        final bucket = a.bucket;
         if (bucket == 'CL' && a.from.year == now.year && a.from.month == now.month) {
           usedCl += a.effectiveDays;
         } else if (bucket == 'ML' && a.from.year == now.year && a.from.month == now.month) {
@@ -167,6 +189,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
         _isOnroll     = me?.isOnroll     ?? false;
         _isElEligible = me?.isElEligible ?? false;
         if (!_leaveTypes.contains(_leaveType)) _leaveType = _leaveTypes.first;
+        _syncBucket();
       });
     } catch (_) {}
   }
@@ -356,8 +379,9 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       reason:       _reasonController.text.trim(),
       appliedOn:    DateTime.now(),
     )
-      ..isHalfDay = _isHalfDay
-      ..proofUrl  = _proofUrl;
+      ..isHalfDay   = _isHalfDay
+      ..proofUrl    = _proofUrl
+      ..leaveBucket = _bucket;
     LeaveStore.applications.add(app);
     SupabaseService.saveLeaveApplication(app);
 
@@ -370,6 +394,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       _fromDate  = null;
       _toDate    = null;
       _leaveType = 'Casual Leave';
+      _bucket    = 'CL';
       _isHalfDay = false;
       _proofUrl      = '';
       _proofFileName = '';
@@ -439,9 +464,40 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                       items: _leaveTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
-                      onChanged: (v) { if (v != null) setState(() => _leaveType = v); },
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() {
+                          _leaveType = v;
+                          _syncBucket();
+                        });
+                      },
                     ),
                     const SizedBox(height: 14),
+
+                    if (_showBucketPicker) ...[
+                      Text('Deduct From',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _applicableBuckets.map((b) {
+                          final selected = _bucket == b;
+                          return ChoiceChip(
+                            label: Text('${_bucketLabels[b]} ($b)', style: const TextStyle(fontSize: 12)),
+                            selected: selected,
+                            onSelected: (_) => setState(() => _bucket = b),
+                            selectedColor: _color.withValues(alpha: 0.15),
+                            labelStyle: TextStyle(
+                              color: selected ? _color : Colors.black87,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                            side: BorderSide(color: selected ? _color : const Color(0xFFE5E7EB)),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Half day / Full day toggle
                     Row(children: [

@@ -96,7 +96,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   double _usedBucket(String name, String bucket, {bool monthOnly = true}) =>
       _applications.where((a) =>
           a.employeeName == name &&
-          LeaveStore.effectiveBucket(a.leaveType) == bucket &&
+          a.bucket == bucket &&
           a.managerStatus == LeaveApprovalStatus.approved &&
           (!monthOnly || _isThisMonth(a)))
       .fold(0.0, (s, a) => s + a.effectiveDays);

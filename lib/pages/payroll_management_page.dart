@@ -990,7 +990,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
     final myLeaves = leaves.where((a) => a.employeeName == widget.user.name).toList();
     final lopDays = myLeaves
         .where((a) =>
-            LeaveStore.effectiveBucket(a.leaveType) == 'LOP' &&
+            a.bucket == 'LOP' &&
             a.managerStatus == LeaveApprovalStatus.approved &&
             a.from.year == year && a.from.month == month)
         .fold(0.0, (s, a) => s + a.effectiveDays)
@@ -999,7 +999,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
     // Leave details (CL/ML monthly allocation, EL accrued-to-date)
     double takenFor(String bucket) => myLeaves
         .where((a) =>
-            LeaveStore.effectiveBucket(a.leaveType) == bucket &&
+            a.bucket == bucket &&
             a.managerStatus == LeaveApprovalStatus.approved &&
             a.from.year == year && a.from.month == month)
         .fold(0.0, (s, a) => s + a.effectiveDays);

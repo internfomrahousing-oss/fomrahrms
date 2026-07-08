@@ -40,6 +40,7 @@ import '../models/user_session.dart';
   alter table leave_applications add column if not exists management_decided_by text default '';
   alter table leave_applications add column if not exists management_rejection_comment text default '';
   alter table leave_applications add column if not exists proof_url text default '';
+  alter table leave_applications add column if not exists leave_bucket text default '';
 
   alter table onboarding_forms disable row level security;
 
@@ -372,7 +373,7 @@ class SupabaseService {
         'manager_status': app.managerStatus.name,
       });
     } catch (_) {}
-    // is_half_day / proof_url — added later; skipped silently if columns not yet in DB
+    // is_half_day / proof_url / leave_bucket — added later; skipped silently if columns not yet in DB
     try {
       await _db?.from('leave_applications')
           .update({'is_half_day': app.isHalfDay})
@@ -381,6 +382,11 @@ class SupabaseService {
     try {
       await _db?.from('leave_applications')
           .update({'proof_url': app.proofUrl})
+          .eq('id', app.id);
+    } catch (_) {}
+    try {
+      await _db?.from('leave_applications')
+          .update({'leave_bucket': app.leaveBucket})
           .eq('id', app.id);
     } catch (_) {}
   }
@@ -442,8 +448,9 @@ class SupabaseService {
           app.decidedBy        = (row['decided_by']        as String?) ?? '';
           app.rejectionComment = (row['rejection_comment'] as String?) ?? '';
         }
-        app.isHalfDay = (row['is_half_day'] as bool?) ?? false;
-        app.proofUrl  = (row['proof_url']  as String?) ?? '';
+        app.isHalfDay   = (row['is_half_day'] as bool?) ?? false;
+        app.proofUrl    = (row['proof_url']  as String?) ?? '';
+        app.leaveBucket = (row['leave_bucket'] as String?) ?? '';
         return app;
       }).toList();
       return list;

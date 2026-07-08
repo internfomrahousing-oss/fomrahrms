@@ -54,7 +54,7 @@ class _MyLeaveBlockState extends State<MyLeaveBlock> {
           .where((a) =>
               a.managerStatus == LeaveApprovalStatus.approved &&
               _isThisMonth(a.from) &&
-              LeaveStore.effectiveBucket(a.leaveType) == 'CL')
+              a.bucket == 'CL')
           .fold(0.0, (s, a) => s + a.effectiveDays);
       final pending = mine.where((a) => a.effectiveStatus == LeaveApprovalStatus.pending).length;
 

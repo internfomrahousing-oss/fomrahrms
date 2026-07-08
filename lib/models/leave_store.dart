@@ -19,6 +19,10 @@ class LeaveApplication {
   // Sickness proof attachment (Medical / Sick Leave) — URL in Supabase storage, empty if none.
   String proofUrl         = '';
 
+  // Explicit CL/ML/EL/LOP balance the employee chose to draw this leave from.
+  // Empty for older records — falls back to guessing from [leaveType] text.
+  String leaveBucket = '';
+
   // True once management (HR/admin) has made a decision — locks manager's controls
   bool managementDecided = false;
 
@@ -27,6 +31,11 @@ class LeaveApplication {
 
   /// Actual deduction: 0.5 for half day, full days otherwise.
   double get effectiveDays => isHalfDay ? 0.5 : days.toDouble();
+
+  /// The balance bucket (CL/ML/EL/LOP) this leave draws from — the
+  /// employee's explicit choice if set, otherwise inferred from the label.
+  String get bucket =>
+      leaveBucket.isNotEmpty ? leaveBucket : LeaveStore.effectiveBucket(leaveType);
 
   // Aliases used by employee view (same field, kept for clarity)
   LeaveApprovalStatus get effectiveStatus => managerStatus;
