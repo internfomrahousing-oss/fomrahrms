@@ -53,6 +53,17 @@ String _statusLabel(String s) {
 Color get _blue => AppTheme.primaryBlue;
 
 enum _SubFilter { all, received, sentToManagement, approvedActive }
+enum _OnboardSort { latest, oldest, nameAz }
+
+// Deterministic pastel avatar color from a name, so rows read as distinct
+// people at a glance rather than one flat color per row.
+const _avatarPalette = <Color>[
+  Color(0xFF6366F1), Color(0xFFEC4899), Color(0xFF22C55E),
+  Color(0xFFF59E0B), Color(0xFF06B6D4), Color(0xFF8B5CF6),
+  Color(0xFFEF4444), Color(0xFF14B8A6),
+];
+Color _avatarColor(String name) =>
+    _avatarPalette[name.isEmpty ? 0 : name.codeUnitAt(0) % _avatarPalette.length];
 
 bool _matchesSubFilter(Map<String, dynamic> row, _SubFilter f) {
   final status = (row['status'] as String?) ?? 'pending';
@@ -84,7 +95,46 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   int _tab = 0;
   bool _loading = false;
   _SubFilter _statusFilter = _SubFilter.all;
+  String _deptFilter = 'All';
+  String _managerFilter = 'All';
+  _OnboardSort _sort = _OnboardSort.latest;
   final _searchCtrl = TextEditingController();
+
+  String _statusOf(Map<String, dynamic> r) => (r['status'] as String?) ?? 'pending';
+
+  List<String> get _departmentOptions {
+    final s = _all
+        .map((r) => (r['designation'] ?? '').toString().trim())
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...s];
+  }
+
+  List<String> get _managerOptions {
+    final s = _all
+        .map((r) => (r['assigned_manager'] ?? '').toString().trim())
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...s];
+  }
+
+  int get _countActiveOnboarding => _all.where((r) {
+        final s = _statusOf(r);
+        return s == 'pending' || s == 'hr_approved' || s == 'mgmt_approved';
+      }).length;
+  int get _countMgmtApproved => _all.where((r) => _statusOf(r) == 'mgmt_approved').length;
+  int get _countJoined => _all.where((r) => _statusOf(r) == 'access_granted').length;
+  int get _countPendingActions {
+    final isManagement = UserSession.role == UserRole.management;
+    return _all.where((r) {
+      final s = _statusOf(r);
+      return isManagement ? s == 'hr_approved' : s == 'pending';
+    }).length;
+  }
 
   @override
   void initState() {
@@ -289,13 +339,33 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 
   void _applyFilter() {
     final q = _searchCtrl.text.trim().toLowerCase();
-    setState(() {
-      _filtered = _all
-          .where((r) => _matchesSubFilter(r, _statusFilter))
-          .where((r) => q.isEmpty ||
-              r.values.any((v) => v.toString().toLowerCase().contains(q)))
-          .toList();
-    });
+    var rows = _all
+        .where((r) => _matchesSubFilter(r, _statusFilter))
+        .where((r) => q.isEmpty ||
+            r.values.any((v) => v.toString().toLowerCase().contains(q)))
+        .toList();
+    if (_deptFilter != 'All') {
+      rows = rows.where((r) => (r['designation'] ?? '').toString().trim() == _deptFilter).toList();
+    }
+    if (_managerFilter != 'All') {
+      rows = rows.where((r) => (r['assigned_manager'] ?? '').toString().trim() == _managerFilter).toList();
+    }
+    rows = List.of(rows);
+    switch (_sort) {
+      case _OnboardSort.latest:
+        rows.sort((a, b) => ((b['submitted_at'] ?? '').toString())
+            .compareTo((a['submitted_at'] ?? '').toString()));
+        break;
+      case _OnboardSort.oldest:
+        rows.sort((a, b) => ((a['submitted_at'] ?? '').toString())
+            .compareTo((b['submitted_at'] ?? '').toString()));
+        break;
+      case _OnboardSort.nameAz:
+        rows.sort((a, b) => ((a['name'] ?? '').toString().toLowerCase())
+            .compareTo((b['name'] ?? '').toString().toLowerCase()));
+        break;
+    }
+    setState(() => _filtered = rows);
   }
 
   void _openForm() {
@@ -386,25 +456,80 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             ),
 
             if (_all.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Search submissions…',
-                  prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
-                  suffixIcon: _searchCtrl.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18),
-                          onPressed: _searchCtrl.clear)
-                      : null,
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none),
-                ),
+              const SizedBox(height: 16),
+              _OnboardStatsRow(
+                total: _all.length,
+                activeOnboarding: _countActiveOnboarding,
+                mgmtApproved: _countMgmtApproved,
+                joined: _countJoined,
+                pendingActions: _countPendingActions,
               ),
+              const SizedBox(height: 16),
+              LayoutBuilder(builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 760;
+                final search = TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name, email, ID or department…',
+                    prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 18),
+                            onPressed: _searchCtrl.clear)
+                        : null,
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none),
+                  ),
+                );
+                final dropdowns = Row(mainAxisSize: MainAxisSize.min, children: [
+                  _OnboardDropdown(
+                    label: 'Department',
+                    value: _deptFilter,
+                    options: _departmentOptions,
+                    onChanged: (v) => setState(() { _deptFilter = v; _applyFilter(); }),
+                  ),
+                  const SizedBox(width: 8),
+                  _OnboardDropdown(
+                    label: 'Manager',
+                    value: _managerFilter,
+                    options: _managerOptions,
+                    onChanged: (v) => setState(() { _managerFilter = v; _applyFilter(); }),
+                  ),
+                  const SizedBox(width: 8),
+                  _OnboardDropdown(
+                    label: 'Sort',
+                    value: switch (_sort) {
+                      _OnboardSort.latest => 'Latest',
+                      _OnboardSort.oldest => 'Oldest',
+                      _OnboardSort.nameAz => 'Name A–Z',
+                    },
+                    options: const ['Latest', 'Oldest', 'Name A–Z'],
+                    onChanged: (v) => setState(() {
+                      _sort = switch (v) {
+                        'Oldest' => _OnboardSort.oldest,
+                        'Name A–Z' => _OnboardSort.nameAz,
+                        _ => _OnboardSort.latest,
+                      };
+                      _applyFilter();
+                    }),
+                  ),
+                ]);
+                return narrow
+                    ? Column(children: [
+                        search,
+                        const SizedBox(height: 10),
+                        SingleChildScrollView(scrollDirection: Axis.horizontal, child: dropdowns),
+                      ])
+                    : Row(children: [
+                        Expanded(child: search),
+                        const SizedBox(width: 10),
+                        dropdowns,
+                      ]);
+              }),
               const SizedBox(height: 10),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -478,6 +603,134 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   : _buildSubmissionsTab(pad),
         ),
       ]),
+    );
+  }
+}
+
+// ── Summary stats row ────────────────────────────────────────────────────────────
+class _OnboardStatsRow extends StatelessWidget {
+  final int total;
+  final int activeOnboarding;
+  final int mgmtApproved;
+  final int joined;
+  final int pendingActions;
+  const _OnboardStatsRow({
+    required this.total,
+    required this.activeOnboarding,
+    required this.mgmtApproved,
+    required this.joined,
+    required this.pendingActions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String pct(int n) => total == 0 ? '0.0' : (n / total * 100).toStringAsFixed(1);
+    final cards = [
+      _StatCardData('Total Submissions', '$total', 'All time',
+          Icons.inbox_rounded, _blue),
+      _StatCardData('Active Onboarding', '$activeOnboarding', '${pct(activeOnboarding)}% of total',
+          Icons.people_alt_rounded, const Color(0xFF22C55E)),
+      _StatCardData('Mgmt Approved', '$mgmtApproved', '${pct(mgmtApproved)}% of total',
+          Icons.verified_rounded, const Color(0xFF8B5CF6)),
+      _StatCardData('Joined', '$joined', '${pct(joined)}% of total',
+          Icons.badge_rounded, const Color(0xFFF97316)),
+      _StatCardData('Pending Actions', '$pendingActions', 'Requires attention',
+          Icons.pending_actions_rounded, const Color(0xFFEF4444)),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth > 900 ? 5 : constraints.maxWidth > 560 ? 3 : constraints.maxWidth > 340 ? 2 : 1;
+      final tileWidth = (constraints.maxWidth - (cols - 1) * 10) / cols;
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: cards.map((c) => SizedBox(width: tileWidth, child: _StatCard(data: c))).toList(),
+      );
+    });
+  }
+}
+
+class _StatCardData {
+  final String label;
+  final String value;
+  final String sub;
+  final IconData icon;
+  final Color color;
+  const _StatCardData(this.label, this.value, this.sub, this.icon, this.color);
+}
+
+class _StatCard extends StatelessWidget {
+  final _StatCardData data;
+  const _StatCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: data.color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: data.color.withValues(alpha: 0.18)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: data.color, shape: BoxShape.circle),
+          child: Icon(data.icon, size: 17, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(data.label,
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+            const SizedBox(height: 3),
+            Text(data.value,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: data.color)),
+            const SizedBox(height: 1),
+            Text(data.sub, style: const TextStyle(fontSize: 10.5, color: Color(0xFF6B7280))),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Filter dropdown (Department/Manager/Sort) ────────────────────────────────────
+class _OnboardDropdown extends StatelessWidget {
+  final String label;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String> onChanged;
+  const _OnboardDropdown({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isDense: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: _blue),
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+          items: options
+              .map((o) => DropdownMenuItem(value: o, child: Text('$label: $o')))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+        ),
+      ),
     );
   }
 }
@@ -910,11 +1163,12 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(children: [
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: _blue,
-                child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+                backgroundColor: _avatarColor(name).withValues(alpha: 0.15),
+                child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: TextStyle(color: _avatarColor(name), fontWeight: FontWeight.w800, fontSize: 15)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -922,30 +1176,58 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   Text(name,
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF111827))),
                   const SizedBox(height: 2),
-                  Text('${(d['designation'] as String?) ?? ''}  ·  $dateStr',
+                  Text([
+                    if (((d['assigned_emp_id'] as String?) ?? '').isNotEmpty) d['assigned_emp_id'] as String,
+                    if (((d['designation'] as String?) ?? '').isNotEmpty) d['designation'] as String,
+                  ].join('  ·  '),
                       style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                  if (((d['phone_number'] as String?) ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.phone_rounded, size: 11, color: Color(0xFF9CA3AF)),
+                      const SizedBox(width: 4),
+                      Text(d['phone_number'] as String,
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+                    ]),
+                  ],
+                  const SizedBox(height: 2),
+                  Text('Submitted: $dateStr',
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFFB0B7C3))),
                 ]),
               ),
-              // Status badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _statusColor(status).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(_statusLabel(status),
-                    style: TextStyle(fontSize: 11, color: _statusColor(status), fontWeight: FontWeight.w600)),
-              ),
               const SizedBox(width: 8),
-              // Delete button
-              IconButton(
-                tooltip: 'Delete',
-                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                visualDensity: VisualDensity.compact,
-                onPressed: _acting ? null : () => _delete(context),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(_statusLabel(status),
+                      style: TextStyle(fontSize: 11, color: _statusColor(status), fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(height: 6),
+                Text(_expanded ? 'Hide profile' : 'View profile',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _blue)),
+              ]),
+              const SizedBox(width: 4),
+              PopupMenuButton<String>(
+                tooltip: 'More actions',
+                icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF6B7280)),
+                onSelected: (v) {
+                  if (v == 'delete') _delete(context);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ]),
+                  ),
+                ],
               ),
-              Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                  color: const Color(0xFF6B7280)),
             ]),
           ),
         ),
