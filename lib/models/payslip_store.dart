@@ -11,6 +11,7 @@ class PayslipRequest {
   final DateTime requestedAt;
   DateTime? decidedAt;
   String decidedBy;
+  String rejectionComment;
 
   PayslipRequest({
     required this.id,
@@ -21,6 +22,7 @@ class PayslipRequest {
     required this.requestedAt,
     this.decidedAt,
     this.decidedBy = '',
+    this.rejectionComment = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +34,7 @@ class PayslipRequest {
         'requested_at': requestedAt.toIso8601String(),
         'decided_at': decidedAt?.toIso8601String(),
         'decided_by': decidedBy,
+        'rejection_comment': rejectionComment,
       };
 
   factory PayslipRequest.fromJson(Map<String, dynamic> j) => PayslipRequest(
@@ -49,6 +52,7 @@ class PayslipRequest {
             ? DateTime.tryParse(j['decided_at'] as String)
             : null,
         decidedBy: (j['decided_by'] as String?) ?? '',
+        rejectionComment: (j['rejection_comment'] as String?) ?? '',
       );
 }
 

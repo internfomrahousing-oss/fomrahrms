@@ -434,6 +434,22 @@ class NotificationService {
     );
   }
 
+  /// Fired when HR/Management rejects a payslip request — the accepted
+  /// case doesn't need a separate notification since generating the
+  /// payslip already fires [payslipReady].
+  static Future<void> payslipRequestDenied({
+    required String employeeEmail,
+    required String monthYear,
+    required String employeeRoutePrefix,
+    String reason = '',
+  }) => _create(
+        type: 'payslip_request_denied',
+        title: 'Payslip request denied',
+        body: reason.isNotEmpty ? '$monthYear · $reason' : monthYear,
+        route: '$employeeRoutePrefix/my-payslips',
+        targetEmail: employeeEmail,
+      );
+
   // ── Earned Leave (eligibility + encashment) ─────────────────────────
 
   /// Fired at the moment HR/Management clicks "Confirm EL Eligibility" —

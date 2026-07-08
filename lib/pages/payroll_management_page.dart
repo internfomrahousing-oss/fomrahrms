@@ -67,6 +67,57 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
     _reload();
   }
 
+  Future<void> _rejectPayslipRequest(PayslipRequest req, AppUser user) async {
+    final commentCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Deny Payslip Request',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('${req.employeeName} · ${_payslipMonthLabel(req.monthYear)}',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+          const SizedBox(height: 12),
+          TextField(
+            controller: commentCtrl,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Reason (optional)…',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Deny Request'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final reason = commentCtrl.text.trim();
+    await SupabaseService.decidePayslipRequest(
+        req.id, PayslipRequestStatus.rejected, UserSession.name, rejectionComment: reason);
+    if (user.email.isNotEmpty) {
+      NotificationService.payslipRequestDenied(
+        employeeEmail: user.email,
+        monthYear: req.monthYear,
+        employeeRoutePrefix: NotificationService.routePrefixForRole(AppUser.userRoleFor(user.role)),
+        reason: reason,
+      );
+    }
+    _reload();
+  }
+
   double _elUsed(AppUser u) {
     final refStr = u.elLastAvailedAt.isNotEmpty ? u.elLastAvailedAt : u.elEligibleAt;
     final cutoff = refStr.isNotEmpty ? DateTime.tryParse(refStr) : null;
@@ -370,6 +421,9 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                             onReview: match == null
                                 ? null
                                 : () => _openGenerate(match!, request: req),
+                            onReject: match == null
+                                ? null
+                                : () => _rejectPayslipRequest(req, match!),
                           );
                         }),
                     ],
@@ -597,7 +651,13 @@ class _PayslipRequestTile extends StatelessWidget {
   final PayslipRequest request;
   final AppUser? user;
   final VoidCallback? onReview;
-  const _PayslipRequestTile({required this.request, required this.user, required this.onReview});
+  final VoidCallback? onReject;
+  const _PayslipRequestTile({
+    required this.request,
+    required this.user,
+    required this.onReview,
+    this.onReject,
+  });
 
   static Color get _purple => AppTheme.primaryBlue;
 
@@ -608,6 +668,7 @@ class _PayslipRequestTile extends StatelessWidget {
       PayslipRequestStatus.approved => (Colors.green.shade700, 'Approved'),
       PayslipRequestStatus.rejected => (Colors.red.shade700, 'Rejected'),
     };
+    final isPending = request.status == PayslipRequestStatus.pending;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -616,45 +677,61 @@ class _PayslipRequestTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _purple.withValues(alpha: 0.15)),
       ),
-      child: Row(children: [
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: _purple.withValues(alpha: 0.12),
-          child: Text(
-            request.employeeName.isNotEmpty ? request.employeeName[0].toUpperCase() : '?',
-            style: TextStyle(color: _purple, fontWeight: FontWeight.bold, fontSize: 13),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: _purple.withValues(alpha: 0.12),
+            child: Text(
+              request.employeeName.isNotEmpty ? request.employeeName[0].toUpperCase() : '?',
+              style: TextStyle(color: _purple, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(request.employeeName,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-            Text(_payslipMonthLabel(request.monthYear),
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-          ]),
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 10),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: chipColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: chipColor.withValues(alpha: 0.3)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(request.employeeName,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+              Text(_payslipMonthLabel(request.monthYear),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            ]),
           ),
-          child: Text(chipLabel,
-              style: TextStyle(fontSize: 10, color: chipColor, fontWeight: FontWeight.w700)),
-        ),
-        ElevatedButton(
-          onPressed: onReview,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _purple,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          Container(
+            margin: const EdgeInsets.only(right: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: chipColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: chipColor.withValues(alpha: 0.3)),
+            ),
+            child: Text(chipLabel,
+                style: TextStyle(fontSize: 10, color: chipColor, fontWeight: FontWeight.w700)),
           ),
-          child: const Text('Review', style: TextStyle(fontSize: 12)),
-        ),
+          if (isPending)
+            TextButton(
+              onPressed: onReject,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFEF4444),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              child: const Text('Deny', style: TextStyle(fontSize: 12)),
+            ),
+          ElevatedButton(
+            onPressed: onReview,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _purple,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Review', style: TextStyle(fontSize: 12)),
+          ),
+        ]),
+        if (request.status == PayslipRequestStatus.rejected && request.rejectionComment.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text('Reason: ${request.rejectionComment}',
+              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontStyle: FontStyle.italic)),
+        ],
       ]),
     );
   }

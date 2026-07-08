@@ -107,8 +107,10 @@ import '../models/user_session.dart';
     status text default 'pending',
     requested_at timestamptz default now(),
     decided_at timestamptz,
-    decided_by text default ''
+    decided_by text default '',
+    rejection_comment text default ''
   );
+  alter table payslip_requests add column if not exists rejection_comment text default '';
 
   create table if not exists payslips (
     id text primary key,
@@ -332,6 +334,8 @@ import '../models/user_session.dart';
     created_at timestamptz default now()
   );
   alter table attendance_records disable row level security;
+  alter table attendance_records add column if not exists check_in_note text default '';
+  alter table attendance_records add column if not exists check_out_note text default '';
 
   create table if not exists form_versions (
     id uuid default gen_random_uuid() primary key,
@@ -1280,6 +1284,7 @@ class SupabaseService {
     required String date,
     required String time,
     String location = '',
+    String note = '',
   }) async {
     try {
       if (_db == null) return 'Database not connected';
@@ -1291,6 +1296,7 @@ class SupabaseService {
         'check_in_time':  time,
         'check_out_time': '',
         'location':       location,
+        'check_in_note':  note,
       });
       return null;
     } catch (e) {
@@ -1359,11 +1365,12 @@ class SupabaseService {
     required String employeeId,
     required String date,
     required String time,
+    String note = '',
   }) async {
     try {
       await _db
           ?.from('attendance_records')
-          .update({'check_out_time': time})
+          .update({'check_out_time': time, 'check_out_note': note})
           .eq('id', _attendanceId(employeeId, date));
     } catch (_) {}
   }
@@ -1385,6 +1392,8 @@ class SupabaseService {
         checkOutTime: (row['check_out_time'] as String?) ?? '',
         location:     (row['location']        as String?) ?? '',
         gpsPoints:    _parseGpsPoints(row['gps_points']),
+        checkInNote:  (row['check_in_note']  as String?) ?? '',
+        checkOutNote: (row['check_out_note'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -1413,6 +1422,8 @@ class SupabaseService {
         checkOutTime: (row['check_out_time'] as String?) ?? '',
         location:     (row['location']        as String?) ?? '',
         gpsPoints:    _parseGpsPoints(row['gps_points']),
+        checkInNote:  (row['check_in_note']  as String?) ?? '',
+        checkOutNote: (row['check_out_note'] as String?) ?? '',
       );
     } catch (_) {
       return null;
@@ -1439,6 +1450,8 @@ class SupabaseService {
         checkOutTime: (row['check_out_time'] as String?) ?? '',
         location:     (row['location']       as String?) ?? '',
         gpsPoints:    _parseGpsPoints(row['gps_points']),
+        checkInNote:  (row['check_in_note']  as String?) ?? '',
+        checkOutNote: (row['check_out_note'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -1756,12 +1769,14 @@ class SupabaseService {
   }
 
   static Future<void> decidePayslipRequest(
-      String id, PayslipRequestStatus status, String decidedBy) async {
+      String id, PayslipRequestStatus status, String decidedBy,
+      {String rejectionComment = ''}) async {
     try {
       await _db?.from('payslip_requests').update({
         'status': status.name,
         'decided_at': DateTime.now().toIso8601String(),
         'decided_by': decidedBy,
+        'rejection_comment': rejectionComment,
       }).eq('id', id);
     } catch (_) {}
   }
