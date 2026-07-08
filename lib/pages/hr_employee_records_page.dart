@@ -4,8 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/emergency_attendance_notifier.dart';
+import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
+import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
@@ -27,15 +29,30 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   static Color get _color => AppTheme.primaryBlue;
   List<AppUser> _all = [];
   List<AppUser> _filtered = [];
+  List<LeaveApplication> _leaveApps = [];
   bool _loading = true;
   String _search = '';
   _SortOrder _sort = _SortOrder.newestFirst;
   _StatusFilter _statusFilter = _StatusFilter.all;
 
+  int get _countActive      => _all.where((u) => u.active).length;
   int get _countOnroll      => _all.where((u) => u.isOnroll).length;
   int get _countProbation   => _all.where((u) => !u.isOnroll).length;
   int get _countEligible    => _all.where((u) => u.isElEligible).length;
   int get _countDeactivated => _all.where((u) => !u.active).length;
+
+  int get _countOnLeaveToday {
+    final today = DateTime.now();
+    final d = DateTime(today.year, today.month, today.day);
+    final onLeaveNames = _leaveApps
+        .where((a) =>
+            a.managerStatus == LeaveApprovalStatus.approved &&
+            !d.isBefore(DateTime(a.from.year, a.from.month, a.from.day)) &&
+            !d.isAfter(DateTime(a.to.year, a.to.month, a.to.day)))
+        .map((a) => a.employeeName.toLowerCase())
+        .toSet();
+    return _all.where((u) => onLeaveNames.contains(u.name.toLowerCase())).length;
+  }
 
   @override
   void initState() {
@@ -44,10 +61,15 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   }
 
   Future<void> _load() async {
-    final users = await UserStore.load();
+    setState(() => _loading = true);
+    final results = await Future.wait([
+      UserStore.load(),
+      SupabaseService.fetchLeaveApplications(),
+    ]);
     if (!mounted) return;
     setState(() {
-      _all = _baseList(users);
+      _all = _baseList(results[0] as List<AppUser>);
+      _leaveApps = results[1] as List<LeaveApplication>;
       _applyFilter();
       _loading = false;
     });
@@ -156,96 +178,124 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Header ────────────────────────────────────────────────────
-            Row(children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const NavBackButton(),
               const SizedBox(width: 8),
               Container(
-                width: 48, height: 48,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: _color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.people_alt_rounded, color: _color, size: 26),
+                child: Icon(Icons.people_alt_rounded, color: _color, size: 22),
               ),
-              const SizedBox(width: 16),
-              Text('Employee Records',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const Spacer(),
-              IconButton(
-                tooltip: 'Refresh',
-                icon: Icon(Icons.refresh_rounded, color: _color),
-                onPressed: _load,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Employee Directory',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  const SizedBox(height: 2),
+                  Text('Manage and view employee information',
+                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                ]),
               ),
-              const SizedBox(width: 4),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: IconButton(
+                  tooltip: 'Refresh',
+                  icon: Icon(Icons.refresh_rounded, color: _color, size: 20),
+                  onPressed: _load,
+                ),
+              ),
+              const SizedBox(width: 8),
               if (UserSession.role == UserRole.hr ||
                   UserSession.role == UserRole.management)
                 ElevatedButton.icon(
                   onPressed: _openCreate,
                   icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Add New'),
+                  label: const Text('Add New Employee'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _color,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                        horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(10)),
                     textStyle: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600),
+                        fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
             ]),
+            const SizedBox(height: 20),
+
+            // ── Stat cards ───────────────────────────────────────────────
+            _StatCardsRow(
+              total: _all.length,
+              active: _countActive,
+              probation: _countProbation,
+              onLeave: _countOnLeaveToday,
+              deactivated: _countDeactivated,
+            ),
+
             if (UserSession.role == UserRole.hr ||
                 UserSession.role == UserRole.management) ...[
               const SizedBox(height: 16),
               const _EmergencyAttendanceBanner(),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // ── Search ───────────────────────────────────────────────────
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: TextField(
-                  onChanged: (v) => setState(() {
-                    _search = v;
-                    _applyFilter();
-                  }),
-                  decoration: InputDecoration(
-                    hintText: 'Search by name, ID, designation, email...',
-                    prefixIcon: Icon(Icons.search_rounded,
-                        color: _color, size: 20),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          BorderSide(color: _color, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+            // ── Search + sort ────────────────────────────────────────────
+            LayoutBuilder(builder: (context, constraints) {
+              final search = TextField(
+                onChanged: (v) => setState(() {
+                  _search = v;
+                  _applyFilter();
+                }),
+                decoration: InputDecoration(
+                  hintText: 'Search by name, ID, designation, email...',
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: _color, size: 20),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        BorderSide(color: _color, width: 2),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // ── Sort dropdown ────────────────────────────────────────────
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _SortDropdown(
+              );
+              final sort = _SortDropdown(
                 value: _sort,
                 onChanged: (v) => setState(() { _sort = v; _applyFilter(); }),
-              ),
-            ),
-            const SizedBox(height: 10),
+              );
+              if (constraints.maxWidth < 560) {
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Card(child: Padding(padding: const EdgeInsets.all(16), child: search)),
+                  const SizedBox(height: 10),
+                  sort,
+                ]);
+              }
+              return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                Expanded(
+                  child: Card(child: Padding(padding: const EdgeInsets.all(16), child: search)),
+                ),
+                const SizedBox(width: 12),
+                sort,
+              ]);
+            }),
+            const SizedBox(height: 14),
 
             // ── Status classification chips ─────────────────────────────
             SingleChildScrollView(
@@ -351,94 +401,145 @@ class _UserCard extends StatelessWidget {
     }
   }
 
+  static IconData _locationIcon(String loc) =>
+      loc == 'Onsite' ? Icons.location_on_rounded : Icons.apartment_rounded;
+
+  Widget _infoColumn(String label, Widget value) => SizedBox(
+        width: 118,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label,
+              style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          value,
+        ]),
+      );
+
+  Widget _nameBlock({bool showWorkLocationBadge = false}) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+    Row(children: [
+      Expanded(
+        child: Text(user.name,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827))),
+      ),
+      if (!user.active)
+        _Badge('Inactive', Colors.red.shade50,
+            Colors.red.shade200, Colors.red.shade600),
+    ]),
+    const SizedBox(height: 4),
+    Wrap(spacing: 6, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+      if (user.employeeId.isNotEmpty) _IdChip(user.employeeId),
+      _RoleChip(user.role, _roleColor(user.role)),
+      if (user.isElEligible) _Badge('EL Eligible', AppTheme.primaryBlue.withValues(alpha: 0.08),
+          AppTheme.primaryBlue.withValues(alpha: 0.3), AppTheme.primaryBlue),
+      if (showWorkLocationBadge && user.workLocation.isNotEmpty)
+        _Badge(user.workLocation,
+            user.workLocation == 'Onsite' ? Colors.teal.shade50 : Colors.indigo.shade50,
+            user.workLocation == 'Onsite' ? Colors.teal.shade200 : Colors.indigo.shade200,
+            user.workLocation == 'Onsite' ? Colors.teal.shade700 : Colors.indigo.shade700),
+      if (user.onrollRequestedAt.isNotEmpty && !user.isOnroll &&
+          !user.onrollDenied &&
+          fullMonthsSince(user.dateOfJoining) >= 6)
+        _Badge('On-Roll Requested', Colors.orange.shade50,
+            Colors.orange.shade200, Colors.orange.shade800),
+      if (user.hasPendingWorkLocationChange)
+        _Badge('Location Change Requested', Colors.orange.shade50,
+            Colors.orange.shade200, Colors.orange.shade800),
+      if (user.hasPendingGrossPayChange &&
+          (UserSession.role == UserRole.hr || UserSession.role == UserRole.management))
+        _Badge('Pay Change Requested', Colors.orange.shade50,
+            Colors.orange.shade200, Colors.orange.shade800),
+    ]),
+    if (user.designation.isNotEmpty) ...[
+      const SizedBox(height: 4),
+      Text(user.designation,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+    ],
+    if (user.email.isNotEmpty || user.mobile.isNotEmpty) ...[
+      const SizedBox(height: 6),
+      Wrap(spacing: 14, runSpacing: 2, children: [
+        if (user.email.isNotEmpty)
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.email_rounded, size: 12, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text(user.email, style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+          ]),
+        if (user.mobile.isNotEmpty)
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.phone_rounded, size: 12, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text(user.mobile, style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+          ]),
+      ]),
+    ],
+  ]);
+
   @override
   Widget build(BuildContext context) {
-    final c = _roleColor(user.role);
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(children: [
-            CircleAvatar(
+          child: LayoutBuilder(builder: (context, constraints) {
+            final wide = constraints.maxWidth > 760;
+            final avatar = CircleAvatar(
               radius: 24,
-              backgroundColor: c.withValues(alpha: 0.12),
+              backgroundColor: _roleColor(user.role).withValues(alpha: 0.12),
               child: Text(
                 user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                 style: TextStyle(
-                    color: c, fontSize: 18, fontWeight: FontWeight.bold),
+                    color: _roleColor(user.role), fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Row(children: [
-                  Expanded(
-                    child: Text(user.name,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827))),
-                  ),
-                  if (!user.active)
-                    _Badge('Inactive', Colors.red.shade50,
-                        Colors.red.shade200, Colors.red.shade600),
-                ]),
-                const SizedBox(height: 4),
-                Row(children: [
-                  if (user.employeeId.isNotEmpty) ...[
-                    _IdChip(user.employeeId),
-                    const SizedBox(width: 8),
-                  ],
-                  _RoleChip(user.role, c),
-                  const SizedBox(width: 6),
-                  _StatusPill(user.leaveStatus),
-                  if (user.onrollRequestedAt.isNotEmpty && !user.isOnroll &&
-                      !user.onrollDenied &&
-                      fullMonthsSince(user.dateOfJoining) >= 6) ...[
-                    const SizedBox(width: 6),
-                    _Badge('On-Roll Requested', Colors.orange.shade50,
-                        Colors.orange.shade200, Colors.orange.shade800),
-                  ],
-                  if (user.workLocation.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    _Badge(user.workLocation,
-                        user.workLocation == 'Onsite' ? Colors.teal.shade50 : Colors.indigo.shade50,
-                        user.workLocation == 'Onsite' ? Colors.teal.shade200 : Colors.indigo.shade200,
-                        user.workLocation == 'Onsite' ? Colors.teal.shade700 : Colors.indigo.shade700),
-                  ],
-                  if (user.hasPendingWorkLocationChange) ...[
-                    const SizedBox(width: 6),
-                    _Badge('Location Change Requested', Colors.orange.shade50,
-                        Colors.orange.shade200, Colors.orange.shade800),
-                  ],
-                  if (user.hasPendingGrossPayChange &&
-                      (UserSession.role == UserRole.hr || UserSession.role == UserRole.management)) ...[
-                    const SizedBox(width: 6),
-                    _Badge('Pay Change Requested', Colors.orange.shade50,
-                        Colors.orange.shade200, Colors.orange.shade800),
-                  ],
-                ]),
-                if (user.designation.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(user.designation,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF6B7280))),
-                ],
-                if (user.email.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(user.email,
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF6B7280))),
-                ],
-              ]),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                color: Colors.grey.shade400, size: 20),
-          ]),
+            );
+            if (!wide) {
+              return Row(children: [
+                avatar,
+                const SizedBox(width: 14),
+                Expanded(child: _nameBlock(showWorkLocationBadge: true)),
+                Icon(Icons.chevron_right_rounded,
+                    color: Colors.grey.shade400, size: 20),
+              ]);
+            }
+            return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              avatar,
+              const SizedBox(width: 14),
+              Expanded(flex: 3, child: _nameBlock()),
+              const SizedBox(width: 12),
+              _infoColumn('Department', Text(
+                  user.department.isNotEmpty ? user.department : '—',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827)))),
+              _infoColumn('Joined On', Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey.shade500),
+                const SizedBox(width: 5),
+                Flexible(child: Text(
+                    user.dateOfJoining.isNotEmpty ? user.dateOfJoining : '—',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827)))),
+              ])),
+              _infoColumn('Work Location', user.workLocation.isEmpty
+                  ? Text('—', style: TextStyle(fontSize: 12.5, color: Colors.grey.shade400))
+                  : Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(_locationIcon(user.workLocation), size: 13, color: Colors.grey.shade500),
+                      const SizedBox(width: 5),
+                      Text(user.workLocation,
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
+                              color: Color(0xFF111827))),
+                    ])),
+              _infoColumn('Status', _StatusPill(user.leaveStatus)),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey.shade400, size: 20),
+            ]);
+          }),
         ),
       ),
     );
@@ -2255,6 +2356,146 @@ class _EmergencyAttendanceBannerState extends State<_EmergencyAttendanceBanner> 
   }
 }
 
+// ── Stat cards ─────────────────────────────────────────────────────────────────
+
+class _StatCardsRow extends StatelessWidget {
+  final int total;
+  final int active;
+  final int probation;
+  final int onLeave;
+  final int deactivated;
+  const _StatCardsRow({
+    required this.total,
+    required this.active,
+    required this.probation,
+    required this.onLeave,
+    required this.deactivated,
+  });
+
+  String _pct(int count) =>
+      total == 0 ? '0%' : '${(count / total * 100).toStringAsFixed(1)}%';
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = [
+      _StatTile(
+        icon: Icons.groups_rounded,
+        iconColor: AppTheme.primaryBlue,
+        label: 'Total Employees',
+        value: '$total',
+        sublabel: 'All registered',
+        subColor: Colors.grey.shade500,
+      ),
+      _StatTile(
+        icon: Icons.person_rounded,
+        iconColor: const Color(0xFF22C55E),
+        label: 'Active Employees',
+        value: '$active',
+        sublabel: '${_pct(active)} of total',
+        subColor: const Color(0xFF22C55E),
+      ),
+      _StatTile(
+        icon: Icons.access_time_filled_rounded,
+        iconColor: Colors.orange.shade700,
+        label: 'On Probation',
+        value: '$probation',
+        sublabel: '${_pct(probation)} of total',
+        subColor: Colors.orange.shade700,
+      ),
+      _StatTile(
+        icon: Icons.event_busy_rounded,
+        iconColor: Colors.purple.shade600,
+        label: 'On Leave',
+        value: '$onLeave',
+        sublabel: '${_pct(onLeave)} of total',
+        subColor: Colors.purple.shade600,
+      ),
+      _StatTile(
+        icon: Icons.person_off_rounded,
+        iconColor: Colors.grey.shade500,
+        label: 'Deactivated',
+        value: '$deactivated',
+        sublabel: '${_pct(deactivated)} of total',
+        subColor: Colors.grey.shade500,
+      ),
+    ];
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return Row(children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(child: tiles[i]),
+          ],
+        ]);
+      }
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          for (final t in tiles) SizedBox(width: 200, child: t),
+        ],
+      );
+    });
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final String sublabel;
+  final Color subColor;
+  const _StatTile({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.sublabel,
+    required this.subColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
+                      color: Color(0xFF111827))),
+              const SizedBox(height: 1),
+              Text(sublabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: subColor, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 // ── Sort dropdown ───────────────────────────────────────────────────────────────
 
 class _SortDropdown extends StatelessWidget {
@@ -2364,7 +2605,7 @@ class _StatusPill extends StatelessWidget {
   Color get _color => switch (status) {
     'EL Eligible' => AppTheme.primaryBlue,
     'On-Roll'     => const Color(0xFF22C55E),
-    _             => const Color(0xFF6B7280),
+    _             => Colors.orange.shade700,
   };
 
   IconData get _icon => switch (status) {
