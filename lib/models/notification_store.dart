@@ -31,6 +31,12 @@ class AppNotification {
 
   bool isReadBy(String email) =>
       readBy.any((e) => e.trim().toLowerCase() == email.trim().toLowerCase());
+
+  /// True for the first 24h after creation. The default feed/badge only
+  /// count recent notifications — older ones stay in the database and
+  /// remain visible, just behind the "All time" filter on the Notifications
+  /// page, so nothing is ever actually deleted.
+  bool get isRecent => DateTime.now().difference(createdAt) < const Duration(days: 1);
 }
 
 /// Role label matching the `role` string used everywhere else in the app
@@ -74,9 +80,13 @@ class NotificationStore {
     return list;
   }
 
+  /// Only recent (last 24h), unread notifications count toward the badge —
+  /// older ones don't keep nagging you once they've aged out of "recent",
+  /// even though they're still there if you go looking via the filter.
   static void recomputeUnread() {
-    unreadCount.value =
-        forCurrentUser().where((n) => !n.isReadBy(UserSession.email)).length;
+    unreadCount.value = forCurrentUser()
+        .where((n) => n.isRecent && !n.isReadBy(UserSession.email))
+        .length;
   }
 
   static void reset() {

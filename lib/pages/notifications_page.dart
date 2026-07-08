@@ -20,6 +20,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
   // null = "All" — the view filter only narrows what's currently shown,
   // it doesn't change what the user receives (that's the mute preference).
   String? _viewFilter;
+  // Default view is the last 24h (matches the unread badge); nothing is
+  // ever deleted — flip to "All time" to see everything, still further
+  // narrowable by the category chips below.
+  bool _showAll = false;
 
   @override
   void initState() {
@@ -57,14 +61,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     final all = NotificationStore.forCurrentUser();
+    final scoped = _showAll ? all : all.where((n) => n.isRecent).toList();
     final items = _viewFilter == null
-        ? all
-        : all.where((n) => categoryFor(n.type).id == _viewFilter).toList();
-    final unread = all.where((n) => !n.isReadBy(UserSession.email)).toList();
-    final presentCategoryIds = all.map((n) => categoryFor(n.type).id).toSet();
+        ? scoped
+        : scoped.where((n) => categoryFor(n.type).id == _viewFilter).toList();
+    final unread = items.where((n) => !n.isReadBy(UserSession.email)).toList();
+    final presentCategoryIds = scoped.map((n) => categoryFor(n.type).id).toSet();
     final presentCategories = notificationCategories
         .where((c) => presentCategoryIds.contains(c.id))
         .toList();
+    final hasOlder = !_showAll && all.length > scoped.length;
 
     return Scaffold(
       body: Padding(
@@ -94,7 +100,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 if (unread.isNotEmpty)
                   TextButton.icon(
                     onPressed: () async {
-                      await NotificationService.markAllRead(all);
+                      await NotificationService.markAllRead(items);
                       if (mounted) setState(() {});
                     },
                     icon: const Icon(Icons.done_all_rounded, size: 18),
@@ -112,13 +118,31 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ],
             ),
-            if (presentCategories.length > 1) ...[
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 34,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _FilterChip(
+                    label: 'Last 24h',
+                    icon: Icons.schedule_rounded,
+                    selected: !_showAll,
+                    onTap: () => setState(() => _showAll = false),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'All time',
+                    icon: Icons.history_rounded,
+                    selected: _showAll,
+                    onTap: () => setState(() => _showAll = true),
+                  ),
+                  if (presentCategories.length > 1) ...[
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 10),
+                      width: 1,
+                      color: AppTheme.borderSubtle,
+                    ),
                     _FilterChip(
                       label: 'All',
                       selected: _viewFilter == null,
@@ -136,15 +160,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       const SizedBox(width: 8),
                     ],
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
             const SizedBox(height: 16),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : items.isEmpty
-                      ? _EmptyState(filtered: _viewFilter != null)
+                      ? _EmptyState(
+                          filtered: _viewFilter != null,
+                          hasOlder: hasOlder,
+                          onShowAll: () => setState(() => _showAll = true),
+                        )
                       : RefreshIndicator(
                           onRefresh: _refresh,
                           child: ListView.separated(
@@ -221,6 +249,8 @@ class _PreferencesSheet extends StatefulWidget {
 
 class _PreferencesSheetState extends State<_PreferencesSheet> {
   late Set<String> _muted = {...NotificationStore.mutedCategories};
+  late final List<NotificationCategory> _categories =
+      categoriesForRole(currentRoleLabel());
   bool _saving = false;
 
   Future<void> _toggle(String categoryId, bool getNotified) async {
@@ -278,14 +308,14 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
             Text('Choose which kinds of notifications you want to get.',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
             const SizedBox(height: 12),
-            for (final c in notificationCategories)
+            for (final c in _categories)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 secondary: Icon(c.icon, color: AppTheme.primaryBlue, size: 22),
                 title: Text(c.label, style: const TextStyle(fontSize: 14)),
                 value: !_muted.contains(c.id),
                 onChanged: (v) => _toggle(c.id, v),
-                activeTrackColor: AppTheme.primaryBlue,
+                activeColor: AppTheme.primaryBlue,
               ),
           ],
         ),
@@ -296,7 +326,9 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
 
 class _EmptyState extends StatelessWidget {
   final bool filtered;
-  const _EmptyState({this.filtered = false});
+  final bool hasOlder;
+  final VoidCallback? onShowAll;
+  const _EmptyState({this.filtered = false, this.hasOlder = false, this.onShowAll});
 
   @override
   Widget build(BuildContext context) {
@@ -318,6 +350,13 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(filtered ? 'Nothing in this category' : 'You\'re all caught up',
               style: Theme.of(context).textTheme.headlineSmall),
+          if (hasOlder) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: onShowAll,
+              child: const Text('Show older notifications'),
+            ),
+          ],
         ],
       ),
     );

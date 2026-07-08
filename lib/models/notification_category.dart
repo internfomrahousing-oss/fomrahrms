@@ -41,3 +41,20 @@ NotificationCategory categoryFor(String type) {
   }
   return _other;
 }
+
+/// Which categories a role can actually be targeted by, per the trigger
+/// methods in NotificationService — e.g. Employee is never targeted by
+/// candidateSubmitted/onboardingFormSubmitted/formEditSubmitted (recruitment,
+/// onboarding, form-edit approvals are HR/Management-side only), so showing
+/// a mute toggle for those to an Employee would be pure clutter.
+/// HR is the one role that's a target for every category.
+List<NotificationCategory> categoriesForRole(String roleLabel) {
+  const excludedByRole = {
+    'Employee': {'candidate', 'onboarding', 'form_edit'},
+    'Manager': {'onboarding', 'form_edit'},
+    'Management': {'onboarding', 'payslip'},
+    'HR': <String>{},
+  };
+  final excluded = excludedByRole[roleLabel] ?? const <String>{};
+  return notificationCategories.where((c) => !excluded.contains(c.id)).toList();
+}
