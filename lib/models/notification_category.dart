@@ -53,12 +53,12 @@ NotificationCategory categoryFor(String type) {
 /// candidateSubmitted/onboardingFormSubmitted/formEditSubmitted (recruitment,
 /// onboarding, form-edit approvals are HR/Management-side only), so showing
 /// a mute toggle for those to an Employee would be pure clutter.
-/// HR is the one role that's a target for every category.
+/// HR and Management are targeted by every category.
 List<NotificationCategory> categoriesForRole(String roleLabel) {
   const excludedByRole = {
     'Employee': {'candidate', 'onboarding', 'form_edit', 'el', 'milestone', 'lead'},
     'Manager': {'onboarding', 'form_edit', 'el', 'milestone', 'lead'},
-    'Management': {'onboarding', 'milestone'},
+    'Management': <String>{},
     'HR': <String>{},
   };
   final excluded = excludedByRole[roleLabel] ?? const <String>{};

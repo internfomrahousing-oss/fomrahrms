@@ -120,6 +120,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         issueType: ticket.issueType,
         reportedBy: ticket.reportedBy,
         sentToManagement: ticket.sentToManagement,
+        reportedByHr: ticket.reportedByRole == UserRole.hr,
       );
     }
   }
