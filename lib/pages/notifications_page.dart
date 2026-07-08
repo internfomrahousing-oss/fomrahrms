@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/notification_category.dart';
 import '../models/notification_store.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
@@ -16,6 +17,9 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   bool _loading = true;
+  // null = "All" — the view filter only narrows what's currently shown,
+  // it doesn't change what the user receives (that's the mute preference).
+  String? _viewFilter;
 
   @override
   void initState() {
@@ -40,10 +44,27 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (n.route.isNotEmpty) context.go(n.route);
   }
 
+  Future<void> _openPreferences() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _PreferencesSheet(),
+    );
+    if (mounted) setState(() {}); // muted categories may have changed
+  }
+
   @override
   Widget build(BuildContext context) {
-    final items = NotificationStore.forCurrentUser();
-    final unread = items.where((n) => !n.isReadBy(UserSession.email)).toList();
+    final all = NotificationStore.forCurrentUser();
+    final items = _viewFilter == null
+        ? all
+        : all.where((n) => categoryFor(n.type).id == _viewFilter).toList();
+    final unread = all.where((n) => !n.isReadBy(UserSession.email)).toList();
+    final presentCategoryIds = all.map((n) => categoryFor(n.type).id).toSet();
+    final presentCategories = notificationCategories
+        .where((c) => presentCategoryIds.contains(c.id))
+        .toList();
 
     return Scaffold(
       body: Padding(
@@ -73,12 +94,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 if (unread.isNotEmpty)
                   TextButton.icon(
                     onPressed: () async {
-                      await NotificationService.markAllRead(items);
+                      await NotificationService.markAllRead(all);
                       if (mounted) setState(() {});
                     },
                     icon: const Icon(Icons.done_all_rounded, size: 18),
                     label: const Text('Mark all read'),
                   ),
+                IconButton(
+                  onPressed: _openPreferences,
+                  icon: const Icon(Icons.tune_rounded),
+                  tooltip: 'Notification preferences',
+                ),
                 IconButton(
                   onPressed: _refresh,
                   icon: const Icon(Icons.refresh_rounded),
@@ -86,12 +112,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ],
             ),
+            if (presentCategories.length > 1) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 34,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _FilterChip(
+                      label: 'All',
+                      selected: _viewFilter == null,
+                      onTap: () => setState(() => _viewFilter = null),
+                    ),
+                    const SizedBox(width: 8),
+                    for (final c in presentCategories) ...[
+                      _FilterChip(
+                        label: c.label,
+                        icon: c.icon,
+                        selected: _viewFilter == c.id,
+                        onTap: () => setState(
+                            () => _viewFilter = _viewFilter == c.id ? null : c.id),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : items.isEmpty
-                      ? _EmptyState()
+                      ? _EmptyState(filtered: _viewFilter != null)
                       : RefreshIndicator(
                           onRefresh: _refresh,
                           child: ListView.separated(
@@ -111,7 +164,140 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 }
 
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({
+    required this.label,
+    this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(17),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.primaryBlue : AppTheme.lightBlue,
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 15, color: selected ? Colors.white : AppTheme.primaryBlue),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : AppTheme.primaryBlue,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet where the user picks which categories of notification they
+/// want to receive at all — distinct from the page's view filter, which
+/// only changes what's shown right now.
+class _PreferencesSheet extends StatefulWidget {
+  const _PreferencesSheet();
+
+  @override
+  State<_PreferencesSheet> createState() => _PreferencesSheetState();
+}
+
+class _PreferencesSheetState extends State<_PreferencesSheet> {
+  late Set<String> _muted = {...NotificationStore.mutedCategories};
+  bool _saving = false;
+
+  Future<void> _toggle(String categoryId, bool getNotified) async {
+    setState(() {
+      if (getNotified) {
+        _muted.remove(categoryId);
+      } else {
+        _muted.add(categoryId);
+      }
+      _saving = true;
+    });
+    NotificationStore.mutedCategories = _muted;
+    NotificationStore.recomputeUnread();
+    await SupabaseService.setMutedCategories(UserSession.email, _muted.toList());
+    if (mounted) setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Notification preferences',
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                if (_saving)
+                  const SizedBox(
+                    width: 16, height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Choose which kinds of notifications you want to get.',
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+            const SizedBox(height: 12),
+            for (final c in notificationCategories)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: Icon(c.icon, color: AppTheme.primaryBlue, size: 22),
+                title: Text(c.label, style: const TextStyle(fontSize: 14)),
+                value: !_muted.contains(c.id),
+                onChanged: (v) => _toggle(c.id, v),
+                activeTrackColor: AppTheme.primaryBlue,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
+  final bool filtered;
+  const _EmptyState({this.filtered = false});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -125,11 +311,12 @@ class _EmptyState extends StatelessWidget {
               color: AppTheme.lightBlue,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(Icons.notifications_none_rounded,
+            child: Icon(
+                filtered ? Icons.filter_alt_off_rounded : Icons.notifications_none_rounded,
                 color: AppTheme.primaryBlue, size: 40),
           ),
           const SizedBox(height: 16),
-          Text('You\'re all caught up',
+          Text(filtered ? 'Nothing in this category' : 'You\'re all caught up',
               style: Theme.of(context).textTheme.headlineSmall),
         ],
       ),
@@ -142,20 +329,7 @@ class _NotificationTile extends StatelessWidget {
   final VoidCallback onTap;
   const _NotificationTile({required this.notification, required this.onTap});
 
-  IconData get _icon {
-    final t = notification.type;
-    if (t.startsWith('leave_')) return Icons.event_available_rounded;
-    if (t.startsWith('attendance_')) return Icons.access_time_rounded;
-    if (t.startsWith('onroll_')) return Icons.how_to_reg_rounded;
-    if (t.startsWith('task_')) return Icons.task_alt_rounded;
-    if (t.startsWith('maintenance_')) return Icons.build_rounded;
-    if (t.startsWith('candidate_')) return Icons.record_voice_over_rounded;
-    if (t.startsWith('onboarding_')) return Icons.assignment_ind_rounded;
-    if (t.startsWith('form_edit_')) return Icons.edit_note_rounded;
-    if (t.startsWith('payslip_')) return Icons.account_balance_wallet_rounded;
-    if (t.startsWith('announcement_')) return Icons.campaign_rounded;
-    return Icons.notifications_rounded;
-  }
+  IconData get _icon => categoryFor(notification.type).icon;
 
   String get _relativeTime {
     final diff = DateTime.now().difference(notification.createdAt);

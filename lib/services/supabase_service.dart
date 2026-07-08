@@ -363,6 +363,12 @@ import '../models/user_session.dart';
   create index if not exists idx_notifications_email on notifications(target_email);
   create index if not exists idx_notifications_role  on notifications(target_role);
   create index if not exists idx_notifications_rm    on notifications(target_reporting_manager);
+
+  create table if not exists notification_preferences (
+    email text primary key,
+    muted_categories jsonb default '[]'
+  );
+  alter table notification_preferences disable row level security;
 */
 
 class SupabaseService {
@@ -1834,6 +1840,33 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  // ── Notification preferences (muted categories) ─────────────────────────
+
+  static Future<List<String>> fetchMutedCategories(String email) async {
+    if (email.isEmpty) return [];
+    try {
+      final data = await _db
+          ?.from('notification_preferences')
+          .select('muted_categories')
+          .eq('email', email)
+          .maybeSingle();
+      final raw = data?['muted_categories'];
+      return raw is List ? List<String>.from(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> setMutedCategories(String email, List<String> categoryIds) async {
+    if (email.isEmpty) return;
+    try {
+      await _db?.from('notification_preferences').upsert({
+        'email': email,
+        'muted_categories': categoryIds,
+      });
+    } catch (_) {}
+  }
+
   // ── Initial load on app start ─────────────────────────────────────────
 
   static Future<void> loadAll() async {
@@ -1844,7 +1877,15 @@ class SupabaseService {
       _loadEmployees(),
       _loadTasks(),
       _loadNotifications(),
+      _loadNotificationPreferences(),
     ]);
+  }
+
+  static Future<void> _loadNotificationPreferences() async {
+    if (UserSession.email.isEmpty) return;
+    final muted = await fetchMutedCategories(UserSession.email);
+    NotificationStore.mutedCategories = muted.toSet();
+    NotificationStore.recomputeUnread();
   }
 
   static Future<void> _loadNotifications() async {

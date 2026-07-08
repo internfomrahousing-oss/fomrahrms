@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/notification_store.dart';
 import '../models/user_session.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
@@ -381,7 +382,7 @@ class _SidebarFooter extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () { themeNotifier.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
+        onTap: () { themeNotifier.reset(); NotificationStore.reset(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [

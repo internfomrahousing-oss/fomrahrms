@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/user_session.dart';
 import '../models/app_user.dart';
+import '../models/notification_store.dart';
 import '../models/theme_notifier.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
@@ -179,6 +180,12 @@ class _LoginPageState extends State<LoginPage> {
     // Fetch photo URL in background — widgets listen via ValueNotifier pattern
     SupabaseService.fetchCurrentUserPhotoUrl(employeeId).then((url) {
       if (url != null) UserSession.photoUrl = url;
+    });
+    // loadAll() already ran at cold start with no signed-in user, so this
+    // user's muted-category preferences (and unread count) weren't picked up yet.
+    SupabaseService.fetchMutedCategories(email).then((muted) {
+      NotificationStore.mutedCategories = muted.toSet();
+      NotificationStore.recomputeUnread();
     });
     setState(() => _loading = false);
     switch (role) {

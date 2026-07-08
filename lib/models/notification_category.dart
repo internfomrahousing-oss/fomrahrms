@@ -1,0 +1,43 @@
+import 'package:flutter/material.dart';
+
+/// Groups the fine-grained `AppNotification.type` strings (e.g. 'leave_decided',
+/// 'onroll_stage_decided') into user-facing buckets — used both for the
+/// "view only this kind" filter and the "mute this kind" preference toggle
+/// on the Notifications page.
+class NotificationCategory {
+  final String id;
+  final String label;
+  final IconData icon;
+  final List<String> typePrefixes;
+  const NotificationCategory(this.id, this.label, this.icon, this.typePrefixes);
+}
+
+const List<NotificationCategory> notificationCategories = [
+  NotificationCategory('leave', 'Leave & Attendance',
+      Icons.event_available_rounded, ['leave_', 'attendance_']),
+  NotificationCategory('onroll', 'On-roll Confirmation',
+      Icons.how_to_reg_rounded, ['onroll_']),
+  NotificationCategory('task', 'Tasks',
+      Icons.task_alt_rounded, ['task_']),
+  NotificationCategory('maintenance', 'Maintenance',
+      Icons.build_rounded, ['maintenance_']),
+  NotificationCategory('candidate', 'Recruitment',
+      Icons.record_voice_over_rounded, ['candidate_']),
+  NotificationCategory('onboarding', 'Onboarding',
+      Icons.assignment_ind_rounded, ['onboarding_']),
+  NotificationCategory('form_edit', 'Form Edits',
+      Icons.edit_note_rounded, ['form_edit_']),
+  NotificationCategory('payslip', 'Payroll',
+      Icons.account_balance_wallet_rounded, ['payslip_']),
+  NotificationCategory('announcement', 'Announcements',
+      Icons.campaign_rounded, ['announcement_']),
+];
+
+const _other = NotificationCategory('other', 'Other', Icons.notifications_rounded, []);
+
+NotificationCategory categoryFor(String type) {
+  for (final c in notificationCategories) {
+    if (c.typePrefixes.any((p) => type.startsWith(p))) return c;
+  }
+  return _other;
+}

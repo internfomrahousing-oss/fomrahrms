@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'notification_category.dart';
 import 'user_session.dart';
 
 class AppNotification {
@@ -45,15 +46,23 @@ class NotificationStore {
   static final List<AppNotification> all = [];
   static final ValueNotifier<int> unreadCount = ValueNotifier(0);
 
+  /// Category ids the signed-in user has muted — persisted in Supabase
+  /// (`notification_preferences`) and loaded on login/app start. A muted
+  /// category is excluded from both the feed and the unread badge, i.e.
+  /// "don't send me this kind" rather than just "hide it right now".
+  static Set<String> mutedCategories = {};
+
   /// Notifications addressed to the signed-in user: directly (by email),
   /// by role broadcast, by "everyone" broadcast, or by team (their RM name
   /// matches the notification's target_reporting_manager — same matching
   /// rule as AppUser.reportingManager elsewhere, e.g. add_task_page.dart).
+  /// Excludes any category the user has muted.
   static List<AppNotification> forCurrentUser() {
     final email = UserSession.email.trim().toLowerCase();
     final role = currentRoleLabel();
     final name = UserSession.name;
     final list = all.where((n) {
+      if (mutedCategories.contains(categoryFor(n.type).id)) return false;
       if (n.targetEmail.isNotEmpty &&
           n.targetEmail.trim().toLowerCase() == email) return true;
       if (n.targetRole == role || n.targetRole == 'ALL') return true;
@@ -72,6 +81,7 @@ class NotificationStore {
 
   static void reset() {
     all.clear();
+    mutedCategories = {};
     unreadCount.value = 0;
   }
 }
