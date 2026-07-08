@@ -132,11 +132,15 @@ import '../models/user_session.dart';
     professional_tax numeric default 0,
     tds numeric default 0,
     late_deductions numeric default 0,
+    excess_leave_deduction numeric default 0,
     cug numeric default 0,
     leave_details text default '[]',
     generated_at timestamptz default now(),
     generated_by text default ''
   );
+
+  -- If the table already exists:
+  alter table payslips add column if not exists excess_leave_deduction numeric default 0;
 
   create table if not exists employee_profiles (
     employee_id text primary key,

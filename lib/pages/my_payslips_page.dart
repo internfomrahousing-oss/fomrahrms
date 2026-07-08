@@ -681,6 +681,8 @@ class PayslipDetailPage extends StatelessWidget {
                     _amountRow('Professional Tax', p.professionalTax),
                     _amountRow('TDS', p.tds),
                     _amountRow('Late Deductions', p.lateDeductions),
+                    if (p.excessLeaveDeduction > 0)
+                      _amountRow('Excess Leave Deduction', p.excessLeaveDeduction),
                     if (p.cug > 0) _amountRow('CUG', p.cug),
                     const Divider(),
                     _amountRow('Total Deductions', p.totalDeductions, bold: true),

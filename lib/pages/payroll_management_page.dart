@@ -778,6 +778,116 @@ class _OptionFieldState extends State<_OptionField> {
   }
 }
 
+/// An auto-computed amount row that can optionally be overridden by hand.
+/// Shows the computed value with an edit icon; tapping it reveals a text
+/// field. A reset icon clears the override and reverts to the auto value.
+class _EditableAmount extends StatefulWidget {
+  final String label;
+  final double autoValue;
+  final double? overrideValue;
+  final ValueChanged<double?> onChanged;
+  const _EditableAmount({
+    required this.label,
+    required this.autoValue,
+    required this.overrideValue,
+    required this.onChanged,
+  });
+
+  @override
+  State<_EditableAmount> createState() => _EditableAmountState();
+}
+
+class _EditableAmountState extends State<_EditableAmount> {
+  static Color get _purple => AppTheme.primaryBlue;
+  bool _editing = false;
+  late final TextEditingController _ctrl = TextEditingController(
+      text: (widget.overrideValue ?? widget.autoValue).toStringAsFixed(0));
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final v = double.tryParse(_ctrl.text.trim());
+    widget.onChanged(v);
+    setState(() => _editing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = widget.overrideValue ?? widget.autoValue;
+    final overridden = widget.overrideValue != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Expanded(flex: 2, child: Text(widget.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+        Expanded(
+          flex: 3,
+          child: Text(overridden ? 'edited' : '(auto)',
+              style: TextStyle(fontSize: 11, color: overridden ? _purple : Colors.grey.shade400)),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 90,
+          child: _editing
+              ? TextField(
+                  controller: _ctrl,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(fontSize: 12),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    prefixText: '₹',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _commit(),
+                )
+              : Text('₹${value.toStringAsFixed(0)}',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _purple)),
+        ),
+        SizedBox(
+          width: 28,
+          child: _editing
+              ? IconButton(
+                  icon: const Icon(Icons.check_rounded, size: 16),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  color: _purple,
+                  onPressed: _commit,
+                )
+              : IconButton(
+                  icon: Icon(Icons.edit_outlined, size: 15, color: Colors.grey.shade500),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() => _editing = true),
+                ),
+        ),
+        if (overridden)
+          SizedBox(
+            width: 28,
+            child: IconButton(
+              icon: Icon(Icons.restart_alt_rounded, size: 15, color: Colors.grey.shade500),
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Reset to auto',
+              onPressed: () {
+                widget.onChanged(null);
+                setState(() {
+                  _editing = false;
+                  _ctrl.text = widget.autoValue.toStringAsFixed(0);
+                });
+              },
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
 class GeneratePayslipPage extends StatefulWidget {
   final AppUser user;
   final PayslipRequest? request;
@@ -796,15 +906,31 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
   bool _saving = false;
 
   int _workingDays = 0;
+  int _daysInMonth = 0; // fixed calendar days; basis for one-day salary
   int _lopDays = 0;
   int _lateDays = 0;
+  bool _daysWorkedManual = false;
   late final TextEditingController _workingDaysCtrl;
   late final TextEditingController _lopDaysCtrl;
+  late final TextEditingController _daysWorkedCtrl;
   late final TextEditingController _specialCtrl = TextEditingController();
   late final TextEditingController _cugCtrl = TextEditingController();
 
   double _basic = 0, _educational = 0, _lta = 0, _conveyance = 0;
   List<LeaveDetailRow> _leaveDetails = [];
+
+  // CL/ML/EL days taken beyond the employee's balance for the month.
+  double _clExcess = 0, _mlExcess = 0, _elExcess = 0;
+  bool _deductElExcess = false;
+
+  // Manual overrides for otherwise auto-computed fields (null = use auto value).
+  double? _hraOverride;
+  double? _otherAllowanceOverride;
+  double? _epfOverride;
+  double? _professionalTaxOverride;
+  double? _tdsOverride;
+  double? _lateDeductionOverride;
+  double? _excessLeaveDeductionOverride;
 
   @override
   void initState() {
@@ -812,6 +938,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
     _monthYear = widget.request?.monthYear ?? _currentMonthYear();
     _workingDaysCtrl = TextEditingController();
     _lopDaysCtrl = TextEditingController();
+    _daysWorkedCtrl = TextEditingController();
     _load();
   }
 
@@ -819,6 +946,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
   void dispose() {
     _workingDaysCtrl.dispose();
     _lopDaysCtrl.dispose();
+    _daysWorkedCtrl.dispose();
     _specialCtrl.dispose();
     _cugCtrl.dispose();
     super.dispose();
@@ -889,44 +1017,77 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
       }
     }
 
+    final clTaken = takenFor('CL');
+    final mlTaken = takenFor('ML');
+    final elTaken = takenFor('EL');
+    final clExcess = (clTaken - widget.user.monthlyCl).clamp(0, double.infinity).toDouble();
+    final mlExcess = (mlTaken - widget.user.monthlyMl).clamp(0, double.infinity).toDouble();
+    final elExcess = (elTaken - elAccrued).clamp(0, double.infinity).toDouble();
+    final daysWorkedDefault = (daysInMonth - lopDays).clamp(0, daysInMonth);
+
     if (!mounted) return;
     setState(() {
       _workingDays = daysInMonth;
+      _daysInMonth = daysInMonth;
       _lopDays = lopDays;
       _lateDays = lateDays;
       _workingDaysCtrl.text = '$daysInMonth';
       _lopDaysCtrl.text = '$lopDays';
+      _daysWorkedCtrl.text = '$daysWorkedDefault';
+      _daysWorkedManual = false;
+      _clExcess = clExcess;
+      _mlExcess = mlExcess;
+      _elExcess = elExcess;
+      _deductElExcess = false;
+      _hraOverride = null;
+      _otherAllowanceOverride = null;
+      _epfOverride = null;
+      _professionalTaxOverride = null;
+      _tdsOverride = null;
+      _lateDeductionOverride = null;
+      _excessLeaveDeductionOverride = null;
       _leaveDetails = [
-        LeaveDetailRow(type: 'Casual Leave', opening: widget.user.monthlyCl.toDouble(), taken: takenFor('CL')),
-        LeaveDetailRow(type: 'Medical Leave', opening: widget.user.monthlyMl.toDouble(), taken: takenFor('ML')),
-        LeaveDetailRow(type: 'Earned Leave', opening: elAccrued, taken: takenFor('EL')),
+        LeaveDetailRow(type: 'Casual Leave', opening: widget.user.monthlyCl.toDouble(), taken: clTaken),
+        LeaveDetailRow(type: 'Medical Leave', opening: widget.user.monthlyMl.toDouble(), taken: mlTaken),
+        LeaveDetailRow(type: 'Earned Leave', opening: elAccrued, taken: elTaken),
       ];
       _loading = false;
     });
   }
 
   double get _grossPay => widget.user.grossPay;
-  int get _daysWorked => (_workingDays - _lopDays).clamp(0, _workingDays);
-  double get _hra => PayslipCalc.hra(_basic);
-  double get _otherAllowance => PayslipCalc.otherAllowance(_grossPay);
-  double get _epf => PayslipCalc.epf;
-  double get _professionalTax => PayslipCalc.professionalTax;
-  double get _tds => PayslipCalc.tds(_grossPay);
-  double get _lateDeduction => PayslipCalc.lateDeduction(
-      grossPay: _grossPay, workingDays: _workingDays, lateDays: _lateDays);
+  int get _daysWorked =>
+      int.tryParse(_daysWorkedCtrl.text.trim()) ?? (_workingDays - _lopDays).clamp(0, _workingDays);
+  double get _hra => _hraOverride ?? PayslipCalc.hra(_basic);
+  double get _otherAllowance => _otherAllowanceOverride ?? PayslipCalc.otherAllowance(_grossPay);
+  double get _epf => _epfOverride ?? PayslipCalc.epf;
+  double get _professionalTax => _professionalTaxOverride ?? PayslipCalc.professionalTax;
+  double get _tds => _tdsOverride ?? PayslipCalc.tds(_grossPay);
+  double get _lateDeduction => _lateDeductionOverride ?? PayslipCalc.lateDeduction(
+      grossPay: _grossPay, daysInMonth: _daysInMonth, lateDays: _lateDays);
+  double get _excessLeaveDays => _clExcess + _mlExcess + (_deductElExcess ? _elExcess : 0);
+  double get _excessLeaveDeduction => _excessLeaveDeductionOverride ?? PayslipCalc.excessLeaveDeduction(
+      grossPay: _grossPay, daysInMonth: _daysInMonth, excessDays: _excessLeaveDays);
   double get _special => double.tryParse(_specialCtrl.text.trim()) ?? 0;
   double get _cug => double.tryParse(_cugCtrl.text.trim()) ?? 0;
 
   double get _actualGrossPay =>
       _basic + _hra + _educational + _lta + _otherAllowance + _conveyance + _special;
   double get _totalDeductions =>
-      _epf + _professionalTax + _tds + _lateDeduction + _cug;
+      _epf + _professionalTax + _tds + _lateDeduction + _excessLeaveDeduction + _cug;
   double get _netPay => _actualGrossPay - _totalDeductions;
+
+  void _syncDaysWorked() {
+    final workingDays = int.tryParse(_workingDaysCtrl.text.trim()) ?? _workingDays;
+    final lopDays = int.tryParse(_lopDaysCtrl.text.trim()) ?? _lopDays;
+    _daysWorkedCtrl.text = '${(workingDays - lopDays).clamp(0, workingDays)}';
+  }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final workingDays = int.tryParse(_workingDaysCtrl.text.trim()) ?? _workingDays;
     final lopDays = int.tryParse(_lopDaysCtrl.text.trim()) ?? _lopDays;
+    final daysWorked = _daysWorked;
     final payslip = Payslip(
       id: '${widget.user.employeeId}_$_monthYear',
       employeeId: widget.user.employeeId,
@@ -936,7 +1097,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
       designation: widget.user.designation,
       dateOfJoining: widget.user.dateOfJoining,
       workingDays: workingDays,
-      daysWorked: (workingDays - lopDays).clamp(0, workingDays),
+      daysWorked: daysWorked,
       lopDays: lopDays,
       grossPay: _grossPay,
       basic: _basic,
@@ -950,6 +1111,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
       professionalTax: _professionalTax,
       tds: _tds,
       lateDeductions: _lateDeduction,
+      excessLeaveDeduction: _excessLeaveDeduction,
       cug: _cug,
       leaveDetails: _leaveDetails,
       generatedAt: DateTime.now(),
@@ -1074,7 +1236,9 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                       decoration: InputDecoration(
                           labelText: 'Working Days',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() {
+                        if (!_daysWorkedManual) _syncDaysWorked();
+                      }),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1085,16 +1249,30 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                       decoration: InputDecoration(
                           labelText: 'LOP Days',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() {
+                        if (!_daysWorkedManual) _syncDaysWorked();
+                      }),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: InputDecorator(
+                    child: TextField(
+                      controller: _daysWorkedCtrl,
+                      keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                           labelText: 'Days Worked',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                      child: Text('$_daysWorked'),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          suffixIcon: _daysWorkedManual
+                              ? IconButton(
+                                  icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                                  tooltip: 'Reset to auto',
+                                  onPressed: () => setState(() {
+                                    _daysWorkedManual = false;
+                                    _syncDaysWorked();
+                                  }),
+                                )
+                              : null),
+                      onChanged: (_) => setState(() => _daysWorkedManual = true),
                     ),
                   ),
                 ]),
@@ -1110,7 +1288,12 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                   basic: _basic,
                   onChanged: (v) => setState(() => _basic = v),
                 ),
-                _readOnlyAmount('House Rent Allowance (50% of Basic)', _hra),
+                _EditableAmount(
+                  label: 'House Rent Allowance (50% of Basic)',
+                  autoValue: PayslipCalc.hra(_basic),
+                  overrideValue: _hraOverride,
+                  onChanged: (v) => setState(() => _hraOverride = v),
+                ),
                 _OptionField(
                   label: 'Educational Allowance',
                   options: PayslipCalc.educationalOptions,
@@ -1127,7 +1310,12 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                   basic: _basic,
                   onChanged: (v) => setState(() => _lta = v),
                 ),
-                _readOnlyAmount('Other Allowance (2% of Gross)', _otherAllowance),
+                _EditableAmount(
+                  label: 'Other Allowance (2% of Gross)',
+                  autoValue: PayslipCalc.otherAllowance(_grossPay),
+                  overrideValue: _otherAllowanceOverride,
+                  onChanged: (v) => setState(() => _otherAllowanceOverride = v),
+                ),
                 _OptionField(
                   label: 'Conveyance Allowance',
                   options: PayslipCalc.conveyanceOptions,
@@ -1154,10 +1342,60 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
 
                 Text('Deductions', style: TextStyle(fontWeight: FontWeight.w700, color: _purple)),
                 const SizedBox(height: 8),
-                _readOnlyAmount('EPF', _epf),
-                _readOnlyAmount('Professional Tax', _professionalTax),
-                _readOnlyAmount('TDS${PayslipCalc.tdsApplicable(_grossPay) ? '' : ' (not applicable)'}', _tds),
-                _readOnlyAmount('Late Deductions ($_lateDays late day${_lateDays == 1 ? '' : 's'})', _lateDeduction),
+                _EditableAmount(
+                  label: 'EPF',
+                  autoValue: PayslipCalc.epf,
+                  overrideValue: _epfOverride,
+                  onChanged: (v) => setState(() => _epfOverride = v),
+                ),
+                _EditableAmount(
+                  label: 'Professional Tax',
+                  autoValue: PayslipCalc.professionalTax,
+                  overrideValue: _professionalTaxOverride,
+                  onChanged: (v) => setState(() => _professionalTaxOverride = v),
+                ),
+                _EditableAmount(
+                  label: 'TDS${PayslipCalc.tdsApplicable(_grossPay) ? '' : ' (not applicable)'}',
+                  autoValue: PayslipCalc.tds(_grossPay),
+                  overrideValue: _tdsOverride,
+                  onChanged: (v) => setState(() => _tdsOverride = v),
+                ),
+                _EditableAmount(
+                  label:
+                      'Late Deductions ($_lateDays late day${_lateDays == 1 ? '' : 's'}, ${PayslipCalc.lateGraceDays} excused)',
+                  autoValue: PayslipCalc.lateDeduction(
+                      grossPay: _grossPay, daysInMonth: _daysInMonth, lateDays: _lateDays),
+                  overrideValue: _lateDeductionOverride,
+                  onChanged: (v) => setState(() => _lateDeductionOverride = v),
+                ),
+                if (_clExcess > 0 || _mlExcess > 0 || _elExcess > 0) ...[
+                  _EditableAmount(
+                    label:
+                        'Excess Leave Deduction (CL ${_clExcess.toStringAsFixed(0)}, ML ${_mlExcess.toStringAsFixed(0)}'
+                        '${_deductElExcess ? ', EL ${_elExcess.toStringAsFixed(0)}' : ''})',
+                    autoValue: PayslipCalc.excessLeaveDeduction(
+                        grossPay: _grossPay, daysInMonth: _daysInMonth, excessDays: _excessLeaveDays),
+                    overrideValue: _excessLeaveDeductionOverride,
+                    onChanged: (v) => setState(() => _excessLeaveDeductionOverride = v),
+                  ),
+                  if (_elExcess > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: CheckboxListTile(
+                        value: _deductElExcess,
+                        onChanged: (v) => setState(() {
+                          _deductElExcess = v ?? false;
+                          _excessLeaveDeductionOverride = null;
+                        }),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(
+                            'Also deduct ${_elExcess.toStringAsFixed(0)} excess EL day${_elExcess == 1 ? '' : 's'}',
+                            style: const TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                ],
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: TextField(

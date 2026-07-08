@@ -96,6 +96,7 @@ class Payslip {
   final double professionalTax;
   final double tds;
   final double lateDeductions;
+  final double excessLeaveDeduction;
   final double cug;
 
   final List<LeaveDetailRow> leaveDetails;
@@ -126,6 +127,7 @@ class Payslip {
     required this.professionalTax,
     required this.tds,
     required this.lateDeductions,
+    this.excessLeaveDeduction = 0,
     this.cug = 0,
     this.leaveDetails = const [],
     required this.generatedAt,
@@ -137,7 +139,7 @@ class Payslip {
       conveyanceAllowance + specialAllowance;
 
   double get totalDeductions =>
-      epf + professionalTax + tds + lateDeductions + cug;
+      epf + professionalTax + tds + lateDeductions + excessLeaveDeduction + cug;
 
   double get netPay => actualGrossPay - totalDeductions;
 
@@ -165,6 +167,7 @@ class Payslip {
         'professional_tax': professionalTax,
         'tds': tds,
         'late_deductions': lateDeductions,
+        'excess_leave_deduction': excessLeaveDeduction,
         'cug': cug,
         'leave_details': jsonEncode(leaveDetails.map((r) => r.toJson()).toList()),
         'generated_at': generatedAt.toIso8601String(),
@@ -211,6 +214,7 @@ class Payslip {
       professionalTax: numOf('professional_tax'),
       tds: numOf('tds'),
       lateDeductions: numOf('late_deductions'),
+      excessLeaveDeduction: numOf('excess_leave_deduction'),
       cug: numOf('cug'),
       leaveDetails: parseLeave(j['leave_details']),
       generatedAt: DateTime.tryParse((j['generated_at'] as String?) ?? '') ??
@@ -277,13 +281,32 @@ class PayslipCalc {
   static double tds(double monthlyGrossPay) =>
       tdsApplicable(monthlyGrossPay) ? monthlyGrossPay * 0.10 : 0;
 
-  /// Half a day's pay per late day. Day's pay = Gross Pay ÷ working days.
+  /// One day's pay = Gross Pay ÷ calendar days in the month.
+  static double oneDaySalary({required double grossPay, required int daysInMonth}) =>
+      daysInMonth <= 0 ? 0 : grossPay / daysInMonth;
+
+  /// First [graceDays] late arrivals in a month are excused; only late days
+  /// beyond that are charged, at half a day's pay each.
+  static const int lateGraceDays = 3;
+
   static double lateDeduction({
     required double grossPay,
-    required int workingDays,
+    required int daysInMonth,
     required int lateDays,
   }) {
-    if (workingDays <= 0 || lateDays <= 0) return 0;
-    return (grossPay / workingDays) * 0.5 * lateDays;
+    final chargeable = lateDays - lateGraceDays;
+    if (chargeable <= 0) return 0;
+    return oneDaySalary(grossPay: grossPay, daysInMonth: daysInMonth) * 0.5 * chargeable;
+  }
+
+  /// Deduction for CL/ML/EL days taken beyond the employee's balance for the
+  /// month, at a full day's pay each.
+  static double excessLeaveDeduction({
+    required double grossPay,
+    required int daysInMonth,
+    required double excessDays,
+  }) {
+    if (excessDays <= 0) return 0;
+    return oneDaySalary(grossPay: grossPay, daysInMonth: daysInMonth) * excessDays;
   }
 }
