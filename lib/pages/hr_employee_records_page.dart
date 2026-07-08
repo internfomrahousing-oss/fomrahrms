@@ -1142,36 +1142,41 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               const SizedBox(height: 10),
 
               // On-Roll — 3-stage review: HR + Reporting Manager independently, then Management.
-              _onrollStageBlock(
-                label: 'HR',
-                status: _user.onrollHrStatus,
-                comment: _user.onrollHrComment,
-                canAct: canActHr,
-                canUndo: _canUndoHr,
-                countdown: _countdown(_user.onrollHrDecidedAt),
-                onAccept: () => _decideHr(true),
-                onDeny: () async {
-                  final c = await _promptDenyComment('Deny HR On-Roll Request');
-                  if (c != null) await _decideHr(false, comment: c);
-                },
-                onUndo: () => _undoOnrollStage('hr'),
-              ),
-              const SizedBox(height: 8),
-              _onrollStageBlock(
-                label: 'Reporting Manager',
-                status: _user.onrollManagerStatus,
-                comment: _user.onrollManagerComment,
-                canAct: canActManager,
-                canUndo: _canUndoManager,
-                countdown: _countdown(_user.onrollManagerDecidedAt),
-                onAccept: () => _decideManager(true),
-                onDeny: () async {
-                  final c = await _promptDenyComment('Deny Manager On-Roll Request');
-                  if (c != null) await _decideManager(false, comment: c);
-                },
-                onUndo: () => _undoOnrollStage('manager'),
-              ),
-              const SizedBox(height: 8),
+              // Once already confirmed on-roll, the individual stage cards are no longer
+              // relevant (they may still read 'pending' for employees confirmed before the
+              // review flow existed) — just show the confirmed banner below.
+              if (!_user.isOnroll) ...[
+                _onrollStageBlock(
+                  label: 'HR',
+                  status: _user.onrollHrStatus,
+                  comment: _user.onrollHrComment,
+                  canAct: canActHr,
+                  canUndo: _canUndoHr,
+                  countdown: _countdown(_user.onrollHrDecidedAt),
+                  onAccept: () => _decideHr(true),
+                  onDeny: () async {
+                    final c = await _promptDenyComment('Deny HR On-Roll Request');
+                    if (c != null) await _decideHr(false, comment: c);
+                  },
+                  onUndo: () => _undoOnrollStage('hr'),
+                ),
+                const SizedBox(height: 8),
+                _onrollStageBlock(
+                  label: 'Reporting Manager',
+                  status: _user.onrollManagerStatus,
+                  comment: _user.onrollManagerComment,
+                  canAct: canActManager,
+                  canUndo: _canUndoManager,
+                  countdown: _countdown(_user.onrollManagerDecidedAt),
+                  onAccept: () => _decideManager(true),
+                  onDeny: () async {
+                    final c = await _promptDenyComment('Deny Manager On-Roll Request');
+                    if (c != null) await _decideManager(false, comment: c);
+                  },
+                  onUndo: () => _undoOnrollStage('manager'),
+                ),
+                const SizedBox(height: 8),
+              ],
 
               // Management stage — read-only here; actioned from the On-Roll Approvals page.
               if (_user.isOnroll)
