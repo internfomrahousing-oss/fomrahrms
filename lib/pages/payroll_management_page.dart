@@ -7,6 +7,7 @@ import '../models/user_session.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -977,7 +978,6 @@ class GeneratePayslipPage extends StatefulWidget {
 
 class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
   static Color get _purple => AppTheme.primaryBlue;
-  static const _lateCutoffMinutes = 9 * 60 + 30; // 9:30 AM
 
   late String _monthYear;
   bool _loading = true;
@@ -1052,16 +1052,13 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
     final attendance = results[0] as List<AttendanceRecord>;
     final leaves = results[1] as List<LeaveApplication>;
 
-    // Late days: check-in after 9:30 AM
+    // Late days: check-in after 9:30 AM, excluding days covered by an approved permission
     var lateDays = 0;
     for (final r in attendance) {
-      if (r.checkInTime.isEmpty) continue;
-      final parts = r.checkInTime.split(':');
-      if (parts.length != 2) continue;
-      final h = int.tryParse(parts[0]);
-      final m = int.tryParse(parts[1]);
-      if (h == null || m == null) continue;
-      if (h * 60 + m > _lateCutoffMinutes) lateDays++;
+      final date = parseSlashDate(r.date);
+      if (date == null) continue;
+      final status = checkInStatusFor(r.checkInTime, date, widget.user.name, leaves);
+      if (status.status == CheckInStatus.late) lateDays++;
     }
 
     // LOP days: approved 'LOP or Others' leave for this employee in this month

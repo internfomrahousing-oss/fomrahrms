@@ -21,6 +21,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   AttendanceRecord? _record;
 
   final _timeController = TextEditingController();
+  final _noteController = TextEditingController();
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   @override
   void dispose() {
     _timeController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -62,6 +64,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
       employeeId: UserSession.employeeId,
       date: date,
       time: _timeController.text,
+      note: _noteController.text.trim(),
     );
 
     if (!mounted) return;
@@ -137,30 +140,54 @@ class _CheckOutPageState extends State<CheckOutPage> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: TextField(
-                  controller: _timeController,
-                  decoration: InputDecoration(
-                    labelText: 'Check-Out Time',
-                    prefixIcon: Icon(Icons.access_time_rounded, color: _color, size: 20),
-                    suffixIcon: IconButton(
-                      tooltip: 'Refresh time',
-                      icon: Icon(Icons.schedule_rounded, color: _color),
-                      onPressed: _autoFillTime,
+                child: Column(children: [
+                  TextField(
+                    controller: _timeController,
+                    decoration: InputDecoration(
+                      labelText: 'Check-Out Time',
+                      prefixIcon: Icon(Icons.access_time_rounded, color: _color, size: 20),
+                      suffixIcon: IconButton(
+                        tooltip: 'Refresh time',
+                        icon: Icon(Icons.schedule_rounded, color: _color),
+                        onPressed: _autoFillTime,
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: cs.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: _color, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: cs.surface,
+                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: cs.outlineVariant),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: _color, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: cs.surface,
-                    labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
                   ),
-                ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _noteController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Note (optional)',
+                      hintText: 'e.g. left early for client meeting',
+                      prefixIcon: Icon(Icons.edit_note_rounded, color: _color, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: cs.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: _color, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: cs.surface,
+                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+                    ),
+                  ),
+                ]),
               ),
             ),
             const SizedBox(height: 16),
@@ -232,23 +259,32 @@ class _CheckInSummaryBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: isDark ? Colors.green.shade700 : Colors.green.shade300),
       ),
-      child: Row(children: [
-        Icon(Icons.login_rounded,
-            color: isDark ? Colors.green.shade400 : Colors.green.shade600, size: 18),
-        const SizedBox(width: 10),
-        Text('Checked in at ',
-            style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.green.shade400 : Colors.green.shade700)),
-        Text(record.checkInTime,
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace',
-                color: isDark ? Colors.green.shade300 : Colors.green.shade800)),
-        const SizedBox(width: 6),
-        Text('· GPS tracking active',
-            style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.green.shade500 : Colors.green.shade600)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.login_rounded,
+              color: isDark ? Colors.green.shade400 : Colors.green.shade600, size: 18),
+          const SizedBox(width: 10),
+          Text('Checked in at ',
+              style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.green.shade400 : Colors.green.shade700)),
+          Text(record.checkInTime,
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace',
+                  color: isDark ? Colors.green.shade300 : Colors.green.shade800)),
+          const SizedBox(width: 6),
+          Text('· GPS tracking active',
+              style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.green.shade500 : Colors.green.shade600)),
+        ]),
+        if (record.checkInNote.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(record.checkInNote,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.green.shade400 : Colors.green.shade700)),
+        ],
       ]),
     );
   }
@@ -319,9 +355,42 @@ class _AlreadyCheckedOut extends StatelessWidget {
                       color: isDark ? Colors.blue.shade200 : Colors.blue.shade800)),
             ),
           ],
+          if (record.checkInNote.isNotEmpty || record.checkOutNote.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            if (record.checkInNote.isNotEmpty)
+              _NoteLine(label: 'Check-in note', text: record.checkInNote, isDark: isDark),
+            if (record.checkOutNote.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _NoteLine(label: 'Check-out note', text: record.checkOutNote, isDark: isDark),
+            ],
+          ],
         ]),
       ),
     ]);
+  }
+}
+
+class _NoteLine extends StatelessWidget {
+  final String label;
+  final String text;
+  final bool isDark;
+  const _NoteLine({required this.label, required this.text, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(fontSize: 12,
+              color: isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+          children: [
+            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+            TextSpan(text: text),
+          ],
+        ),
+      ),
+    );
   }
 }
 

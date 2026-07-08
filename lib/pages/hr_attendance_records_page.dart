@@ -4,10 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
+import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
+
+CheckInRowStatus _rowStatus(AttendanceRecord r, List<LeaveApplication> leaveApps) {
+  final date = parseSlashDate(r.date);
+  if (date == null) return const CheckInRowStatus(CheckInStatus.none, 0);
+  return checkInStatusFor(r.checkInTime, date, r.employeeName, leaveApps);
+}
 
 class HrAttendanceRecordsPage extends StatefulWidget {
   final String routePrefix;
@@ -25,6 +33,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
   List<AttendanceRecord> _records = [];
+  List<LeaveApplication> _leaveApps = [];
   int _totalUsers = 0;
 
   @override
@@ -41,10 +50,12 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     final results = await Future.wait([
       SupabaseService.fetchAttendanceForDate(_dateToStr(_selectedDate)),
       UserStore.load(),
+      SupabaseService.fetchLeaveApplications(),
     ]);
     if (mounted) setState(() {
       _records = results[0] as List<AttendanceRecord>;
       _totalUsers = (results[1] as List).length;
+      _leaveApps = results[2] as List<LeaveApplication>;
       _isLoading = false;
     });
   }
@@ -292,7 +303,8 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
               child: Center(child: CircularProgressIndicator(color: _color)),
             )
           else ...[
-            _AttendanceSummaryCard(records: _records, totalUsers: _totalUsers),
+            _AttendanceSummaryCard(
+                records: _records, totalUsers: _totalUsers, leaveApps: _leaveApps),
             const SizedBox(height: 16),
             _Section(
               title: 'Attendance Records',
@@ -303,6 +315,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                   ? _Empty()
                   : _AttendanceTable(
                       records: filtered,
+                      leaveApps: _leaveApps,
                       color: _color,
                       onRowTap: _showDetail,
                     ),
@@ -318,8 +331,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
 
 class _AttendanceSummaryCard extends StatelessWidget {
   final List<AttendanceRecord> records;
+  final List<LeaveApplication> leaveApps;
   final int totalUsers;
-  const _AttendanceSummaryCard({required this.records, required this.totalUsers});
+  const _AttendanceSummaryCard(
+      {required this.records, required this.totalUsers, required this.leaveApps});
 
   static const _green = Color(0xFF22C55E);
 
@@ -328,11 +343,15 @@ class _AttendanceSummaryCard extends StatelessWidget {
     final present = records.where((r) => r.checkInTime.isNotEmpty).length;
     final absent  = (totalUsers - present).clamp(0, totalUsers);
 
+    final statuses = records.map((r) => _rowStatus(r, leaveApps)).toList();
+    final lateArrivals = statuses.where((s) => s.status == CheckInStatus.late).length;
+    final onPermission = statuses.where((s) => s.status == CheckInStatus.permission).length;
+
     final stats = [
       ('Present', '$present', Icons.check_circle_rounded, _green),
       ('Absent',  '$absent',  Icons.cancel_rounded,       const Color(0xFFEF4444)),
-      ('Late Arrivals', '—', Icons.schedule_rounded,      const Color(0xFFF59E0B)),
-      ('On Permission', '—', Icons.event_note_rounded,    AppTheme.accentBlue),
+      ('Late Arrivals', '$lateArrivals', Icons.schedule_rounded, const Color(0xFFF59E0B)),
+      ('On Permission', '$onPermission', Icons.event_note_rounded, AppTheme.accentBlue),
       ('Comp Off',      '—', Icons.weekend_rounded,       AppTheme.primaryBlue),
       ('On Duty',       '—', Icons.work_rounded,          const Color(0xFF15803D)),
     ];
@@ -409,13 +428,48 @@ class _SumStat extends StatelessWidget {
 
 class _AttendanceTable extends StatelessWidget {
   final List<AttendanceRecord> records;
+  final List<LeaveApplication> leaveApps;
   final Color color;
   final void Function(AttendanceRecord) onRowTap;
   const _AttendanceTable({
     required this.records,
+    required this.leaveApps,
     required this.color,
     required this.onRowTap,
   });
+
+  static const _red = Color(0xFFEF4444);
+
+  Widget _statusChip(CheckInRowStatus rs) {
+    final String label;
+    final Color chipColor;
+    switch (rs.status) {
+      case CheckInStatus.onTime:
+        label = 'On time';
+        chipColor = const Color(0xFF22C55E);
+        break;
+      case CheckInStatus.permission:
+        label = 'Permission (${permLabel(rs.permMinutes)})';
+        chipColor = AppTheme.accentBlue;
+        break;
+      case CheckInStatus.late:
+        label = 'Late';
+        chipColor = _red;
+        break;
+      case CheckInStatus.none:
+        return const Text('—', style: TextStyle(fontSize: 12, color: Colors.grey));
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: chipColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: chipColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: chipColor)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -434,6 +488,8 @@ class _AttendanceTable extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Text('Check-Out Time',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
+          DataColumn(label: Text('Status',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Row(children: [
             Text('Details', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color)),
             const SizedBox(width: 4),
@@ -446,6 +502,7 @@ class _AttendanceTable extends StatelessWidget {
               ? 'In & Out recorded'
               : r.checkInTime.isNotEmpty ? 'Checked in' : 'Checked out';
           final statusColor = bothRecorded ? Colors.green.shade700 : color;
+          final rowStatus = _rowStatus(r, leaveApps);
           return DataRow(
             onSelectChanged: (_) => onRowTap(r),
             color: WidgetStateProperty.resolveWith((states) {
@@ -457,16 +514,35 @@ class _AttendanceTable extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
               DataCell(Text(r.date,
                   style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
-              DataCell(Text(r.checkInTime.isNotEmpty ? r.checkInTime : '—',
-                  style: TextStyle(fontSize: 12,
-                      color: r.checkInTime.isNotEmpty
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Colors.grey.shade400))),
-              DataCell(Text(r.checkOutTime.isNotEmpty ? r.checkOutTime : '—',
-                  style: TextStyle(fontSize: 12,
-                      color: r.checkOutTime.isNotEmpty
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Colors.grey.shade400))),
+              DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(r.checkInTime.isNotEmpty ? r.checkInTime : '—',
+                    style: TextStyle(fontSize: 12,
+                        color: r.checkInTime.isNotEmpty
+                            ? Theme.of(context).colorScheme.onSurface
+                            : Colors.grey.shade400)),
+                if (r.checkInNote.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: r.checkInNote,
+                    child: Icon(Icons.edit_note_rounded, size: 14, color: color.withValues(alpha: 0.6)),
+                  ),
+                ],
+              ])),
+              DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(r.checkOutTime.isNotEmpty ? r.checkOutTime : '—',
+                    style: TextStyle(fontSize: 12,
+                        color: r.checkOutTime.isNotEmpty
+                            ? Theme.of(context).colorScheme.onSurface
+                            : Colors.grey.shade400)),
+                if (r.checkOutNote.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: r.checkOutNote,
+                    child: Icon(Icons.edit_note_rounded, size: 14, color: color.withValues(alpha: 0.6)),
+                  ),
+                ],
+              ])),
+              DataCell(_statusChip(rowStatus)),
               DataCell(Row(children: [
                 Text(statusText,
                     style: TextStyle(fontSize: 11, color: statusColor.withValues(alpha: 0.9))),
@@ -538,8 +614,16 @@ class _AttendanceDetailDialog extends StatelessWidget {
               _InfoRow(Icons.calendar_today_rounded, 'Date', r.date),
               const SizedBox(height: 10),
               _InfoRow(Icons.login_rounded, 'Check-In', r.checkInTime.isNotEmpty ? r.checkInTime : '—'),
+              if (r.checkInNote.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _NoteBlock(label: 'Check-in note', text: r.checkInNote),
+              ],
               const SizedBox(height: 10),
               _InfoRow(Icons.logout_rounded, 'Check-Out', hasCheckOut ? r.checkOutTime : '—'),
+              if (r.checkOutNote.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _NoteBlock(label: 'Check-out note', text: r.checkOutNote),
+              ],
               if (r.gpsPoints.isNotEmpty || r.location.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 _RouteMap(record: r),
@@ -585,6 +669,33 @@ class _AttendanceDetailDialog extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NoteBlock extends StatelessWidget {
+  final String label;
+  final String text;
+  const _NoteBlock({required this.label, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(left: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+                color: Color(0xFF9CA3AF))),
+        const SizedBox(height: 2),
+        Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF374151))),
+      ]),
     );
   }
 }

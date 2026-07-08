@@ -5,12 +5,9 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/attendance_access.dart';
 import '../services/supabase_service.dart';
+import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
-
-// Late-coming threshold: check-in at or after 09:30 = Late
-const _lateHour   = 9;
-const _lateMinute = 30;
 
 Color get _blue => AppTheme.primaryBlue;
 const _green  = Color(0xFF22C55E);
@@ -120,12 +117,11 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     try { return int.parse(date.split('/').first); } catch (_) { return null; }
   }
 
-  static bool _isLate(String t) {
-    try {
-      final p = t.split(':');
-      final h = int.parse(p[0]), m = int.parse(p[1]);
-      return h > _lateHour || (h == _lateHour && m >= _lateMinute);
-    } catch (_) { return false; }
+  CheckInRowStatus _status(int day) {
+    final r = _attendance[day];
+    if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
+    final date = DateTime(_month.year, _month.month, day);
+    return checkInStatusFor(r.checkInTime, date, UserSession.name, LeaveStore.applications);
   }
 
   // True when a day has no check-in, no approved leave, and isn't a
@@ -145,7 +141,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     // Attendance takes visual priority (worked on holiday → show attendance color)
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) {
-      return _isLate(r.checkInTime) ? _purple : _green;
+      return _status(day).status == CheckInStatus.late ? _purple : _green;
     }
     if (_leaveDays.contains(day)) return _red;
     if (_holidayDays.contains(day)) return _yellow;
@@ -172,7 +168,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
         record: rec,
         isLeave: isLeave,
         isAbsent: missed,
-        isLate: rec != null && _isLate(rec.checkInTime),
+        status: rec != null ? _status(day) : const CheckInRowStatus(CheckInStatus.none, 0),
       ),
     );
   }
@@ -468,14 +464,14 @@ class _DaySheet extends StatelessWidget {
   final AttendanceRecord? record;
   final bool isLeave;
   final bool isAbsent;
-  final bool isLate;
+  final CheckInRowStatus status;
 
   const _DaySheet({
     required this.label,
     required this.record,
     required this.isLeave,
     this.isAbsent = false,
-    required this.isLate,
+    required this.status,
   });
 
   static String? _dur(String inT, String outT) {
@@ -500,7 +496,7 @@ class _DaySheet extends StatelessWidget {
     if (isLeave || isAbsent) {
       statusLabel = 'Absent';
       statusColor = _red;
-    } else if (isLate) {
+    } else if (status.status == CheckInStatus.late) {
       statusLabel = 'Late Coming';
       statusColor = _purple;
     } else {
@@ -563,6 +559,15 @@ class _DaySheet extends StatelessWidget {
           ]),
         ] else if (rec != null && rec.checkInTime.isNotEmpty) ...[
           _detailRow(context, Icons.login_rounded, 'Check In', rec.checkInTime, _green),
+          if (status.status == CheckInStatus.permission) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.event_note_rounded, size: 16, color: _blue),
+              const SizedBox(width: 8),
+              Text('Covered by approved permission (${permLabel(status.permMinutes)})',
+                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7))),
+            ]),
+          ],
           const SizedBox(height: 12),
           if (rec.checkOutTime.isNotEmpty) ...[
             _detailRow(context, Icons.logout_rounded, 'Check Out', rec.checkOutTime,

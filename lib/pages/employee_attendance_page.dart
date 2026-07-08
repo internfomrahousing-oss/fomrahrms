@@ -34,6 +34,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
 
   final _checkInCtrl  = TextEditingController();
   final _checkOutCtrl = TextEditingController();
+  final _checkInNoteCtrl  = TextEditingController();
+  final _checkOutNoteCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -48,6 +50,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     _refreshTimer?.cancel();
     _checkInCtrl.dispose();
     _checkOutCtrl.dispose();
+    _checkInNoteCtrl.dispose();
+    _checkOutNoteCtrl.dispose();
     super.dispose();
   }
 
@@ -101,6 +105,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       date:     date,
       time:     _checkInCtrl.text,
       location: loc,
+      note:     _checkInNoteCtrl.text.trim(),
     );
 
     if (!mounted) return;
@@ -138,6 +143,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       employeeId: UserSession.employeeId,
       date: date,
       time: _checkOutCtrl.text,
+      note: _checkOutNoteCtrl.text.trim(),
     );
     if (UserSession.email.isNotEmpty) {
       NotificationService.checkOutRecorded(
@@ -224,28 +230,36 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               icon: Icons.check_circle_rounded,
               color: Colors.green,
               isDark: isDark,
-              child: Row(children: [
-                Icon(Icons.login_rounded,
-                    color: isDark ? Colors.green.shade300 : Colors.green.shade700,
-                    size: 16),
-                const SizedBox(width: 6),
-                Text('Checked in at ',
-                    style: TextStyle(fontSize: 13,
-                        color: isDark ? Colors.green.shade300 : Colors.green.shade700)),
-                Text(rec.checkInTime,
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace',
-                        color: isDark ? Colors.green.shade200 : Colors.green.shade800)),
-                const Spacer(),
-                Container(
-                  width: 8, height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade400, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 6),
-                Text('GPS active',
-                    style: TextStyle(fontSize: 11,
-                        color: isDark ? Colors.green.shade400 : Colors.green.shade600)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(Icons.login_rounded,
+                      color: isDark ? Colors.green.shade300 : Colors.green.shade700,
+                      size: 16),
+                  const SizedBox(width: 6),
+                  Text('Checked in at ',
+                      style: TextStyle(fontSize: 13,
+                          color: isDark ? Colors.green.shade300 : Colors.green.shade700)),
+                  Text(rec.checkInTime,
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace',
+                          color: isDark ? Colors.green.shade200 : Colors.green.shade800)),
+                  const Spacer(),
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade400, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('GPS active',
+                      style: TextStyle(fontSize: 11,
+                          color: isDark ? Colors.green.shade400 : Colors.green.shade600)),
+                ]),
+                if (rec.checkInNote.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(rec.checkInNote,
+                      style: TextStyle(fontSize: 12,
+                          color: isDark ? Colors.green.shade400 : Colors.green.shade700)),
+                ],
               ]),
             ),
 
@@ -278,6 +292,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               cs:      cs,
               onRefresh: () => _fillTime(_checkOutCtrl),
             ),
+            const SizedBox(height: 12),
+            _NoteField(controller: _checkOutNoteCtrl, color: _teal, cs: cs),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
@@ -331,6 +347,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               cs:       cs,
               onRefresh: () => _fillTime(_checkInCtrl),
             ),
+            const SizedBox(height: 12),
+            _NoteField(controller: _checkInNoteCtrl, color: _blue, cs: cs),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
@@ -437,6 +455,43 @@ class _TimeField extends StatelessWidget {
   }
 }
 
+class _NoteField extends StatelessWidget {
+  final TextEditingController controller;
+  final Color color;
+  final ColorScheme cs;
+  const _NoteField({required this.controller, required this.color, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextField(
+          controller: controller,
+          maxLines: 2,
+          decoration: InputDecoration(
+            labelText: 'Note (optional)',
+            hintText: 'e.g. working from client site',
+            prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: cs.outlineVariant),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: color, width: 2),
+            ),
+            filled: true,
+            fillColor: cs.surface,
+            labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Day summary (both checked in + out) ───────────────────────────────────────
 class _DaySummary extends StatelessWidget {
   final AttendanceRecord record;
@@ -509,7 +564,42 @@ class _DaySummary extends StatelessWidget {
                     color: isDark ? Colors.blue.shade200 : Colors.blue.shade800)),
           ),
         ],
+        if (record.checkInNote.isNotEmpty || record.checkOutNote.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (record.checkInNote.isNotEmpty)
+                _NoteLine(label: 'Check-in note', text: record.checkInNote, isDark: isDark),
+              if (record.checkOutNote.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                _NoteLine(label: 'Check-out note', text: record.checkOutNote, isDark: isDark),
+              ],
+            ]),
+          ),
+        ],
       ]),
+    );
+  }
+}
+
+class _NoteLine extends StatelessWidget {
+  final String label;
+  final String text;
+  final bool isDark;
+  const _NoteLine({required this.label, required this.text, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(fontSize: 12,
+            color: isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+        children: [
+          TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+          TextSpan(text: text),
+        ],
+      ),
     );
   }
 }

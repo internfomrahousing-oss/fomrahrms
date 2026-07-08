@@ -906,6 +906,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
   static const _teal  = Color(0xFF15803D);
 
   late final TextEditingController _timeCtrl;
+  final _noteCtrl = TextEditingController();
   bool _submitting = false;
 
   @override
@@ -917,6 +918,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
   @override
   void dispose() {
     _timeCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -946,6 +948,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       date:         _fmtDate(now),
       time:         _timeCtrl.text,
       location:     loc,
+      note:         _noteCtrl.text.trim(),
     );
 
     if (!mounted) return;
@@ -986,6 +989,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       employeeId: UserSession.employeeId,
       date:       _fmtDate(now),
       time:       _timeCtrl.text,
+      note:       _noteCtrl.text.trim(),
     );
 
     if (!mounted) return;
@@ -1127,6 +1131,29 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
               fillColor: cs.surface,
             ),
           ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _noteCtrl,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: 'Note (optional)',
+              hintText: isCheckedIn ? 'e.g. left early for client meeting' : 'e.g. working from client site',
+              prefixIcon: Icon(Icons.edit_note_rounded,
+                  color: isCheckedIn ? _teal : accent, size: 20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: cs.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                    color: isCheckedIn ? _teal : accent, width: 2),
+              ),
+              filled: true,
+              fillColor: cs.surface,
+            ),
+          ),
           const SizedBox(height: 16),
 
           // Action button
@@ -1214,6 +1241,22 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
             ),
             child: Text(dur,
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: blue)),
+          ),
+        ],
+        if (rec.checkInNote.isNotEmpty || rec.checkOutNote.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (rec.checkInNote.isNotEmpty)
+                Text('Check-in note: ${rec.checkInNote}',
+                    style: TextStyle(fontSize: 11, color: blue)),
+              if (rec.checkOutNote.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text('Check-out note: ${rec.checkOutNote}',
+                    style: TextStyle(fontSize: 11, color: blue)),
+              ],
+            ]),
           ),
         ],
       ]),

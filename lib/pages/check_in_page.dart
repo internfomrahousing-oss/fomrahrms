@@ -25,6 +25,7 @@ class _CheckInPageState extends State<CheckInPage> {
   AttendanceRecord? _record; // today's record from Supabase
 
   final _timeController = TextEditingController();
+  final _noteController = TextEditingController();
   Timer? _refreshTimer;
 
   @override
@@ -38,6 +39,7 @@ class _CheckInPageState extends State<CheckInPage> {
   void dispose() {
     _refreshTimer?.cancel();
     _timeController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -87,6 +89,7 @@ class _CheckInPageState extends State<CheckInPage> {
       date: date,
       time: _timeController.text,
       location: loc,
+      note: _noteController.text.trim(),
     );
 
     if (!mounted) return;
@@ -147,6 +150,7 @@ class _CheckInPageState extends State<CheckInPage> {
           else
             _CheckInForm(
               timeController: _timeController,
+              noteController: _noteController,
               color: _color,
               cs: cs,
               onRefreshTime: _autoFillTime,
@@ -215,6 +219,31 @@ class _CheckedInView extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 16),
+
+      // Note
+      if (record.checkInNote.isNotEmpty) ...[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE5E7EB)),
+          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.edit_note_rounded, size: 16,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(record.checkInNote,
+                  style: TextStyle(fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8))),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+      ],
 
       // Location & route
       if (pts.isNotEmpty) ...[
@@ -392,12 +421,13 @@ class _RouteMapViewState extends State<_RouteMapView> {
 // ── Check-in form (not yet checked in) ───────────────────────────────────────
 class _CheckInForm extends StatelessWidget {
   final TextEditingController timeController;
+  final TextEditingController noteController;
   final Color color;
   final ColorScheme cs;
   final VoidCallback onRefreshTime;
   final VoidCallback onCheckIn;
   const _CheckInForm({
-    required this.timeController, required this.color,
+    required this.timeController, required this.noteController, required this.color,
     required this.cs, required this.onRefreshTime, required this.onCheckIn,
   });
 
@@ -407,30 +437,54 @@ class _CheckInForm extends StatelessWidget {
       Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: TextField(
-            controller: timeController,
-            decoration: InputDecoration(
-              labelText: 'Check-In Time',
-              prefixIcon: Icon(Icons.access_time_rounded, color: color, size: 20),
-              suffixIcon: IconButton(
-                tooltip: 'Refresh time',
-                icon: Icon(Icons.schedule_rounded, color: color),
-                onPressed: onRefreshTime,
+          child: Column(children: [
+            TextField(
+              controller: timeController,
+              decoration: InputDecoration(
+                labelText: 'Check-In Time',
+                prefixIcon: Icon(Icons.access_time_rounded, color: color, size: 20),
+                suffixIcon: IconButton(
+                  tooltip: 'Refresh time',
+                  icon: Icon(Icons.schedule_rounded, color: color),
+                  onPressed: onRefreshTime,
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: cs.outlineVariant),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: color, width: 2),
+                ),
+                filled: true,
+                fillColor: cs.surface,
+                labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: cs.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: color, width: 2),
-              ),
-              filled: true,
-              fillColor: cs.surface,
-              labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
             ),
-          ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: noteController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Note (optional)',
+                hintText: 'e.g. working from client site',
+                prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: cs.outlineVariant),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: color, width: 2),
+                ),
+                filled: true,
+                fillColor: cs.surface,
+                labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+              ),
+            ),
+          ]),
         ),
       ),
       const SizedBox(height: 16),

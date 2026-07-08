@@ -3,12 +3,9 @@ import 'package:go_router/go_router.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../models/attendance_store.dart';
+import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
-
-// Late threshold: 09:30 AM
-const _lateHour   = 9;
-const _lateMinute = 30;
 
 Color get _blue => AppTheme.primaryBlue;
 const _green  = Color(0xFF22C55E);
@@ -79,19 +76,18 @@ class _EmployeeAttendanceCalendarPageState
     try { return int.parse(date.split('/').first); } catch (_) { return null; }
   }
 
-  static bool _isLate(String t) {
-    try {
-      final p = t.split(':');
-      final h = int.parse(p[0]), m = int.parse(p[1]);
-      return h > _lateHour || (h == _lateHour && m >= _lateMinute);
-    } catch (_) { return false; }
+  CheckInRowStatus _status(int day) {
+    final r = _attendance[day];
+    if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
+    final date = DateTime(_month.year, _month.month, day);
+    return checkInStatusFor(r.checkInTime, date, widget.employeeName, LeaveStore.applications);
   }
 
   Color? _statusColor(int day) {
     if (_leaveDays.contains(day)) return _red;
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) {
-      return _isLate(r.checkInTime) ? _purple : _green;
+      return _status(day).status == CheckInStatus.late ? _purple : _green;
     }
     return null;
   }
@@ -113,7 +109,7 @@ class _EmployeeAttendanceCalendarPageState
         label: label,
         record: rec,
         isLeave: isLeave,
-        isLate: rec != null && _isLate(rec.checkInTime),
+        status: rec != null ? _status(day) : const CheckInRowStatus(CheckInStatus.none, 0),
       ),
     );
   }
@@ -323,13 +319,13 @@ class _DaySheet extends StatelessWidget {
   final String label;
   final AttendanceRecord? record;
   final bool isLeave;
-  final bool isLate;
+  final CheckInRowStatus status;
 
   const _DaySheet({
     required this.label,
     required this.record,
     required this.isLeave,
-    required this.isLate,
+    required this.status,
   });
 
   static String? _dur(String inT, String outT) {
@@ -354,7 +350,7 @@ class _DaySheet extends StatelessWidget {
     if (isLeave) {
       statusLabel = 'Absent';
       statusColor = _red;
-    } else if (isLate) {
+    } else if (status.status == CheckInStatus.late) {
       statusLabel = 'Late Coming';
       statusColor = _purple;
     } else {
@@ -408,10 +404,23 @@ class _DaySheet extends StatelessWidget {
           ]),
         ] else if (rec != null && rec.checkInTime.isNotEmpty) ...[
           _detailRow(context, Icons.login_rounded, 'Check In', rec.checkInTime, _green),
+          if (rec.checkInNote.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _noteBlock(context, rec.checkInNote),
+          ],
+          if (status.status == CheckInStatus.permission) ...[
+            const SizedBox(height: 8),
+            _noteBlock(context,
+                'Covered by approved permission (${permLabel(status.permMinutes)})'),
+          ],
           const SizedBox(height: 12),
           if (rec.checkOutTime.isNotEmpty) ...[
             _detailRow(context, Icons.logout_rounded, 'Check Out', rec.checkOutTime,
                 const Color(0xFF15803D)),
+            if (rec.checkOutNote.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _noteBlock(context, rec.checkOutNote),
+            ],
             const SizedBox(height: 12),
             if (_dur(rec.checkInTime, rec.checkOutTime) != null)
               _detailRow(context, Icons.timelapse_rounded, 'Duration',
@@ -445,6 +454,20 @@ class _DaySheet extends StatelessWidget {
             fontFamily: 'monospace', color: color)),
       ]),
     ]);
+  }
+
+  Widget _noteBlock(BuildContext context, String text) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(left: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: cs.onSurface.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 12,
+          color: cs.onSurface.withValues(alpha: 0.7))),
+    );
   }
 }
 
