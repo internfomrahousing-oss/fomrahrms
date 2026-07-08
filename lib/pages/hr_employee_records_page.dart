@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
+import '../models/emergency_attendance_notifier.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
@@ -192,6 +193,11 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   ),
                 ),
             ]),
+            if (UserSession.role == UserRole.hr ||
+                UserSession.role == UserRole.management) ...[
+              const SizedBox(height: 16),
+              const _EmergencyAttendanceBanner(),
+            ],
             const SizedBox(height: 24),
 
             // ── Search ───────────────────────────────────────────────────
@@ -415,7 +421,8 @@ class _UserCard extends StatelessWidget {
                   _RoleChip(user.role, c),
                   const SizedBox(width: 6),
                   _StatusPill(user.leaveStatus),
-                  if (user.onrollRequestedAt.isNotEmpty && !user.isOnroll) ...[
+                  if (user.onrollRequestedAt.isNotEmpty && !user.isOnroll &&
+                      fullMonthsSince(user.dateOfJoining) >= 6) ...[
                     const SizedBox(width: 6),
                     _Badge('On-Roll Requested', Colors.orange.shade50,
                         Colors.orange.shade200, Colors.orange.shade800),
@@ -1036,6 +1043,12 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     final canActHr = isHr;
     final canActManager = isReportingManager;
     final canSeeOnrollSection = isHr || isManagement || isReportingManager;
+    // Employees can only request On-Roll after 6 months; ignore any request
+    // recorded before that (e.g. stale data) so probation employees never
+    // show Accept/Deny controls.
+    final onrollEligibleByTenure = fullMonthsSince(_user.dateOfJoining) >= 6;
+    final showOnrollSection = canSeeOnrollSection &&
+        (_user.isOnroll || (_user.onrollRequestedAt.isNotEmpty && onrollEligibleByTenure));
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1115,8 +1128,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             const SizedBox(height: 4),
 
             // ── Employment status management ──────────────────────────────
-            if (canSeeOnrollSection &&
-                (_user.onrollRequestedAt.isNotEmpty || _user.isOnroll)) ...[
+            if (showOnrollSection) ...[
               const SizedBox(height: 14),
               const Divider(),
               const SizedBox(height: 10),
@@ -1906,6 +1918,70 @@ class _EditDialogState extends State<_EditDialog> {
               : Text(isNew ? 'Add' : 'Save'),
         ),
       ],
+    );
+  }
+}
+
+// ── Company-wide emergency attendance override ────────────────────────────────
+
+class _EmergencyAttendanceBanner extends StatefulWidget {
+  const _EmergencyAttendanceBanner();
+
+  @override
+  State<_EmergencyAttendanceBanner> createState() => _EmergencyAttendanceBannerState();
+}
+
+class _EmergencyAttendanceBannerState extends State<_EmergencyAttendanceBanner> {
+  bool _saving = false;
+
+  Future<void> _toggle(bool v) async {
+    setState(() => _saving = true);
+    await emergencyAttendanceNotifier.setAll(v);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: emergencyAttendanceNotifier,
+      builder: (context, _) {
+        final on = emergencyAttendanceNotifier.value;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: on ? Colors.red.shade50 : Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: on ? Colors.red.shade300 : const Color(0xFFE5E7EB)),
+          ),
+          child: Row(children: [
+            Icon(Icons.emergency_rounded, size: 20,
+                color: on ? Colors.red.shade700 : Colors.grey.shade500),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Emergency: App Check-In/Out for All Employees',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                        color: on ? Colors.red.shade800 : const Color(0xFF111827))),
+                Text(
+                    on
+                        ? 'Active — every employee can check in/out via the app, regardless of work location'
+                        : 'Off — Office employees use the biometric device as usual',
+                    style: TextStyle(fontSize: 11.5,
+                        color: on ? Colors.red.shade700 : const Color(0xFF6B7280))),
+              ]),
+            ),
+            if (_saving)
+              const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              Switch(
+                value: on,
+                onChanged: _toggle,
+                activeColor: Colors.red.shade600,
+              ),
+          ]),
+        );
+      },
     );
   }
 }

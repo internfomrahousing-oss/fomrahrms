@@ -95,6 +95,7 @@ import '../models/user_session.dart';
     id text primary key default 'global',
     color_theme text default 'midnightBlue'
   );
+  alter table app_settings add column if not exists emergency_attendance_all boolean default false;
 
   create table if not exists payslip_requests (
     id text primary key,
@@ -1550,6 +1551,30 @@ class SupabaseService {
       await _db?.from('app_settings').upsert({
         'id': 'global',
         'color_theme': themeKey,
+      });
+    } catch (_) {}
+  }
+
+  // ── App settings (global emergency attendance override) ─────────────────────
+
+  static Future<bool> fetchEmergencyAttendanceAll() async {
+    try {
+      final data = await _db
+          ?.from('app_settings')
+          .select('emergency_attendance_all')
+          .eq('id', 'global')
+          .maybeSingle();
+      return (data?['emergency_attendance_all'] as bool?) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> setEmergencyAttendanceAll(bool enabled) async {
+    try {
+      await _db?.from('app_settings').upsert({
+        'id': 'global',
+        'emergency_attendance_all': enabled,
       });
     } catch (_) {}
   }
