@@ -6,7 +6,7 @@ import '../services/supabase_service.dart';
 import '../models/form_config.dart';
 import '../models/user_session.dart';
 import '../utils/form_version_label.dart';
-import '../widgets/back_button.dart';
+import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
 Color get _blue => AppTheme.primaryBlue;
@@ -561,101 +561,79 @@ class _EditFormPageState extends State<EditFormPage> {
         Container(
           color: Colors.white,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
-          child: Row(children: [
-            const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.edit_note_rounded, color: _blue, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Edit Application Form',
-                        style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: _blue)),
-                    Text(
-                        'Edit form sections · Add custom fields · Send for Management approval',
-                        style: TextStyle(
-                            fontSize: 12, color: Color(0xFF6B7280))),
-                  ]),
-            ),
-            if (!_loading) ...[
-              OutlinedButton.icon(
-                onPressed: () {
-                  html.window.navigator.clipboard
-                      ?.writeText(_activeFormLink);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Current form link copied'),
-                    backgroundColor: Color(0xFF22C55E),
-                    duration: Duration(seconds: 2),
-                  ));
-                },
-                icon: const Icon(Icons.copy_rounded, size: 15),
-                label: const Text('Copy Link',
-                    style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _blue,
-                  side: BorderSide(color: _blue),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+          child: ResponsiveHeaderRow(
+            icon: Icons.edit_note_rounded,
+            color: _blue,
+            title: 'Edit Application Form',
+            subtitle: 'Edit form sections · Add custom fields · Send for Management approval',
+            actions: [
+              if (!_loading) ...[
+                OutlinedButton.icon(
+                  onPressed: () {
+                    html.window.navigator.clipboard
+                        ?.writeText(_activeFormLink);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Current form link copied'),
+                      backgroundColor: Color(0xFF22C55E),
+                      duration: Duration(seconds: 2),
+                    ));
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 15),
+                  label: const Text('Copy Link',
+                      style: TextStyle(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _blue,
+                    side: BorderSide(color: _blue),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _saving ? null : _saveAction,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 16, height: 16,
+                ElevatedButton.icon(
+                  onPressed: _saving ? null : _saveAction,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Icon(
+                          _isManagement
+                              ? Icons.publish_rounded
+                              : Icons.send_rounded,
+                          size: 16),
+                  label: Text(
+                      _saving
+                          ? (_isManagement ? 'Publishing…' : 'Sending…')
+                          : (_isManagement
+                              ? 'Update & Publish'
+                              : 'Send for Approval'),
+                      style: const TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isManagement
+                        ? _blue
+                        : AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: _loading ? null : _load,
+                icon: _loading
+                    ? SizedBox(
+                        width: 18, height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : Icon(
-                        _isManagement
-                            ? Icons.publish_rounded
-                            : Icons.send_rounded,
-                        size: 16),
-                label: Text(
-                    _saving
-                        ? (_isManagement ? 'Publishing…' : 'Sending…')
-                        : (_isManagement
-                            ? 'Update & Publish'
-                            : 'Send for Approval'),
-                    style: const TextStyle(fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isManagement
-                      ? _blue
-                      : AppTheme.primaryBlue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
+                            strokeWidth: 2, color: _blue))
+                    : Icon(Icons.refresh_rounded, color: _blue),
               ),
             ],
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: _loading ? null : _load,
-              icon: _loading
-                  ? SizedBox(
-                      width: 18, height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: _blue))
-                  : Icon(Icons.refresh_rounded, color: _blue),
-            ),
-          ]),
+          ),
         ),
 
         // ── Body ────────────────────────────────────────────────────

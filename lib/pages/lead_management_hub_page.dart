@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../services/lead_service.dart';
-import '../widgets/back_button.dart';
+import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
 class LeadManagementHubPage extends StatefulWidget {
@@ -388,40 +388,23 @@ class _LeadManagementHubPageState extends State<LeadManagementHubPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header
-                  Row(children: [
-                    const NavBackButton(),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        color: _blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                  ResponsiveHeaderRow(
+                    icon: Icons.leaderboard_rounded,
+                    color: _blue,
+                    titleColor: Theme.of(context).textTheme.headlineMedium?.color,
+                    iconSize: 48,
+                    title: 'Lead Management',
+                    subtitle: '${_sources.length} source${_sources.length == 1 ? '' : 's'}',
+                    actions: [
+                      TextButton.icon(
+                        onPressed: _showSetupGuide,
+                        icon: const Icon(Icons.help_outline_rounded, size: 16),
+                        label: const Text('Setup Guide',
+                            style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(foregroundColor: _blue),
                       ),
-                      child: Icon(Icons.leaderboard_rounded,
-                          color: _blue, size: 26),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Lead Management',
-                                style: Theme.of(context).textTheme.headlineMedium),
-                            Text(
-                              '${_sources.length} source${_sources.length == 1 ? '' : 's'}',
-                              style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF6B7280)),
-                            ),
-                          ]),
-                    ),
-                    TextButton.icon(
-                      onPressed: _showSetupGuide,
-                      icon: const Icon(Icons.help_outline_rounded, size: 16),
-                      label: const Text('Setup Guide',
-                          style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(foregroundColor: _blue),
-                    ),
-                  ]),
+                    ],
+                  ),
                   const SizedBox(height: 28),
 
                   if (_sources.isEmpty)

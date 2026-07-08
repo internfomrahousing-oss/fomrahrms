@@ -3,7 +3,7 @@ import '../models/leave_form_config.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
-import '../widgets/back_button.dart';
+import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
 Color get _blue => AppTheme.primaryBlue;
@@ -450,56 +450,42 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          child: Row(children: [
-            const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.edit_note_rounded, color: _blue, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Edit Leave Forms',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
-                Text('Customise dropdown options for Leave, Permission & Comp Off',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-              ]),
-            ),
-            if (!_loading) ...[
-              ElevatedButton.icon(
-                onPressed: _saving ? null : _saveAction,
-                icon: _saving
-                    ? const SizedBox(width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Icon(_isManagement ? Icons.publish_rounded : Icons.send_rounded, size: 16),
-                label: Text(_saving
-                    ? (_isManagement ? 'Publishing…' : 'Sending…')
-                    : (_isManagement ? 'Update & Publish' : 'Send for Approval'),
-                    style: const TextStyle(fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isManagement ? _blue : _purple,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: ResponsiveHeaderRow(
+            icon: Icons.edit_note_rounded,
+            color: _blue,
+            iconSize: 40,
+            title: 'Edit Leave Forms',
+            subtitle: 'Customise dropdown options for Leave, Permission & Comp Off',
+            actions: [
+              if (!_loading)
+                ElevatedButton.icon(
+                  onPressed: _saving ? null : _saveAction,
+                  icon: _saving
+                      ? const SizedBox(width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Icon(_isManagement ? Icons.publish_rounded : Icons.send_rounded, size: 16),
+                  label: Text(_saving
+                      ? (_isManagement ? 'Publishing…' : 'Sending…')
+                      : (_isManagement ? 'Update & Publish' : 'Send for Approval'),
+                      style: const TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isManagement ? _blue : _purple,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: _loading ? null : _load,
+                icon: _loading
+                    ? SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+                    : Icon(Icons.refresh_rounded, color: _blue),
               ),
             ],
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: _loading ? null : _load,
-              icon: _loading
-                  ? SizedBox(width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
-                  : Icon(Icons.refresh_rounded, color: _blue),
-            ),
-          ]),
+          ),
         ),
         const Divider(height: 1),
 

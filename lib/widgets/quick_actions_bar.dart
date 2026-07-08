@@ -74,8 +74,11 @@ class QuickActionsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      // Colored to match the dark banner/app-bar these icons sit above, so
+      // there's no visible seam of the (light) scaffold background behind them.
+      Container(
+        color: AppTheme.primaryBlue,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: List.generate(_qData.length, (i) {

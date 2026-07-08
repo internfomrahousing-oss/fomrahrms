@@ -12,7 +12,7 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/form_version_label.dart';
-import '../widgets/back_button.dart';
+import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
 Future<List<AppUser>> _loadAllUsers() async {
@@ -306,27 +306,12 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
           color: Theme.of(context).scaffoldBackgroundColor,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.how_to_reg_rounded, color: _blue, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Employee Onboarding',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _blue)),
-                  Text('${_all.length} submission${_all.length == 1 ? '' : 's'} received',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                ]),
-              ),
-              if (!narrow) ...[
+            ResponsiveHeaderRow(
+              icon: Icons.how_to_reg_rounded,
+              color: _blue,
+              title: 'Employee Onboarding',
+              subtitle: '${_all.length} submission${_all.length == 1 ? '' : 's'} received',
+              actions: [
                 OutlinedButton.icon(
                   onPressed: _copyLink,
                   icon: const Icon(Icons.copy_rounded, size: 15),
@@ -338,7 +323,6 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
-                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () {
                     final base = GoRouterState.of(context).uri.path
@@ -356,30 +340,28 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
-                const SizedBox(width: 8),
-              ],
-              ElevatedButton.icon(
-                onPressed: _openForm,
-                icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                label: const Text('Joining Form', style: TextStyle(fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ElevatedButton.icon(
+                  onPressed: _openForm,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                  label: const Text('Joining Form', style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Refresh',
-                onPressed: _loading ? null : _fetch,
-                icon: _loading
-                    ? SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
-                    : Icon(Icons.refresh_rounded, color: _blue),
-              ),
-            ]),
+                IconButton(
+                  tooltip: 'Refresh',
+                  onPressed: _loading ? null : _fetch,
+                  icon: _loading
+                      ? SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+                      : Icon(Icons.refresh_rounded, color: _blue),
+                ),
+              ],
+            ),
 
             if (_all.isNotEmpty) ...[
               const SizedBox(height: 12),
