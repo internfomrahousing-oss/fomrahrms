@@ -87,6 +87,50 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   int get _deniedCount =>
       _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.denied).length;
 
+  Widget _statCardsRow() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final tiles = [
+        _StatTile(
+          icon: Icons.list_alt_rounded, color: _color,
+          value: '${_filtered.length}', label: 'Total',
+          active: _filterStatus == null,
+          onTap: () => setState(() => _filterStatus = null),
+        ),
+        _StatTile(
+          icon: Icons.hourglass_empty_rounded, color: Colors.orange.shade700,
+          value: '$_pendingCount', label: 'Pending',
+          active: _filterStatus == LeaveApprovalStatus.pending,
+          onTap: () => setState(() => _filterStatus =
+              _filterStatus == LeaveApprovalStatus.pending ? null : LeaveApprovalStatus.pending),
+        ),
+        _StatTile(
+          icon: Icons.check_circle_rounded, color: Colors.green.shade700,
+          value: '$_approvedCount', label: 'Approved',
+          active: _filterStatus == LeaveApprovalStatus.approved,
+          onTap: () => setState(() => _filterStatus =
+              _filterStatus == LeaveApprovalStatus.approved ? null : LeaveApprovalStatus.approved),
+        ),
+        _StatTile(
+          icon: Icons.cancel_rounded, color: Colors.red.shade700,
+          value: '$_deniedCount', label: 'Denied',
+          active: _filterStatus == LeaveApprovalStatus.denied,
+          onTap: () => setState(() => _filterStatus =
+              _filterStatus == LeaveApprovalStatus.denied ? null : LeaveApprovalStatus.denied),
+        ),
+      ];
+      if (constraints.maxWidth > 560) {
+        return Row(children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(child: tiles[i]),
+          ],
+        ]);
+      }
+      return Wrap(spacing: 12, runSpacing: 12,
+          children: [for (final t in tiles) SizedBox(width: 150, child: t)]);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -293,41 +337,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
           ]),
           const SizedBox(height: 24),
 
-          // Summary chips
-          Row(children: [
-            _SummaryChip(
-              label: 'Pending',
-              count: _pendingCount,
-              icon: Icons.hourglass_empty_rounded,
-              color: Colors.orange.shade700,
-              active: _filterStatus == LeaveApprovalStatus.pending,
-              onTap: () => setState(() => _filterStatus =
-                  _filterStatus == LeaveApprovalStatus.pending
-                      ? null : LeaveApprovalStatus.pending),
-            ),
-            const SizedBox(width: 10),
-            _SummaryChip(
-              label: 'Approved',
-              count: _approvedCount,
-              icon: Icons.check_circle_rounded,
-              color: Colors.green.shade700,
-              active: _filterStatus == LeaveApprovalStatus.approved,
-              onTap: () => setState(() => _filterStatus =
-                  _filterStatus == LeaveApprovalStatus.approved
-                      ? null : LeaveApprovalStatus.approved),
-            ),
-            const SizedBox(width: 10),
-            _SummaryChip(
-              label: 'Denied',
-              count: _deniedCount,
-              icon: Icons.cancel_rounded,
-              color: Colors.red.shade700,
-              active: _filterStatus == LeaveApprovalStatus.denied,
-              onTap: () => setState(() => _filterStatus =
-                  _filterStatus == LeaveApprovalStatus.denied
-                      ? null : LeaveApprovalStatus.denied),
-            ),
-          ]),
+          // Stat cards
+          _statCardsRow(),
           const SizedBox(height: 16),
 
           // Search bar
@@ -550,38 +561,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
               ]),
               const SizedBox(height: 16),
 
-              // Summary chips
-              Row(children: [
-                _SummaryChip(
-                  label: 'Pending',
-                  count: _pendingCount,
-                  icon: Icons.hourglass_empty_rounded,
-                  color: Colors.orange.shade700,
-                  active: _filterStatus == LeaveApprovalStatus.pending,
-                  onTap: () => setState(() => _filterStatus =
-                      _filterStatus == LeaveApprovalStatus.pending ? null : LeaveApprovalStatus.pending),
-                ),
-                const SizedBox(width: 10),
-                _SummaryChip(
-                  label: 'Approved',
-                  count: _approvedCount,
-                  icon: Icons.check_circle_rounded,
-                  color: Colors.green.shade700,
-                  active: _filterStatus == LeaveApprovalStatus.approved,
-                  onTap: () => setState(() => _filterStatus =
-                      _filterStatus == LeaveApprovalStatus.approved ? null : LeaveApprovalStatus.approved),
-                ),
-                const SizedBox(width: 10),
-                _SummaryChip(
-                  label: 'Denied',
-                  count: _deniedCount,
-                  icon: Icons.cancel_rounded,
-                  color: Colors.red.shade700,
-                  active: _filterStatus == LeaveApprovalStatus.denied,
-                  onTap: () => setState(() => _filterStatus =
-                      _filterStatus == LeaveApprovalStatus.denied ? null : LeaveApprovalStatus.denied),
-                ),
-              ]),
+              // Stat cards
+              _statCardsRow(),
               const SizedBox(height: 12),
 
               // Search bar
@@ -1230,45 +1211,55 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _SummaryChip extends StatelessWidget {
-  final String label;
-  final int count;
+class _StatTile extends StatelessWidget {
   final IconData icon;
   final Color color;
+  final String value;
+  final String label;
   final bool active;
-  final VoidCallback onTap;
-
-  const _SummaryChip({
-    required this.label,
-    required this.count,
+  final VoidCallback? onTap;
+  const _StatTile({
     required this.icon,
     required this.color,
-    required this.active,
-    required this.onTap,
+    required this.value,
+    required this.label,
+    this.active = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? color : color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: active ? color : color.withValues(alpha: 0.3)),
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: active ? color : const Color(0xFFE5E7EB), width: active ? 1.5 : 1),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 19),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                Text(label,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+              ]),
+            ),
+          ]),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: active ? Colors.white : color),
-          const SizedBox(width: 6),
-          Text('$count $label',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: active ? Colors.white : color)),
-        ]),
       ),
     );
   }
