@@ -410,14 +410,6 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                 scrollDirection: Axis.horizontal,
                 child: Row(children: [
                   _OnboardFilterChip(
-                    label: 'All (${_all.length})',
-                    icon: Icons.list_alt_rounded,
-                    color: const Color(0xFF111827),
-                    selected: _statusFilter == _SubFilter.all,
-                    onTap: () => setState(() { _statusFilter = _SubFilter.all; _applyFilter(); }),
-                  ),
-                  const SizedBox(width: 8),
-                  _OnboardFilterChip(
                     label: 'Received ($_countReceived)',
                     icon: Icons.inbox_rounded,
                     color: const Color(0xFFF59E0B),
@@ -439,6 +431,14 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                     color: const Color(0xFF22C55E),
                     selected: _statusFilter == _SubFilter.approvedActive,
                     onTap: () => setState(() { _statusFilter = _SubFilter.approvedActive; _applyFilter(); }),
+                  ),
+                  const SizedBox(width: 8),
+                  _OnboardFilterChip(
+                    label: 'All (${_all.length})',
+                    icon: Icons.list_alt_rounded,
+                    color: const Color(0xFF111827),
+                    selected: _statusFilter == _SubFilter.all,
+                    onTap: () => setState(() { _statusFilter = _SubFilter.all; _applyFilter(); }),
                   ),
                 ]),
               ),
