@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -98,6 +99,13 @@ class _CheckInPageState extends State<CheckInPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ));
     } else {
+      if (UserSession.email.isNotEmpty) {
+        NotificationService.checkInRecorded(
+          employeeEmail: UserSession.email,
+          time: _timeController.text,
+          employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+        );
+      }
       // Re-fetch to get the saved record
       final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
       if (mounted) setState(() => _record = rec);

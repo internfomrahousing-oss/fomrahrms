@@ -5,6 +5,7 @@ import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/attendance_access.dart';
 import '../services/gps_tracking_service.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart' show InfoCard;
@@ -572,23 +573,23 @@ class _QuickTileView extends StatelessWidget {
                 duration: AppTheme.fastAnim,
                 child: Stack(clipBehavior: Clip.none, children: [
                   Container(
-                    width: 26, height: 26,
+                    width: 40, height: 40,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(11),
                     ),
                     child: loading
                         ? Padding(
-                            padding: const EdgeInsets.all(7),
+                            padding: const EdgeInsets.all(10),
                             child: CircularProgressIndicator(strokeWidth: 2, color: color),
                           )
-                        : Icon(icon, color: color, size: 14),
+                        : Icon(icon, color: color, size: 24),
                   ),
                   if (showLiveDot)
                     Positioned(
                       right: -2, top: -2,
                       child: Container(
-                        width: 7, height: 7,
+                        width: 9, height: 9,
                         decoration: BoxDecoration(
                           color: Colors.green.shade400,
                           shape: BoxShape.circle,
@@ -959,6 +960,11 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       ));
     } else {
       widget.onDone();
+      NotificationService.checkInRecorded(
+        employeeEmail: UserSession.email,
+        time: _timeCtrl.text,
+        employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+      );
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Checked in at ${_timeCtrl.text}'),
@@ -986,6 +992,11 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     setState(() => _submitting = false);
 
     widget.onDone();
+    NotificationService.checkOutRecorded(
+      employeeEmail: UserSession.email,
+      time: _timeCtrl.text,
+      employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+    );
     if (mounted) Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Checked out at ${_timeCtrl.text}'),

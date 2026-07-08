@@ -1,4 +1,6 @@
+import '../models/app_user.dart';
 import '../models/notification_store.dart';
+import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../utils/tenure.dart';
 import 'supabase_service.dart';
@@ -12,6 +14,26 @@ import 'user_store.dart';
 /// rather than looking it up itself — callers already have the relevant
 /// AppUser/employee record in scope wherever these are invoked.
 class NotificationService {
+  /// Shared '' / '/employee' / '/manager' / '/management' route-prefix
+  /// mapping — several call sites already duplicated this switch inline.
+  static String routePrefixForRole(UserRole role) => switch (role) {
+        UserRole.hr => '',
+        UserRole.employee => '/employee',
+        UserRole.reportingManager => '/manager',
+        UserRole.management => '/management',
+      };
+
+  /// The "My Profile" route per role — unlike most pages this isn't just
+  /// `prefix + '/profile'` (see UserSession.profileRoute, which is the same
+  /// mapping for the *current* session; this is for looking up someone
+  /// else's route from their AppUser.role string).
+  static String profileRouteForRole(UserRole role) => switch (role) {
+        UserRole.hr => '/hr/my-profile',
+        UserRole.reportingManager => '/manager/my-profile',
+        UserRole.management => '/management/my-profile',
+        UserRole.employee => '/employee/profile',
+      };
+
   static Future<void> _create({
     required String type,
     required String title,
@@ -165,6 +187,20 @@ class NotificationService {
         body: '$employeeName — HR and Manager both accepted',
         route: '/management/onroll-approvals',
         targetRole: 'Management',
+      );
+
+  /// Fired once, on the exact day an employee crosses the 6-month mark and
+  /// hasn't already requested on-roll confirmation — see [checkDailyReminders].
+  static Future<void> onrollEligible({
+    required String employeeEmail,
+    required String profileRoute,
+    required String sourceId,
+  }) => _create(
+        type: 'onroll_eligible',
+        title: 'You\'re eligible to request On-Roll confirmation',
+        route: profileRoute,
+        targetEmail: employeeEmail,
+        sourceId: sourceId,
       );
 
   static Future<void> onrollFinalDecided({
@@ -400,6 +436,19 @@ class NotificationService {
 
   // ── Earned Leave (eligibility + encashment) ─────────────────────────
 
+  /// Fired at the moment HR/Management clicks "Confirm EL Eligibility" —
+  /// distinct from [elEligibilityDue], which is the reminder that nudges
+  /// HR/Management to go do that in the first place.
+  static Future<void> elMarkedEligible({
+    required String employeeEmail,
+    required String employeeRoutePrefix,
+  }) => _create(
+        type: 'el_marked_eligible',
+        title: 'You\'re now eligible for Earned Leave',
+        route: '$employeeRoutePrefix/attendance-leaves',
+        targetEmail: employeeEmail,
+      );
+
   static Future<void> elEncashmentRequested({required String employeeName}) async {
     await _create(
       type: 'el_encashment_requested',
@@ -444,8 +493,12 @@ class NotificationService {
 
   /// Fired once, on the exact day an employee hits a tenure milestone
   /// (6 months, or a yearly anniversary) — see [milestoneLabelForToday].
+  /// Notifies HR + Management (visibility) and the employee themselves
+  /// (congratulations) in the same pass.
   static Future<void> tenureMilestone({
     required String employeeName,
+    required String employeeEmail,
+    required String employeeProfileRoute,
     required String milestoneLabel,
     required String sourceId,
   }) async {
@@ -463,6 +516,15 @@ class NotificationService {
       targetRole: 'Management',
       sourceId: sourceId,
     );
+    if (employeeEmail.isNotEmpty) {
+      await _create(
+        type: 'tenure_milestone',
+        title: 'Congrats on $milestoneLabel with FOMRA!',
+        route: employeeProfileRoute,
+        targetEmail: employeeEmail,
+        sourceId: sourceId,
+      );
+    }
   }
 
   // ── Leads ────────────────────────────────────────────────────────────
@@ -524,6 +586,61 @@ class NotificationService {
         targetRole: 'HR',
       );
 
+  // ── Attendance self-confirmation ─────────────────────────────────────
+
+  static Future<void> checkInRecorded({
+    required String employeeEmail,
+    required String time,
+    required String employeeRoutePrefix,
+  }) => _create(
+        type: 'attendance_checkin',
+        title: 'Check-in recorded',
+        body: 'at $time',
+        route: '$employeeRoutePrefix/attendance-leaves',
+        targetEmail: employeeEmail,
+      );
+
+  static Future<void> checkOutRecorded({
+    required String employeeEmail,
+    required String time,
+    required String employeeRoutePrefix,
+  }) => _create(
+        type: 'attendance_checkout',
+        title: 'Check-out recorded',
+        body: 'at $time',
+        route: '$employeeRoutePrefix/attendance-leaves',
+        targetEmail: employeeEmail,
+      );
+
+  // ── Task reminders (self, not user-triggered) ───────────────────────
+
+  static Future<void> taskPendingReminder({
+    required String taskName,
+    required String assigneeEmail,
+    required String assigneeRoutePrefix,
+    required String sourceId,
+  }) => _create(
+        type: 'task_pending_reminder',
+        title: 'Task still pending: $taskName',
+        route: '$assigneeRoutePrefix/my-tasks',
+        targetEmail: assigneeEmail,
+        sourceId: sourceId,
+      );
+
+  static Future<void> taskDueSoon({
+    required String taskName,
+    required String assigneeEmail,
+    required String assigneeRoutePrefix,
+    required String dueLabel, // 'today' | 'tomorrow'
+    required String sourceId,
+  }) => _create(
+        type: 'task_due_soon',
+        title: 'Task due $dueLabel: $taskName',
+        route: '$assigneeRoutePrefix/my-tasks',
+        targetEmail: assigneeEmail,
+        sourceId: sourceId,
+      );
+
   // ── Announcements ────────────────────────────────────────────────────
 
   static Future<void> announcementPosted({required String text}) => _create(
@@ -560,13 +677,30 @@ class NotificationService {
     final users = await UserStore.load();
     for (final u in users) {
       if (!u.active) continue;
+      final userRole = AppUser.userRoleFor(u.role);
 
       final milestone = milestoneLabelForToday(u.dateOfJoining, today: today);
       if (milestone != null) {
         final sourceId = '${u.employeeId}_tenure_${_dateKey(today)}';
         if (!_alreadyNotified(sourceId)) {
           await tenureMilestone(
-              employeeName: u.name, milestoneLabel: milestone, sourceId: sourceId);
+            employeeName: u.name,
+            employeeEmail: u.email,
+            employeeProfileRoute: profileRouteForRole(userRole),
+            milestoneLabel: milestone,
+            sourceId: sourceId,
+          );
+        }
+        // On-roll eligibility opens up at exactly the same 6-month mark.
+        if (milestone == '6 Months' && u.onrollRequestedAt.isEmpty && u.email.isNotEmpty) {
+          final onrollSourceId = '${u.employeeId}_onroll_eligible_${_dateKey(today)}';
+          if (!_alreadyNotified(onrollSourceId)) {
+            await onrollEligible(
+              employeeEmail: u.email,
+              profileRoute: profileRouteForRole(userRole),
+              sourceId: onrollSourceId,
+            );
+          }
         }
       }
 
@@ -579,6 +713,64 @@ class NotificationService {
             if (!_alreadyNotified(sourceId)) {
               await elEligibilityDue(employeeName: u.name, sourceId: sourceId);
             }
+          }
+        }
+      }
+    }
+  }
+
+  // ── Daily task reminders (any signed-in role, own tasks only) ───────
+
+  static DateTime? _lastTaskCheck;
+
+  /// Scans the signed-in user's own tasks (TaskStore is already loaded
+  /// globally, same as every other store in this app) for ones still
+  /// sitting unstarted, or due today/tomorrow, and reminds them once per
+  /// task per day. Unlike [checkDailyReminders] this runs for every role —
+  /// anyone can have tasks assigned to them.
+  static Future<void> checkDailyTaskReminders() async {
+    if (!UserSession.loggedIn) return;
+    final today = DateTime.now();
+    if (_lastTaskCheck != null && _sameDate(_lastTaskCheck!, today)) return;
+    _lastTaskCheck = today;
+
+    final name = UserSession.name.trim();
+    final email = UserSession.email;
+    if (name.isEmpty || email.isEmpty) return;
+    final prefix = routePrefixForRole(UserSession.role);
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    final myTasks = TaskStore.tasks.where((t) =>
+        t.assignedEmployee.trim() == name || t.teamMembers.any((m) => m.trim() == name));
+
+    for (final t in myTasks) {
+      final isGroupMember = t.teamMembers.any((m) => m.trim() == name);
+      final effectiveStatus = isGroupMember
+          ? TaskStatus.values.firstWhere(
+              (s) => s.name == (t.teamMemberStatuses[name] ?? 'assigned'),
+              orElse: () => TaskStatus.assigned)
+          : t.status;
+
+      if (effectiveStatus == TaskStatus.assigned) {
+        final sourceId = '${t.id}_pending_${_dateKey(today)}';
+        if (!_alreadyNotified(sourceId)) {
+          await taskPendingReminder(
+            taskName: t.name, assigneeEmail: email, assigneeRoutePrefix: prefix,
+            sourceId: sourceId,
+          );
+        }
+      }
+
+      if (effectiveStatus != TaskStatus.completed) {
+        final daysLeft = t.dueDate.difference(todayDate).inDays;
+        if (daysLeft == 0 || daysLeft == 1) {
+          final sourceId = '${t.id}_duesoon_${_dateKey(today)}';
+          if (!_alreadyNotified(sourceId)) {
+            await taskDueSoon(
+              taskName: t.name, assigneeEmail: email, assigneeRoutePrefix: prefix,
+              dueLabel: daysLeft == 0 ? 'today' : 'tomorrow',
+              sourceId: sourceId,
+            );
           }
         }
       }

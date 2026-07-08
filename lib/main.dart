@@ -35,7 +35,18 @@ void main() async {
           'Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTE0NDMsImV4cCI6MjA5NzY4'
           'NzQ0M30.6I2swrTQDDT0phQvRqDkLFFo_BxtmxD3NE9R8lDbDeI',
     );
-    SupabaseService.loadAll();
+    // Chained via .then() rather than awaited outright — daily-reminder
+    // checks below read the global TaskStore/UserStore that loadAll()
+    // populates, so they must run after it, but the app itself shouldn't
+    // block its splash screen on this.
+    SupabaseService.loadAll().then((_) {
+      if (restored && UserSession.loggedIn) {
+        NotificationService.checkDailyTaskReminders();
+        if (UserSession.role == UserRole.hr || UserSession.role == UserRole.management) {
+          NotificationService.checkDailyReminders();
+        }
+      }
+    });
     SupabaseService.restoreCheckInState();
     colorThemeNotifier.loadInitial();
     emergencyAttendanceNotifier.loadInitial();
@@ -44,16 +55,12 @@ void main() async {
         if (url != null) UserSession.photoUrl = url;
       });
     }
-    if (restored &&
-        (UserSession.role == UserRole.hr || UserSession.role == UserRole.management)) {
-      NotificationService.checkDailyReminders();
-    }
   } catch (_) {}
 
   // Keep the notification bell fresh without a full realtime subscription —
   // re-poll periodically for as long as the app is open. Also doubles as
-  // the retry path for the once-a-day tenure/EL-eligibility check (cheap
-  // to call repeatedly — it no-ops after the first run each calendar day).
+  // the retry path for the once-a-day reminder checks (cheap to call
+  // repeatedly — each no-ops after its first run each calendar day).
   Timer.periodic(const Duration(seconds: 45), (_) async {
     if (!UserSession.loggedIn) return;
     final list = await SupabaseService.fetchNotifications();
@@ -63,6 +70,7 @@ void main() async {
       ..addAll(list);
     NotificationStore.recomputeUnread();
     NotificationService.checkDailyReminders();
+    NotificationService.checkDailyTaskReminders();
     for (var i = 0; i < newArrivals.length; i++) {
       showNotificationPopup(newArrivals[i], stackIndex: i);
     }

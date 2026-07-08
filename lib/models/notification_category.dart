@@ -54,10 +54,13 @@ NotificationCategory categoryFor(String type) {
 /// onboarding, form-edit approvals are HR/Management-side only), so showing
 /// a mute toggle for those to an Employee would be pure clutter.
 /// HR and Management are targeted by every category.
+// 'el' (EL eligibility) and 'milestone' (tenure anniversaries) now also
+// reach every employee directly (elMarkedEligible, tenureMilestone), not
+// just HR/Management, so they're no longer excluded for Employee/Manager.
 List<NotificationCategory> categoriesForRole(String roleLabel) {
   const excludedByRole = {
-    'Employee': {'candidate', 'onboarding', 'form_edit', 'el', 'milestone', 'lead'},
-    'Manager': {'onboarding', 'form_edit', 'el', 'milestone', 'lead'},
+    'Employee': {'candidate', 'onboarding', 'form_edit', 'lead'},
+    'Manager': {'onboarding', 'form_edit', 'lead'},
     'Management': <String>{},
     'HR': <String>{},
   };

@@ -7,6 +7,7 @@ import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/attendance_access.dart';
 import '../services/gps_tracking_service.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -111,6 +112,12 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ));
+    } else if (UserSession.email.isNotEmpty) {
+      NotificationService.checkInRecorded(
+        employeeEmail: UserSession.email,
+        time: _checkInCtrl.text,
+        employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+      );
     }
 
     final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
@@ -132,6 +139,13 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       date: date,
       time: _checkOutCtrl.text,
     );
+    if (UserSession.email.isNotEmpty) {
+      NotificationService.checkOutRecorded(
+        employeeEmail: UserSession.email,
+        time: _checkOutCtrl.text,
+        employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+      );
+    }
 
     if (!mounted) return;
     _fillTime(_checkOutCtrl);

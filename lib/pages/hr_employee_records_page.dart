@@ -1239,6 +1239,12 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     setState(() => _saving = true);
     _user.elEligibleAt = DateTime.now().toIso8601String();
     await widget.onSave(_user);
+    if (_user.email.isNotEmpty) {
+      NotificationService.elMarkedEligible(
+        employeeEmail: _user.email,
+        employeeRoutePrefix: NotificationService.routePrefixForRole(AppUser.userRoleFor(_user.role)),
+      );
+    }
     _elTimer?.cancel();
     if (mounted) { setState(() => _saving = false); _startTimers(); }
   }

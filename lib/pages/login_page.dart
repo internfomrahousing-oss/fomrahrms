@@ -188,6 +188,7 @@ class _LoginPageState extends State<LoginPage> {
       NotificationStore.mutedCategories = muted.toSet();
       NotificationStore.recomputeUnread();
     });
+    NotificationService.checkDailyTaskReminders();
     if (role == UserRole.hr || role == UserRole.management) {
       NotificationService.checkDailyReminders();
     }
