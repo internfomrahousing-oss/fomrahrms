@@ -22,7 +22,8 @@ class ApprovalsPage extends StatefulWidget {
   State<ApprovalsPage> createState() => _ApprovalsPageState();
 }
 
-class _ApprovalsPageState extends State<ApprovalsPage> {
+class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
   bool _loading = true;
   List<AppUser> _users = [];
   List<Map<String, dynamic>> _leaveVersions = [];
@@ -36,7 +37,14 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
   @override
   void initState() {
     super.initState();
+    _tabs = TabController(length: 5, vsync: this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -286,202 +294,266 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
+  Widget get _leaveSection => _ApprovalSection(
+        icon: Icons.event_note_rounded,
+        color: const Color(0xFF111827),
+        label: 'Leave Applications',
+        count: _pendingLeave.length,
+        onViewAll: () => context.push('/management/leave/overview'),
+        children: _pendingLeave
+            .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
+            .toList(),
+        history: _historyLeave.map(_leaveHistoryCard).toList(),
+      );
+
+  Widget get _permissionSection => _ApprovalSection(
+        icon: Icons.access_time_rounded,
+        color: AppTheme.accentBlue,
+        label: 'Permission Applications',
+        count: _pendingPermission.length,
+        onViewAll: () => context.push('/management/leave/overview'),
+        children: _pendingPermission
+            .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
+            .toList(),
+        history: _historyPermission.map(_leaveHistoryCard).toList(),
+      );
+
+  Widget get _compOffSection => _ApprovalSection(
+        icon: Icons.swap_horiz_rounded,
+        color: const Color(0xFF22C55E),
+        label: 'Comp Off Applications',
+        count: _pendingCompOff.length,
+        onViewAll: () => context.push('/management/leave/overview'),
+        children: _pendingCompOff
+            .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
+            .toList(),
+        history: _historyCompOff.map(_leaveHistoryCard).toList(),
+      );
+
+  Widget get _onrollSection => _ApprovalSection(
+        icon: Icons.verified_user_rounded,
+        color: AppTheme.sidebarSelectedBg,
+        label: 'On-Roll Requests',
+        count: _pendingOnroll.length,
+        onViewAll: () => context.push('/management/onroll-approvals'),
+        children: _pendingOnroll
+            .map((u) => _onrollCard(u, onApprove: () => _approveOnroll(u), onDeny: () => _denyOnroll(u)))
+            .toList(),
+        history: _historyOnroll.map(_onrollHistoryCard).toList(),
+      );
+
+  Widget get _grossPaySection => _ApprovalSection(
+        icon: Icons.currency_rupee_rounded,
+        color: Colors.indigo.shade700,
+        label: 'Gross Pay Change Requests',
+        count: _pendingGrossPay.length,
+        children: _pendingGrossPay
+            .map((u) => _grossPayCard(u,
+                onApprove: () => _decideGrossPay(u, true), onDeny: () => _decideGrossPay(u, false)))
+            .toList(),
+      );
+
+  Widget get _workLocationSection => _ApprovalSection(
+        icon: Icons.location_on_rounded,
+        color: Colors.teal.shade700,
+        label: 'Work Location Change Requests',
+        count: _pendingWorkLocation.length,
+        children: _pendingWorkLocation
+            .map((u) => _workLocationCard(u,
+                onApprove: () => _decideWorkLocation(u, true), onDeny: () => _decideWorkLocation(u, false)))
+            .toList(),
+      );
+
+  Widget get _leaveFormSection => _ApprovalSection(
+        icon: Icons.event_available_rounded,
+        color: AppTheme.primaryBlue,
+        label: 'Leave Form Approvals',
+        count: _pendingOf(_leaveVersions).length,
+        onViewAll: () => context.push('/management/form-approvals'),
+        children: _pendingOf(_leaveVersions)
+            .map((v) => _formCard(v, kind: 'leave', label: null,
+                onApprove: () => _approveForm('leave', v['id'] as String),
+                onDeny: () => _rejectForm('leave', v['id'] as String)))
+            .toList(),
+        history: _historyOf(_leaveVersions).map((v) => _formHistoryCard(v)).toList(),
+      );
+
+  Widget get _interviewFormSection => _ApprovalSection(
+        icon: Icons.assignment_rounded,
+        color: AppTheme.primaryBlue,
+        label: 'Interview Form Approvals',
+        count: _pendingOf(_interviewVersions).length,
+        onViewAll: () => context.push('/management/form-approvals'),
+        children: _pendingOf(_interviewVersions)
+            .map((v) => _formCard(v, kind: 'interview',
+                label: _interviewLabels[(v['version_number'] as num?)?.toInt()],
+                onApprove: () => _approveForm('interview', v['id'] as String),
+                onDeny: () => _rejectForm('interview', v['id'] as String)))
+            .toList(),
+        history: _historyOf(_interviewVersions)
+            .map((v) => _formHistoryCard(v, label: _interviewLabels[(v['version_number'] as num?)?.toInt()]))
+            .toList(),
+      );
+
+  Widget get _onboardingFormSection => _ApprovalSection(
+        icon: Icons.how_to_reg_rounded,
+        color: AppTheme.primaryBlue,
+        label: 'Onboarding Form Approvals',
+        count: _pendingOf(_onboardingVersions).length,
+        onViewAll: () => context.push('/management/form-approvals'),
+        children: _pendingOf(_onboardingVersions)
+            .map((v) => _formCard(v, kind: 'onboarding',
+                label: _onboardingLabels[(v['version_number'] as num?)?.toInt()],
+                onApprove: () => _approveForm('onboarding', v['id'] as String),
+                onDeny: () => _rejectForm('onboarding', v['id'] as String)))
+            .toList(),
+        history: _historyOf(_onboardingVersions)
+            .map((v) => _formHistoryCard(v, label: _onboardingLabels[(v['version_number'] as num?)?.toInt()]))
+            .toList(),
+      );
+
+  Widget get _policySection => _ApprovalSection(
+        icon: Icons.policy_rounded,
+        color: AppTheme.primaryBlue,
+        label: 'HR Policy Approvals',
+        count: _pendingOf(_policyVersions).length,
+        onViewAll: () => context.push('/management/form-approvals'),
+        children: _pendingOf(_policyVersions)
+            .map((v) => _formCard(v, kind: 'policy', label: null,
+                onApprove: () => _approveForm('policy', v['id'] as String),
+                onDeny: () => _rejectForm('policy', v['id'] as String)))
+            .toList(),
+        history: _historyOf(_policyVersions).map((v) => _formHistoryCard(v)).toList(),
+      );
+
+  Widget get _maintenanceFormSection => _ApprovalSection(
+        icon: Icons.build_rounded,
+        color: AppTheme.primaryBlue,
+        label: 'Maintenance Form Approvals',
+        count: _pendingOf(_maintenanceVersions).length,
+        onViewAll: () => context.push('/management/form-approvals'),
+        children: _pendingOf(_maintenanceVersions)
+            .map((v) => _formCard(v, kind: 'maintenance', label: null,
+                onApprove: () => _approveForm('maintenance', v['id'] as String),
+                onDeny: () => _rejectForm('maintenance', v['id'] as String)))
+            .toList(),
+        history: _historyOf(_maintenanceVersions).map((v) => _formHistoryCard(v)).toList(),
+      );
+
+  Widget _tabView(List<Widget> sections) {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: sections),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: null,
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              const NavBackButton(),
-              const SizedBox(width: 8),
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          child: Row(children: [
+            const NavBackButton(),
+            const SizedBox(width: 8),
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlueDark.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.approval_rounded, color: AppTheme.primaryBlueDark, size: 26),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Approvals', style: Theme.of(context).textTheme.headlineMedium),
+                const Text('Everything awaiting your decision, in one place',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+              ]),
+            ),
+            if (!_loading)
               Container(
-                width: 48, height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlueDark.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: (_totalPending > 0 ? Colors.orange.shade700 : Colors.green.shade700)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(Icons.approval_rounded, color: AppTheme.primaryBlueDark, size: 26),
+                child: Text('$_totalPending pending',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700,
+                        color: _totalPending > 0 ? Colors.orange.shade700 : Colors.green.shade700)),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Approvals', style: Theme.of(context).textTheme.headlineMedium),
-                  const Text('Everything awaiting your decision, in one place',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                ]),
-              ),
-              if (!_loading)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: (_totalPending > 0 ? Colors.orange.shade700 : Colors.green.shade700)
-                        .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text('$_totalPending pending',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w700,
-                          color: _totalPending > 0 ? Colors.orange.shade700 : Colors.green.shade700)),
-                ),
-              const SizedBox(width: 4),
-              IconButton(
-                tooltip: 'Refresh',
-                icon: Icon(Icons.refresh_rounded, color: AppTheme.primaryBlueDark),
-                onPressed: _load,
-              ),
-            ]),
-            const SizedBox(height: 24),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 60),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else ...[
-              if (_totalPending == 0) _allCaughtUpBanner(),
-              _ApprovalSection(
-                icon: Icons.event_note_rounded,
-                color: const Color(0xFF111827),
-                label: 'Leave Applications',
-                count: _pendingLeave.length,
-                onViewAll: () => context.push('/management/leave/overview'),
-                children: _pendingLeave
-                    .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
-                    .toList(),
-                history: _historyLeave.map(_leaveHistoryCard).toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.access_time_rounded,
-                color: AppTheme.accentBlue,
-                label: 'Permission Applications',
-                count: _pendingPermission.length,
-                onViewAll: () => context.push('/management/leave/overview'),
-                children: _pendingPermission
-                    .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
-                    .toList(),
-                history: _historyPermission.map(_leaveHistoryCard).toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.swap_horiz_rounded,
-                color: const Color(0xFF22C55E),
-                label: 'Comp Off Applications',
-                count: _pendingCompOff.length,
-                onViewAll: () => context.push('/management/leave/overview'),
-                children: _pendingCompOff
-                    .map((a) => _leaveCard(a, onApprove: () => _approveLeave(a), onDeny: () => _denyLeave(a)))
-                    .toList(),
-                history: _historyCompOff.map(_leaveHistoryCard).toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.verified_user_rounded,
-                color: AppTheme.sidebarSelectedBg,
-                label: 'On-Roll Requests',
-                count: _pendingOnroll.length,
-                onViewAll: () => context.push('/management/onroll-approvals'),
-                children: _pendingOnroll
-                    .map((u) => _onrollCard(u, onApprove: () => _approveOnroll(u), onDeny: () => _denyOnroll(u)))
-                    .toList(),
-                history: _historyOnroll.map(_onrollHistoryCard).toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.currency_rupee_rounded,
-                color: Colors.indigo.shade700,
-                label: 'Gross Pay Change Requests',
-                count: _pendingGrossPay.length,
-                children: _pendingGrossPay
-                    .map((u) => _grossPayCard(u,
-                        onApprove: () => _decideGrossPay(u, true), onDeny: () => _decideGrossPay(u, false)))
-                    .toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.location_on_rounded,
-                color: Colors.teal.shade700,
-                label: 'Work Location Change Requests',
-                count: _pendingWorkLocation.length,
-                children: _pendingWorkLocation
-                    .map((u) => _workLocationCard(u,
-                        onApprove: () => _decideWorkLocation(u, true), onDeny: () => _decideWorkLocation(u, false)))
-                    .toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.event_available_rounded,
-                color: AppTheme.primaryBlue,
-                label: 'Leave Form Approvals',
-                count: _pendingOf(_leaveVersions).length,
-                onViewAll: () => context.push('/management/form-approvals'),
-                children: _pendingOf(_leaveVersions)
-                    .map((v) => _formCard(v, kind: 'leave', label: null,
-                        onApprove: () => _approveForm('leave', v['id'] as String),
-                        onDeny: () => _rejectForm('leave', v['id'] as String)))
-                    .toList(),
-                history: _historyOf(_leaveVersions).map((v) => _formHistoryCard(v)).toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.assignment_rounded,
-                color: AppTheme.primaryBlue,
-                label: 'Interview Form Approvals',
-                count: _pendingOf(_interviewVersions).length,
-                onViewAll: () => context.push('/management/form-approvals'),
-                children: _pendingOf(_interviewVersions)
-                    .map((v) => _formCard(v, kind: 'interview',
-                        label: _interviewLabels[(v['version_number'] as num?)?.toInt()],
-                        onApprove: () => _approveForm('interview', v['id'] as String),
-                        onDeny: () => _rejectForm('interview', v['id'] as String)))
-                    .toList(),
-                history: _historyOf(_interviewVersions)
-                    .map((v) => _formHistoryCard(v, label: _interviewLabels[(v['version_number'] as num?)?.toInt()]))
-                    .toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.how_to_reg_rounded,
-                color: AppTheme.primaryBlue,
-                label: 'Onboarding Form Approvals',
-                count: _pendingOf(_onboardingVersions).length,
-                onViewAll: () => context.push('/management/form-approvals'),
-                children: _pendingOf(_onboardingVersions)
-                    .map((v) => _formCard(v, kind: 'onboarding',
-                        label: _onboardingLabels[(v['version_number'] as num?)?.toInt()],
-                        onApprove: () => _approveForm('onboarding', v['id'] as String),
-                        onDeny: () => _rejectForm('onboarding', v['id'] as String)))
-                    .toList(),
-                history: _historyOf(_onboardingVersions)
-                    .map((v) => _formHistoryCard(v, label: _onboardingLabels[(v['version_number'] as num?)?.toInt()]))
-                    .toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.policy_rounded,
-                color: AppTheme.primaryBlue,
-                label: 'HR Policy Approvals',
-                count: _pendingOf(_policyVersions).length,
-                onViewAll: () => context.push('/management/form-approvals'),
-                children: _pendingOf(_policyVersions)
-                    .map((v) => _formCard(v, kind: 'policy', label: null,
-                        onApprove: () => _approveForm('policy', v['id'] as String),
-                        onDeny: () => _rejectForm('policy', v['id'] as String)))
-                    .toList(),
-                history: _historyOf(_policyVersions).map((v) => _formHistoryCard(v)).toList(),
-              ),
-              _ApprovalSection(
-                icon: Icons.build_rounded,
-                color: AppTheme.primaryBlue,
-                label: 'Maintenance Form Approvals',
-                count: _pendingOf(_maintenanceVersions).length,
-                onViewAll: () => context.push('/management/form-approvals'),
-                children: _pendingOf(_maintenanceVersions)
-                    .map((v) => _formCard(v, kind: 'maintenance', label: null,
-                        onApprove: () => _approveForm('maintenance', v['id'] as String),
-                        onDeny: () => _rejectForm('maintenance', v['id'] as String)))
-                    .toList(),
-                history: _historyOf(_maintenanceVersions).map((v) => _formHistoryCard(v)).toList(),
-              ),
-            ],
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'Refresh',
+              icon: Icon(Icons.refresh_rounded, color: AppTheme.primaryBlueDark),
+              onPressed: _load,
+            ),
           ]),
         ),
-      ),
+        const SizedBox(height: 16),
+        if (!_loading && _totalPending == 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _allCaughtUpBanner(),
+          ),
+        const SizedBox(height: 12),
+        TabBar(
+          controller: _tabs,
+          isScrollable: true,
+          labelColor: AppTheme.primaryBlueDark,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: AppTheme.primaryBlueDark,
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'Newly Placed'),
+            Tab(text: 'Applications'),
+            Tab(text: 'Requests'),
+            Tab(text: 'Form Edit Approvals'),
+          ],
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                  controller: _tabs,
+                  children: [
+                    _tabView([
+                      _leaveSection,
+                      _permissionSection,
+                      _compOffSection,
+                      _onrollSection,
+                      _grossPaySection,
+                      _workLocationSection,
+                      _leaveFormSection,
+                      _interviewFormSection,
+                      _onboardingFormSection,
+                      _policySection,
+                      _maintenanceFormSection,
+                    ]),
+                    _tabView([_onrollSection]),
+                    _tabView([_leaveSection, _permissionSection, _compOffSection]),
+                    _tabView([_grossPaySection, _workLocationSection]),
+                    _tabView([
+                      _leaveFormSection,
+                      _interviewFormSection,
+                      _onboardingFormSection,
+                      _policySection,
+                      _maintenanceFormSection,
+                    ]),
+                  ],
+                ),
+        ),
+      ]),
     );
   }
 
