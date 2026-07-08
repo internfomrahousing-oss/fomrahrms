@@ -19,12 +19,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // iOS system colors (light appearance only).
-  static const _iosBlue      = Color(0xFF007AFF);
-  static const _iosBg        = Color(0xFFF2F2F7);
-  static const _iosLabel     = Color(0xFF1C1C1E);
-  static const _iosSecondary = Color(0xFF8E8E93);
-  static const _iosSeparator = Color(0xFFE5E5EA);
+  static const _navy       = Color(0xFF1D3F91);
+  static const _panelBgTop = Color(0xFFEDF0F8);
+  static const _panelBgBot = Color(0xFFFAFBFD);
+  static const _textDark   = Color(0xFF0F172A);
+  static const _textMuted  = Color(0xFF64748B);
+  static const _borderGray = Color(0xFFE2E8F0);
+  static const _errorRed   = Color(0xFFDC2626);
 
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -201,6 +202,27 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Forgot password?',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _textDark)),
+        content: Text(
+          'Please contact your HR administrator to have your password reset.',
+          style: GoogleFonts.inter(fontSize: 14, color: _textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('OK', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _navy)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -211,7 +233,6 @@ class _LoginPageState extends State<LoginPage> {
           if (!wide) return _formColumn(showCompactLogo: true);
           return Row(children: [
             Expanded(flex: 5, child: _logoPanel()),
-            const VerticalDivider(width: 1, thickness: 1, color: _iosSeparator),
             Expanded(flex: 6, child: _formColumn(showCompactLogo: false)),
           ]);
         }),
@@ -219,13 +240,38 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ── Left panel: the company logo, large and centered ──────────────────
+  // ── Left panel: gradient backdrop, logo, and a building-wireframe motif ──
   Widget _logoPanel() {
     return Container(
-      color: _iosBg,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(48),
-      child: const FomraLogoMark(wordmarkSize: 64),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_panelBgTop, _panelBgBot],
+        ),
+      ),
+      child: Stack(children: [
+        Positioned(
+          top: -70, right: -70,
+          child: Container(
+            width: 240, height: 240,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.55),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0, right: 0, bottom: 0, height: 280,
+          child: CustomPaint(painter: _BuildingPainter()),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(48),
+            child: FomraLogoMark(wordmarkSize: 64),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -235,7 +281,7 @@ class _LoginPageState extends State<LoginPage> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
+          constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -248,19 +294,19 @@ class _LoginPageState extends State<LoginPage> {
               if (_pendingUser == null) ...[
                 Text('Welcome back',
                     style: GoogleFonts.inter(
-                        fontSize: 26, fontWeight: FontWeight.w700, color: _iosLabel)),
-                const SizedBox(height: 4),
+                        fontSize: 28, fontWeight: FontWeight.w800, color: _textDark)),
+                const SizedBox(height: 6),
                 Text('Sign in to continue to your dashboard.',
-                    style: GoogleFonts.inter(fontSize: 13.5, color: _iosSecondary)),
-                const SizedBox(height: 28),
+                    style: GoogleFonts.inter(fontSize: 14, color: _textMuted)),
+                const SizedBox(height: 32),
               ],
 
               _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
 
               const SizedBox(height: 28),
-              Text('FOMRA Housing & Infrastructure © 2025',
+              Text('© 2026 FOMRA. All rights reserved.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(fontSize: 11, color: _iosSecondary)),
+                  style: GoogleFonts.inter(fontSize: 11.5, color: _textMuted)),
             ],
           ),
         ),
@@ -268,76 +314,62 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // A grouped, inset iOS-style list card: rows separated by hairline
-  // dividers, no per-field borders — only the outer card is rounded.
-  Widget _groupedCard({required List<Widget> rows}) {
-    final children = <Widget>[];
-    for (var i = 0; i < rows.length; i++) {
-      children.add(rows[i]);
-      if (i != rows.length - 1) {
-        children.add(const Padding(
-          padding: EdgeInsets.only(left: 16),
-          child: Divider(height: 1, thickness: 0.6, color: _iosSeparator),
-        ));
-      }
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _iosSeparator),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6)),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _groupedField({
+  Widget _labeledField({
+    required String label,
     required TextEditingController controller,
     required String hint,
+    required IconData icon,
     bool obscure = false,
     TextInputType? keyboardType,
     Widget? suffix,
     ValueChanged<String>? onSubmitted,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      onSubmitted: onSubmitted,
-      style: GoogleFonts.inter(fontSize: 15, color: _iosLabel),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.inter(fontSize: 15, color: _iosSecondary),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        suffixIcon: suffix,
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label,
+          style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w600, color: _textDark)),
+      const SizedBox(height: 8),
+      Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _borderGray),
+        ),
+        child: TextField(
+          controller: controller,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          onSubmitted: onSubmitted,
+          style: GoogleFonts.inter(fontSize: 15, color: _textDark),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.inter(fontSize: 15, color: _textMuted),
+            prefixIcon: Icon(icon, size: 20, color: _textMuted),
+            suffixIcon: suffix,
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 15),
+          ),
+        ),
       ),
-    );
+    ]);
   }
 
-  Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(left: 16, bottom: 6),
-        child: Text(text.toUpperCase(),
-            style: GoogleFonts.inter(
-                fontSize: 11, fontWeight: FontWeight.w600,
-                color: _iosSecondary, letterSpacing: 0.4)),
+  Widget _obscureToggle(bool obscure, VoidCallback onPressed) => IconButton(
+        icon: Icon(obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+            size: 19, color: _textMuted),
+        onPressed: onPressed,
       );
 
-  Widget _pillButton({required VoidCallback? onPressed, required Widget child}) {
+  Widget _primaryButton({required VoidCallback? onPressed, required Widget child}) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 52,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _iosBlue,
-          disabledBackgroundColor: _iosBlue.withValues(alpha: 0.5),
+          backgroundColor: _navy,
+          disabledBackgroundColor: _navy.withValues(alpha: 0.5),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
         ),
         child: child,
@@ -345,25 +377,69 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _orDivider() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 22),
+        child: Row(children: [
+          const Expanded(child: Divider(color: _borderGray, thickness: 1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('or', style: GoogleFonts.inter(fontSize: 13, color: _textMuted)),
+          ),
+          const Expanded(child: Divider(color: _borderGray, thickness: 1)),
+        ]),
+      );
+
+  Widget _securityNote() => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.verified_user_rounded, size: 20, color: _navy),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Your data is secure with us',
+                style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w700, color: _textDark)),
+            const SizedBox(height: 2),
+            Text('We use enterprise-grade security to protect your information.',
+                style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
+          ]),
+        ),
+      ]);
+
   Widget _buildLoginCard() {
-    return Column(children: [
-      _groupedCard(rows: [
-        _groupedField(controller: _emailCtrl, hint: 'Email', keyboardType: TextInputType.emailAddress),
-        _groupedField(
-          controller: _passwordCtrl,
-          hint: 'Password',
-          obscure: _obscure,
-          onSubmitted: (_) => _login(),
-          suffix: IconButton(
-            icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 19, color: _iosSecondary),
-            onPressed: () => setState(() => _obscure = !_obscure),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _labeledField(
+        label: 'Email',
+        controller: _emailCtrl,
+        hint: 'Enter your email',
+        icon: Icons.mail_outline_rounded,
+        keyboardType: TextInputType.emailAddress,
+      ),
+      const SizedBox(height: 18),
+      _labeledField(
+        label: 'Password',
+        controller: _passwordCtrl,
+        hint: 'Enter your password',
+        icon: Icons.lock_outline_rounded,
+        obscure: _obscure,
+        onSubmitted: (_) => _login(),
+        suffix: _obscureToggle(_obscure, () => setState(() => _obscure = !_obscure)),
+      ),
+      Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: TextButton(
+            onPressed: _showForgotPasswordDialog,
+            style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: Text('Forgot password?',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _navy)),
           ),
         ),
-      ]),
+      ),
       _errorBanner(),
-      const SizedBox(height: 22),
-      _pillButton(
+      const SizedBox(height: 14),
+      _primaryButton(
         onPressed: _loading ? null : _login,
         child: _loading
             ? const SizedBox(width: 18, height: 18,
@@ -371,67 +447,63 @@ class _LoginPageState extends State<LoginPage> {
             : Text('Sign In',
                 style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
+      _orDivider(),
+      _securityNote(),
     ]);
   }
 
   Widget _buildSetPasswordCard() {
     final user = _pendingUser!;
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _iosSeparator),
+          border: Border.all(color: _borderGray),
         ),
         child: Row(children: [
           Container(
             width: 38, height: 38,
             decoration: BoxDecoration(
-              color: _iosBlue.withValues(alpha: 0.1),
+              color: _navy.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.lock_open_rounded, color: _iosBlue, size: 20),
+            child: const Icon(Icons.lock_open_rounded, color: _navy, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Welcome, ${user.name}!',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _iosLabel)),
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _textDark)),
               Text('Set your password to continue.',
-                  style: GoogleFonts.inter(fontSize: 12, color: _iosSecondary)),
+                  style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
             ]),
           ),
         ]),
       ),
+      const SizedBox(height: 22),
+      _labeledField(
+        label: 'New password',
+        controller: _newPassCtrl,
+        hint: 'Create Password',
+        icon: Icons.lock_outline_rounded,
+        obscure: _obscureNew,
+        suffix: _obscureToggle(_obscureNew, () => setState(() => _obscureNew = !_obscureNew)),
+      ),
       const SizedBox(height: 18),
-      _sectionLabel('New password'),
-      _groupedCard(rows: [
-        _groupedField(
-          controller: _newPassCtrl,
-          hint: 'Create Password',
-          obscure: _obscureNew,
-          suffix: IconButton(
-            icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 19, color: _iosSecondary),
-            onPressed: () => setState(() => _obscureNew = !_obscureNew),
-          ),
-        ),
-        _groupedField(
-          controller: _confirmCtrl,
-          hint: 'Confirm Password',
-          obscure: _obscureConfirm,
-          onSubmitted: (_) => _savePassword(),
-          suffix: IconButton(
-            icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                size: 19, color: _iosSecondary),
-            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
-          ),
-        ),
-      ]),
+      _labeledField(
+        label: 'Confirm password',
+        controller: _confirmCtrl,
+        hint: 'Confirm Password',
+        icon: Icons.lock_outline_rounded,
+        obscure: _obscureConfirm,
+        onSubmitted: (_) => _savePassword(),
+        suffix: _obscureToggle(_obscureConfirm, () => setState(() => _obscureConfirm = !_obscureConfirm)),
+      ),
       _errorBanner(),
       const SizedBox(height: 22),
-      _pillButton(
+      _primaryButton(
         onPressed: _loading ? null : _savePassword,
         child: _loading
             ? const SizedBox(width: 18, height: 18,
@@ -443,7 +515,7 @@ class _LoginPageState extends State<LoginPage> {
       TextButton(
         onPressed: () => setState(() { _pendingUser = null; _error = null; }),
         child: Text('Back to Login',
-            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _iosBlue)),
+            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _navy)),
       ),
     ]);
   }
@@ -453,13 +525,46 @@ class _LoginPageState extends State<LoginPage> {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(children: [
-        const Icon(Icons.error_outline_rounded, size: 15, color: Color(0xFFFF3B30)),
+        const Icon(Icons.error_outline_rounded, size: 15, color: _errorRed),
         const SizedBox(width: 6),
         Expanded(
           child: Text(_error!,
-              style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFFFF3B30))),
+              style: GoogleFonts.inter(fontSize: 12.5, color: _errorRed)),
         ),
       ]),
     );
   }
+}
+
+// A faint skyscraper wireframe — a tapered tower silhouette filled with a
+// thin grid — anchored to the bottom-left corner of the logo panel.
+class _BuildingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(0, size.height * 0.32)
+      ..lineTo(size.width * 0.6, size.height * 0.04)
+      ..lineTo(size.width * 0.6, size.height)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = const Color(0xFF3B6FB0).withValues(alpha: 0.05));
+
+    canvas.save();
+    canvas.clipPath(path);
+    final linePaint = Paint()
+      ..color = const Color(0xFF3B6FB0).withValues(alpha: 0.16)
+      ..strokeWidth = 1;
+    const step = 18.0;
+    for (double x = 0; x < size.width * 0.6; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), linePaint);
+    }
+    for (double y = 0; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width * 0.6, y), linePaint);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _BuildingPainter oldDelegate) => false;
 }
