@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/user_session.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart';
 
@@ -47,9 +48,15 @@ List<({IconData icon, Color color, String label})> get _qData => [
   (icon: Icons.cake_rounded,         color: _qColor, label: 'Birthdays'),
 ];
 
+// HR/Management get the full announcement history plus add/delete controls
+// here too, matching the "Announcements" card on their dashboards — everyone
+// else gets the read-only, past-7-days view.
+bool get _canEditAnnouncements =>
+    UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
+
 Widget _blockFor(int i) {
   switch (i) {
-    case 0: return AnnouncementsBlock(canEdit: false);
+    case 0: return AnnouncementsBlock(canEdit: _canEditAnnouncements);
     case 1: return HolidaysBlock(canEdit: false);
     case 3: return BirthdaysBlock(canEdit: false);
     default: return const EmptyBlock();

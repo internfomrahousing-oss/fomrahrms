@@ -35,29 +35,31 @@ class ManagerDashboardPage extends StatelessWidget {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AttendanceShortcutCard(
-                    attendanceRoute: '/manager/my-attendance',
-                    accentColor: AppTheme.accentBlue,
-                    extraTiles: [
-                      QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
-                          color: AppTheme.primaryBlue, route: '/manager/my-leave'),
-                      QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
-                          color: AppTheme.warning, route: '/manager/attendance-management'),
-                    ],
-                  ),
-                  SizedBox(height: narrow ? 24 : 32),
-
                   _SectionLabel(
                     icon: Icons.person_rounded,
                     label: 'My Space',
                   ),
                   const SizedBox(height: 16),
+                  _MySpaceRow(children: [
+                    AttendanceShortcutCard(
+                      attendanceRoute: '/manager/my-attendance',
+                      accentColor: AppTheme.accentBlue,
+                      columns: 2,
+                      extraTiles: [
+                        QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
+                            color: AppTheme.primaryBlue, route: '/manager/my-leave'),
+                        QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
+                            color: AppTheme.warning, route: '/manager/attendance-management'),
+                      ],
+                    ),
+                    const MyTasksBlock(viewAllRoute: '/manager/my-tasks', modern: true),
+                    const TaskAnalyticsBlock(showTeam: true, modern: true),
+                  ]),
+                  const SizedBox(height: 16),
                   _MySpaceRow(children: const [
-                    MyTasksBlock(viewAllRoute: '/manager/my-tasks', modern: true),
-                    TaskAnalyticsBlock(showTeam: true, modern: true),
-                    MyLeaveBlock(applyRoute: '/manager/my-leave'),
-                    MyAttendanceSummaryBlock(viewRoute: '/manager/my-attendance'),
-                    MyPayslipBlock(viewRoute: '/manager/my-payslips'),
+                    MyLeaveBlock(applyRoute: '/manager/my-leave', compact: true),
+                    MyAttendanceSummaryBlock(viewRoute: '/manager/my-attendance', compact: true),
+                    MyPayslipBlock(viewRoute: '/manager/my-payslips', compact: true),
                   ]),
                   const SizedBox(height: 16),
                 ],

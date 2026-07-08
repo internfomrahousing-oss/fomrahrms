@@ -124,6 +124,18 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     } catch (_) { return false; }
   }
 
+  // True when a day has no check-in, no approved leave, and isn't a
+  // holiday, but has already passed — i.e. no entry was ever made for it.
+  bool _isMissedDay(int day) {
+    final r = _attendance[day];
+    if (r != null && r.checkInTime.isNotEmpty) return false;
+    if (_leaveDays.contains(day)) return false;
+    if (_holidayDays.contains(day)) return false;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    return DateTime(_month.year, _month.month, day).isBefore(todayDate);
+  }
+
   // Returns the status color for a calendar day (null = no highlight)
   Color? _statusColor(int day) {
     // Attendance takes visual priority (worked on holiday → show attendance color)
@@ -133,13 +145,15 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     }
     if (_leaveDays.contains(day)) return _red;
     if (_holidayDays.contains(day)) return _yellow;
+    if (_isMissedDay(day)) return _red;
     return null;
   }
 
   void _onTap(int day) {
     final rec     = _attendance[day];
     final isLeave = _leaveDays.contains(day);
-    if (rec == null && !isLeave) return;
+    final missed  = _isMissedDay(day);
+    if (rec == null && !isLeave && !missed) return;
 
     final dayDate = DateTime(_month.year, _month.month, day);
     const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -153,6 +167,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
         label: label,
         record: rec,
         isLeave: isLeave,
+        isAbsent: missed,
         isLate: rec != null && _isLate(rec.checkInTime),
       ),
     );
@@ -438,12 +453,14 @@ class _DaySheet extends StatelessWidget {
   final String label;
   final AttendanceRecord? record;
   final bool isLeave;
+  final bool isAbsent;
   final bool isLate;
 
   const _DaySheet({
     required this.label,
     required this.record,
     required this.isLeave,
+    this.isAbsent = false,
     required this.isLate,
   });
 
@@ -466,7 +483,7 @@ class _DaySheet extends StatelessWidget {
 
     final String statusLabel;
     final Color  statusColor;
-    if (isLeave) {
+    if (isLeave || isAbsent) {
       statusLabel = 'Absent';
       statusColor = _red;
     } else if (isLate) {
@@ -521,6 +538,13 @@ class _DaySheet extends StatelessWidget {
             Icon(Icons.event_busy_rounded, size: 18, color: _red),
             const SizedBox(width: 10),
             Text('On approved leave', style: TextStyle(fontSize: 13,
+                color: cs.onSurface.withValues(alpha: 0.7))),
+          ]),
+        ] else if (isAbsent) ...[
+          Row(children: [
+            Icon(Icons.event_busy_rounded, size: 18, color: _red),
+            const SizedBox(width: 10),
+            Text('No attendance recorded', style: TextStyle(fontSize: 13,
                 color: cs.onSurface.withValues(alpha: 0.7))),
           ]),
         ] else if (rec != null && rec.checkInTime.isNotEmpty) ...[

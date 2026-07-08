@@ -16,6 +16,7 @@ class AppStatCard extends StatelessWidget {
   final IconData icon;
   final Color? color;
   final double? gaugePercent;
+  final VoidCallback? onTap;
 
   const AppStatCard({
     super.key,
@@ -24,6 +25,7 @@ class AppStatCard extends StatelessWidget {
     required this.icon,
     this.color,
     this.gaugePercent,
+    this.onTap,
   });
 
   @override
@@ -44,7 +46,10 @@ class AppStatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppTheme.cardRadius),
           side: const BorderSide(color: AppTheme.borderSubtle),
         ),
-        child: Padding(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 156),
@@ -121,6 +126,7 @@ class AppStatCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

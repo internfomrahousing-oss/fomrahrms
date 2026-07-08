@@ -274,6 +274,7 @@ class _ProfileDropdown extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           // ── Header ───────────────────────────────────────────────────
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(

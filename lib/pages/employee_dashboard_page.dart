@@ -46,26 +46,28 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AttendanceShortcutCard(
-                    attendanceRoute: '/employee/attendance-management',
-                    accentColor: AppTheme.primaryBlue,
-                    extraTiles: [
-                      QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
-                          color: AppTheme.primaryBlue, route: '/employee/leave-management'),
-                      QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
-                          color: AppTheme.warning, route: '/employee/attendance-leaves'),
-                    ],
-                  ),
-                  SizedBox(height: narrow ? 16 : 24),
-
                   _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
                   const SizedBox(height: 16),
+                  _MySpaceRow(children: [
+                    AttendanceShortcutCard(
+                      attendanceRoute: '/employee/attendance-management',
+                      accentColor: AppTheme.primaryBlue,
+                      columns: 2,
+                      extraTiles: [
+                        QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
+                            color: AppTheme.primaryBlue, route: '/employee/leave-management'),
+                        QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
+                            color: AppTheme.warning, route: '/employee/attendance-leaves'),
+                      ],
+                    ),
+                    const MyTasksBlock(viewAllRoute: '/employee/tasks', modern: true),
+                    const TaskAnalyticsBlock(modern: true),
+                  ]),
+                  const SizedBox(height: 16),
                   _MySpaceRow(children: const [
-                    MyTasksBlock(viewAllRoute: '/employee/tasks', modern: true),
-                    TaskAnalyticsBlock(modern: true),
-                    MyLeaveBlock(applyRoute: '/employee/leave-management'),
-                    MyAttendanceSummaryBlock(viewRoute: '/employee/attendance-management'),
-                    MyPayslipBlock(viewRoute: '/employee/payslips'),
+                    MyLeaveBlock(applyRoute: '/employee/leave-management', compact: true),
+                    MyAttendanceSummaryBlock(viewRoute: '/employee/attendance-management', compact: true),
+                    MyPayslipBlock(viewRoute: '/employee/payslips', compact: true),
                   ]),
                   const SizedBox(height: 8),
                 ],

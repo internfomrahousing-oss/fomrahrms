@@ -24,9 +24,13 @@ const _kIssueTypes = [
   'IT Issues',
 ];
 
+const _kIssueForOptions = ['IT', 'HR', 'Admin'];
+
 class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
+  String? _selectedIssueFor;
   String? _selectedIssueType;
   DateTime? _selectedMonth;
+  String? _filterIssueFor;
   final _descController = TextEditingController();
 
   @override
@@ -54,9 +58,10 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   }
 
   Future<void> _submitTicket() async {
+    final issueFor  = _selectedIssueFor;
     final issueType = _selectedIssueType;
     final desc      = _descController.text.trim();
-    if (issueType == null || desc.isEmpty) return;
+    if (issueFor == null || issueType == null || desc.isEmpty) return;
     final role         = UserSession.role;
     final reporterName = UserSession.name.isNotEmpty
         ? UserSession.name
@@ -65,12 +70,14 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       id:             MaintenanceStore.generateId(),
       reportedByRole: role,
       reportedBy:     reporterName,
+      issueFor:       issueFor,
       issueType:      issueType,
       description:    desc,
       createdAt:      DateTime.now(),
     );
     setState(() {
       MaintenanceStore.tickets.insert(0, ticket);
+      _selectedIssueFor = null;
       _selectedIssueType = null;
       _descController.clear();
     });
@@ -91,9 +98,25 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     }
   }
 
-  Future<void> _addressed(MaintenanceTicket t) async {
-    setState(() => t.status = MaintenanceStatus.resolved);
-    await SupabaseService.updateTicketStatus(t.id, MaintenanceStatus.resolved);
+  Future<void> _resolveTicket(MaintenanceTicket t) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => const _ResolutionDialog(),
+    );
+    if (result == null || !mounted) return;
+    final note = result['note'] as String;
+    final when = result['when'] as DateTime;
+    setState(() {
+      t.status = MaintenanceStatus.resolved;
+      t.resolutionNote = note;
+      t.resolvedAt = when;
+    });
+    await SupabaseService.updateTicketResolution(t.id, note, when);
+  }
+
+  Future<void> _managementResolve(MaintenanceTicket t) async {
+    setState(() => t.managementReviewed = true);
+    await SupabaseService.updateTicketManagementReviewed(t.id, true);
   }
 
   Future<void> _sendToManagement(MaintenanceTicket t) async {
@@ -110,6 +133,12 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       (t.createdAt.year == _selectedMonth!.year &&
           t.createdAt.month == _selectedMonth!.month);
 
+  bool _matchesIssueFor(MaintenanceTicket t) =>
+      _filterIssueFor == null || t.issueFor == _filterIssueFor;
+
+  bool _matchesFilters(MaintenanceTicket t) =>
+      _matchesMonth(t) && _matchesIssueFor(t);
+
   Future<void> _pickMonth() async {
     final picked = await showMonthPicker(context, _selectedMonth);
     if (picked != null && mounted) setState(() => _selectedMonth = picked);
@@ -117,7 +146,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
   Widget _buildMonthFilterRow() {
     final primary = Theme.of(context).colorScheme.primary;
-    return Row(children: [
+    return Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
       OutlinedButton.icon(
         onPressed: _pickMonth,
         icon: Icon(
@@ -135,8 +164,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
-      if (_selectedMonth != null) ...[
-        const SizedBox(width: 6),
+      if (_selectedMonth != null)
         IconButton(
           icon: const Icon(Icons.close_rounded, size: 18),
           onPressed: () => setState(() => _selectedMonth = null),
@@ -144,7 +172,40 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
         ),
-      ],
+      PopupMenuButton<String?>(
+        tooltip: 'Filter by department',
+        onSelected: (v) => setState(() => _filterIssueFor = v),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        itemBuilder: (_) => [
+          const PopupMenuItem<String?>(value: null, child: Text('All Departments')),
+          ..._kIssueForOptions.map((o) => PopupMenuItem<String?>(value: o, child: Text(o))),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(
+                color: _filterIssueFor != null
+                    ? primary
+                    : Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.filter_list_rounded, size: 16,
+                color: _filterIssueFor != null ? primary : null),
+            const SizedBox(width: 6),
+            Text(_filterIssueFor ?? 'Filter by Department',
+                style: TextStyle(color: _filterIssueFor != null ? primary : null)),
+          ]),
+        ),
+      ),
+      if (_filterIssueFor != null)
+        IconButton(
+          icon: const Icon(Icons.close_rounded, size: 18),
+          onPressed: () => setState(() => _filterIssueFor = null),
+          tooltip: 'Clear',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        ),
     ]);
   }
 
@@ -163,7 +224,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   // ── HR Page: 3 tabs ──────────────────────────────────────────────────────
 
   Widget _buildHrPage(BuildContext context) {
-    final tickets  = MaintenanceStore.tickets.where(_matchesMonth).toList();
+    final tickets  = MaintenanceStore.tickets.where(_matchesFilters).toList();
     final pending  = tickets.where((t) => !_isResolved(t) && !t.sentToManagement).toList();
     final resolved = tickets.where(_isResolved).toList();
     final sentMgmt = tickets.where((t) => t.sentToManagement && !_isResolved(t)).toList();
@@ -206,7 +267,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                     label: 'Addressed',
                     icon: Icons.check_circle_rounded,
                     color: Colors.green.shade700,
-                    onTap: () => _addressed(t),
+                    onTap: () => _resolveTicket(t),
                   ),
                 ],
               ),
@@ -220,14 +281,16 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
               _TicketList(
                 tickets: sentMgmt,
                 emptyMessage: 'No issues sent to management.',
-                actionsBuilder: (t) => [
-                  _ActionBtn(
-                    label: 'Addressed',
-                    icon: Icons.check_circle_rounded,
-                    color: Colors.green.shade700,
-                    onTap: () => _addressed(t),
-                  ),
-                ],
+                actionsBuilder: (t) => t.managementReviewed
+                    ? [
+                        _ActionBtn(
+                          label: 'Close Ticket',
+                          icon: Icons.check_circle_rounded,
+                          color: Colors.green.shade700,
+                          onTap: () => _resolveTicket(t),
+                        ),
+                      ]
+                    : [],
               ),
             ]),
           ),
@@ -239,7 +302,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   // ── Management Page: 2 tabs ──────────────────────────────────────────────
 
   Widget _buildManagementPage(BuildContext context) {
-    final tickets = MaintenanceStore.tickets.where(_matchesMonth).toList();
+    final tickets = MaintenanceStore.tickets.where(_matchesFilters).toList();
     final hrSent  = tickets.where((t) => t.sentToManagement).toList();
     final all     = tickets.toList();
 
@@ -267,24 +330,24 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
               _TicketList(
                 tickets: hrSent,
                 emptyMessage: 'No issues sent by HR yet.',
-                actionsBuilder: (t) => _isResolved(t) ? [] : [
+                actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed) ? [] : [
                   _ActionBtn(
-                    label: 'Addressed',
+                    label: 'Resolved',
                     icon: Icons.check_circle_rounded,
                     color: Colors.green.shade700,
-                    onTap: () => _addressed(t),
+                    onTap: () => _managementResolve(t),
                   ),
                 ],
               ),
               _TicketList(
                 tickets: all,
                 emptyMessage: 'No issues reported yet.',
-                actionsBuilder: (t) => _isResolved(t) ? [] : [
+                actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed || !t.sentToManagement) ? [] : [
                   _ActionBtn(
-                    label: 'Addressed',
+                    label: 'Resolved',
                     icon: Icons.check_circle_rounded,
                     color: Colors.green.shade700,
-                    onTap: () => _addressed(t),
+                    onTap: () => _managementResolve(t),
                   ),
                 ],
               ),
@@ -300,7 +363,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   Widget _buildReporterPage(BuildContext context) {
     final myRole    = UserSession.role;
     final myTickets = MaintenanceStore.tickets
-        .where((t) => t.reportedByRole == myRole && _matchesMonth(t))
+        .where((t) => t.reportedByRole == myRole && _matchesFilters(t))
         .toList();
 
     return Scaffold(
@@ -319,6 +382,27 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                 _SectionLabel(context: context,
                     icon: Icons.add_circle_outline_rounded,
                     label: 'Report an Issue'),
+                const SizedBox(height: 16),
+                Text('Issue For',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedIssueFor,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.groups_rounded,
+                        color: AppTheme.primaryBlue, size: 20),
+                    hintText: 'Select department',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 14),
+                  ),
+                  items: _kIssueForOptions
+                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedIssueFor = v),
+                ),
                 const SizedBox(height: 16),
                 Text('Issue Type',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -511,6 +595,19 @@ class _TicketCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(ticket.issueFor,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface.withValues(alpha: 0.7))),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
                 color: cs.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
@@ -521,7 +618,7 @@ class _TicketCard extends StatelessWidget {
                       color: cs.primary)),
             ),
             const Spacer(),
-            if (ticket.sentToManagement)
+            if (ticket.sentToManagement && !ticket.managementReviewed)
               Container(
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -534,6 +631,20 @@ class _TicketCard extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryBlue)),
+              ),
+            if (ticket.managementReviewed && ticket.status != MaintenanceStatus.resolved && ticket.status != MaintenanceStatus.closed)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Awaiting HR Closure',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFB45309))),
               ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -554,6 +665,30 @@ class _TicketCard extends StatelessWidget {
           Text(ticket.description,
               style: TextStyle(fontSize: 13, color: cs.onSurface)),
           const SizedBox(height: 8),
+
+          if (ticket.resolutionNote != null && ticket.resolutionNote!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Resolution', style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.7))),
+                const SizedBox(height: 4),
+                Text(ticket.resolutionNote!,
+                    style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.85))),
+                if (ticket.resolvedAt != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Resolved on ${_fmtDateTime(ticket.resolvedAt!)}',
+                      style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
+                ],
+              ]),
+            ),
+            const SizedBox(height: 8),
+          ],
 
           // Footer: reporter · date · ticket ID
           Row(children: [
@@ -589,6 +724,104 @@ class _TicketCard extends StatelessWidget {
 
   static String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  static String _fmtDateTime(DateTime d) {
+    final hour12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final ampm = d.hour >= 12 ? 'PM' : 'AM';
+    return '${_fmt(d)} ${hour12.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} $ampm';
+  }
+}
+
+// ── Resolution dialog: captures how & when an issue was closed ────────────────
+
+class _ResolutionDialog extends StatefulWidget {
+  const _ResolutionDialog();
+
+  @override
+  State<_ResolutionDialog> createState() => _ResolutionDialogState();
+}
+
+class _ResolutionDialogState extends State<_ResolutionDialog> {
+  final _noteController = TextEditingController();
+  DateTime _when = DateTime.now();
+  String? _error;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickWhen() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _when,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_when),
+    );
+    if (time == null || !mounted) return;
+    setState(() {
+      _when = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
+  void _submit() {
+    final note = _noteController.text.trim();
+    if (note.isEmpty) {
+      setState(() => _error = 'Please describe how it was resolved.');
+      return;
+    }
+    Navigator.pop(context, {'note': note, 'when': _when});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text('Close Ticket'),
+      content: SizedBox(
+        width: 400,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('How was it resolved?',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _noteController,
+            maxLines: 3,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Describe how the issue was resolved…',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
+              errorText: _error,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('When was it resolved?',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _pickWhen,
+            icon: const Icon(Icons.event_rounded, size: 16),
+            label: Text(_TicketCard._fmtDateTime(_when)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(onPressed: _submit, child: const Text('Mark Done')),
+      ],
+    );
+  }
 }
 
 // ── Action button ─────────────────────────────────────────────────────────────

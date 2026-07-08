@@ -1,3 +1,6 @@
+import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/leave_form_config.dart';
@@ -6,6 +9,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../widgets/web_file_picker.dart';
 import '../theme/app_theme.dart';
 
 class ApplyLeavePage extends StatefulWidget {
@@ -34,36 +38,28 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   bool   _isOnroll     = false;
   bool   _isElEligible = false;
 
+  // Sickness proof (Medical / Sick Leave only) — uploaded immediately on
+  // selection so submission just carries the resulting URL.
+  String _proofUrl      = '';
+  String _proofFileName = '';
+  bool   _uploadingProof = false;
+
   List<String> get _leaveTypes {
     if (_isElEligible) {
       return _allLeaveTypes; // all types
     }
     if (_isOnroll) {
       return _allLeaveTypes
-          .where((t) => t != 'Earned Leave')
+          .where((t) => LeaveStore.effectiveBucket(t) != 'EL')
           .toList();
     }
     // Probation: CL only (+ special types like maternity, bereavement etc.)
     return _allLeaveTypes
-        .where((t) => t != 'Earned Leave' && t != 'Medical / Sick Leave')
+        .where((t) {
+          final bucket = LeaveStore.effectiveBucket(t);
+          return bucket != 'EL' && bucket != 'ML';
+        })
         .toList();
-  }
-
-  String get _bucketLabel {
-    switch (LeaveStore.effectiveBucket(_leaveType)) {
-      case 'ML':  return 'Medical Leave';
-      case 'EL':  return 'Earned Leave';
-      case 'LOP': return 'LOP';
-      default:    return 'Casual Leave';
-    }
-  }
-
-  double get _usedForBucket {
-    switch (LeaveStore.effectiveBucket(_leaveType)) {
-      case 'ML': return _usedMl;
-      case 'EL': return _usedEl;
-      default:   return _usedCl;
-    }
   }
 
   double get _remaining {
@@ -222,6 +218,44 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     if (picked != null) setState(() => _toDate = picked);
   }
 
+  Future<void> _pickProofFile(List<html.File> files) async {
+    if (files.isEmpty) return;
+    final file = files.first;
+    final isPdf = file.type == 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      _showSnack('Please select a PDF file.', Colors.red);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      _showSnack('File too large — please keep it under 5 MB.', Colors.red);
+      return;
+    }
+
+    setState(() => _uploadingProof = true);
+    try {
+      final reader = html.FileReader();
+      reader.readAsDataUrl(file);
+      await Future.any([
+        reader.onLoad.first,
+        reader.onError.first.then((_) => throw Exception('Could not read file')),
+      ]);
+      final dataUrl = reader.result as String;
+      final comma = dataUrl.indexOf(',');
+      if (comma < 0) throw Exception('Malformed file data');
+      final bytes = base64Decode(dataUrl.substring(comma + 1));
+      final url = await SupabaseService.uploadFile(bytes, file.name, 'application/pdf');
+      if (!mounted) return;
+      setState(() {
+        _proofUrl = url;
+        _proofFileName = file.name;
+      });
+    } catch (e) {
+      if (mounted) _showSnack('Upload failed: $e', Colors.red);
+    } finally {
+      if (mounted) setState(() => _uploadingProof = false);
+    }
+  }
+
   Future<void> _submit() async {
     if (_fromDate == null || (!_isHalfDay && _toDate == null)) {
       _showSnack('Please select from and to dates.', Colors.red);
@@ -322,7 +356,8 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       reason:       _reasonController.text.trim(),
       appliedOn:    DateTime.now(),
     )
-      ..isHalfDay = _isHalfDay;
+      ..isHalfDay = _isHalfDay
+      ..proofUrl  = _proofUrl;
     LeaveStore.applications.add(app);
     SupabaseService.saveLeaveApplication(app);
 
@@ -336,6 +371,8 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       _toDate    = null;
       _leaveType = 'Casual Leave';
       _isHalfDay = false;
+      _proofUrl      = '';
+      _proofFileName = '';
     });
     _reasonController.clear();
   }
@@ -496,50 +533,6 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                     ],
                     const SizedBox(height: 16),
 
-                    // Balance strip for the selected leave bucket
-                    if (LeaveStore.effectiveBucket(_leaveType) != 'LOP')
-                      Builder(builder: (ctx) {
-                        final hasBalance = _remaining > 0;
-                        final fg = hasBalance
-                            ? const Color(0xFF22C55E)
-                            : const Color(0xFFEF4444);
-                        final bg = hasBalance
-                            ? const Color(0xFFDCFCE7)
-                            : const Color(0xFFFEE2E2);
-                        final border = hasBalance
-                            ? const Color(0xFF86EFAC)
-                            : const Color(0xFFFCA5A5);
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: bg,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: border),
-                          ),
-                          child: Row(children: [
-                            Icon(
-                              hasBalance
-                                  ? Icons.event_available_rounded
-                                  : Icons.event_busy_rounded,
-                              size: 16, color: fg,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '$_bucketLabel: ${_fmtEffective(_usedForBucket)} used'
-                                ' · ${_remaining == double.infinity ? '∞' : _fmtEffective(_remaining)} remaining',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: fg),
-                              ),
-                            ),
-                          ]),
-                        );
-                      }),
-
-                    const SizedBox(height: 16),
-
                     // Reason
                     TextField(
                       controller: _reasonController,
@@ -563,6 +556,70 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                         filled: true, fillColor: Colors.white,
                         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                       ),
+                    ),
+
+                    // Supporting document upload — optional, any leave type
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.picture_as_pdf_rounded, color: _color, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Supporting Document (PDF, optional)',
+                                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                              const SizedBox(height: 2),
+                              Text(
+                                _uploadingProof
+                                    ? 'Uploading…'
+                                    : _proofFileName.isNotEmpty
+                                        ? _proofFileName
+                                        : 'No file selected',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600,
+                                    color: _proofFileName.isNotEmpty
+                                        ? const Color(0xFF111827)
+                                        : const Color(0xFF9CA3AF)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_proofFileName.isNotEmpty && !_uploadingProof)
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            tooltip: 'Remove',
+                            onPressed: () => setState(() {
+                              _proofUrl = '';
+                              _proofFileName = '';
+                            }),
+                          ),
+                        WebFilePicker(
+                          accept: '.pdf,application/pdf',
+                          enabled: !_uploadingProof,
+                          onRawFiles: _pickProofFile,
+                          builder: (trigger) => OutlinedButton(
+                            onPressed: _uploadingProof ? null : trigger,
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: _uploadingProof
+                                ? const SizedBox(
+                                    width: 16, height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2))
+                                : Text(_proofFileName.isNotEmpty ? 'Replace' : 'Upload'),
+                          ),
+                        ),
+                      ]),
                     ),
                   ],
                 ),

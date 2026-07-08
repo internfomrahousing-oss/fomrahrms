@@ -4,12 +4,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/candidate_store.dart';
+import '../models/payslip_store.dart';
+import '../models/profile_store.dart';
 import '../models/user_session.dart';
+import '../services/payslip_pdf_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
+import '../widgets/attendance_shortcut_card.dart' show showHelpCenterDialog;
 import '../widgets/back_button.dart';
-import '../widgets/my_space_blocks.dart';
 import '../theme/app_theme.dart';
 
 class MyProfilePage extends StatefulWidget {
@@ -22,9 +25,11 @@ class MyProfilePage extends StatefulWidget {
 class _MyProfilePageState extends State<MyProfilePage> {
   static Color get _color => AppTheme.accentBlue;
   AppUser? _user;
+  Payslip? _latestPayslip;
   bool _loading = true;
   bool _saving = false;
   bool _uploadingPhoto = false;
+  bool _downloadingPayslip = false;
 
   @override
   void initState() {
@@ -75,13 +80,32 @@ class _MyProfilePageState extends State<MyProfilePage> {
   }
 
   Future<void> _load() async {
-    final users = await UserStore.load();
+    final results = await Future.wait([
+      UserStore.load(),
+      SupabaseService.fetchPayslips(UserSession.employeeId),
+    ]);
+    final users = results[0] as List<AppUser>;
+    final payslips = results[1] as List<Payslip>;
     final match = users.where((u) => u.name == UserSession.name).toList();
     if (mounted) {
       setState(() {
         _user = match.isNotEmpty ? match.first : null;
+        _latestPayslip = payslips.isNotEmpty ? payslips.first : null;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _downloadPayslip() async {
+    final p = _latestPayslip;
+    if (p == null || _downloadingPayslip) return;
+    setState(() => _downloadingPayslip = true);
+    try {
+      await PayslipPdfService.download(p);
+    } catch (e) {
+      _showMessage('Could not generate payslip PDF: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _downloadingPayslip = false);
     }
   }
 
@@ -270,25 +294,27 @@ class _MyProfilePageState extends State<MyProfilePage> {
       }
     }
 
-    return Card(
-      color: bg,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(icon, color: fg, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(text,
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: fg)),
-            ),
-          ]),
-          if (action != null) ...[
-            const SizedBox(height: 12),
-            action,
-          ],
-        ]),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, color: fg, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: fg)),
+          ),
+        ]),
+        if (action != null) ...[
+          const SizedBox(height: 12),
+          action,
+        ],
+      ]),
     );
   }
 
@@ -310,86 +336,100 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   Text('My Profile', style: Theme.of(context).textTheme.headlineMedium),
                 ]),
                 const SizedBox(height: 16),
-                // Info banner
+
+                // Info banner — HR-managed notice + Contact HR shortcut
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: _color.withValues(alpha: 0.08),
-                    border: Border.all(color: _color.withValues(alpha: 0.3)),
+                    color: AppTheme.warning.withValues(alpha: 0.08),
+                    border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Icon(Icons.person_rounded, color: _color, size: 22),
+                  child: Row(children: [
+                    Container(
+                      width: 30, height: 30,
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.info_rounded, color: Colors.white, size: 16),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('My Profile',
-                            style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 14)),
-                        SizedBox(height: 4),
-                        Text('Your profile is managed by HR. Contact HR to update any details.',
-                            style: TextStyle(color: _color, fontSize: 12)),
-                      ]),
+                      child: Text('Your profile is managed by HR. Contact HR to update any details.',
+                          style: TextStyle(
+                              color: AppTheme.warning.withValues(alpha: 0.95),
+                              fontWeight: FontWeight.w600, fontSize: 13)),
                     ),
-                    IconButton(
-                      tooltip: 'Refresh',
-                      icon: Icon(Icons.refresh_rounded, color: _color),
-                      onPressed: _load,
+                    const SizedBox(width: 12),
+                    OutlinedButton(
+                      onPressed: () => showHelpCenterDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.warning,
+                        side: BorderSide(color: AppTheme.warning.withValues(alpha: 0.4)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Text('Contact HR', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 12),
+                      ]),
                     ),
                   ]),
                 ),
                 const SizedBox(height: 20),
 
-                // Avatar + name card
+                // Avatar + name + quick-stat strip
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Row(children: [
-                      Stack(clipBehavior: Clip.none, children: [
-                        ValueListenableBuilder<String>(
-                          valueListenable: UserSession.photoUrlNotifier,
-                          builder: (context, photoUrl, _) => CircleAvatar(
-                            radius: 32,
-                            backgroundColor: const Color(0xFF111827),
-                            backgroundImage: photoUrl.isNotEmpty
-                                ? NetworkImage(photoUrl)
-                                : null,
-                            child: _uploadingPhoto
-                                ? const SizedBox(
-                                    width: 20, height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: Colors.white))
-                                : (photoUrl.isNotEmpty
-                                    ? null
-                                    : Text(
-                                        (_user?.name.isNotEmpty == true)
-                                            ? _user!.name[0].toUpperCase()
-                                            : '?',
-                                        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                                      )),
-                          ),
-                        ),
-                        Positioned(
-                          right: -2,
-                          bottom: -2,
-                          child: GestureDetector(
-                            onTap: _editPhoto,
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: _color,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: const Icon(Icons.camera_alt_rounded,
-                                  size: 14, color: Colors.white),
+                    child: LayoutBuilder(builder: (context, constraints) {
+                      final avatarBlock = Row(children: [
+                        Stack(clipBehavior: Clip.none, children: [
+                          ValueListenableBuilder<String>(
+                            valueListenable: UserSession.photoUrlNotifier,
+                            builder: (context, photoUrl, _) => CircleAvatar(
+                              radius: 32,
+                              backgroundColor: const Color(0xFF111827),
+                              backgroundImage: photoUrl.isNotEmpty
+                                  ? NetworkImage(photoUrl)
+                                  : null,
+                              child: _uploadingPhoto
+                                  ? const SizedBox(
+                                      width: 20, height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white))
+                                  : (photoUrl.isNotEmpty
+                                      ? null
+                                      : Text(
+                                          (_user?.name.isNotEmpty == true)
+                                              ? _user!.name[0].toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                                        )),
                             ),
                           ),
-                        ),
-                      ]),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: GestureDetector(
+                              onTap: _editPhoto,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: _color,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded,
+                                    size: 14, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(width: 16),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                           Text(
                             _user?.name.isEmpty != false ? 'Employee' : _user!.name,
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
@@ -413,8 +453,40 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             ),
                           ],
                         ]),
-                      ),
-                    ]),
+                      ]);
+
+                      final statCells = [
+                        _MiniStat(Icons.badge_rounded,           'Employee ID',       _user?.employeeId ?? ''),
+                        _MiniStat(Icons.apartment_rounded,       'Department',        ProfileStore.current.department),
+                        _MiniStat(Icons.manage_accounts_rounded, 'Reporting Manager', _user?.reportingManager ?? ''),
+                        _MiniStat(Icons.calendar_today_rounded,  'Date of Joining',   _user?.dateOfJoining ?? ''),
+                      ];
+
+                      if (constraints.maxWidth > 800) {
+                        return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                          avatarBlock,
+                          const SizedBox(width: 28),
+                          Container(width: 1, height: 48, color: AppTheme.borderSubtle),
+                          const SizedBox(width: 28),
+                          Expanded(
+                            child: Row(children: [
+                              for (final cell in statCells) ...[
+                                Expanded(child: cell),
+                              ],
+                            ]),
+                          ),
+                        ]);
+                      }
+                      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        avatarBlock,
+                        const SizedBox(height: 20),
+                        Wrap(
+                          spacing: 20,
+                          runSpacing: 16,
+                          children: [for (final cell in statCells) SizedBox(width: 160, child: cell)],
+                        ),
+                      ]);
+                    }),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -424,17 +496,34 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   final detailsCard = Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Column(children: [
-                        _Row(Icons.badge_rounded,           'Employee ID',       _user?.employeeId ?? ''),
-                        _Row(Icons.email_rounded,           'Email',             _user?.email ?? ''),
-                        _Row(Icons.work_rounded,            'Designation',       _user?.designation ?? ''),
-                        _Row(Icons.manage_accounts_rounded, 'Reporting Manager', _user?.reportingManager ?? ''),
-                        _Row(Icons.calendar_today_rounded,  'Date of Joining',   _user?.dateOfJoining ?? ''),
-                        _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Expanded(
+                          child: Column(children: [
+                            _Row(Icons.badge_rounded,      'Employee ID', _user?.employeeId ?? ''),
+                            _Row(Icons.email_rounded,      'Email',       _user?.email ?? ''),
+                            _Row(Icons.phone_rounded,      'Phone Number', _user?.mobile ?? ''),
+                            _Row(Icons.work_rounded,       'Designation', _user?.designation ?? ''),
+                            _Row(Icons.apartment_rounded,  'Department',  ProfileStore.current.department),
+                          ]),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(children: [
+                            _Row(Icons.fingerprint_rounded,      'Biometric ID',      _user?.biometricId ?? '', pill: true),
+                            _Row(Icons.manage_accounts_rounded,  'Reporting Manager', _user?.reportingManager ?? ''),
+                            _Row(Icons.calendar_today_rounded,   'Date of Joining',   _user?.dateOfJoining ?? ''),
+                            _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
+                          ]),
+                        ),
                       ]),
                     ),
                   );
-                  final payslipCard = MyPayslipBlock(viewRoute: _payslipsRoute());
+                  final payslipCard = _ProfilePayslipCard(
+                    payslip: _latestPayslip,
+                    downloading: _downloadingPayslip,
+                    onDownload: _downloadPayslip,
+                    onViewAll: () => context.push(_payslipsRoute()),
+                  );
 
                   if (constraints.maxWidth > 700) {
                     return IntrinsicHeight(
@@ -453,19 +542,13 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 }),
                 const SizedBox(height: 16),
 
-                // Employment status / on-roll request
-                if (_user != null) ...[
-                  _buildOnRollCard(_user!),
-                  const SizedBox(height: 16),
-                ],
-
                 // Forms section
                 Row(children: [
                   Expanded(
                     child: _FormCard(
                       icon: Icons.assignment_ind_rounded,
                       title: 'Interview Form',
-                      subtitle: 'View your interview details',
+                      subtitle: 'View your interview details and status',
                       color: AppTheme.accentBlue,
                       onTap: () => _openMyInterviewForm(context),
                     ),
@@ -475,12 +558,18 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     child: _FormCard(
                       icon: Icons.how_to_reg_rounded,
                       title: 'Onboarding Form',
-                      subtitle: 'View your onboarding details',
+                      subtitle: 'View your onboarding details and status',
                       color: const Color(0xFF15803D),
                       onTap: () => context.go('${_rolePrefix()}/employee-onboarding'),
                     ),
                   ),
                 ]),
+
+                // Employment status / on-roll request
+                if (_user != null) ...[
+                  const SizedBox(height: 16),
+                  _buildOnRollCard(_user!),
+                ],
               ]),
             ),
     );
@@ -501,6 +590,184 @@ String _payslipsRoute() {
     case UserRole.reportingManager: return '/manager/my-payslips';
     case UserRole.management:       return '/management/my-payslips';
     default:                        return '/employee/payslips';
+  }
+}
+
+const _months = ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+
+String? _monthLabel(String monthYear) {
+  final p = monthYear.split('-');
+  if (p.length != 2) return null;
+  final m = int.tryParse(p[1]);
+  if (m == null || m < 1 || m > 12) return null;
+  return '${_months[m - 1]} ${p[0]}';
+}
+
+// ── Payslip summary card (profile-page variant with download + illustration) ──
+class _ProfilePayslipCard extends StatelessWidget {
+  final Payslip? payslip;
+  final bool downloading;
+  final VoidCallback onDownload;
+  final VoidCallback onViewAll;
+  const _ProfilePayslipCard({
+    required this.payslip,
+    required this.downloading,
+    required this.onDownload,
+    required this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = payslip;
+    final monthLabel = p != null ? _monthLabel(p.monthYear) : null;
+    final amountLabel = p != null ? '₹${p.netPay.round()}' : '—';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.receipt_long_rounded, color: AppTheme.warning, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text('My Payslips', style: AppTheme.cardHeading)),
+            InkWell(
+              onTap: onViewAll,
+              borderRadius: BorderRadius.circular(6),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('View All',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.warning)),
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_forward_rounded, size: 14, color: AppTheme.warning),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.06),
+              border: Border.all(color: AppTheme.warning.withValues(alpha: 0.15)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Stack(children: [
+              Positioned(
+                right: -8, bottom: -8,
+                child: Icon(Icons.receipt_long_rounded,
+                    size: 84, color: AppTheme.warning.withValues(alpha: 0.10)),
+              ),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(
+                    child: Text('Latest Payslip',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+                  ),
+                  if (p != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.success.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.check_circle_rounded, size: 12, color: AppTheme.success),
+                        const SizedBox(width: 4),
+                        Text('Available',
+                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppTheme.success)),
+                      ]),
+                    ),
+                ]),
+                const SizedBox(height: 2),
+                Text(monthLabel ?? 'None yet',
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const SizedBox(height: 14),
+                Text('Amount',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+                const SizedBox(height: 2),
+                Text(amountLabel,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.warning)),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: p == null || downloading ? null : onDownload,
+                      icon: downloading
+                          ? const SizedBox(width: 14, height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.download_rounded, size: 16),
+                      label: const Text('Download', style: TextStyle(fontSize: 12.5)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.warning,
+                        side: BorderSide(color: AppTheme.warning.withValues(alpha: 0.4)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onViewAll,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.textPrimary,
+                        side: const BorderSide(color: AppTheme.borderSubtle),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+                        const Text('View Details', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 11),
+                      ]),
+                    ),
+                  ),
+                ]),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Compact icon+label+value cell used in the avatar strip ──────────────────
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _MiniStat(this.icon, this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          color: const Color(0xFF111827).withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: const Color(0xFF111827), size: 16),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+          const SizedBox(height: 2),
+          Text(value.isEmpty ? '—' : value,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+        ]),
+      ),
+    ]);
   }
 }
 
@@ -554,7 +821,8 @@ class _Row extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _Row(this.icon, this.label, this.value);
+  final bool pill;
+  const _Row(this.icon, this.label, this.value, {this.pill = false});
 
   @override
   Widget build(BuildContext context) {
@@ -573,11 +841,22 @@ class _Row extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-            const SizedBox(height: 2),
-            Text(
-              value.isEmpty ? '—' : value,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
-            ),
+            const SizedBox(height: 3),
+            if (pill && value.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentBlue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(value,
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.accentBlue)),
+              )
+            else
+              Text(
+                value.isEmpty ? '—' : value,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
+              ),
           ]),
         ),
       ]),

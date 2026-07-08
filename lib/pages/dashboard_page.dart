@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../models/app_user.dart';
+import '../models/attendance_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/welcome_banner.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
+import '../widgets/employee_list_dialog.dart';
 import '../widgets/fade_in.dart';
 import '../widgets/milestone_confetti.dart';
 import '../widgets/my_space_blocks.dart';
@@ -23,6 +26,8 @@ class _DashboardPageState extends State<DashboardPage> {
   String _totalEmployees = '—';
   String _present = '—';
   String _absent  = '—';
+  List<AppUser> _users = [];
+  List<AttendanceRecord> _records = [];
 
   @override
   void initState() {
@@ -47,6 +52,8 @@ class _DashboardPageState extends State<DashboardPage> {
         _totalEmployees = '$total';
         _present = '$present';
         _absent  = '$absent';
+        _users = users;
+        _records = records;
       });
     }
   }
@@ -76,18 +83,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _HrStatStrip(totalEmployees: _totalEmployees, present: _present, absent: _absent),
-                    SizedBox(height: narrow ? 24 : 32),
-
-                    AttendanceShortcutCard(
-                      attendanceRoute: '/hr/my-attendance',
-                      accentColor: AppTheme.accentBlue,
-                      extraTiles: [
-                        QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
-                            color: AppTheme.primaryBlue, route: '/hr/my-leave'),
-                        QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
-                            color: AppTheme.warning, route: '/attendance-management'),
-                      ],
+                    _HrStatStrip(
+                      totalEmployees: _totalEmployees,
+                      present: _present,
+                      absent: _absent,
+                      users: _users,
+                      records: _records,
                     ),
                     SizedBox(height: narrow ? 24 : 32),
 
@@ -96,12 +97,26 @@ class _DashboardPageState extends State<DashboardPage> {
 
                     _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
                     const SizedBox(height: 16),
+                    _MySpaceRow(children: [
+                      AttendanceShortcutCard(
+                        attendanceRoute: '/hr/my-attendance',
+                        accentColor: AppTheme.accentBlue,
+                        columns: 2,
+                        extraTiles: [
+                          QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
+                              color: AppTheme.primaryBlue, route: '/hr/my-leave'),
+                          QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
+                              color: AppTheme.warning, route: '/attendance-management'),
+                        ],
+                      ),
+                      const MyTasksBlock(viewAllRoute: '/hr/my-tasks'),
+                      const TaskAnalyticsBlock(),
+                    ]),
+                    const SizedBox(height: 16),
                     _MySpaceRow(children: const [
-                      MyTasksBlock(viewAllRoute: '/hr/my-tasks'),
-                      TaskAnalyticsBlock(),
-                      MyLeaveBlock(applyRoute: '/hr/my-leave'),
-                      MyPayslipBlock(viewRoute: '/hr/my-payslips'),
-                      MyAttendanceSummaryBlock(viewRoute: '/hr/my-attendance'),
+                      MyLeaveBlock(applyRoute: '/hr/my-leave', compact: true),
+                      MyAttendanceSummaryBlock(viewRoute: '/hr/my-attendance', compact: true),
+                      MyPayslipBlock(viewRoute: '/hr/my-payslips', compact: true),
                     ]),
                     const SizedBox(height: 16),
                   ],
@@ -148,10 +163,14 @@ class _HrStatStrip extends StatelessWidget {
   final String totalEmployees;
   final String present;
   final String absent;
+  final List<AppUser> users;
+  final List<AttendanceRecord> records;
   const _HrStatStrip(
       {required this.totalEmployees,
       required this.present,
-      required this.absent});
+      required this.absent,
+      required this.users,
+      required this.records});
 
   double? _pct(String num, String denom) {
     final n = int.tryParse(num);
@@ -162,23 +181,58 @@ class _HrStatStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final presentByName = {
+      for (final r in records)
+        if (r.checkInTime.isNotEmpty) r.employeeName: r,
+    };
+    final sortedUsers = [...users]..sort((a, b) => a.name.compareTo(b.name));
+    final presentList = presentByName.values.toList()
+      ..sort((a, b) => a.employeeName.compareTo(b.employeeName));
+    final absentUsers = sortedUsers.where((u) => !presentByName.containsKey(u.name)).toList();
+
     return AppStatStrip(cards: [
       AppStatCard(
         title: 'Total Employees',
         value: totalEmployees,
         icon: Icons.groups_rounded,
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Total Employees',
+          icon: Icons.groups_rounded,
+          color: AppTheme.primaryBlue,
+          items: [for (final u in sortedUsers) EmployeeListItem(name: u.name, subtitle: u.designation)],
+        ),
       ),
       AppStatCard(
         title: 'Present Today',
         value: present,
         icon: Icons.check_circle_rounded,
         gaugePercent: _pct(present, totalEmployees),
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Present Today',
+          icon: Icons.check_circle_rounded,
+          color: AppTheme.success,
+          items: [
+            for (final r in presentList)
+              EmployeeListItem(name: r.employeeName, subtitle: 'Checked in ${r.checkInTime}'),
+          ],
+          emptyLabel: 'No one has checked in yet',
+        ),
       ),
       AppStatCard(
         title: 'Absent Today',
         value: absent,
         icon: Icons.cancel_rounded,
         gaugePercent: _pct(absent, totalEmployees),
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Absent Today',
+          icon: Icons.cancel_rounded,
+          color: AppTheme.error,
+          items: [for (final u in absentUsers) EmployeeListItem(name: u.name, subtitle: u.designation)],
+          emptyLabel: 'Everyone is present today',
+        ),
       ),
       const AppStatCard(
         title: 'On-site',

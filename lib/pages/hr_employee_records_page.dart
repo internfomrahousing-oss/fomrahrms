@@ -11,6 +11,7 @@ import 'candidate_detail_page.dart' show CandidateDetailBody;
 import '../theme/app_theme.dart';
 
 enum _SortOrder { newestFirst, oldestFirst, alphabetical, joinOldNew, joinNewOld }
+enum _StatusFilter { all, onroll, probation, eligible, deactivated }
 
 class HrEmployeeRecordsPage extends StatefulWidget {
   const HrEmployeeRecordsPage({super.key});
@@ -26,6 +27,12 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   bool _loading = true;
   String _search = '';
   _SortOrder _sort = _SortOrder.newestFirst;
+  _StatusFilter _statusFilter = _StatusFilter.all;
+
+  int get _countOnroll      => _all.where((u) => u.isOnroll).length;
+  int get _countProbation   => _all.where((u) => !u.isOnroll).length;
+  int get _countEligible    => _all.where((u) => u.isElEligible).length;
+  int get _countDeactivated => _all.where((u) => !u.active).length;
 
   @override
   void initState() {
@@ -63,6 +70,20 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
 
   void _applyFilter() {
     List<AppUser> list = List.from(_all);
+
+    // Status classification
+    switch (_statusFilter) {
+      case _StatusFilter.onroll:
+        list = list.where((u) => u.isOnroll).toList();
+      case _StatusFilter.probation:
+        list = list.where((u) => !u.isOnroll).toList();
+      case _StatusFilter.eligible:
+        list = list.where((u) => u.isElEligible).toList();
+      case _StatusFilter.deactivated:
+        list = list.where((u) => !u.active).toList();
+      case _StatusFilter.all:
+        break;
+    }
 
     // Search
     if (_search.trim().isNotEmpty) {
@@ -212,39 +233,81 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(children: [
-                _SortChip(
+                _FilterChip(
                   label: 'Recently Added',
                   icon: Icons.new_releases_rounded,
                   selected: _sort == _SortOrder.newestFirst,
                   onTap: () => setState(() { _sort = _SortOrder.newestFirst; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
-                _SortChip(
+                _FilterChip(
                   label: 'Added First',
                   icon: Icons.history_rounded,
                   selected: _sort == _SortOrder.oldestFirst,
                   onTap: () => setState(() { _sort = _SortOrder.oldestFirst; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
-                _SortChip(
+                _FilterChip(
                   label: 'A → Z',
                   icon: Icons.sort_by_alpha_rounded,
                   selected: _sort == _SortOrder.alphabetical,
                   onTap: () => setState(() { _sort = _SortOrder.alphabetical; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
-                _SortChip(
+                _FilterChip(
                   label: 'Join Date ↑',
                   icon: Icons.calendar_today_rounded,
                   selected: _sort == _SortOrder.joinOldNew,
                   onTap: () => setState(() { _sort = _SortOrder.joinOldNew; _applyFilter(); }),
                 ),
                 const SizedBox(width: 8),
-                _SortChip(
+                _FilterChip(
                   label: 'Join Date ↓',
                   icon: Icons.calendar_month_rounded,
                   selected: _sort == _SortOrder.joinNewOld,
                   onTap: () => setState(() { _sort = _SortOrder.joinNewOld; _applyFilter(); }),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 10),
+
+            // ── Status classification chips ─────────────────────────────
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                _FilterChip(
+                  label: 'All (${_all.length})',
+                  icon: Icons.groups_rounded,
+                  selected: _statusFilter == _StatusFilter.all,
+                  onTap: () => setState(() { _statusFilter = _StatusFilter.all; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'On-Roll ($_countOnroll)',
+                  icon: Icons.verified_rounded,
+                  selected: _statusFilter == _StatusFilter.onroll,
+                  onTap: () => setState(() { _statusFilter = _StatusFilter.onroll; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'Probation ($_countProbation)',
+                  icon: Icons.timelapse_rounded,
+                  selected: _statusFilter == _StatusFilter.probation,
+                  onTap: () => setState(() { _statusFilter = _StatusFilter.probation; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'EL Eligible ($_countEligible)',
+                  icon: Icons.event_available_rounded,
+                  selected: _statusFilter == _StatusFilter.eligible,
+                  onTap: () => setState(() { _statusFilter = _StatusFilter.eligible; _applyFilter(); }),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'Deactivated ($_countDeactivated)',
+                  icon: Icons.person_off_rounded,
+                  selected: _statusFilter == _StatusFilter.deactivated,
+                  onTap: () => setState(() { _statusFilter = _StatusFilter.deactivated; _applyFilter(); }),
                 ),
               ]),
             ),
@@ -1566,12 +1629,12 @@ class _EditDialogState extends State<_EditDialog> {
 
 // ── Sort chip ─────────────────────────────────────────────────────────────────
 
-class _SortChip extends StatelessWidget {
+class _FilterChip extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  const _SortChip({required this.label, required this.icon,
+  const _FilterChip({required this.label, required this.icon,
       required this.selected, required this.onTap});
 
   static Color get _color => AppTheme.primaryBlue;

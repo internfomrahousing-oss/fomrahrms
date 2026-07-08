@@ -32,6 +32,11 @@ class AttendanceShortcutCard extends StatefulWidget {
   final Color accentColor;
   final String title;
   final List<QuickTile> extraTiles;
+  // Fixed tile-grid column count. When set, skips the width-driven
+  // LayoutBuilder below — needed when this card sits inside an
+  // IntrinsicHeight row (e.g. the dashboard's My Space row), since
+  // LayoutBuilder can't report intrinsic dimensions and asserts there.
+  final int? columns;
 
   const AttendanceShortcutCard({
     super.key,
@@ -39,6 +44,7 @@ class AttendanceShortcutCard extends StatefulWidget {
     required this.accentColor,
     this.title = 'Quick Access',
     this.extraTiles = const [],
+    this.columns,
   });
 
   @override
@@ -467,23 +473,29 @@ Approved by: Sharad Fomra, CEO & MD
         ),
     ];
 
+    Widget buildGrid(int cols) {
+      final rows = <Widget>[];
+      for (int i = 0; i < tiles.length; i += cols) {
+        final end = (i + cols).clamp(0, tiles.length);
+        final rowItems = tiles.sublist(i, end);
+        rows.add(Row(children: [
+          for (final w in rowItems) Expanded(child: w),
+          for (int j = rowItems.length; j < cols; j++) const Expanded(child: SizedBox()),
+        ]));
+      }
+      return Column(children: rows);
+    }
+
     return InfoCard(
       icon: Icons.apps_rounded,
       title: widget.title,
       accentColor: AppTheme.primaryBlue,
-      child: LayoutBuilder(builder: (context, constraints) {
-        final cols = constraints.maxWidth > 420 ? 4 : 2;
-        final rows = <Widget>[];
-        for (int i = 0; i < tiles.length; i += cols) {
-          final end = (i + cols).clamp(0, tiles.length);
-          final rowItems = tiles.sublist(i, end);
-          rows.add(Row(children: [
-            for (final w in rowItems) Expanded(child: w),
-            for (int j = rowItems.length; j < cols; j++) const Expanded(child: SizedBox()),
-          ]));
-        }
-        return Column(children: rows);
-      }),
+      child: widget.columns != null
+          ? buildGrid(widget.columns!)
+          : LayoutBuilder(builder: (context, constraints) {
+              final cols = constraints.maxWidth > 420 ? 4 : 2;
+              return buildGrid(cols);
+            }),
     );
   }
 

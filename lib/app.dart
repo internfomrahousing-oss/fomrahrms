@@ -185,6 +185,8 @@ final _router = GoRouter(
           return const LeaveManagementPage();
         }),
         GoRoute(path: '/leave/apply',                     builder: (_, __) => const ApplyLeavePage()),
+        GoRoute(path: '/leave/permission',                builder: (_, __) => const ApplyPermissionPage()),
+        GoRoute(path: '/leave/compoff',                   builder: (_, __) => const ApplyCompOffPage()),
         GoRoute(path: '/leave/approvals',                 builder: (_, __) => const LeaveApprovalsPage()),
         GoRoute(path: '/leave/balance',                   builder: (_, __) => const LeaveBalancePage()),
         GoRoute(path: '/leave/employee-records',          builder: (_, __) => const HrLeaveRecordsPage()),

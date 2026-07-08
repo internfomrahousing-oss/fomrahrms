@@ -18,7 +18,8 @@ const _months = ['January', 'February', 'March', 'April', 'May', 'June',
 class MyLeaveBlock extends StatefulWidget {
   final String applyRoute;
   final bool showIcon;
-  const MyLeaveBlock({super.key, required this.applyRoute, this.showIcon = true});
+  final bool compact;
+  const MyLeaveBlock({super.key, required this.applyRoute, this.showIcon = true, this.compact = false});
 
   @override
   State<MyLeaveBlock> createState() => _MyLeaveBlockState();
@@ -74,13 +75,15 @@ class _MyLeaveBlockState extends State<MyLeaveBlock> {
       title: 'My Leave',
       accentColor: AppTheme.success,
       showIcon: widget.showIcon,
+      compact: widget.compact,
+      trailing: widget.compact ? _HeaderChevron(route: widget.applyRoute) : null,
       child: _loading
           ? const _MiniLoader()
           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _StatRow('Available Leaves', _clAvail != null ? '$_clAvail Day${_clAvail == 1 ? '' : 's'}' : '—'),
-              const SizedBox(height: 12),
-              _StatRow('Pending Requests', '$_pending'),
-              const SizedBox(height: 14),
+              _StatRow('Available Leaves', _clAvail != null ? '$_clAvail Day${_clAvail == 1 ? '' : 's'}' : '—', compact: widget.compact),
+              SizedBox(height: widget.compact ? 8 : 12),
+              _StatRow('Pending Requests', '$_pending', compact: widget.compact),
+              SizedBox(height: widget.compact ? 10 : 14),
               _ActionLink(label: 'Apply Leave', route: widget.applyRoute, color: AppTheme.success),
             ]),
     );
@@ -92,7 +95,8 @@ class _MyLeaveBlockState extends State<MyLeaveBlock> {
 class MyPayslipBlock extends StatefulWidget {
   final String viewRoute;
   final bool showIcon;
-  const MyPayslipBlock({super.key, required this.viewRoute, this.showIcon = true});
+  final bool compact;
+  const MyPayslipBlock({super.key, required this.viewRoute, this.showIcon = true, this.compact = false});
 
   @override
   State<MyPayslipBlock> createState() => _MyPayslipBlockState();
@@ -134,13 +138,15 @@ class _MyPayslipBlockState extends State<MyPayslipBlock> {
       title: 'My Payslips',
       accentColor: AppTheme.warning,
       showIcon: widget.showIcon,
+      compact: widget.compact,
+      trailing: widget.compact ? _HeaderChevron(route: widget.viewRoute) : null,
       child: _loading
           ? const _MiniLoader()
           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _StatRow('Latest Payslip', _monthLabel ?? 'None yet'),
-              const SizedBox(height: 12),
-              _StatRow('Amount', _amountLabel),
-              const SizedBox(height: 14),
+              _StatRow('Latest Payslip', _monthLabel ?? 'None yet', compact: widget.compact),
+              SizedBox(height: widget.compact ? 8 : 12),
+              _StatRow('Amount', _amountLabel, compact: widget.compact),
+              SizedBox(height: widget.compact ? 10 : 14),
               _ActionLink(label: 'View Payslips', route: widget.viewRoute, color: AppTheme.warning),
             ]),
     );
@@ -152,7 +158,8 @@ class _MyPayslipBlockState extends State<MyPayslipBlock> {
 class MyAttendanceSummaryBlock extends StatefulWidget {
   final String viewRoute;
   final bool showIcon;
-  const MyAttendanceSummaryBlock({super.key, required this.viewRoute, this.showIcon = true});
+  final bool compact;
+  const MyAttendanceSummaryBlock({super.key, required this.viewRoute, this.showIcon = true, this.compact = false});
 
   @override
   State<MyAttendanceSummaryBlock> createState() => _MyAttendanceSummaryBlockState();
@@ -204,13 +211,15 @@ class _MyAttendanceSummaryBlockState extends State<MyAttendanceSummaryBlock> {
       title: 'My Attendance',
       accentColor: AppTheme.primaryBlue,
       showIcon: widget.showIcon,
+      compact: widget.compact,
+      trailing: widget.compact ? _HeaderChevron(route: widget.viewRoute) : null,
       child: _loading
           ? const _MiniLoader()
           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _StatRow("Today's Hours", formatHoursMinutes(_todayMinutes)),
-              const SizedBox(height: 12),
-              _StatRow('This Week', formatHoursMinutes(_weekMinutes)),
-              const SizedBox(height: 14),
+              _StatRow("Today's Hours", formatHoursMinutes(_todayMinutes), compact: widget.compact),
+              SizedBox(height: widget.compact ? 8 : 12),
+              _StatRow('This Week', formatHoursMinutes(_weekMinutes), compact: widget.compact),
+              SizedBox(height: widget.compact ? 10 : 14),
               _ActionLink(label: 'View Attendance', route: widget.viewRoute, color: AppTheme.primaryBlue),
             ]),
     );
@@ -222,15 +231,32 @@ class _MyAttendanceSummaryBlockState extends State<MyAttendanceSummaryBlock> {
 class _StatRow extends StatelessWidget {
   final String label;
   final String value;
-  const _StatRow(this.label, this.value);
+  final bool compact;
+  const _StatRow(this.label, this.value, {this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
       const SizedBox(height: 2),
-      Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+      Text(value, style: TextStyle(fontSize: compact ? 16 : 19, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
     ]);
+  }
+}
+
+// Small ">" affordance shown in the header of compact cards instead of a
+// refresh icon, hinting the whole card leads to its detail route.
+class _HeaderChevron extends StatelessWidget {
+  final String route;
+  const _HeaderChevron({required this.route});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(route),
+      child: Icon(Icons.chevron_right_rounded,
+          size: 20, color: AppTheme.textSecondary.withValues(alpha: 0.5)),
+    );
   }
 }
 

@@ -92,27 +92,15 @@ class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
                   children: [
                     !widget.showTeam
                         ? _StatusDonut(label: 'Status Breakdown', counts: _mine)
-                        : LayoutBuilder(builder: (_, constraints) {
-                            final donuts = [
-                              _StatusDonut(label: 'My Tasks', counts: _mine),
-                              _StatusDonut(label: 'Team Tasks', counts: _team),
-                            ];
-                            if (constraints.maxWidth > 420) {
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: donuts[0]),
-                                  const SizedBox(width: 16),
-                                  Expanded(child: donuts[1]),
-                                ],
-                              );
-                            }
-                            return Column(children: [
-                              donuts[0],
-                              const SizedBox(height: 20),
-                              donuts[1],
-                            ]);
-                          }),
+                        // Stacked rather than width-adaptive: this card only ever
+                        // sits in a narrow My Space row slot, and LayoutBuilder
+                        // can't be used here anyway (it can't report intrinsic
+                        // dimensions, which the row's IntrinsicHeight needs).
+                        : Column(children: [
+                            _StatusDonut(label: 'My Tasks', counts: _mine),
+                            const SizedBox(height: 20),
+                            _StatusDonut(label: 'Team Tasks', counts: _team),
+                          ]),
                     if (widget.modern) ...[
                       const SizedBox(height: 16),
                       const Divider(height: 1),

@@ -39,6 +39,7 @@ import '../models/user_session.dart';
   alter table leave_applications add column if not exists management_status text default 'pending';
   alter table leave_applications add column if not exists management_decided_by text default '';
   alter table leave_applications add column if not exists management_rejection_comment text default '';
+  alter table leave_applications add column if not exists proof_url text default '';
 
   alter table onboarding_forms disable row level security;
 
@@ -73,14 +74,22 @@ import '../models/user_session.dart';
     id text primary key,
     reported_by_role text not null,
     reported_by text not null,
+    issue_for text not null default 'IT',
     issue_type text not null,
     description text not null,
     status text default 'open',
     sent_to_management boolean default false,
+    management_reviewed boolean default false,
+    resolution_note text,
+    resolved_at timestamptz,
     created_at timestamptz default now()
   );
-  -- If table already exists without sent_to_management:
+  -- If table already exists, add the newer columns:
   alter table maintenance_tickets add column if not exists sent_to_management boolean default false;
+  alter table maintenance_tickets add column if not exists issue_for text not null default 'IT';
+  alter table maintenance_tickets add column if not exists management_reviewed boolean default false;
+  alter table maintenance_tickets add column if not exists resolution_note text;
+  alter table maintenance_tickets add column if not exists resolved_at timestamptz;
 
   create table if not exists app_settings (
     id text primary key default 'global',
@@ -354,10 +363,15 @@ class SupabaseService {
         'manager_status': app.managerStatus.name,
       });
     } catch (_) {}
-    // is_half_day — added later; skipped silently if column not yet in DB
+    // is_half_day / proof_url — added later; skipped silently if columns not yet in DB
     try {
       await _db?.from('leave_applications')
           .update({'is_half_day': app.isHalfDay})
+          .eq('id', app.id);
+    } catch (_) {}
+    try {
+      await _db?.from('leave_applications')
+          .update({'proof_url': app.proofUrl})
           .eq('id', app.id);
     } catch (_) {}
   }
@@ -420,6 +434,7 @@ class SupabaseService {
           app.rejectionComment = (row['rejection_comment'] as String?) ?? '';
         }
         app.isHalfDay = (row['is_half_day'] as bool?) ?? false;
+        app.proofUrl  = (row['proof_url']  as String?) ?? '';
         return app;
       }).toList();
       return list;
@@ -442,10 +457,14 @@ class SupabaseService {
         'id':                   ticket.id,
         'reported_by_role':     ticket.reportedByRole.name,
         'reported_by':          ticket.reportedBy,
+        'issue_for':            ticket.issueFor,
         'issue_type':           ticket.issueType,
         'description':          ticket.description,
         'status':               ticket.status.name,
         'sent_to_management':   ticket.sentToManagement,
+        'management_reviewed':  ticket.managementReviewed,
+        'resolution_note':      ticket.resolutionNote,
+        'resolved_at':          ticket.resolvedAt?.toIso8601String(),
         'created_at':           ticket.createdAt.toIso8601String(),
       });
       return null;
@@ -472,6 +491,25 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  static Future<void> updateTicketManagementReviewed(String id, bool reviewed) async {
+    try {
+      await _db?.from('maintenance_tickets')
+          .update({'management_reviewed': reviewed})
+          .eq('id', id);
+    } catch (_) {}
+  }
+
+  static Future<void> updateTicketResolution(
+      String id, String note, DateTime resolvedAt) async {
+    try {
+      await _db?.from('maintenance_tickets').update({
+        'status':          MaintenanceStatus.resolved.name,
+        'resolution_note': note,
+        'resolved_at':     resolvedAt.toIso8601String(),
+      }).eq('id', id);
+    } catch (_) {}
+  }
+
   static Future<List<MaintenanceTicket>> fetchMaintenanceTickets() async {
     try {
       final data = await _db
@@ -494,10 +532,16 @@ class SupabaseService {
           id:                 row['id'] as String,
           reportedByRole:     role,
           reportedBy:         row['reported_by'] as String,
+          issueFor:           (row['issue_for'] as String?) ?? 'IT',
           issueType:          row['issue_type'] as String,
           description:        row['description'] as String,
           status:             status,
           sentToManagement:   (row['sent_to_management'] as bool?) ?? false,
+          managementReviewed: (row['management_reviewed'] as bool?) ?? false,
+          resolutionNote:     row['resolution_note'] as String?,
+          resolvedAt:         row['resolved_at'] != null
+              ? DateTime.parse(row['resolved_at'] as String)
+              : null,
           createdAt:          DateTime.parse(row['created_at'] as String),
         );
       }).toList();
@@ -1329,7 +1373,7 @@ class SupabaseService {
           ?.from('announcements')
           .select()
           .order('announced_on', ascending: false)
-          .limit(20);
+          .limit(200);
       if (data == null) return [];
       return List<Map<String, dynamic>>.from(data as List);
     } catch (_) {
@@ -1337,11 +1381,18 @@ class SupabaseService {
     }
   }
 
-  static Future<String?> addAnnouncement(String text, DateTime date) async {
+  static Future<String?> addAnnouncement(
+    String text,
+    DateTime date, {
+    String? targetEmployeeId,
+    String? targetEmployeeName,
+  }) async {
     try {
       await _db?.from('announcements').insert({
         'text': text,
         'announced_on': date.toIso8601String().substring(0, 10),
+        'target_employee_id': targetEmployeeId,
+        'target_employee_name': targetEmployeeName,
       });
       return null; // null = success
     } catch (e) {

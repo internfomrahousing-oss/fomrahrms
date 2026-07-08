@@ -16,6 +16,8 @@ class LeaveApplication {
   String decidedBy        = '';
   String rejectionComment = '';
   bool   isHalfDay        = false;
+  // Sickness proof attachment (Medical / Sick Leave) — URL in Supabase storage, empty if none.
+  String proofUrl         = '';
 
   // True once management (HR/admin) has made a decision — locks manager's controls
   bool managementDecided = false;
@@ -60,18 +62,18 @@ class LeaveStore {
   /// Maps any leave-type label to its balance bucket (CL / ML / EL / LOP).
   /// All display-facing labels (Personal Leave, To Vote, Funeral, etc.) that
   /// should deduct from CL return 'CL'.
+  ///
+  /// HR can freely rename/add entries in the "Leave Types" dropdown config
+  /// (see edit_leave_form_page.dart), so this matches by keyword rather than
+  /// exact label text — an exact match breaks the moment HR edits a label
+  /// (e.g. it silently miscategorizes Medical Leave as CL and hides the
+  /// sickness-proof upload).
   static String effectiveBucket(String leaveType) {
-    switch (leaveType) {
-      case 'Medical / Sick Leave':
-      case 'Medical Leave':
-        return 'ML';
-      case 'Earned Leave':
-        return 'EL';
-      case 'LOP or Others':
-        return 'LOP';
-      default:
-        return 'CL'; // Casual, Personal, To Vote, Funeral, Maternity, Paternity…
-    }
+    final t = leaveType.toLowerCase();
+    if (t.contains('medical') || t.contains('sick')) return 'ML';
+    if (t.contains('earned')) return 'EL';
+    if (t.contains('lop')) return 'LOP';
+    return 'CL'; // Casual, Personal, To Vote, Funeral, Maternity, Paternity…
   }
 
   static int permMinutesFromReason(String reason) {

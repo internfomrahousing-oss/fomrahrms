@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -113,6 +114,9 @@ class InfoCard extends StatelessWidget {
   // Replaces the add/refresh icon in the header when set — e.g. a "View
   // all" link — leaving other InfoCard call sites unaffected.
   final Widget? trailing;
+  // Tighter padding/header sizing for cards packed into a dense grid row
+  // (e.g. the bottom "My Space" row) so they read visibly smaller.
+  final bool compact;
   const InfoCard({
     required this.icon,
     required this.title,
@@ -123,11 +127,13 @@ class InfoCard extends StatelessWidget {
     this.onRefresh,
     this.accentColor,
     this.trailing,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final accent = accentColor ?? _purple;
+    final iconBox = compact ? 26.0 : 32.0;
     return HoverLift(
       borderRadius: BorderRadius.circular(AppTheme.cardRadius),
       child: Card(
@@ -138,7 +144,7 @@ class InfoCard extends StatelessWidget {
           side: const BorderSide(color: AppTheme.borderSubtle),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(compact ? 14 : 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -146,17 +152,20 @@ class InfoCard extends StatelessWidget {
               Row(children: [
                 if (showIcon) ...[
                   Container(
-                    width: 32, height: 32,
+                    width: iconBox, height: iconBox,
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: accent, size: 18),
+                    child: Icon(icon, color: accent, size: compact ? 15 : 18),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: compact ? 8 : 10),
                 ],
                 Expanded(
-                  child: Text(title, style: AppTheme.cardHeading),
+                  child: Text(title,
+                      style: compact
+                          ? AppTheme.cardHeading.copyWith(fontSize: 14)
+                          : AppTheme.cardHeading),
                 ),
                 if (trailing != null)
                   trailing!
@@ -181,7 +190,7 @@ class InfoCard extends StatelessWidget {
                     ),
                 ],
               ]),
-              const SizedBox(height: 14),
+              SizedBox(height: compact ? 10 : 14),
               child,
             ],
           ),
@@ -212,10 +221,15 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
   Future<void> _load() async {
     final data = await SupabaseService.fetchAnnouncements();
     if (!mounted) return;
-    // Employees only see announcements from the past 7 days; HR sees all
+    // Employees/Managers only see broadcast announcements or ones targeted
+    // at them, from the past 7 days. HR/Management see everything, ever.
+    final myId = UserSession.employeeId;
     final filtered = widget.canEdit
         ? data
         : data.where((item) {
+            final targetId = item['target_employee_id'] as String?;
+            final isForMe = targetId == null || targetId.isEmpty || targetId == myId;
+            if (!isForMe) return false;
             final d = DateTime.tryParse(item['announced_on'] as String? ?? '');
             return d != null &&
                 d.isAfter(DateTime.now().subtract(const Duration(days: 7)));
@@ -225,45 +239,82 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
 
   Future<void> _showAdd() async {
     final ctrl = TextEditingController();
+    final users = await UserStore.load();
+    if (!mounted) return;
+    final recipients = users
+        .where((u) => u.role != 'Management' && u.name.isNotEmpty)
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+
+    AppUser? selected; // null = everyone
+
     await showDialog(
       context: context,
-      builder: (dlgCtx) => AlertDialog(
-        title: const Text('New Announcement'),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 3,
-          autofocus: true,
-          decoration: const InputDecoration(
-              labelText: 'Announcement text',
-              border: OutlineInputBorder()),
+      builder: (dlgCtx) => StatefulBuilder(
+        builder: (sbCtx, setDlg) => AlertDialog(
+          title: const Text('New Announcement'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+              controller: ctrl,
+              maxLines: 3,
+              autofocus: true,
+              decoration: const InputDecoration(
+                  labelText: 'Announcement text',
+                  border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<AppUser?>(
+              value: selected,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                  labelText: 'Send to',
+                  border: OutlineInputBorder()),
+              items: [
+                const DropdownMenuItem<AppUser?>(value: null, child: Text('Everyone')),
+                for (final u in recipients)
+                  DropdownMenuItem<AppUser?>(value: u, child: Text(u.name)),
+              ],
+              onChanged: (v) => setDlg(() => selected = v),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dlgCtx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final text = ctrl.text.trim();
+                if (text.isEmpty) return;
+                Navigator.pop(dlgCtx);
+                final target = selected;
+                final err = await SupabaseService.addAnnouncement(
+                  text, DateTime.now(),
+                  targetEmployeeId: target?.employeeId,
+                  targetEmployeeName: target?.name,
+                );
+                if (!mounted) return;
+                if (err == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(target == null
+                          ? 'Announcement posted'
+                          : 'Sent privately to ${target.name}'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _load();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(err),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 10),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Post'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dlgCtx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final text = ctrl.text.trim();
-              if (text.isEmpty) return;
-              Navigator.pop(dlgCtx);
-              final err = await SupabaseService.addAnnouncement(text, DateTime.now());
-              if (!mounted) return;
-              if (err == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Announcement posted'), backgroundColor: Colors.green),
-                );
-                _load();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(err),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 10),
-                  ),
-                );
-              }
-            },
-            child: const Text('Post'),
-          ),
-        ],
       ),
     );
   }
@@ -332,11 +383,29 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(_fmtDate(date),
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: _purple)),
+                                        Row(children: [
+                                          Text(_fmtDate(date),
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: _purple)),
+                                          if ((item['target_employee_name'] as String?)
+                                                  ?.isNotEmpty ==
+                                              true) ...[
+                                            const SizedBox(width: 6),
+                                            Icon(Icons.lock_rounded,
+                                                size: 10, color: _purple.withValues(alpha: 0.55)),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                                widget.canEdit
+                                                    ? 'Private · ${item['target_employee_name']}'
+                                                    : 'Private message',
+                                                style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _purple.withValues(alpha: 0.65))),
+                                          ],
+                                        ]),
                                         const SizedBox(height: 3),
                                         Text(item['text'] as String? ?? '',
                                             maxLines: isExp ? null : 1,
@@ -1020,11 +1089,19 @@ class _ModernTasksSummary extends StatelessWidget {
   final String viewAllRoute;
   const _ModernTasksSummary({required this.tasks, required this.viewAllRoute});
 
+  // Tasks already sorted by due date ascending (see _load) — keep any that
+  // are overdue or due within the next 3 days, same cutoff _urgency uses
+  // for its amber "Due in Nd" label.
+  static bool _isDueSoon(Task t) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
+    return day.difference(today).inDays <= 3;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final nextDue = tasks.isNotEmpty
-        ? _MyTasksBlockState._urgency(tasks.first.dueDate, AppTheme.textSecondary).$1
-        : '—';
+    final dueSoon = tasks.where(_isDueSoon).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Pending',
           style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
@@ -1032,12 +1109,33 @@ class _ModernTasksSummary extends StatelessWidget {
       Text('${tasks.length}',
           style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
       const SizedBox(height: 12),
-      const Text('Next Due',
+      const Text('Due Soon',
           style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
-      const SizedBox(height: 2),
-      Text(nextDue,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-      const SizedBox(height: 14),
+      const SizedBox(height: 6),
+      if (dueSoon.isEmpty)
+        const Text('Nothing due in the next few days',
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))
+      else
+        for (final t in dueSoon)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(children: [
+              Expanded(
+                child: Text(t.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+              ),
+              const SizedBox(width: 8),
+              Builder(builder: (_) {
+                final (label, color) = _MyTasksBlockState._urgency(t.dueDate, AppTheme.textSecondary);
+                return Text(label,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color));
+              }),
+            ]),
+          ),
+      const SizedBox(height: 8),
       InkWell(
         onTap: () => context.push(viewAllRoute),
         borderRadius: BorderRadius.circular(6),

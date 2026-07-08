@@ -18,20 +18,28 @@ class MaintenanceTicket {
   final String id;
   final UserRole reportedByRole;
   final String reportedBy;
+  final String issueFor;
   final String issueType;
   final String description;
   MaintenanceStatus status;
   bool sentToManagement;
+  bool managementReviewed;
+  String? resolutionNote;
+  DateTime? resolvedAt;
   final DateTime createdAt;
 
   MaintenanceTicket({
     required this.id,
     required this.reportedByRole,
     required this.reportedBy,
+    required this.issueFor,
     required this.issueType,
     required this.description,
     this.status = MaintenanceStatus.open,
     this.sentToManagement = false,
+    this.managementReviewed = false,
+    this.resolutionNote,
+    this.resolvedAt,
     required this.createdAt,
   });
 }

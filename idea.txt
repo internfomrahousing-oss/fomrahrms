@@ -1,39 +1,147 @@
-Build a desktop login page for FOMRA Housing & Infrastructure.
+Refine the My Profile page to be more compact and information-dense while maintaining a premium enterprise SaaS appearance.
 
-Objective:
-Create a premium, modern, enterprise-grade login UI for an HRMS product. The design should feel polished, elegant, and production-ready.
+IMPORTANT
 
-Branding:
-- Place the company symbol clearly at the top.
-- Show the title: “FOMRA HRMS”.
-- Show the subtitle: “Housing & Infrastructure”.
+- Do NOT remove any information.
+- Do NOT remove any functionality.
+- Do NOT remove any fields.
+- Do NOT change backend logic.
+- Only improve the layout and spacing.
 
-Layout:
-- Use a centered login card.
-- Include an email field and a password field.
-- Add a single blue Sign In button.
-- Keep the composition balanced and visually centered.
+==================================================
 
-Visual style:
-- White and very light gray background.
-- Subtle shadows.
-- Rounded corners.
-- Clean spacing.
-- Sharp, readable typography.
-- Minimal but premium corporate appearance.
+GOAL
 
-Design quality:
-- Make it look like a 10/10 enterprise HRMS login screen.
-- Keep the hierarchy strong and clear.
-- Use a modern, polished UI with good contrast and spacing.
+Reduce unnecessary vertical height.
 
-Constraints:
-- Avoid generic SaaS styling.
-- Avoid clutter.
-- Avoid oversized empty areas.
-- Avoid dull, flat, or template-like design.
-- Ensure all text is crisp and easy to read.
+Display more information horizontally.
 
-Target:
-- 16:9 desktop layout
-- High-end corporate login screen
+The page should feel similar to Workday, Rippling and BambooHR.
+
+==================================================
+
+PROFILE HEADER
+
+Reduce the overall height by about 30%.
+
+Place the profile picture, employee name, designation and employee badge on the left.
+
+Instead of showing only four summary items, create a compact information row:
+
+• Employee ID
+• Department
+• Reporting Manager
+• Date of Joining
+• Biometric ID
+• Phone Number
+
+Display these as inline information chips or compact metadata instead of large blocks.
+
+Example:
+
+EMP011 • Civil • Akshay • Joined Jul 2026 • BIO-1045 • +91 98765 43210
+
+==================================================
+
+EMPLOYEE DETAILS
+
+Instead of one field per row, use a two-column grid.
+
+Left Column
+
+Employee ID
+Email
+Phone Number
+Department
+Designation
+
+Right Column
+
+Biometric ID
+Reporting Manager
+Date of Joining
+Time with Company
+Work Location
+
+Keep icons small.
+
+Reduce row spacing.
+
+Reduce vertical padding.
+
+==================================================
+
+PAYSLIP CARD
+
+Keep the payslip card.
+
+Make it more compact.
+
+Display information like this:
+
+Latest Payslip
+July 2026
+
+₹38,268        ✓ Available
+
+[Download]    [View Details]
+
+Reduce empty white space.
+
+==================================================
+
+BOTTOM CARDS
+
+Keep Interview Form and Onboarding Form.
+
+Reduce their height by about 25%.
+
+Keep only:
+
+Icon
+
+Title
+
+Subtitle
+
+Arrow
+
+==================================================
+
+GLOBAL SPACING
+
+Reduce card padding from approximately 32px to around 20px.
+
+Reduce section spacing from about 32px to 20px.
+
+Keep consistent spacing throughout.
+
+==================================================
+
+TYPOGRAPHY
+
+Keep the same font.
+
+Reduce unnecessary whitespace between labels and values.
+
+Labels:
+13px
+
+Values:
+16px
+
+==================================================
+
+VISUAL HIERARCHY
+
+Avoid large empty areas.
+
+Fill horizontal space before increasing vertical height.
+
+The user should be able to see almost the entire profile page without excessive scrolling on a 1080p monitor.
+
+==================================================
+
+The final result should look cleaner, denser and more professional while preserving every existing piece of information.
+
+
