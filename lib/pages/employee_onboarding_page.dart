@@ -52,6 +52,22 @@ String _statusLabel(String s) {
 
 Color get _blue => AppTheme.primaryBlue;
 
+enum _SubFilter { all, received, sentToManagement, approvedActive }
+
+bool _matchesSubFilter(Map<String, dynamic> row, _SubFilter f) {
+  final status = (row['status'] as String?) ?? 'pending';
+  switch (f) {
+    case _SubFilter.all:
+      return true;
+    case _SubFilter.received:
+      return status == 'pending';
+    case _SubFilter.sentToManagement:
+      return status == 'hr_approved';
+    case _SubFilter.approvedActive:
+      return status == 'mgmt_approved' || status == 'access_granted';
+  }
+}
+
 class EmployeeOnboardingPage extends StatefulWidget {
   const EmployeeOnboardingPage({super.key});
 
@@ -67,6 +83,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   Map<int, String> _versionLabels = {};
   int _tab = 0;
   bool _loading = false;
+  _SubFilter _statusFilter = _SubFilter.all;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -122,7 +139,6 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 
       setState(() {
         _all = rows;
-        _filtered = rows;
         _pendingVersions = pending;
         _activeSections  = activeSects;
         _versionLabels   = versionLabels;
@@ -130,6 +146,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         // Auto-switch to Form Approvals tab when there are pending versions
         if (pending.isNotEmpty && _tab == 0) _tab = 1;
       });
+      _applyFilter();
     } catch (_) {
       setState(() => _loading = false);
     }
@@ -266,13 +283,18 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
     ]);
   }
 
+  int get _countReceived => _all.where((r) => _matchesSubFilter(r, _SubFilter.received)).length;
+  int get _countSent     => _all.where((r) => _matchesSubFilter(r, _SubFilter.sentToManagement)).length;
+  int get _countApproved => _all.where((r) => _matchesSubFilter(r, _SubFilter.approvedActive)).length;
+
   void _applyFilter() {
     final q = _searchCtrl.text.trim().toLowerCase();
     setState(() {
-      _filtered = q.isEmpty
-          ? _all
-          : _all.where((r) => r.values.any(
-              (v) => v.toString().toLowerCase().contains(q))).toList();
+      _filtered = _all
+          .where((r) => _matchesSubFilter(r, _statusFilter))
+          .where((r) => q.isEmpty ||
+              r.values.any((v) => v.toString().toLowerCase().contains(q)))
+          .toList();
     });
   }
 
@@ -383,6 +405,43 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                       borderSide: BorderSide.none),
                 ),
               ),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  _OnboardFilterChip(
+                    label: 'All (${_all.length})',
+                    icon: Icons.list_alt_rounded,
+                    color: const Color(0xFF111827),
+                    selected: _statusFilter == _SubFilter.all,
+                    onTap: () => setState(() { _statusFilter = _SubFilter.all; _applyFilter(); }),
+                  ),
+                  const SizedBox(width: 8),
+                  _OnboardFilterChip(
+                    label: 'Received ($_countReceived)',
+                    icon: Icons.inbox_rounded,
+                    color: const Color(0xFFF59E0B),
+                    selected: _statusFilter == _SubFilter.received,
+                    onTap: () => setState(() { _statusFilter = _SubFilter.received; _applyFilter(); }),
+                  ),
+                  const SizedBox(width: 8),
+                  _OnboardFilterChip(
+                    label: 'Sent to Management ($_countSent)',
+                    icon: Icons.forward_to_inbox_rounded,
+                    color: const Color(0xFF3B82F6),
+                    selected: _statusFilter == _SubFilter.sentToManagement,
+                    onTap: () => setState(() { _statusFilter = _SubFilter.sentToManagement; _applyFilter(); }),
+                  ),
+                  const SizedBox(width: 8),
+                  _OnboardFilterChip(
+                    label: 'Approved & Active ($_countApproved)',
+                    icon: Icons.verified_rounded,
+                    color: const Color(0xFF22C55E),
+                    selected: _statusFilter == _SubFilter.approvedActive,
+                    onTap: () => setState(() { _statusFilter = _SubFilter.approvedActive; _applyFilter(); }),
+                  ),
+                ]),
+              ),
             ],
           ]),
         ),
@@ -419,6 +478,50 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                   : _buildSubmissionsTab(pad),
         ),
       ]),
+    );
+  }
+}
+
+// ── Status filter chip ──────────────────────────────────────────────────────────
+class _OnboardFilterChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _OnboardFilterChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? color : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? color : Theme.of(context).colorScheme.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 13, color: selected ? Colors.white : const Color(0xFF6B7280)),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? Colors.white : const Color(0xFF6B7280))),
+        ]),
+      ),
     );
   }
 }
