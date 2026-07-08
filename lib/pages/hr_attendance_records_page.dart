@@ -34,6 +34,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   bool _isLoading = false;
   List<AttendanceRecord> _records = [];
   List<LeaveApplication> _leaveApps = [];
+  List<AppUser> _allUsers = [];
   int _totalUsers = 0;
 
   @override
@@ -54,10 +55,28 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     ]);
     if (mounted) setState(() {
       _records = results[0] as List<AttendanceRecord>;
-      _totalUsers = (results[1] as List).length;
+      _allUsers = (results[1] as List<AppUser>).where((u) => u.active).toList();
+      _totalUsers = _allUsers.length;
       _leaveApps = results[2] as List<LeaveApplication>;
       _isLoading = false;
     });
+  }
+
+  /// Attendance rows plus one synthetic "Absent" row for every active
+  /// employee who has no attendance record for the selected date.
+  List<AttendanceRecord> get _displayRecords {
+    final present = _records.map((r) => r.employeeName.toLowerCase()).toSet();
+    final absentees = _allUsers.where((u) => !present.contains(u.name.toLowerCase()));
+    final dateStr = _dateToStr(_selectedDate);
+    return [
+      ..._records,
+      ...absentees.map((u) => AttendanceRecord(
+            id: 'absent_${u.employeeId}',
+            employeeName: u.name,
+            employeeId: u.employeeId,
+            date: dateStr,
+          )),
+    ];
   }
 
   bool get _isToday {
@@ -101,6 +120,29 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     }
   }
 
+  void _exportCsv() {
+    final rows = _displayRecords.where((r) => _matches(r.employeeName)).toList();
+    final buffer = StringBuffer('Employee,Employee ID,Date,Check-In,Check-Out,Status\n');
+    for (final r in rows) {
+      final rowStatus = _rowStatus(r, _leaveApps);
+      final status = r.checkInTime.isEmpty
+          ? 'Absent'
+          : switch (rowStatus.status) {
+              CheckInStatus.late => 'Late',
+              CheckInStatus.permission => 'Permission (${permLabel(rowStatus.permMinutes)})',
+              _ => 'Present',
+            };
+      buffer.writeln('"${r.employeeName}","${r.employeeId}","${r.date}",'
+          '"${r.checkInTime}","${r.checkOutTime}","$status"');
+    }
+    final blob = html_lib.Blob([buffer.toString()], 'text/csv');
+    final url = html_lib.Url.createObjectUrl(blob);
+    html_lib.AnchorElement(href: url)
+      ..setAttribute('download', 'attendance_${_dateToStr(_selectedDate).replaceAll('/', '-')}.csv')
+      ..click();
+    html_lib.Url.revokeObjectUrl(url);
+  }
+
   void _showEmployeeList(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -118,77 +160,73 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     final isToday = _selectedDate.year == now.year &&
         _selectedDate.month == now.month &&
         _selectedDate.day == now.day;
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Row(children: [
-              Tooltip(
-                message: 'Previous day',
-                child: InkWell(
-                  onTap: () {
-                    setState(() => _selectedDate = _selectedDate.subtract(const Duration(days: 1)));
-                    _loadRecords();
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(Icons.chevron_left_rounded, size: 28, color: _color),
-                  ),
+    return Container(
+      height: 46,
+      constraints: const BoxConstraints(minWidth: 230),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Tooltip(
+          message: 'Previous day',
+          child: InkWell(
+            onTap: () {
+              setState(() => _selectedDate = _selectedDate.subtract(const Duration(days: 1)));
+              _loadRecords();
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.chevron_left_rounded, size: 20, color: _color),
+            ),
+          ),
+        ),
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: _pickDate,
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.calendar_today_rounded, size: 14, color: _color),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  _fmtDate(_selectedDate),
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700, color: _color),
                 ),
               ),
-              Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: _pickDate,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(
-                        _fmtDate(_selectedDate),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700, color: _color),
-                      ),
-                      if (isToday)
-                        const Text('Today',
-                            style: TextStyle(fontSize: 11, color: Colors.grey))
-                      else
-                        const Text('Tap to pick date',
-                            style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    ]),
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: isToday ? '' : 'Next day',
-                child: InkWell(
-                  onTap: isToday
-                      ? null
-                      : () {
-                          setState(() => _selectedDate = _selectedDate.add(const Duration(days: 1)));
-                          _loadRecords();
-                        },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Icon(Icons.chevron_right_rounded,
-                        size: 28, color: isToday ? Colors.grey.shade400 : _color),
-                  ),
-                ),
-              ),
+              const SizedBox(width: 6),
+              Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: _color),
             ]),
           ),
         ),
-      ),
+        Tooltip(
+          message: isToday ? '' : 'Next day',
+          child: InkWell(
+            onTap: isToday
+                ? null
+                : () {
+                    setState(() => _selectedDate = _selectedDate.add(const Duration(days: 1)));
+                    _loadRecords();
+                  },
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.chevron_right_rounded,
+                  size: 20, color: isToday ? Colors.grey.shade400 : _color),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _records
+    final filtered = _displayRecords
         .where((r) => _matches(r.employeeName))
         .toList();
 
@@ -198,22 +236,17 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.access_time_rounded, color: _color, size: 26),
-            ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text('Attendance Management',
-                  style: Theme.of(context).textTheme.headlineMedium),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Attendance Dashboard',
+                    style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 2),
+                Text('Track and manage employee attendance',
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280))),
+              ]),
             ),
             Tooltip(
               message: 'Refresh',
@@ -229,6 +262,17 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                       : Icon(Icons.refresh_rounded, color: _color, size: 22),
                 ),
               ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _displayRecords.isEmpty ? null : _exportCsv,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF111827),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              ),
+              icon: const Icon(Icons.file_download_rounded, size: 18),
+              label: const Text('Export'),
             ),
           ]),
           const SizedBox(height: 24),
@@ -266,35 +310,41 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
           ),
           const SizedBox(height: 10),
 
-          // Search bar
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: TextField(
-                onChanged: (v) => setState(() => _search = v),
-                decoration: InputDecoration(
-                  hintText: 'Search employee...',
-                  prefixIcon: Icon(Icons.search_rounded, color: _color, size: 20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: _color, width: 2),
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          // Search + date row
+          LayoutBuilder(builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 560;
+            final search = TextField(
+              onChanged: (v) => setState(() => _search = v),
+              decoration: InputDecoration(
+                hintText: 'Search employee...',
+                prefixIcon: Icon(Icons.search_rounded, color: _color, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _color, width: 2),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Day navigator
-          _buildDateNav(),
+            );
+            final dateControl = _buildDateNav();
+            return narrow
+                ? Column(children: [
+                    search,
+                    const SizedBox(height: 10),
+                    dateControl,
+                  ])
+                : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(child: search),
+                    const SizedBox(width: 12),
+                    dateControl,
+                  ]);
+          }),
           const SizedBox(height: 16),
 
           if (_isLoading)
@@ -308,9 +358,8 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
             const SizedBox(height: 16),
             _Section(
               title: 'Attendance Records',
-              icon: Icons.access_time_rounded,
+              subtitle: '${filtered.length} employee${filtered.length == 1 ? '' : 's'}',
               color: _color,
-              count: filtered.length,
               child: filtered.isEmpty
                   ? _Empty()
                   : _AttendanceTable(
@@ -347,46 +396,43 @@ class _AttendanceSummaryCard extends StatelessWidget {
     final lateArrivals = statuses.where((s) => s.status == CheckInStatus.late).length;
     final onPermission = statuses.where((s) => s.status == CheckInStatus.permission).length;
 
+    String pct(int n) => totalUsers == 0 ? '0.0' : (n / totalUsers * 100).toStringAsFixed(1);
+
     final stats = [
-      ('Present', '$present', Icons.check_circle_rounded, _green),
-      ('Absent',  '$absent',  Icons.cancel_rounded,       const Color(0xFFEF4444)),
-      ('Late Arrivals', '$lateArrivals', Icons.schedule_rounded, const Color(0xFFF59E0B)),
-      ('On Permission', '$onPermission', Icons.event_note_rounded, AppTheme.accentBlue),
-      ('Comp Off',      '—', Icons.weekend_rounded,       AppTheme.primaryBlue),
-      ('On Duty',       '—', Icons.work_rounded,          const Color(0xFF15803D)),
+      ('Present', '$present', '${pct(present)}% of total', Icons.check_circle_rounded, _green),
+      ('Absent',  '$absent',  '${pct(absent)}% of total',  Icons.cancel_rounded, const Color(0xFFEF4444)),
+      ('Late Arrivals', '$lateArrivals', '${pct(lateArrivals)}% of total', Icons.schedule_rounded, const Color(0xFFF59E0B)),
+      ('On Permission', '$onPermission', '${pct(onPermission)}% of total', Icons.event_note_rounded, const Color(0xFFF97316)),
+      ('Comp Off',      '—', '0.0% of total', Icons.mail_rounded, const Color(0xFF6B7280)),
+      ('On Duty',       '—', '0.0% of total', Icons.work_rounded, const Color(0xFF15803D)),
     ];
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: _green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.bar_chart_rounded, color: _green, size: 20),
-            ),
-            const SizedBox(width: 10),
-            const Text('Summary',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                    color: Color(0xFF22C55E))),
-          ]),
+          const Text('Summary',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827))),
           const SizedBox(height: 14),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: stats.map((s) => _SumStat(
-              label: s.$1,
-              value: s.$2,
-              icon:  s.$3,
-              color: s.$4,
-            )).toList(),
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final cols = constraints.maxWidth > 720 ? 3 : constraints.maxWidth > 420 ? 2 : 1;
+            final tileWidth = (constraints.maxWidth - (cols - 1) * 12) / cols;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: stats.map((s) => SizedBox(
+                width: tileWidth,
+                child: _SumStat(
+                  label: s.$1,
+                  value: s.$2,
+                  sub: s.$3,
+                  icon: s.$4,
+                  color: s.$5,
+                ),
+              )).toList(),
+            );
+          }),
         ]),
       ),
     );
@@ -396,29 +442,40 @@ class _AttendanceSummaryCard extends StatelessWidget {
 class _SumStat extends StatelessWidget {
   final String label;
   final String value;
+  final String sub;
   final IconData icon;
   final Color color;
-  const _SumStat({required this.label, required this.value,
+  const _SumStat({required this.label, required this.value, required this.sub,
       required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 8),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(value,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-          Text(label,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
-        ]),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          child: Icon(icon, size: 19, color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
+                    color: Color(0xFF111827))),
+            const SizedBox(height: 4),
+            Text(value,
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color)),
+            const SizedBox(height: 2),
+            Text(sub, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+          ]),
+        ),
       ]),
     );
   }
@@ -426,7 +483,7 @@ class _SumStat extends StatelessWidget {
 
 // ── Unified attendance table ──────────────────────────────────────────────────
 
-class _AttendanceTable extends StatelessWidget {
+class _AttendanceTable extends StatefulWidget {
   final List<AttendanceRecord> records;
   final List<LeaveApplication> leaveApps;
   final Color color;
@@ -438,33 +495,43 @@ class _AttendanceTable extends StatelessWidget {
     required this.onRowTap,
   });
 
-  static const _red = Color(0xFFEF4444);
+  @override
+  State<_AttendanceTable> createState() => _AttendanceTableState();
+}
 
-  Widget _statusChip(CheckInRowStatus rs) {
+class _AttendanceTableState extends State<_AttendanceTable> {
+  static const _red = Color(0xFFEF4444);
+  static const _green = Color(0xFF22C55E);
+  final Set<String> _selected = {};
+
+  Widget _statusChip(AttendanceRecord r, CheckInRowStatus rs) {
     final String label;
     final Color chipColor;
-    switch (rs.status) {
-      case CheckInStatus.onTime:
-        label = 'On time';
-        chipColor = const Color(0xFF22C55E);
-        break;
-      case CheckInStatus.permission:
-        label = 'Permission (${permLabel(rs.permMinutes)})';
-        chipColor = AppTheme.accentBlue;
-        break;
-      case CheckInStatus.late:
-        label = 'Late';
-        chipColor = _red;
-        break;
-      case CheckInStatus.none:
-        return const Text('—', style: TextStyle(fontSize: 12, color: Colors.grey));
+    if (r.checkInTime.isEmpty) {
+      label = 'Absent';
+      chipColor = _red;
+    } else {
+      switch (rs.status) {
+        case CheckInStatus.permission:
+          label = 'Permission (${permLabel(rs.permMinutes)})';
+          chipColor = AppTheme.accentBlue;
+          break;
+        case CheckInStatus.late:
+          label = 'Late';
+          chipColor = _red;
+          break;
+        case CheckInStatus.onTime:
+        case CheckInStatus.none:
+          label = 'Present';
+          chipColor = _green;
+          break;
+      }
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: chipColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: chipColor.withValues(alpha: 0.3)),
       ),
       child: Text(label,
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: chipColor)),
@@ -473,9 +540,13 @@ class _AttendanceTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = widget.color;
+    final leaveApps = widget.leaveApps;
+    final records = widget.records;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
+        showCheckboxColumn: true,
         headingRowColor: WidgetStateProperty.all(color.withValues(alpha: 0.06)),
         border: TableBorder.all(
             color: Theme.of(context).dividerColor, borderRadius: BorderRadius.circular(8)),
@@ -490,30 +561,53 @@ class _AttendanceTable extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Text('Status',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
-          DataColumn(label: Row(children: [
-            Text('Details', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color)),
-            const SizedBox(width: 4),
-            Icon(Icons.open_in_new_rounded, size: 11, color: color),
-          ])),
+          DataColumn(label: Text('Details',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
         ],
         rows: records.map((r) {
           final bothRecorded = r.checkInTime.isNotEmpty && r.checkOutTime.isNotEmpty;
           final statusText = bothRecorded
-              ? 'In & Out recorded'
-              : r.checkInTime.isNotEmpty ? 'Checked in' : 'Checked out';
-          final statusColor = bothRecorded ? Colors.green.shade700 : color;
+              ? 'Checked out'
+              : r.checkInTime.isNotEmpty ? 'Checked in' : '—';
           final rowStatus = _rowStatus(r, leaveApps);
+          final initial = r.employeeName.isNotEmpty ? r.employeeName[0].toUpperCase() : '?';
           return DataRow(
-            onSelectChanged: (_) => onRowTap(r),
+            selected: _selected.contains(r.id),
+            onSelectChanged: (v) => setState(() {
+              if (v ?? false) {
+                _selected.add(r.id);
+              } else {
+                _selected.remove(r.id);
+              }
+            }),
             color: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.hovered)) return color.withValues(alpha: 0.04);
               return null;
             }),
             cells: [
-              DataCell(Text(r.employeeName,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
+              DataCell(
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: color.withValues(alpha: 0.1),
+                    child: Text(initial,
+                        style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                    Text(r.employeeName,
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface)),
+                    if (r.employeeId.isNotEmpty)
+                      Text(r.employeeId,
+                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF9CA3AF))),
+                  ]),
+                ]),
+                onTap: () => widget.onRowTap(r),
+              ),
               DataCell(Text(r.date,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface))),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
+                  onTap: () => widget.onRowTap(r)),
               DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
                 Text(r.checkInTime.isNotEmpty ? r.checkInTime : '—',
                     style: TextStyle(fontSize: 12,
@@ -527,7 +621,7 @@ class _AttendanceTable extends StatelessWidget {
                     child: Icon(Icons.edit_note_rounded, size: 14, color: color.withValues(alpha: 0.6)),
                   ),
                 ],
-              ])),
+              ]), onTap: () => widget.onRowTap(r)),
               DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
                 Text(r.checkOutTime.isNotEmpty ? r.checkOutTime : '—',
                     style: TextStyle(fontSize: 12,
@@ -541,14 +635,16 @@ class _AttendanceTable extends StatelessWidget {
                     child: Icon(Icons.edit_note_rounded, size: 14, color: color.withValues(alpha: 0.6)),
                   ),
                 ],
-              ])),
-              DataCell(_statusChip(rowStatus)),
+              ]), onTap: () => widget.onRowTap(r)),
+              DataCell(_statusChip(r, rowStatus), onTap: () => widget.onRowTap(r)),
               DataCell(Row(children: [
                 Text(statusText,
-                    style: TextStyle(fontSize: 11, color: statusColor.withValues(alpha: 0.9))),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded, size: 14, color: statusColor.withValues(alpha: 0.5)),
-              ])),
+                    style: TextStyle(fontSize: 11.5, color: color.withValues(alpha: 0.85))),
+                if (statusText != '—') ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right_rounded, size: 14, color: color.withValues(alpha: 0.5)),
+                ],
+              ]), onTap: () => widget.onRowTap(r)),
             ],
           );
         }).toList(),
@@ -1031,15 +1127,13 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
 
 class _Section extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final String subtitle;
   final Color color;
-  final int count;
   final Widget child;
   const _Section(
       {required this.title,
-      required this.icon,
+      required this.subtitle,
       required this.color,
-      required this.count,
       required this.child});
 
   @override
@@ -1048,38 +1142,17 @@ class _Section extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 12),
+          Row(crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic, children: [
             Text(title,
                 style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600)),
-            const Spacer(),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text('$count',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: color)),
-            ),
+                    fontSize: 15, fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827))),
+            const SizedBox(width: 8),
+            Text(subtitle,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
           ]),
           const SizedBox(height: 14),
-          const Divider(),
-          const SizedBox(height: 8),
           child,
         ]),
       ),
