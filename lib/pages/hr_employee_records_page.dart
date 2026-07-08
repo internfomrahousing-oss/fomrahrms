@@ -422,6 +422,7 @@ class _UserCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   _StatusPill(user.leaveStatus),
                   if (user.onrollRequestedAt.isNotEmpty && !user.isOnroll &&
+                      !user.onrollDenied &&
                       fullMonthsSince(user.dateOfJoining) >= 6) ...[
                     const SizedBox(width: 6),
                     _Badge('On-Roll Requested', Colors.orange.shade50,
