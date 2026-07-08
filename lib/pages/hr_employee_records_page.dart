@@ -440,6 +440,12 @@ class _UserCard extends StatelessWidget {
                     _Badge('Location Change Requested', Colors.orange.shade50,
                         Colors.orange.shade200, Colors.orange.shade800),
                   ],
+                  if (user.hasPendingGrossPayChange &&
+                      (UserSession.role == UserRole.hr || UserSession.role == UserRole.management)) ...[
+                    const SizedBox(width: 6),
+                    _Badge('Pay Change Requested', Colors.orange.shade50,
+                        Colors.orange.shade200, Colors.orange.shade800),
+                  ],
                 ]),
                 if (user.designation.isNotEmpty) ...[
                   const SizedBox(height: 3),
@@ -593,6 +599,208 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     final result = (ok == true) ? ctrl.text.trim() : null;
     ctrl.dispose();
     return result;
+  }
+
+  /// Prompts for a positive Rs/month amount. Returns null if cancelled or invalid.
+  Future<double?> _promptAmount(String title, {String initial = ''}) async {
+    final ctrl = TextEditingController(text: initial);
+    final value = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            prefixText: '₹ ',
+            hintText: 'e.g. 35000',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final v = double.tryParse(ctrl.text.trim());
+              if (v == null || v <= 0) return;
+              Navigator.pop(ctx, v);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return value;
+  }
+
+  Future<void> _setGrossPayDirect() async {
+    final v = await _promptAmount(
+        _user.grossPay > 0 ? 'Change Gross Pay' : 'Set Gross Pay',
+        initial: _user.grossPay > 0 ? _user.grossPay.toStringAsFixed(0) : '');
+    if (v == null) return;
+    setState(() => _saving = true);
+    _user.grossPay = v;
+    _user.grossPayPending = 0;
+    _user.grossPayRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _requestGrossPayChange() async {
+    final v = await _promptAmount('Request Gross Pay Change',
+        initial: _user.grossPay.toStringAsFixed(0));
+    if (v == null) return;
+    setState(() => _saving = true);
+    _user.grossPayPending = v;
+    _user.grossPayRequestedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _decideGrossPay(bool approve) async {
+    setState(() => _saving = true);
+    if (approve) _user.grossPay = _user.grossPayPending;
+    _user.grossPayPending = 0;
+    _user.grossPayRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _grossPayBlock({required bool isHr, required bool isManagement}) {
+    if (_user.grossPay <= 0) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: _saving ? null : _setGrossPayDirect,
+          icon: const Icon(Icons.add_rounded, size: 16),
+          label: const Text('Set Gross Pay'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      );
+    }
+
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.indigo.shade200),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.currency_rupee_rounded, size: 15, color: Colors.indigo.shade700),
+        const SizedBox(width: 8),
+        Text('₹${_user.grossPay.toStringAsFixed(0)}/month',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.indigo.shade700)),
+      ]),
+    );
+
+    if (_user.hasPendingGrossPayChange) {
+      final pendingChip = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(children: [
+          Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.orange.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                'Change requested → ₹${_user.grossPayPending.toStringAsFixed(0)}/month (awaiting Management approval)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800)),
+          ),
+        ]),
+      );
+      if (isManagement) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          chip,
+          const SizedBox(height: 8),
+          pendingChip,
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _decideGrossPay(false),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Deny'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : () => _decideGrossPay(true),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Approve'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]),
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [chip, const SizedBox(height: 8), pendingChip]);
+    }
+
+    // Set, no pending request.
+    if (isHr) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _requestGrossPayChange,
+          icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+          label: const Text('Request Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    if (isManagement) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _setGrossPayDirect,
+          icon: const Icon(Icons.edit_rounded, size: 16),
+          label: const Text('Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    return chip;
   }
 
   Future<void> _decideHr(bool accept, {String comment = ''}) async {
@@ -1128,6 +1336,23 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             ],
             const SizedBox(height: 4),
 
+            // ── Compensation ─────────────────────────────────────────────
+            if (canEdit) ...[
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 10),
+              Row(children: [
+                const Icon(Icons.currency_rupee_rounded, size: 14, color: Color(0xFF6B7280)),
+                const SizedBox(width: 6),
+                const Text('Compensation',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                        color: Color(0xFF6B7280))),
+              ]),
+              const SizedBox(height: 10),
+              _grossPayBlock(isHr: isHr, isManagement: isManagement),
+              const SizedBox(height: 4),
+            ],
+
             // ── Employment status management ──────────────────────────────
             if (showOnrollSection) ...[
               const SizedBox(height: 14),
@@ -1650,11 +1875,29 @@ class _EditDialogState extends State<_EditDialog> {
                                 ? existingJoining
                                 : today),
       onrollConfirmedAt:  widget.user?.onrollConfirmedAt ?? '',
+      onrollRequestedAt:  widget.user?.onrollRequestedAt ?? '',
+      onrollHrStatus:            widget.user?.onrollHrStatus ?? 'pending',
+      onrollHrComment:           widget.user?.onrollHrComment ?? '',
+      onrollHrDecidedAt:         widget.user?.onrollHrDecidedAt ?? '',
+      onrollManagerStatus:       widget.user?.onrollManagerStatus ?? 'pending',
+      onrollManagerComment:      widget.user?.onrollManagerComment ?? '',
+      onrollManagerDecidedAt:    widget.user?.onrollManagerDecidedAt ?? '',
+      onrollManagementStatus:    widget.user?.onrollManagementStatus ?? 'pending',
+      onrollManagementComment:   widget.user?.onrollManagementComment ?? '',
+      onrollManagementDecidedAt: widget.user?.onrollManagementDecidedAt ?? '',
       elEligibleAt:       widget.user?.elEligibleAt ?? '',
       elAvailRequestedAt: widget.user?.elAvailRequestedAt ?? '',
       elLastAvailedAt:    widget.user?.elLastAvailedAt ?? '',
+      // Gross pay is only entered directly here on first set (field hidden once set);
+      // subsequent changes go through the Compensation approval flow on the profile page.
       grossPay:         double.tryParse(_grossPayCtrl.text.trim()) ??
                         (widget.user?.grossPay ?? 0),
+      grossPayPending:     widget.user?.grossPayPending ?? 0,
+      grossPayRequestedAt: widget.user?.grossPayRequestedAt ?? '',
+      workLocation:            widget.user?.workLocation ?? '',
+      workLocationPending:     widget.user?.workLocationPending ?? '',
+      workLocationRequestedAt: widget.user?.workLocationRequestedAt ?? '',
+      emergencyAttendanceEnabled: widget.user?.emergencyAttendanceEnabled ?? false,
     );
 
     await widget.onSave(updated);
@@ -1831,9 +2074,12 @@ class _EditDialogState extends State<_EditDialog> {
                 Icons.event_note_rounded,
                 keyboard: TextInputType.number),
 
-            _field(_grossPayCtrl, 'Gross Pay (Rs / month)',
-                Icons.account_balance_wallet_rounded,
-                keyboard: TextInputType.number),
+            // Only offered here for the initial entry; once set, further changes
+            // must go through the Compensation approval flow on the profile page.
+            if ((widget.user?.grossPay ?? 0) <= 0)
+              _field(_grossPayCtrl, 'Gross Pay (Rs / month)',
+                  Icons.account_balance_wallet_rounded,
+                  keyboard: TextInputType.number),
 
             // Role dropdown
             Padding(

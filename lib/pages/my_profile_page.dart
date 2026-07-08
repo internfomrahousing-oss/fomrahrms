@@ -183,6 +183,15 @@ class _MyProfilePageState extends State<MyProfilePage> {
     }
   }
 
+  String _grossPayLabel(AppUser? user) {
+    if (user == null || user.grossPay <= 0) return 'Not set';
+    final base = '₹${user.grossPay.toStringAsFixed(0)}/month';
+    if (user.hasPendingGrossPayChange) {
+      return '$base (change to ₹${user.grossPayPending.toStringAsFixed(0)} pending approval)';
+    }
+    return base;
+  }
+
   String _resubmitDate(String deniedAtIso) {
     try {
       final d = DateTime.parse(deniedAtIso).add(const Duration(days: 7));
@@ -513,6 +522,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             _Row(Icons.manage_accounts_rounded,  'Reporting Manager', _user?.reportingManager ?? ''),
                             _Row(Icons.calendar_today_rounded,   'Date of Joining',   _user?.dateOfJoining ?? ''),
                             _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
+                            _Row(Icons.currency_rupee_rounded,   'Gross Pay',         _grossPayLabel(_user)),
                           ]),
                         ),
                       ]),

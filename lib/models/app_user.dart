@@ -29,7 +29,9 @@ class AppUser {
   String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
   String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
   String elLastAvailedAt;    // ISO datetime when HR confirmed EL avail; empty = never availed
-  double grossPay;           // monthly gross pay (Rs), set by HR, used to generate payslips
+  double grossPay;           // monthly gross pay (Rs); HR sets it once, then changes go through Management
+  double grossPayPending;    // proposed new value awaiting Management approval; 0 = none
+  String grossPayRequestedAt; // ISO datetime the change was requested; empty = no pending request
   // Work location: 'Office' | 'Onsite'; empty = not yet set. Once set, HR can only
   // request a change — Management approves/denies it (see workLocationPending).
   String workLocation;
@@ -69,6 +71,8 @@ class AppUser {
     this.elAvailRequestedAt = '',
     this.elLastAvailedAt = '',
     this.grossPay = 0,
+    this.grossPayPending = 0,
+    this.grossPayRequestedAt = '',
     this.workLocation = '',
     this.workLocationPending = '',
     this.workLocationRequestedAt = '',
@@ -78,6 +82,7 @@ class AppUser {
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
+  bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
 
   /// Whether this employee should see app-based Check In / Check Out.
   /// Office employees are tracked via the biometric device instead, unless
@@ -210,6 +215,8 @@ class AppUser {
     'elAvailRequestedAt':    elAvailRequestedAt,
     'elLastAvailedAt':       elLastAvailedAt,
     'grossPay':              grossPay,
+    'grossPayPending':       grossPayPending,
+    'grossPayRequestedAt':   grossPayRequestedAt,
     'workLocation':          workLocation,
     'workLocationPending':   workLocationPending,
     'workLocationRequestedAt': workLocationRequestedAt,
@@ -245,6 +252,8 @@ class AppUser {
     elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',
     elLastAvailedAt:      j['elLastAvailedAt']       as String? ?? '',
     grossPay:             (j['grossPay'] as num?)?.toDouble() ?? 0,
+    grossPayPending:      (j['grossPayPending'] as num?)?.toDouble() ?? 0,
+    grossPayRequestedAt:  j['grossPayRequestedAt'] as String? ?? '',
     workLocation:            j['workLocation']            as String? ?? '',
     workLocationPending:     j['workLocationPending']     as String? ?? '',
     workLocationRequestedAt: j['workLocationRequestedAt'] as String? ?? '',
