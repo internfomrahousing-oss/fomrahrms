@@ -364,6 +364,16 @@ import '../models/user_session.dart';
   create index if not exists idx_notifications_role  on notifications(target_role);
   create index if not exists idx_notifications_rm    on notifications(target_reporting_manager);
 
+  -- Retention: rows older than 20 days are pruned daily via pg_cron — the
+  -- app's "All time" filter only ever shows what's still in the table, it
+  -- doesn't assume full history is retained.
+  create extension if not exists pg_cron with schema extensions;
+  select cron.schedule(
+    'delete-old-notifications',
+    '0 3 * * *',
+    $$ delete from notifications where created_at < now() - interval '20 days' $$
+  );
+
   create table if not exists notification_preferences (
     email text primary key,
     muted_categories jsonb default '[]'
