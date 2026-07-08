@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../models/app_user.dart';
 import '../models/notification_store.dart';
 import '../models/theme_notifier.dart';
+import '../services/notification_service.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
@@ -187,6 +188,9 @@ class _LoginPageState extends State<LoginPage> {
       NotificationStore.mutedCategories = muted.toSet();
       NotificationStore.recomputeUnread();
     });
+    if (role == UserRole.hr) {
+      NotificationService.checkDailyHrReminders();
+    }
     setState(() => _loading = false);
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/lead_model.dart';
 import '../services/lead_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -460,6 +461,7 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
     try {
       final prevCount = _all.length;
       await LeadService.addLead(_scriptUrl, lead);
+      NotificationService.leadAdded(leadName: lead.name.isNotEmpty ? lead.name : 'New lead');
       // Give GAS up to 4 s to write before re-fetching
       await Future.delayed(const Duration(seconds: 4));
       await _fetch();

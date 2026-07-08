@@ -91,6 +91,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
       t.receivedAt = now;
     });
     SupabaseService.updateTaskReceived(t.id, now);
+    NotificationService.taskStatusChanged(
+      taskName: t.name, status: 'In Progress', changedBy: UserSession.name,
+    );
   }
 
   // Employee clicks "Mark as Done" → completed (irreversible)
@@ -104,6 +107,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
         reportingManagerName: UserSession.reportingManager,
       );
     }
+    NotificationService.taskStatusChanged(
+      taskName: t.name, status: 'Completed', changedBy: UserSession.name,
+    );
   }
 
   // Group task done: mark member complete; flip overall if all done
@@ -125,6 +131,11 @@ class _MyTasksPageState extends State<MyTasksPage> {
         reportingManagerName: UserSession.reportingManager,
       );
     }
+    NotificationService.taskStatusChanged(
+      taskName: t.name,
+      status: allCompleted ? 'Completed' : 'Updated',
+      changedBy: name,
+    );
   }
 
   @override

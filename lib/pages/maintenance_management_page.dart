@@ -171,6 +171,9 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   Future<void> _managementResolve(MaintenanceTicket t) async {
     setState(() => t.managementReviewed = true);
     await SupabaseService.updateTicketManagementReviewed(t.id, true);
+    NotificationService.maintenanceAddressedByManagement(
+      issueType: t.issueType, reportedBy: t.reportedBy,
+    );
   }
 
   Future<void> _sendToManagement(MaintenanceTicket t) async {

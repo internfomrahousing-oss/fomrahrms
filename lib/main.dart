@@ -8,6 +8,7 @@ import 'models/emergency_attendance_notifier.dart';
 import 'models/notification_store.dart';
 import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
+import 'services/notification_service.dart';
 import 'services/supabase_service.dart';
 import 'services/session_storage.dart';
 
@@ -42,10 +43,15 @@ void main() async {
         if (url != null) UserSession.photoUrl = url;
       });
     }
+    if (restored && UserSession.role == UserRole.hr) {
+      NotificationService.checkDailyHrReminders();
+    }
   } catch (_) {}
 
   // Keep the notification bell fresh without a full realtime subscription —
-  // re-poll periodically for as long as the app is open.
+  // re-poll periodically for as long as the app is open. Also doubles as
+  // the retry path for the once-a-day HR tenure/EL-eligibility check (cheap
+  // to call repeatedly — it no-ops after the first run each calendar day).
   Timer.periodic(const Duration(seconds: 45), (_) async {
     if (!UserSession.loggedIn) return;
     final list = await SupabaseService.fetchNotifications();
@@ -53,5 +59,6 @@ void main() async {
       ..clear()
       ..addAll(list);
     NotificationStore.recomputeUnread();
+    NotificationService.checkDailyHrReminders();
   });
 }

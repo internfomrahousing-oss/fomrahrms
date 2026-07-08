@@ -3,6 +3,7 @@ import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/payslip_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
@@ -85,6 +86,7 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
       monthYear: monthYear,
       requestedAt: DateTime.now(),
     ));
+    NotificationService.payslipRequested(employeeName: user.name, monthYear: monthYear);
     await _load();
     if (mounted) setState(() => _requesting = false);
   }
@@ -93,6 +95,7 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
     if (_appUser == null) return;
     setState(() => _elAvailLoading = true);
     await SupabaseService.requestElAvail(_appUser!.email);
+    NotificationService.elEncashmentRequested(employeeName: _appUser!.name);
     await _load();
   }
 

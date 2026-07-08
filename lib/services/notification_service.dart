@@ -1,6 +1,8 @@
 import '../models/notification_store.dart';
 import '../models/user_session.dart';
+import '../utils/tenure.dart';
 import 'supabase_service.dart';
+import 'user_store.dart';
 
 /// Creates notification rows for every event the app can raise, and keeps
 /// the in-memory [NotificationStore] in sync so the bell badge / feed update
@@ -54,17 +56,31 @@ class NotificationService {
 
   // ── Leave & attendance ───────────────────────────────────────────────
 
+  // Notifies both the employee's Reporting Manager (existing) and HR
+  // (broadcast) — the RM approves it, but HR still wants visibility into
+  // every request as it comes in.
   static Future<void> leaveSubmitted({
     required String employeeName,
     required String leaveType,
     required String reportingManagerName,
-  }) => _create(
+  }) async {
+    if (reportingManagerName.isNotEmpty) {
+      await _create(
         type: 'leave_submitted',
         title: 'New leave request',
         body: '$employeeName requested $leaveType',
         route: '/manager/leave/team-approvals',
         targetReportingManager: reportingManagerName,
       );
+    }
+    await _create(
+      type: 'leave_submitted',
+      title: 'New leave request',
+      body: '$employeeName requested $leaveType',
+      route: '/leave-management',
+      targetRole: 'HR',
+    );
+  }
 
   static Future<void> leaveDecided({
     required String employeeEmail,
@@ -143,17 +159,28 @@ class NotificationService {
 
   // ── Tasks ────────────────────────────────────────────────────────────
 
+  // Notifies both the assignee (existing) and HR (broadcast) — HR wants
+  // visibility into every task handed out, not just their own.
   static Future<void> taskAssigned({
     required String taskName,
     required String assigneeEmail,
     required String assigneeRoutePrefix,
-  }) => _create(
-        type: 'task_assigned',
-        title: 'New task assigned',
-        body: taskName,
-        route: '$assigneeRoutePrefix/my-tasks',
-        targetEmail: assigneeEmail,
-      );
+  }) async {
+    await _create(
+      type: 'task_assigned',
+      title: 'New task assigned',
+      body: taskName,
+      route: '$assigneeRoutePrefix/my-tasks',
+      targetEmail: assigneeEmail,
+    );
+    await _create(
+      type: 'task_assigned',
+      title: 'New task assigned',
+      body: taskName,
+      route: '/task-management',
+      targetRole: 'HR',
+    );
+  }
 
   static Future<void> taskCompleted({
     required String taskName,
@@ -164,6 +191,20 @@ class NotificationService {
         body: taskName,
         route: '/manager/task-management',
         targetReportingManager: reportingManagerName,
+      );
+
+  /// HR-wide visibility into every task status change (not just completion),
+  /// distinct from [taskCompleted] which only tells the reporting manager.
+  static Future<void> taskStatusChanged({
+    required String taskName,
+    required String status,
+    required String changedBy,
+  }) => _create(
+        type: 'task_status_changed',
+        title: 'Task status updated to $status',
+        body: '$taskName · by $changedBy',
+        route: '/task-management',
+        targetRole: 'HR',
       );
 
   // ── Maintenance ──────────────────────────────────────────────────────
@@ -278,6 +319,130 @@ class NotificationService {
         targetEmail: employeeEmail,
       );
 
+  static Future<void> payslipRequested({
+    required String employeeName,
+    required String monthYear,
+  }) async {
+    await _create(
+      type: 'payslip_requested',
+      title: 'Payslip requested',
+      body: '$employeeName · $monthYear',
+      route: '/payroll-management',
+      targetRole: 'HR',
+    );
+    await _create(
+      type: 'payslip_requested',
+      title: 'Payslip requested',
+      body: '$employeeName · $monthYear',
+      route: '/management/payroll-management',
+      targetRole: 'Management',
+    );
+  }
+
+  // ── Earned Leave (eligibility + encashment) ─────────────────────────
+
+  static Future<void> elEncashmentRequested({required String employeeName}) async {
+    await _create(
+      type: 'el_encashment_requested',
+      title: 'EL encashment requested',
+      body: employeeName,
+      route: '/payroll-management',
+      targetRole: 'HR',
+    );
+    await _create(
+      type: 'el_encashment_requested',
+      title: 'EL encashment requested',
+      body: employeeName,
+      route: '/management/payroll-management',
+      targetRole: 'Management',
+    );
+  }
+
+  /// Fired once, on the exact day an on-roll employee crosses the
+  /// 1-year-since-on-roll mark — a reminder to go confirm EL eligibility,
+  /// which stays a manual HR/Management action either way.
+  static Future<void> elEligibilityDue({
+    required String employeeName,
+    required String sourceId,
+  }) async {
+    await _create(
+      type: 'el_eligibility_due',
+      title: 'EL eligibility review due',
+      body: '$employeeName — 1 year on-roll',
+      route: '/employee-management',
+      targetRole: 'HR',
+      sourceId: sourceId,
+    );
+    await _create(
+      type: 'el_eligibility_due',
+      title: 'EL eligibility review due',
+      body: '$employeeName — 1 year on-roll',
+      route: '/management/employee-management',
+      targetRole: 'Management',
+      sourceId: sourceId,
+    );
+  }
+
+  /// Fired once, on the exact day an employee hits a tenure milestone
+  /// (6 months, or a yearly anniversary) — see [milestoneLabelForToday].
+  static Future<void> tenureMilestone({
+    required String employeeName,
+    required String milestoneLabel,
+    required String sourceId,
+  }) => _create(
+        type: 'tenure_milestone',
+        title: '$employeeName reached $milestoneLabel',
+        route: '/employee-management',
+        targetRole: 'HR',
+        sourceId: sourceId,
+      );
+
+  // ── Leads ────────────────────────────────────────────────────────────
+
+  static Future<void> leadAdded({required String leadName}) async {
+    await _create(
+      type: 'lead_added',
+      title: 'New lead added',
+      body: leadName,
+      route: '/lead-management',
+      targetRole: 'HR',
+    );
+    await _create(
+      type: 'lead_added',
+      title: 'New lead added',
+      body: leadName,
+      route: '/management/lead-management',
+      targetRole: 'Management',
+    );
+  }
+
+  // ── Interview outcome (back to HR) ──────────────────────────────────
+
+  static Future<void> interviewDecided({
+    required String candidateName,
+    required String stage, // 'Manager' | 'Management'
+    required bool accepted,
+  }) => _create(
+        type: 'candidate_decided',
+        title: 'Interview $stage decision: ${accepted ? 'Accepted' : 'Rejected'}',
+        body: candidateName,
+        route: '/interview-process',
+        targetRole: 'HR',
+      );
+
+  // ── Maintenance addressed by Management ─────────────────────────────
+
+  static Future<void> maintenanceAddressedByManagement({
+    required String issueType,
+    required String reportedBy,
+  }) => _create(
+        type: 'maintenance_addressed',
+        title: 'Escalated maintenance issue addressed',
+        body: '$issueType · reported by $reportedBy',
+        route: '/maintenance-management',
+        targetRole: 'HR',
+      );
+
   // ── Announcements ────────────────────────────────────────────────────
 
   static Future<void> announcementPosted({required String text}) => _create(
@@ -287,4 +452,52 @@ class NotificationService {
         route: '/dashboard',
         targetRole: 'ALL',
       );
+
+  // ── Daily HR reminders (date-crossed conditions, not user actions) ──
+
+  static DateTime? _lastDailyCheck;
+  static bool _sameDate(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+  static String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  static bool _alreadyNotified(String sourceId) =>
+      NotificationStore.all.any((n) => n.sourceId == sourceId);
+
+  /// Scans every active employee for tenure-milestone and EL-eligibility
+  /// anniversaries that land on today, and notifies HR once per employee
+  /// per day (deduped via sourceId, since this can be called repeatedly).
+  /// Cheap to call often — the actual scan only runs once per calendar day.
+  static Future<void> checkDailyHrReminders() async {
+    if (UserSession.role != UserRole.hr) return;
+    final today = DateTime.now();
+    if (_lastDailyCheck != null && _sameDate(_lastDailyCheck!, today)) return;
+    _lastDailyCheck = today;
+
+    final users = await UserStore.load();
+    for (final u in users) {
+      if (!u.active) continue;
+
+      final milestone = milestoneLabelForToday(u.dateOfJoining, today: today);
+      if (milestone != null) {
+        final sourceId = '${u.employeeId}_tenure_${_dateKey(today)}';
+        if (!_alreadyNotified(sourceId)) {
+          await tenureMilestone(
+              employeeName: u.name, milestoneLabel: milestone, sourceId: sourceId);
+        }
+      }
+
+      if (u.isOnroll && !u.isElEligible && u.onrollConfirmedAt.isNotEmpty) {
+        final onrollDate = DateTime.tryParse(u.onrollConfirmedAt);
+        if (onrollDate != null) {
+          final oneYearMark = DateTime(onrollDate.year + 1, onrollDate.month, onrollDate.day);
+          if (_sameDate(oneYearMark, today)) {
+            final sourceId = '${u.employeeId}_el_eligible_${_dateKey(today)}';
+            if (!_alreadyNotified(sourceId)) {
+              await elEligibilityDue(employeeName: u.name, sourceId: sourceId);
+            }
+          }
+        }
+      }
+    }
+  }
 }

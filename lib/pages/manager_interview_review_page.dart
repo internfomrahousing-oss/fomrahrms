@@ -222,11 +222,13 @@ class _ManagerInterviewReviewPageState
       final fields = <String, dynamic>{'manager_status': status};
       if (comment != null) fields['manager_comment'] = comment;
       await SupabaseService.updateCandidateStatus(id, fields);
+      final candidateName = (row['name'] ?? '').toString();
       if (status == 'accepted') {
-        NotificationService.candidateReadyForManagement(
-          candidateName: (row['name'] ?? '').toString(),
-        );
+        NotificationService.candidateReadyForManagement(candidateName: candidateName);
       }
+      NotificationService.interviewDecided(
+        candidateName: candidateName, stage: 'Manager', accepted: status == 'accepted',
+      );
       await _fetch();
     } catch (e) {
       if (mounted) {

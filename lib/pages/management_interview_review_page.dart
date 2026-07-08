@@ -301,6 +301,11 @@ class _ManagementInterviewReviewPageState
       final fields = <String, dynamic>{'management_status': status};
       if (comment != null) fields['management_comment'] = comment;
       await SupabaseService.updateCandidateStatus(id, fields);
+      NotificationService.interviewDecided(
+        candidateName: (row['name'] ?? '').toString(),
+        stage: 'Management',
+        accepted: status == 'accepted',
+      );
       await _fetchCandidates();
     } catch (e) {
       if (mounted) {

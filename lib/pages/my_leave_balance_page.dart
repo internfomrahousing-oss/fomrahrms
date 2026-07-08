@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
@@ -60,6 +61,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
     if (_appUser == null) return;
     setState(() => _elAvailLoading = true);
     await SupabaseService.requestElAvail(_appUser!.email);
+    NotificationService.elEncashmentRequested(employeeName: _appUser!.name);
     await _load();
   }
 

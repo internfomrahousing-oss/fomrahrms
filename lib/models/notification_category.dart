@@ -29,6 +29,12 @@ const List<NotificationCategory> notificationCategories = [
       Icons.edit_note_rounded, ['form_edit_']),
   NotificationCategory('payslip', 'Payroll',
       Icons.account_balance_wallet_rounded, ['payslip_']),
+  NotificationCategory('el', 'Earned Leave',
+      Icons.savings_rounded, ['el_']),
+  NotificationCategory('milestone', 'Milestones',
+      Icons.emoji_events_rounded, ['tenure_']),
+  NotificationCategory('lead', 'Leads',
+      Icons.leaderboard_rounded, ['lead_']),
   NotificationCategory('announcement', 'Announcements',
       Icons.campaign_rounded, ['announcement_']),
 ];
@@ -50,9 +56,9 @@ NotificationCategory categoryFor(String type) {
 /// HR is the one role that's a target for every category.
 List<NotificationCategory> categoriesForRole(String roleLabel) {
   const excludedByRole = {
-    'Employee': {'candidate', 'onboarding', 'form_edit'},
-    'Manager': {'onboarding', 'form_edit'},
-    'Management': {'onboarding', 'payslip'},
+    'Employee': {'candidate', 'onboarding', 'form_edit', 'el', 'milestone', 'lead'},
+    'Manager': {'onboarding', 'form_edit', 'el', 'milestone', 'lead'},
+    'Management': {'onboarding', 'milestone'},
     'HR': <String>{},
   };
   final excluded = excludedByRole[roleLabel] ?? const <String>{};
