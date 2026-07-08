@@ -255,6 +255,9 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists onroll_management_status text default 'pending';
   alter table app_users add column if not exists onroll_management_comment text default '';
   alter table app_users add column if not exists onroll_management_decided_at text default '';
+  alter table app_users add column if not exists work_location text default '';
+  alter table app_users add column if not exists work_location_pending text default '';
+  alter table app_users add column if not exists work_location_requested_at text default '';
 
   create table if not exists tasks (
     id text primary key,
@@ -733,6 +736,9 @@ class SupabaseService {
         elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
         elLastAvailedAt:      (row['el_last_availed_at']      as String?) ?? '',
         grossPay:             (row['gross_pay'] as num?)?.toDouble() ?? 0,
+        workLocation:            (row['work_location']             as String?) ?? '',
+        workLocationPending:     (row['work_location_pending']     as String?) ?? '',
+        workLocationRequestedAt: (row['work_location_requested_at'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -769,6 +775,9 @@ class SupabaseService {
       'el_avail_requested_at':    u.elAvailRequestedAt,
       'el_last_availed_at':       u.elLastAvailedAt,
       'gross_pay':                u.grossPay,
+      'work_location':            u.workLocation,
+      'work_location_pending':    u.workLocationPending,
+      'work_location_requested_at': u.workLocationRequestedAt,
     });
   }
 

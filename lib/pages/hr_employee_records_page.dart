@@ -420,6 +420,18 @@ class _UserCard extends StatelessWidget {
                     _Badge('On-Roll Requested', Colors.orange.shade50,
                         Colors.orange.shade200, Colors.orange.shade800),
                   ],
+                  if (user.workLocation.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    _Badge(user.workLocation,
+                        user.workLocation == 'Onsite' ? Colors.teal.shade50 : Colors.indigo.shade50,
+                        user.workLocation == 'Onsite' ? Colors.teal.shade200 : Colors.indigo.shade200,
+                        user.workLocation == 'Onsite' ? Colors.teal.shade700 : Colors.indigo.shade700),
+                  ],
+                  if (user.hasPendingWorkLocationChange) ...[
+                    const SizedBox(width: 6),
+                    _Badge('Location Change Requested', Colors.orange.shade50,
+                        Colors.orange.shade200, Colors.orange.shade800),
+                  ],
                 ]),
                 if (user.designation.isNotEmpty) ...[
                   const SizedBox(height: 3),
@@ -742,6 +754,221 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     ]);
   }
 
+  static MaterialColor _locationColor(String loc) =>
+      loc == 'Onsite' ? Colors.teal : Colors.indigo;
+  static IconData _locationIcon(String loc) =>
+      loc == 'Onsite' ? Icons.location_on_rounded : Icons.apartment_rounded;
+
+  Future<void> _setWorkLocation(String loc) async {
+    setState(() => _saving = true);
+    _user.workLocation = loc;
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _requestWorkLocationChange() async {
+    final target = _user.workLocation == 'Office' ? 'Onsite' : 'Office';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Request Work Location Change',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text(
+            'Send a request to Management to change ${_user.name}\'s work location from ${_user.workLocation} to $target?',
+            style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: const Text('Send Request'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _saving = true);
+    _user.workLocationPending = target;
+    _user.workLocationRequestedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _decideWorkLocation(bool approve) async {
+    setState(() => _saving = true);
+    if (approve) _user.workLocation = _user.workLocationPending;
+    _user.workLocationPending = '';
+    _user.workLocationRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _changeWorkLocationDirect() async {
+    final target = _user.workLocation == 'Office' ? 'Onsite' : 'Office';
+    setState(() => _saving = true);
+    _user.workLocation = target;
+    _user.workLocationPending = '';
+    _user.workLocationRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _locationChip(String loc) {
+    final c = _locationColor(loc);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: c.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.shade200),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(_locationIcon(loc), size: 15, color: c.shade700),
+        const SizedBox(width: 8),
+        Text(loc, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.shade700)),
+      ]),
+    );
+  }
+
+  Widget _workLocationBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
+    if (_user.workLocation.isEmpty) {
+      if (!canEdit) {
+        return Text('Not set',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic));
+      }
+      return Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : () => _setWorkLocation('Office'),
+            icon: const Icon(Icons.apartment_rounded, size: 16),
+            label: const Text('Office'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.indigo.shade700,
+              side: BorderSide(color: Colors.indigo.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : () => _setWorkLocation('Onsite'),
+            icon: const Icon(Icons.location_on_rounded, size: 16),
+            label: const Text('Onsite'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.teal.shade700,
+              side: BorderSide(color: Colors.teal.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ]);
+    }
+
+    final chip = _locationChip(_user.workLocation);
+
+    if (_user.hasPendingWorkLocationChange) {
+      final pendingChip = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(children: [
+          Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.orange.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                'Change requested → ${_user.workLocationPending} (awaiting Management approval)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800)),
+          ),
+        ]),
+      );
+      if (isManagement) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          chip,
+          const SizedBox(height: 8),
+          pendingChip,
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _decideWorkLocation(false),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Deny'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : () => _decideWorkLocation(true),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Approve'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]),
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [chip, const SizedBox(height: 8), pendingChip]);
+    }
+
+    // Set, no pending request.
+    if (isHr) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _requestWorkLocationChange,
+          icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+          label: const Text('Request Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    if (isManagement) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _changeWorkLocationDirect,
+          icon: const Icon(Icons.edit_rounded, size: 16),
+          label: const Text('Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    return chip;
+  }
+
   Future<void> _confirmEl() async {
     setState(() => _saving = true);
     _user.elEligibleAt = DateTime.now().toIso8601String();
@@ -830,6 +1057,21 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   _user.dateOfJoining),
             _InfoRow(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user.dateOfJoining)),
             _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
+
+            // ── Work location ────────────────────────────────────────────
+            const SizedBox(height: 14),
+            const Divider(),
+            const SizedBox(height: 10),
+            Row(children: [
+              const Icon(Icons.location_city_rounded, size: 14, color: Color(0xFF6B7280)),
+              const SizedBox(width: 6),
+              const Text('Work Location',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                      color: Color(0xFF6B7280))),
+            ]),
+            const SizedBox(height: 10),
+            _workLocationBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
+            const SizedBox(height: 4),
 
             // ── Employment status management ──────────────────────────────
             if (canSeeOnrollSection &&

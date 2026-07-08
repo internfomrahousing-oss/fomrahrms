@@ -30,6 +30,11 @@ class AppUser {
   String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
   String elLastAvailedAt;    // ISO datetime when HR confirmed EL avail; empty = never availed
   double grossPay;           // monthly gross pay (Rs), set by HR, used to generate payslips
+  // Work location: 'Office' | 'Onsite'; empty = not yet set. Once set, HR can only
+  // request a change — Management approves/denies it (see workLocationPending).
+  String workLocation;
+  String workLocationPending;      // proposed new value awaiting Management approval; empty = none
+  String workLocationRequestedAt;  // ISO datetime the change was requested
 
   AppUser({
     required this.name,
@@ -60,10 +65,14 @@ class AppUser {
     this.elAvailRequestedAt = '',
     this.elLastAvailedAt = '',
     this.grossPay = 0,
+    this.workLocation = '',
+    this.workLocationPending = '',
+    this.workLocationRequestedAt = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
+  bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
 
   // On-roll 3-stage review helpers
   bool get onrollHrAccepted       => onrollHrStatus == 'accepted';
@@ -190,6 +199,9 @@ class AppUser {
     'elAvailRequestedAt':    elAvailRequestedAt,
     'elLastAvailedAt':       elLastAvailedAt,
     'grossPay':              grossPay,
+    'workLocation':          workLocation,
+    'workLocationPending':   workLocationPending,
+    'workLocationRequestedAt': workLocationRequestedAt,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -221,5 +233,8 @@ class AppUser {
     elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',
     elLastAvailedAt:      j['elLastAvailedAt']       as String? ?? '',
     grossPay:             (j['grossPay'] as num?)?.toDouble() ?? 0,
+    workLocation:            j['workLocation']            as String? ?? '',
+    workLocationPending:     j['workLocationPending']     as String? ?? '',
+    workLocationRequestedAt: j['workLocationRequestedAt'] as String? ?? '',
   );
 }
