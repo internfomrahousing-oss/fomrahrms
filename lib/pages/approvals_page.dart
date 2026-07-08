@@ -367,7 +367,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   Widget get _leaveFormSection => _ApprovalSection(
         icon: Icons.event_available_rounded,
         color: AppTheme.primaryBlue,
-        label: 'Leave Form Approvals',
+        label: 'Leave / Permission / Comp Off Form Approvals',
         count: _pendingOf(_leaveVersions).length,
         onViewAll: () => context.push('/management/form-approvals'),
         children: _pendingOf(_leaveVersions)
@@ -446,7 +446,12 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: sections),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          crossAxisAlignment: WrapCrossAlignment.start,
+          children: sections.map((s) => SizedBox(width: 400, child: s)).toList(),
+        ),
       ),
     );
   }
@@ -725,9 +730,11 @@ class _ApprovalSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -786,7 +793,8 @@ class _ApprovalSection extends StatelessWidget {
               children: history,
             ),
           ),
-      ]),
+        ]),
+      ),
     );
   }
 }
