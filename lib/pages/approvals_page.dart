@@ -653,7 +653,6 @@ class _ApprovalSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (count == 0 && history.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -687,7 +686,13 @@ class _ApprovalSection extends StatelessWidget {
             ),
         ]),
         const SizedBox(height: 10),
-        if (children.isEmpty && history.isNotEmpty)
+        if (children.isEmpty && history.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('No requests yet',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+          )
+        else if (children.isEmpty && history.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('Nothing pending — all $label have been decided',
