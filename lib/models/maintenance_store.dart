@@ -14,6 +14,8 @@ extension MaintenanceStatusX on MaintenanceStatus {
   }
 }
 
+const List<String> kMaintenancePriorities = ['Low', 'Medium', 'High'];
+
 class MaintenanceTicket {
   final String id;
   final UserRole reportedByRole;
@@ -21,6 +23,7 @@ class MaintenanceTicket {
   final String issueFor;
   final String issueType;
   final String description;
+  final String priority; // 'Low' | 'Medium' | 'High'
   MaintenanceStatus status;
   bool sentToManagement;
   bool managementReviewed;
@@ -35,6 +38,7 @@ class MaintenanceTicket {
     required this.issueFor,
     required this.issueType,
     required this.description,
+    this.priority = 'Medium',
     this.status = MaintenanceStatus.open,
     this.sentToManagement = false,
     this.managementReviewed = false,

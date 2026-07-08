@@ -92,6 +92,7 @@ import '../models/user_session.dart';
   alter table maintenance_tickets add column if not exists management_reviewed boolean default false;
   alter table maintenance_tickets add column if not exists resolution_note text;
   alter table maintenance_tickets add column if not exists resolved_at timestamptz;
+  alter table maintenance_tickets add column if not exists priority text not null default 'Medium';
 
   create table if not exists app_settings (
     id text primary key default 'global',
@@ -522,6 +523,7 @@ class SupabaseService {
         'issue_for':            ticket.issueFor,
         'issue_type':           ticket.issueType,
         'description':          ticket.description,
+        'priority':             ticket.priority,
         'status':               ticket.status.name,
         'sent_to_management':   ticket.sentToManagement,
         'management_reviewed':  ticket.managementReviewed,
@@ -597,6 +599,7 @@ class SupabaseService {
           issueFor:           (row['issue_for'] as String?) ?? 'IT',
           issueType:          row['issue_type'] as String,
           description:        row['description'] as String,
+          priority:           (row['priority'] as String?) ?? 'Medium',
           status:             status,
           sentToManagement:   (row['sent_to_management'] as bool?) ?? false,
           managementReviewed: (row['management_reviewed'] as bool?) ?? false,

@@ -25,8 +25,12 @@ class MaintenanceManagementPage extends StatefulWidget {
 class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   String? _selectedIssueFor;
   String? _selectedIssueType;
+  String _selectedPriority = 'Medium';
   DateTime? _selectedMonth;
   String? _filterIssueFor;
+  String? _filterPriority;
+  int _hrTabIndex = 0;
+  int _mgmtTabIndex = 0;
   final _descController = TextEditingController();
 
   List<String> _issueForOptions = List<String>.from(MaintenanceFormConfig.defaultIssueForOptions);
@@ -96,12 +100,14 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       issueFor:       issueFor,
       issueType:      issueType,
       description:    desc,
+      priority:       _selectedPriority,
       createdAt:      DateTime.now(),
     );
     setState(() {
       MaintenanceStore.tickets.insert(0, ticket);
       _selectedIssueFor = null;
       _selectedIssueType = null;
+      _selectedPriority = 'Medium';
       _descController.clear();
     });
     final error = await SupabaseService.saveMaintenanceTicket(ticket);
@@ -197,8 +203,11 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   bool _matchesIssueFor(MaintenanceTicket t) =>
       _filterIssueFor == null || t.issueFor == _filterIssueFor;
 
+  bool _matchesPriority(MaintenanceTicket t) =>
+      _filterPriority == null || t.priority == _filterPriority;
+
   bool _matchesFilters(MaintenanceTicket t) =>
-      _matchesMonth(t) && _matchesIssueFor(t);
+      _matchesMonth(t) && _matchesIssueFor(t) && _matchesPriority(t);
 
   Future<void> _pickMonth() async {
     final picked = await showMonthPicker(context, _selectedMonth);
@@ -206,68 +215,34 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   }
 
   Widget _buildMonthFilterRow() {
-    final primary = Theme.of(context).colorScheme.primary;
     return Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-      OutlinedButton.icon(
-        onPressed: _pickMonth,
-        icon: Icon(
-          _selectedMonth != null
-              ? Icons.calendar_today_rounded
-              : Icons.calendar_month_rounded,
-          size: 16,
-        ),
-        label: Text(
-            _selectedMonth != null ? monthLabel(_selectedMonth!) : 'Filter by Month'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: _selectedMonth != null ? primary : null,
-          side: _selectedMonth != null ? BorderSide(color: primary) : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      _PillDropdown(
+        icon: Icons.calendar_month_rounded,
+        label: _selectedMonth != null ? monthLabel(_selectedMonth!) : 'All Months',
+        active: _selectedMonth != null,
+        onTap: _pickMonth,
+        onClear: _selectedMonth != null ? () => setState(() => _selectedMonth = null) : null,
       ),
-      if (_selectedMonth != null)
-        IconButton(
-          icon: const Icon(Icons.close_rounded, size: 18),
-          onPressed: () => setState(() => _selectedMonth = null),
-          tooltip: 'Clear',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-        ),
-      PopupMenuButton<String?>(
-        tooltip: 'Filter by department',
+      _PillPopup(
+        icon: Icons.apartment_rounded,
+        label: _filterIssueFor ?? 'All Departments',
+        active: _filterIssueFor != null,
+        options: _issueForOptions,
+        allLabel: 'All Departments',
         onSelected: (v) => setState(() => _filterIssueFor = v),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        itemBuilder: (_) => [
-          const PopupMenuItem<String?>(value: null, child: Text('All Departments')),
-          ..._issueForOptions.map((o) => PopupMenuItem<String?>(value: o, child: Text(o))),
-        ],
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(
-                color: _filterIssueFor != null
-                    ? primary
-                    : Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.filter_list_rounded, size: 16,
-                color: _filterIssueFor != null ? primary : null),
-            const SizedBox(width: 6),
-            Text(_filterIssueFor ?? 'Filter by Department',
-                style: TextStyle(color: _filterIssueFor != null ? primary : null)),
-          ]),
-        ),
       ),
-      if (_filterIssueFor != null)
-        IconButton(
-          icon: const Icon(Icons.close_rounded, size: 18),
-          onPressed: () => setState(() => _filterIssueFor = null),
-          tooltip: 'Clear',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-        ),
     ]);
+  }
+
+  Widget _buildPriorityFilterButton() {
+    return _PillPopup(
+      icon: Icons.filter_list_rounded,
+      label: _filterPriority ?? 'Filter',
+      active: _filterPriority != null,
+      options: kMaintenancePriorities,
+      allLabel: 'All Priorities',
+      onSelected: (v) => setState(() => _filterPriority = v),
+    );
   }
 
   @override
@@ -283,7 +258,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     }
   }
 
-  // ── HR Page: 3 tabs ──────────────────────────────────────────────────────
+  // ── HR Page: 4 tabs ──────────────────────────────────────────────────────
 
   Widget _buildHrPage(BuildContext context) {
     final tickets  = MaintenanceStore.tickets.where(_matchesFilters).toList();
@@ -291,88 +266,90 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     final resolved = tickets.where(_isResolved).toList();
     final sentMgmt = tickets.where((t) => t.sentToManagement && !_isResolved(t)).toList();
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        backgroundColor: null,
-        body: Column(children: [
-          _Header(
-            onRefresh: _reload,
-            monthFilter: _buildMonthFilterRow(),
-            bottom: TabBar(
-              isScrollable: true,
-              labelColor: Theme.of(context).colorScheme.primary,
-              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              indicatorColor: Theme.of(context).colorScheme.primary,
-              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              tabs: [
-                Tab(text: 'Pending (${pending.length})'),
-                Tab(text: 'Resolved (${resolved.length})'),
-                Tab(text: 'Sent to Management (${sentMgmt.length})'),
-                const Tab(text: 'Report an Issue'),
+    return Scaffold(
+      backgroundColor: null,
+      body: Column(children: [
+        _Header(
+          onRefresh: _reload,
+          onReportIssue: () => setState(() => _hrTabIndex = 3),
+          statCards: _MaintStatCardsRow(
+            total: tickets.length,
+            pending: pending.length,
+            resolved: resolved.length,
+            sentMgmt: sentMgmt.length,
+          ),
+          priorityFilter: _buildPriorityFilterButton(),
+          monthFilter: _buildMonthFilterRow(),
+          tabs: _PillTabs(
+            index: _hrTabIndex,
+            onChanged: (i) => setState(() => _hrTabIndex = i),
+            labels: [
+              'Pending (${pending.length})',
+              'Resolved (${resolved.length})',
+              'Sent to Management (${sentMgmt.length})',
+              'Report an Issue',
+            ],
+          ),
+        ),
+        Expanded(
+          child: IndexedStack(index: _hrTabIndex, children: [
+            // Pending tab
+            _TicketList(
+              tickets: pending,
+              emptyMessage: 'No pending issues.',
+              actionsBuilder: (t) => [
+                _ActionBtn(
+                  label: 'Send to Management',
+                  icon: Icons.upload_rounded,
+                  color: AppTheme.primaryBlue,
+                  onTap: () => _sendToManagement(t),
+                ),
+                const SizedBox(width: 8),
+                _ActionBtn(
+                  label: 'Addressed',
+                  icon: Icons.check_circle_rounded,
+                  color: Colors.green.shade700,
+                  onTap: () => _resolveTicket(t),
+                ),
               ],
             ),
-          ),
-          Expanded(
-            child: TabBarView(children: [
-              // Pending tab
-              _TicketList(
-                tickets: pending,
-                emptyMessage: 'No pending issues.',
-                actionsBuilder: (t) => [
-                  _ActionBtn(
-                    label: 'Send to Management',
-                    icon: Icons.upload_rounded,
-                    color: AppTheme.primaryBlue,
-                    onTap: () => _sendToManagement(t),
-                  ),
-                  const SizedBox(width: 8),
-                  _ActionBtn(
-                    label: 'Addressed',
-                    icon: Icons.check_circle_rounded,
-                    color: Colors.green.shade700,
-                    onTap: () => _resolveTicket(t),
-                  ),
-                ],
-              ),
-              // Resolved tab
-              _TicketList(
-                tickets: resolved,
-                emptyMessage: 'No resolved issues yet.',
-                actionsBuilder: (_) => [],
-              ),
-              // Sent to Management tab
-              _TicketList(
-                tickets: sentMgmt,
-                emptyMessage: 'No issues sent to management.',
-                actionsBuilder: (t) => t.managementReviewed
-                    ? [
-                        _ActionBtn(
-                          label: 'Close Ticket',
-                          icon: Icons.check_circle_rounded,
-                          color: Colors.green.shade700,
-                          onTap: () => _resolveTicket(t),
-                        ),
-                      ]
-                    : [],
-              ),
-              // Report an Issue tab
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _buildReportFormCard(context),
-                  const SizedBox(height: 24),
-                  _SectionLabel(context: context,
-                      icon: Icons.receipt_long_rounded,
-                      label: 'My Reported Issues'),
-                  const SizedBox(height: 12),
-                  _buildMyReportedIssuesList(context),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
-      ),
+            // Resolved tab
+            _TicketList(
+              tickets: resolved,
+              emptyMessage: 'No resolved issues yet.',
+              actionsBuilder: (_) => [],
+            ),
+            // Sent to Management tab
+            _TicketList(
+              tickets: sentMgmt,
+              emptyMessage: 'No issues sent to management.',
+              actionsBuilder: (t) => t.managementReviewed
+                  ? [
+                      _ActionBtn(
+                        label: 'Close Ticket',
+                        icon: Icons.check_circle_rounded,
+                        color: Colors.green.shade700,
+                        onTap: () => _resolveTicket(t),
+                      ),
+                    ]
+                  : [],
+            ),
+            // Report an Issue tab
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _buildReportFormCard(context),
+                const SizedBox(height: 24),
+                _SectionLabel(context: context,
+                    icon: Icons.receipt_long_rounded,
+                    label: 'My Reported Issues'),
+                const SizedBox(height: 12),
+                _buildMyReportedIssuesList(context),
+              ]),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 
@@ -382,56 +359,60 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     final tickets = MaintenanceStore.tickets.where(_matchesFilters).toList();
     final hrSent  = tickets.where((t) => t.sentToManagement).toList();
     final all     = tickets.toList();
+    final resolved = tickets.where(_isResolved).toList();
+    final pending  = tickets.where((t) => !_isResolved(t) && !t.sentToManagement).toList();
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: null,
-        body: Column(children: [
-          _Header(
-            onRefresh: _reload,
-            monthFilter: _buildMonthFilterRow(),
-            bottom: TabBar(
-              labelColor: Theme.of(context).colorScheme.primary,
-              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              indicatorColor: Theme.of(context).colorScheme.primary,
-              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              tabs: [
-                Tab(text: 'Issues from HR (${hrSent.length})'),
-                Tab(text: 'All Issues (${all.length})'),
+    return Scaffold(
+      backgroundColor: null,
+      body: Column(children: [
+        _Header(
+          onRefresh: _reload,
+          statCards: _MaintStatCardsRow(
+            total: tickets.length,
+            pending: pending.length,
+            resolved: resolved.length,
+            sentMgmt: hrSent.length,
+          ),
+          priorityFilter: _buildPriorityFilterButton(),
+          monthFilter: _buildMonthFilterRow(),
+          tabs: _PillTabs(
+            index: _mgmtTabIndex,
+            onChanged: (i) => setState(() => _mgmtTabIndex = i),
+            labels: [
+              'Issues from HR (${hrSent.length})',
+              'All Issues (${all.length})',
+            ],
+          ),
+        ),
+        Expanded(
+          child: IndexedStack(index: _mgmtTabIndex, children: [
+            _TicketList(
+              tickets: hrSent,
+              emptyMessage: 'No issues sent by HR yet.',
+              actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed) ? [] : [
+                _ActionBtn(
+                  label: 'Resolved',
+                  icon: Icons.check_circle_rounded,
+                  color: Colors.green.shade700,
+                  onTap: () => _managementResolve(t),
+                ),
               ],
             ),
-          ),
-          Expanded(
-            child: TabBarView(children: [
-              _TicketList(
-                tickets: hrSent,
-                emptyMessage: 'No issues sent by HR yet.',
-                actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed) ? [] : [
-                  _ActionBtn(
-                    label: 'Resolved',
-                    icon: Icons.check_circle_rounded,
-                    color: Colors.green.shade700,
-                    onTap: () => _managementResolve(t),
-                  ),
-                ],
-              ),
-              _TicketList(
-                tickets: all,
-                emptyMessage: 'No issues reported yet.',
-                actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed || !t.sentToManagement) ? [] : [
-                  _ActionBtn(
-                    label: 'Resolved',
-                    icon: Icons.check_circle_rounded,
-                    color: Colors.green.shade700,
-                    onTap: () => _managementResolve(t),
-                  ),
-                ],
-              ),
-            ]),
-          ),
-        ]),
-      ),
+            _TicketList(
+              tickets: all,
+              emptyMessage: 'No issues reported yet.',
+              actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed || !t.sentToManagement) ? [] : [
+                _ActionBtn(
+                  label: 'Resolved',
+                  icon: Icons.check_circle_rounded,
+                  color: Colors.green.shade700,
+                  onTap: () => _managementResolve(t),
+                ),
+              ],
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 
@@ -530,6 +511,26 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
             onChanged: (v) => setState(() => _selectedIssueType = v),
           ),
           const SizedBox(height: 16),
+          Text('Priority',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _selectedPriority,
+            decoration: InputDecoration(
+              prefixIcon: Icon(Icons.flag_rounded,
+                  color: AppTheme.primaryBlue, size: 20),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 14),
+            ),
+            items: kMaintenancePriorities
+                .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedPriority = v ?? 'Medium'),
+          ),
+          const SizedBox(height: 16),
           Text('Description',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w600)),
@@ -602,12 +603,23 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
 class _Header extends StatelessWidget {
   final VoidCallback onRefresh;
-  final PreferredSizeWidget bottom;
+  final Widget tabs;
   final Widget? monthFilter;
-  const _Header({required this.onRefresh, required this.bottom, this.monthFilter});
+  final Widget? statCards;
+  final Widget? priorityFilter;
+  final VoidCallback? onReportIssue;
+  const _Header({
+    required this.onRefresh,
+    required this.tabs,
+    this.monthFilter,
+    this.statCards,
+    this.priorityFilter,
+    this.onReportIssue,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -618,28 +630,271 @@ class _Header extends StatelessWidget {
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              color: primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.build_rounded,
-                color: Theme.of(context).colorScheme.primary, size: 22),
+            child: Icon(Icons.build_rounded, color: primary, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(child: Text('Maintenance Management',
               style: Theme.of(context).textTheme.headlineMedium)),
           IconButton(
-            icon: Icon(Icons.refresh_rounded, color: Theme.of(context).colorScheme.primary),
+            icon: Icon(Icons.refresh_rounded, color: primary),
             tooltip: 'Refresh',
             onPressed: onRefresh,
           ),
+          if (onReportIssue != null) ...[
+            const SizedBox(width: 4),
+            ElevatedButton.icon(
+              onPressed: onReportIssue,
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('Report an Issue'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
         ]),
+        if (statCards != null) ...[
+          const SizedBox(height: 20),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: statCards!),
+            if (priorityFilter != null) ...[
+              const SizedBox(width: 12),
+              priorityFilter!,
+            ],
+          ]),
+        ],
         if (monthFilter != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           monthFilter!,
         ],
+        const SizedBox(height: 14),
+        tabs,
         const SizedBox(height: 12),
-        bottom,
       ]),
+    );
+  }
+}
+
+// ── Stat cards row ─────────────────────────────────────────────────────────────
+
+class _MaintStatCardsRow extends StatelessWidget {
+  final int total;
+  final int pending;
+  final int resolved;
+  final int sentMgmt;
+  const _MaintStatCardsRow({
+    required this.total,
+    required this.pending,
+    required this.resolved,
+    required this.sentMgmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = [
+      _StatCard(icon: Icons.assignment_rounded, color: AppTheme.primaryBlue,
+          value: '$total', label: 'Total Issues'),
+      _StatCard(icon: Icons.access_time_filled_rounded, color: Colors.orange.shade700,
+          value: '$pending', label: 'Pending'),
+      _StatCard(icon: Icons.check_circle_rounded, color: const Color(0xFF22C55E),
+          value: '$resolved', label: 'Resolved'),
+      _StatCard(icon: Icons.send_rounded, color: Colors.purple.shade600,
+          value: '$sentMgmt', label: 'Sent to Mgmt'),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth > 640) {
+        return Row(children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(child: tiles[i]),
+          ],
+        ]);
+      }
+      return Wrap(spacing: 12, runSpacing: 12,
+          children: [for (final t in tiles) SizedBox(width: 150, child: t)]);
+    });
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
+  const _StatCard({required this.icon, required this.color, required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+              Text(label,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Pill-style tab row (replaces TabBar for a matching visual) ────────────────
+
+class _PillTabs extends StatelessWidget {
+  final int index;
+  final ValueChanged<int> onChanged;
+  final List<String> labels;
+  const _PillTabs({required this.index, required this.onChanged, required this.labels});
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: [
+        for (var i = 0; i < labels.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => onChanged(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: i == index ? primary : Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: i == index ? primary : const Color(0xFFE5E7EB)),
+              ),
+              child: Text(labels[i],
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: i == index ? Colors.white : const Color(0xFF374151))),
+            ),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+// ── Pill dropdown (custom onTap, e.g. month picker) ───────────────────────────
+
+class _PillDropdown extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+  const _PillDropdown({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? primary : const Color(0xFFE5E7EB)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: active ? primary : const Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w600,
+              color: active ? primary : const Color(0xFF111827))),
+          if (onClear != null) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onClear,
+              child: Icon(Icons.close_rounded, size: 15, color: Colors.grey.shade500),
+            ),
+          ] else ...[
+            const SizedBox(width: 4),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Pill popup (fixed option list, e.g. department/priority) ──────────────────
+
+class _PillPopup extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final List<String> options;
+  final String allLabel;
+  final ValueChanged<String?> onSelected;
+  const _PillPopup({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.options,
+    required this.allLabel,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return PopupMenuButton<String?>(
+      tooltip: label,
+      onSelected: onSelected,
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (_) => [
+        PopupMenuItem<String?>(value: null, child: Text(allLabel)),
+        ...options.map((o) => PopupMenuItem<String?>(value: o, child: Text(o))),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? primary : const Color(0xFFE5E7EB)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: active ? primary : const Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w600,
+              color: active ? primary : const Color(0xFF111827))),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+        ]),
+      ),
     );
   }
 }
@@ -688,142 +943,168 @@ class _TicketCard extends StatelessWidget {
         MaintenanceStatus.closed     => const Color(0xFF6B7280),
       };
 
+  static const _categoryPalette = [
+    Color(0xFF2563EB), Color(0xFF8B5CF6), Color(0xFF0EA5E9),
+    Color(0xFFF97316), Color(0xFF22C55E), Color(0xFFEC4899),
+  ];
+
+  Color _categoryColor(String issueFor) =>
+      _categoryPalette[issueFor.isEmpty ? 0 : issueFor.codeUnitAt(0) % _categoryPalette.length];
+
+  IconData _categoryIcon(String issueFor) {
+    final v = issueFor.toLowerCase();
+    if (v.contains('it')) return Icons.computer_rounded;
+    if (v.contains('team') || v.contains('hr')) return Icons.groups_rounded;
+    if (v.contains('admin') || v.contains('facility') || v.contains('office')) return Icons.apartment_rounded;
+    return Icons.build_rounded;
+  }
+
+  static Color _priorityColor(String p) => switch (p) {
+        'High' => const Color(0xFFEF4444),
+        'Low'  => const Color(0xFF22C55E),
+        _      => const Color(0xFFF59E0B),
+      };
+
+  Widget _chip(String label, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+      );
+
   @override
   Widget build(BuildContext context) {
     final sc = _statusColor(ticket.status);
     final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Top row: issue type chip + optional sent-to-mgmt badge + status
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: cs.onSurface.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(ticket.issueFor,
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface.withValues(alpha: 0.7))),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(ticket.issueType,
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: cs.primary)),
-            ),
-            const Spacer(),
-            if (ticket.sentToManagement && !ticket.managementReviewed)
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text('Sent to Mgmt',
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryBlue)),
-              ),
-            if (ticket.managementReviewed && ticket.status != MaintenanceStatus.resolved && ticket.status != MaintenanceStatus.closed)
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('Awaiting HR Closure',
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFB45309))),
-              ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: sc.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(ticket.status.label,
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: sc)),
-            ),
-          ]),
-          const SizedBox(height: 10),
+    final catColor = _categoryColor(ticket.issueFor);
+    final prColor = _priorityColor(ticket.priority);
 
-          // Description
-          Text(ticket.description,
-              style: TextStyle(fontSize: 13, color: cs.onSurface)),
-          const SizedBox(height: 8),
+    final leadingIcon = Container(
+      width: 40, height: 40,
+      decoration: BoxDecoration(
+        color: catColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(_categoryIcon(ticket.issueFor), color: catColor, size: 20),
+    );
 
-          if (ticket.resolutionNote != null && ticket.resolutionNote!.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF22C55E).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Resolution', style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.7))),
-                const SizedBox(height: 4),
-                Text(ticket.resolutionNote!,
-                    style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.85))),
-                if (ticket.resolvedAt != null) ...[
-                  const SizedBox(height: 4),
-                  Text('Resolved on ${_fmtDateTime(ticket.resolvedAt!)}',
-                      style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
-                ],
-              ]),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          // Footer: reporter · date · ticket ID
-          Row(children: [
-            Icon(Icons.person_rounded, size: 13, color: cs.onSurface.withValues(alpha: 0.55)),
-            const SizedBox(width: 4),
-            Text(ticket.reportedBy,
-                style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
-            const SizedBox(width: 12),
-            Icon(Icons.access_time_rounded,
-                size: 13, color: cs.onSurface.withValues(alpha: 0.55)),
-            const SizedBox(width: 4),
-            Text(_fmt(ticket.createdAt),
-                style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
-            const Spacer(),
-            Text(ticket.id,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurface.withValues(alpha: 0.55),
-                    fontWeight: FontWeight.w500)),
-          ]),
-
-          // Actions row
-          if (actions.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 6, children: actions),
-          ],
+    final titleBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(ticket.description,
+          maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+      const SizedBox(height: 6),
+      Wrap(spacing: 6, runSpacing: 6, children: [
+        _chip(ticket.issueFor, catColor),
+        _chip(ticket.issueType, catColor),
+      ]),
+      const SizedBox(height: 8),
+      Wrap(spacing: 12, runSpacing: 4, children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.person_rounded, size: 13, color: cs.onSurface.withValues(alpha: 0.55)),
+          const SizedBox(width: 4),
+          Text(ticket.reportedBy, style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
         ]),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.calendar_today_rounded, size: 12, color: cs.onSurface.withValues(alpha: 0.55)),
+          const SizedBox(width: 4),
+          Text(_fmt(ticket.createdAt), style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
+        ]),
+        Text('#${ticket.id}',
+            style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55), fontWeight: FontWeight.w500)),
+      ]),
+    ]);
+
+    final statusChips = Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      _chip(ticket.status.label, sc),
+      if (ticket.sentToManagement && !ticket.managementReviewed) ...[
+        const SizedBox(height: 6),
+        _chip('Sent to Management', AppTheme.primaryBlue),
+      ],
+      if (ticket.managementReviewed && ticket.status != MaintenanceStatus.resolved && ticket.status != MaintenanceStatus.closed) ...[
+        const SizedBox(height: 6),
+        _chip('Awaiting HR Closure', const Color(0xFFB45309)),
+      ],
+    ]);
+
+    final priorityBlock = Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Text('Priority', style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 4),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.circle, size: 8, color: prColor),
+        const SizedBox(width: 5),
+        Text(ticket.priority, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: prColor)),
+      ]),
+    ]);
+
+    final resolutionBox = (ticket.resolutionNote != null && ticket.resolutionNote!.isNotEmpty)
+        ? Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Resolution', style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.7))),
+              const SizedBox(height: 4),
+              Text(ticket.resolutionNote!,
+                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.85))),
+              if (ticket.resolvedAt != null) ...[
+                const SizedBox(height: 4),
+                Text('Resolved on ${_fmtDateTime(ticket.resolvedAt!)}',
+                    style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55))),
+              ],
+            ]),
+          )
+        : const SizedBox.shrink();
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      child: Container(
+        decoration: BoxDecoration(border: Border(left: BorderSide(color: catColor, width: 4))),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final wide = constraints.maxWidth > 640;
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (wide)
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  leadingIcon,
+                  const SizedBox(width: 12),
+                  Expanded(child: titleBlock),
+                  const SizedBox(width: 16),
+                  priorityBlock,
+                  const SizedBox(width: 16),
+                  statusChips,
+                ])
+              else ...[
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  leadingIcon,
+                  const SizedBox(width: 12),
+                  Expanded(child: titleBlock),
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [priorityBlock, const Spacer(), statusChips]),
+              ],
+              resolutionBox,
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                Wrap(spacing: 8, runSpacing: 6, children: actions),
+              ],
+            ]);
+          }),
+        ),
       ),
     );
   }
