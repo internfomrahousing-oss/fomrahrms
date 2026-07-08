@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
 import '../models/maintenance_form_config.dart';
 import '../models/maintenance_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/month_picker.dart';
 import '../widgets/back_button.dart';
@@ -112,6 +115,12 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         backgroundColor: Colors.green,
         duration: Duration(seconds: 3),
       ));
+      // Fire-and-forget: let HR (and Management, if applicable) know.
+      NotificationService.maintenanceSubmitted(
+        issueType: ticket.issueType,
+        reportedBy: ticket.reportedBy,
+        sentToManagement: ticket.sentToManagement,
+      );
     }
   }
 
@@ -129,6 +138,34 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       t.resolvedAt = when;
     });
     await SupabaseService.updateTicketResolution(t.id, note, when);
+    _notifyReporterStatusChanged(t);
+  }
+
+  static const _routePrefixByRole = {
+    UserRole.hr:               '',
+    UserRole.employee:         '/employee',
+    UserRole.reportingManager: '/manager',
+    UserRole.management:       '/management',
+  };
+
+  // Fire-and-forget: resolves the reporter's email from their name and lets
+  // them know their ticket's status changed.
+  Future<void> _notifyReporterStatusChanged(MaintenanceTicket t) async {
+    final users = await UserStore.load();
+    AppUser? reporter;
+    for (final u in users) {
+      if (u.name.trim() == t.reportedBy.trim()) {
+        reporter = u;
+        break;
+      }
+    }
+    if (reporter == null) return;
+    NotificationService.maintenanceStatusChanged(
+      reporterEmail: reporter.email,
+      issueType: t.issueType,
+      status: t.status.label,
+      reporterRoutePrefix: _routePrefixByRole[t.reportedByRole] ?? '',
+    );
   }
 
   Future<void> _managementResolve(MaintenanceTicket t) async {

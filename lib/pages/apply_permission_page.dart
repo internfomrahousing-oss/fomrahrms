@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/leave_form_config.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -121,6 +122,13 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
 
     LeaveStore.applications.add(app);
     SupabaseService.saveLeaveApplication(app);
+    if (UserSession.reportingManager.isNotEmpty) {
+      NotificationService.leaveSubmitted(
+        employeeName: app.employeeName,
+        leaveType: app.leaveType,
+        reportingManagerName: UserSession.reportingManager,
+      );
+    }
 
     _snack('Permission request submitted successfully.');
     _clear();

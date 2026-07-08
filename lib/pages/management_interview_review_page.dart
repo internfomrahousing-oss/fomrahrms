@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
@@ -384,6 +385,7 @@ class _ManagementInterviewReviewPageState
         'approved',
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
       );
+      NotificationService.formEditDecided(formName: 'Interview Form', approved: true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
@@ -451,6 +453,7 @@ class _ManagementInterviewReviewPageState
                       : 'Management',
                   note: noteCtrl.text.trim(),
                 );
+                NotificationService.formEditDecided(formName: 'Interview Form', approved: false);
                 await _fetchFormVersions();
               } catch (e) {
                 if (mounted) {

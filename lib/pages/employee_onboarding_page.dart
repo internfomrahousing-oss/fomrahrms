@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/form_version_label.dart';
@@ -140,6 +141,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         id, 'approved',
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
       );
+      NotificationService.formEditDecided(formName: 'Onboarding Form', approved: true);
       final label = _versionLabels[(version['version_number'] as num?)?.toInt()] ??
           'v${version['version_number']}';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -159,6 +161,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
     final id = version['id'].toString();
     try {
       await SupabaseService.updateOnboardingFormVersionStatus(id, 'rejected');
+      NotificationService.formEditDecided(formName: 'Onboarding Form', approved: false);
       final label = _versionLabels[(version['version_number'] as num?)?.toInt()] ??
           'v${version['version_number']}';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

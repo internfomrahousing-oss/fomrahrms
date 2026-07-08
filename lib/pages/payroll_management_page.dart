@@ -4,6 +4,7 @@ import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/payslip_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
@@ -1118,6 +1119,18 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
       generatedBy: UserSession.name,
     );
     await SupabaseService.savePayslip(payslip);
+    if (widget.user.email.isNotEmpty) {
+      NotificationService.payslipReady(
+        employeeEmail: widget.user.email,
+        monthYear: _monthYear,
+        employeeRoutePrefix: switch (widget.user.role) {
+          'Manager' => '/manager',
+          'Management' => '/management',
+          'HR' => '',
+          _ => '/employee',
+        },
+      );
+    }
     if (widget.request != null) {
       await SupabaseService.decidePayslipRequest(
           widget.request!.id, PayslipRequestStatus.approved, UserSession.name);

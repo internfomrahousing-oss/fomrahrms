@@ -7,6 +7,7 @@ import '../models/candidate_store.dart';
 import '../models/payslip_store.dart';
 import '../models/profile_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/payslip_pdf_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
@@ -115,6 +116,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
     setState(() => _saving = true);
     user.onrollRequestedAt = DateTime.now().toIso8601String();
     await UserStore.upsertOne(user);
+    NotificationService.onrollRequested(
+      employeeName: UserSession.name,
+      reportingManagerName: UserSession.reportingManager,
+    );
     if (mounted) setState(() => _saving = false);
   }
 
@@ -134,6 +139,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
     user.onrollManagementComment = '';
     user.onrollManagementDecidedAt = '';
     await UserStore.upsertOne(user);
+    NotificationService.onrollRequested(
+      employeeName: UserSession.name,
+      reportingManagerName: UserSession.reportingManager,
+    );
     if (mounted) setState(() => _saving = false);
   }
 

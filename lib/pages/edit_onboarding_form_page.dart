@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
@@ -215,6 +216,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
         'created_by':
             UserSession.name.isNotEmpty ? UserSession.name : 'HR',
       });
+      NotificationService.formEditSubmitted(formName: 'Onboarding Form');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Onboarding form sent to Management for approval'),

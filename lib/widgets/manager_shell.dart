@@ -7,6 +7,7 @@ import '../models/theme_notifier.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'quick_actions_bar.dart';
+import 'notification_bell_icon.dart';
 
 class _NavItem {
   final String label;
@@ -142,7 +143,7 @@ class _NarrowLayout extends StatelessWidget {
           const ThemeToggle(),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            icon: const NotificationBellIcon(color: Colors.white),
             onPressed: () => context.go('/manager/notifications'),
           ),
           Padding(

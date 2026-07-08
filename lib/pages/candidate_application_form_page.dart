@@ -8,6 +8,7 @@ import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 import '../models/form_config.dart';
 import '../widgets/web_file_picker.dart';
 import '../theme/app_theme.dart';
@@ -541,6 +542,7 @@ class _CandidateApplicationFormPageState
         for (final e in _customCheckboxValues.entries) e.key: e.value,
       },
     });
+    NotificationService.candidateSubmitted(candidateName: _name.text.trim());
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);

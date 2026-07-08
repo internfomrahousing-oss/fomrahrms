@@ -5,6 +5,7 @@ import '../models/leave_form_config.dart';
 import '../models/maintenance_form_config.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/form_version_label.dart';
@@ -160,6 +161,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     });
     await SupabaseService.updateLeaveManagementStatus(
         app.id, LeaveApprovalStatus.approved, decidedBy: by);
+    _notifyLeaveDecision(app, true);
   }
 
   Future<void> _denyLeave(LeaveApplication app) async {
@@ -176,6 +178,27 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     });
     await SupabaseService.updateLeaveManagementStatus(
         app.id, LeaveApprovalStatus.denied, decidedBy: by, rejectionComment: comment);
+    _notifyLeaveDecision(app, false);
+  }
+
+  void _notifyLeaveDecision(LeaveApplication app, bool approved) {
+    final user = _users.where((u) => u.name == app.employeeName).firstOrNull;
+    if (user == null || user.email.isEmpty) return;
+    NotificationService.leaveDecided(
+      employeeEmail: user.email,
+      leaveType: app.leaveType,
+      approved: approved,
+      employeeRoutePrefix: _routePrefixForRole(user.role),
+    ).catchError((_) {});
+  }
+
+  String _routePrefixForRole(String role) {
+    switch (role) {
+      case 'Manager':    return '/manager';
+      case 'Management': return '/management';
+      case 'HR':         return '';
+      default:           return '/employee';
+    }
   }
 
   // ── On-Roll actions ──────────────────────────────────────────────────────
@@ -229,15 +252,19 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       case 'leave':
         await SupabaseService.updateLeaveFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
         LeaveFormConfig.invalidate();
+        NotificationService.formEditDecided(formName: 'Leave Form', approved: true);
       case 'interview':
         await SupabaseService.updateFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
+        NotificationService.formEditDecided(formName: 'Interview Form', approved: true);
       case 'onboarding':
         await SupabaseService.updateOnboardingFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
+        NotificationService.formEditDecided(formName: 'Onboarding Form', approved: true);
       case 'policy':
         await SupabaseService.updateHRPolicyVersionStatus(id, 'approved', decidedBy: UserSession.name);
       case 'maintenance':
         await SupabaseService.updateMaintenanceFormVersionStatus(id, 'approved', decidedBy: UserSession.name);
         MaintenanceFormConfig.invalidate();
+        NotificationService.formEditDecided(formName: 'Maintenance Form', approved: true);
     }
     _load();
   }
@@ -248,14 +275,18 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     switch (kind) {
       case 'leave':
         await SupabaseService.updateLeaveFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
+        NotificationService.formEditDecided(formName: 'Leave Form', approved: false);
       case 'interview':
         await SupabaseService.updateFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
+        NotificationService.formEditDecided(formName: 'Interview Form', approved: false);
       case 'onboarding':
         await SupabaseService.updateOnboardingFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
+        NotificationService.formEditDecided(formName: 'Onboarding Form', approved: false);
       case 'policy':
         await SupabaseService.updateHRPolicyVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
       case 'maintenance':
         await SupabaseService.updateMaintenanceFormVersionStatus(id, 'rejected', decidedBy: UserSession.name, note: note);
+        NotificationService.formEditDecided(formName: 'Maintenance Form', approved: false);
     }
     _load();
   }

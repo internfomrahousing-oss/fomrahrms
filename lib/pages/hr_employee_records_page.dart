@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/emergency_attendance_notifier.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
@@ -809,6 +810,12 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.onrollHrComment = comment;
     _user.onrollHrDecidedAt = DateTime.now().toIso8601String();
     await widget.onSave(_user);
+    NotificationService.onrollStageDecided(
+      employeeEmail: _user.email, stage: 'HR', accepted: accept,
+    );
+    if (accept && _user.onrollAwaitingManagement) {
+      NotificationService.onrollReachedManagement(employeeName: _user.name);
+    }
     if (mounted) { setState(() => _saving = false); _startTimers(); }
   }
 
@@ -818,6 +825,12 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.onrollManagerComment = comment;
     _user.onrollManagerDecidedAt = DateTime.now().toIso8601String();
     await widget.onSave(_user);
+    NotificationService.onrollStageDecided(
+      employeeEmail: _user.email, stage: 'Manager', accepted: accept,
+    );
+    if (accept && _user.onrollAwaitingManagement) {
+      NotificationService.onrollReachedManagement(employeeName: _user.name);
+    }
     if (mounted) { setState(() => _saving = false); _startTimers(); }
   }
 

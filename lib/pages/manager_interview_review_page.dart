@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 import '../models/candidate_store.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
@@ -221,6 +222,11 @@ class _ManagerInterviewReviewPageState
       final fields = <String, dynamic>{'manager_status': status};
       if (comment != null) fields['manager_comment'] = comment;
       await SupabaseService.updateCandidateStatus(id, fields);
+      if (status == 'accepted') {
+        NotificationService.candidateReadyForManagement(
+          candidateName: (row['name'] ?? '').toString(),
+        );
+      }
       await _fetch();
     } catch (e) {
       if (mounted) {

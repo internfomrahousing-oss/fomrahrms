@@ -1,6 +1,7 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../models/form_config.dart';
 import '../models/user_session.dart';
@@ -226,6 +227,7 @@ class _EditFormPageState extends State<EditFormPage> {
         'created_by':
             UserSession.name.isNotEmpty ? UserSession.name : 'HR',
       });
+      NotificationService.formEditSubmitted(formName: 'Interview Form');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Form version sent to Management for approval'),

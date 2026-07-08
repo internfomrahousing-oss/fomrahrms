@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/onboarding_form_config.dart';
 import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/web_file_picker.dart';
 import '../theme/app_theme.dart';
 
@@ -870,6 +871,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         'designation': payload['designation'],
         'form_data':   payload,
       });
+      NotificationService.onboardingFormSubmitted(
+        name: (payload['name'] ?? '').toString(),
+      );
       if (mounted) setState(() { _saving = false; _submitted = true; });
     } catch (e) {
       if (mounted) {

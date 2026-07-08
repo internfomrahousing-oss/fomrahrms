@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/maintenance_form_config.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -195,6 +196,7 @@ class _EditMaintenanceFormPageState extends State<EditMaintenanceFormPage> {
         'version_number': _nextVersionNumber,
         'created_by': UserSession.name.isNotEmpty ? UserSession.name : 'HR',
       });
+      NotificationService.formEditSubmitted(formName: 'Maintenance Form');
       if (mounted) {
         _snack('Sent to Management for approval.', _green);
         _nextVersionNumber++;
@@ -240,6 +242,7 @@ class _EditMaintenanceFormPageState extends State<EditMaintenanceFormPage> {
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
       );
       MaintenanceFormConfig.invalidate();
+      NotificationService.formEditDecided(formName: 'Maintenance Form', approved: true);
       if (mounted) {
         _snack('Version approved and published.', _green);
         await Future.wait([_load(), _loadHistory()]);
@@ -290,6 +293,7 @@ class _EditMaintenanceFormPageState extends State<EditMaintenanceFormPage> {
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
         note: noteCtrl.text.trim(),
       );
+      NotificationService.formEditDecided(formName: 'Maintenance Form', approved: false);
       if (mounted) {
         _snack('Version rejected.', Colors.red.shade700);
         await _loadHistory();

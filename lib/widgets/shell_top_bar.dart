@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
 import 'quick_actions_bar.dart';
+import 'notification_bell_icon.dart';
 
 class ShellTopBar extends StatelessWidget {
   final bool sidebarOpen;
@@ -155,8 +156,7 @@ class ShellTopBar extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.notifications_rounded,
-                  color: Colors.white70, size: 20),
+              child: NotificationBellIcon(badgeBorderColor: AppTheme.primaryBlueDark),
             ),
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../services/user_store.dart';
@@ -292,6 +293,9 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                 );
                 if (!mounted) return;
                 if (err == null) {
+                  if (target == null) {
+                    NotificationService.announcementPosted(text: text);
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(target == null

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
+import '../services/notification_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -62,6 +63,7 @@ class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
       u.onrollConfirmedAt = DateTime.now().toIso8601String();
     });
     await UserStore.upsertOne(u);
+    NotificationService.onrollFinalDecided(employeeEmail: u.email, approved: true);
   }
 
   Future<void> _deny(AppUser u) async {
@@ -107,6 +109,7 @@ class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
       u.onrollManagementDecidedAt = DateTime.now().toIso8601String();
     });
     await UserStore.upsertOne(u);
+    NotificationService.onrollFinalDecided(employeeEmail: u.email, approved: false);
   }
 
   Future<void> _undo(AppUser u) async {

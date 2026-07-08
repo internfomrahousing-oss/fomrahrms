@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'models/color_theme_notifier.dart';
 import 'models/emergency_attendance_notifier.dart';
+import 'models/notification_store.dart';
 import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
 import 'services/supabase_service.dart';
@@ -41,4 +43,15 @@ void main() async {
       });
     }
   } catch (_) {}
+
+  // Keep the notification bell fresh without a full realtime subscription —
+  // re-poll periodically for as long as the app is open.
+  Timer.periodic(const Duration(seconds: 45), (_) async {
+    if (!UserSession.loggedIn) return;
+    final list = await SupabaseService.fetchNotifications();
+    NotificationStore.all
+      ..clear()
+      ..addAll(list);
+    NotificationStore.recomputeUnread();
+  });
 }

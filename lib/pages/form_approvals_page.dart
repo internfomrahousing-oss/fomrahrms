@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/leave_form_config.dart';
 import '../models/maintenance_form_config.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/form_version_label.dart';
 import '../widgets/back_button.dart';
@@ -74,36 +75,42 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
     await SupabaseService.updateLeaveFormVersionStatus(
       id, 'approved', decidedBy: UserSession.name);
     LeaveFormConfig.invalidate();
+    NotificationService.formEditDecided(formName: 'Leave Form', approved: true);
     _load();
   }
 
   Future<void> _rejectLeave(String id, String note) async {
     await SupabaseService.updateLeaveFormVersionStatus(
       id, 'rejected', decidedBy: UserSession.name, note: note);
+    NotificationService.formEditDecided(formName: 'Leave Form', approved: false);
     _load();
   }
 
   Future<void> _approveInterview(String id) async {
     await SupabaseService.updateFormVersionStatus(
       id, 'approved', decidedBy: UserSession.name);
+    NotificationService.formEditDecided(formName: 'Interview Form', approved: true);
     _load();
   }
 
   Future<void> _rejectInterview(String id, String note) async {
     await SupabaseService.updateFormVersionStatus(
       id, 'rejected', decidedBy: UserSession.name, note: note);
+    NotificationService.formEditDecided(formName: 'Interview Form', approved: false);
     _load();
   }
 
   Future<void> _approveOnboarding(String id) async {
     await SupabaseService.updateOnboardingFormVersionStatus(
       id, 'approved', decidedBy: UserSession.name);
+    NotificationService.formEditDecided(formName: 'Onboarding Form', approved: true);
     _load();
   }
 
   Future<void> _rejectOnboarding(String id, String note) async {
     await SupabaseService.updateOnboardingFormVersionStatus(
       id, 'rejected', decidedBy: UserSession.name, note: note);
+    NotificationService.formEditDecided(formName: 'Onboarding Form', approved: false);
     _load();
   }
 
@@ -123,12 +130,14 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
     await SupabaseService.updateMaintenanceFormVersionStatus(
       id, 'approved', decidedBy: UserSession.name);
     MaintenanceFormConfig.invalidate();
+    NotificationService.formEditDecided(formName: 'Maintenance Form', approved: true);
     _load();
   }
 
   Future<void> _rejectMaintenance(String id, String note) async {
     await SupabaseService.updateMaintenanceFormVersionStatus(
       id, 'rejected', decidedBy: UserSession.name, note: note);
+    NotificationService.formEditDecided(formName: 'Maintenance Form', approved: false);
     _load();
   }
 

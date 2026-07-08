@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
@@ -28,6 +30,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   bool get _showAll  => widget.showAll;
 
   Set<String> _teamNames = {};
+  List<AppUser> _users = [];
   bool _teamLoaded = false;
   String _search = '';
   LeaveApprovalStatus? _filterStatus;
@@ -99,7 +102,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
         UserStore.load(),
       ]);
       final leaves = results[0] as List<LeaveApplication>;
-      final users  = results[1] as List;
+      final users  = results[1] as List<AppUser>;
 
       if (leaves.isNotEmpty) {
         LeaveStore.applications..clear()..addAll(leaves);
@@ -107,14 +110,14 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
       }
 
       final myTeam = users
-          .cast<dynamic>()
           .where((u) => u.reportingManager == UserSession.name)
-          .map<String>((u) => u.name as String)
+          .map((u) => u.name)
           .toSet();
 
       if (mounted) {
         setState(() {
           _teamNames  = myTeam;
+          _users      = users;
           _teamLoaded = true;
           _loading    = false;
         });
@@ -139,6 +142,27 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     } else {
       await SupabaseService.updateLeaveManagerStatus(
           app.id, LeaveApprovalStatus.approved, decidedBy: by);
+    }
+    _notifyLeaveDecision(app, true);
+  }
+
+  void _notifyLeaveDecision(LeaveApplication app, bool approved) {
+    final user = _users.where((u) => u.name == app.employeeName).firstOrNull;
+    if (user == null || user.email.isEmpty) return;
+    NotificationService.leaveDecided(
+      employeeEmail: user.email,
+      leaveType: app.leaveType,
+      approved: approved,
+      employeeRoutePrefix: _routePrefixForRole(user.role),
+    ).catchError((_) {});
+  }
+
+  String _routePrefixForRole(String role) {
+    switch (role) {
+      case 'Manager':    return '/manager';
+      case 'Management': return '/management';
+      case 'HR':         return '';
+      default:           return '/employee';
     }
   }
 
@@ -201,6 +225,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
           app.id, LeaveApprovalStatus.denied,
           decidedBy: by, rejectionComment: comment);
     }
+    _notifyLeaveDecision(app, false);
   }
 
   Future<void> _reset(LeaveApplication app) async {

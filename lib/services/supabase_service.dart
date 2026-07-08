@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
+import '../models/notification_store.dart';
 import '../models/payslip_store.dart';
 import '../models/profile_store.dart';
 import '../models/employee_store.dart';
@@ -344,6 +345,24 @@ import '../models/user_session.dart';
     rejection_note text default ''
   );
   alter table form_versions disable row level security;
+
+  create table if not exists notifications (
+    id uuid default gen_random_uuid() primary key,
+    created_at timestamptz default now(),
+    type text not null,
+    title text not null,
+    body text default '',
+    route text default '',
+    target_email text default '',
+    target_role text default '',
+    target_reporting_manager text default '',
+    source_id text default '',
+    read_by jsonb default '[]'
+  );
+  alter table notifications disable row level security;
+  create index if not exists idx_notifications_email on notifications(target_email);
+  create index if not exists idx_notifications_role  on notifications(target_role);
+  create index if not exists idx_notifications_rm    on notifications(target_reporting_manager);
 */
 
 class SupabaseService {
@@ -1755,6 +1774,66 @@ class SupabaseService {
     } catch (_) {}
   }
 
+  // ── Notifications ─────────────────────────────────────────────────────
+
+  static Future<List<AppNotification>> fetchNotifications() async {
+    try {
+      final data = await _db
+          ?.from('notifications')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(500);
+      if (data == null) return [];
+      return (data as List).map((row) => AppNotification(
+        id:                     row['id'] as String,
+        createdAt:              DateTime.parse(row['created_at'] as String),
+        type:                   (row['type']  as String?) ?? '',
+        title:                  (row['title'] as String?) ?? '',
+        body:                   (row['body']  as String?) ?? '',
+        route:                  (row['route'] as String?) ?? '',
+        targetEmail:            (row['target_email']             as String?) ?? '',
+        targetRole:             (row['target_role']               as String?) ?? '',
+        targetReportingManager: (row['target_reporting_manager'] as String?) ?? '',
+        sourceId:               (row['source_id']                as String?) ?? '',
+        readBy: row['read_by'] is List
+            ? List<String>.from(row['read_by'] as List)
+            : [],
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> insertNotification({
+    required String type,
+    required String title,
+    String body = '',
+    String route = '',
+    String targetEmail = '',
+    String targetRole = '',
+    String targetReportingManager = '',
+    String sourceId = '',
+  }) async {
+    try {
+      await _db?.from('notifications').insert({
+        'type':                     type,
+        'title':                    title,
+        'body':                     body,
+        'route':                    route,
+        'target_email':             targetEmail,
+        'target_role':              targetRole,
+        'target_reporting_manager': targetReportingManager,
+        'source_id':                sourceId,
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> markNotificationRead(String id, List<String> readBy) async {
+    try {
+      await _db?.from('notifications').update({'read_by': readBy}).eq('id', id);
+    } catch (_) {}
+  }
+
   // ── Initial load on app start ─────────────────────────────────────────
 
   static Future<void> loadAll() async {
@@ -1764,7 +1843,16 @@ class SupabaseService {
       _loadProfiles(),
       _loadEmployees(),
       _loadTasks(),
+      _loadNotifications(),
     ]);
+  }
+
+  static Future<void> _loadNotifications() async {
+    final list = await fetchNotifications();
+    NotificationStore.all
+      ..clear()
+      ..addAll(list);
+    NotificationStore.recomputeUnread();
   }
 
   static Future<void> _loadLeave() async {

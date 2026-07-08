@@ -8,6 +8,7 @@ import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
 import 'quick_actions_bar.dart';
+import 'notification_bell_icon.dart';
 
 class _NavItem {
   final String label;
@@ -47,14 +48,6 @@ const _navItems = [
   _NavItem('Notifications',          Icons.notifications_rounded,          '/management/notifications'),
   _NavItem('Reports & Analytics',    Icons.bar_chart_rounded,              '/management/reports-analytics'),
   _NavItem('Administration',         Icons.admin_panel_settings_rounded,   '/management/administration'),
-];
-
-const _personalNavItems = [
-  _NavItem('My Profile',    Icons.person_rounded,                 '/management/my-profile'),
-  _NavItem('My Attendance and Leaves', Icons.event_note_rounded,  '/management/attendance-leaves'),
-  _NavItem('My Tasks',      Icons.task_alt_rounded,               '/management/my-tasks'),
-  _NavItem('My Payslips',   Icons.account_balance_wallet_rounded, '/management/my-payslips'),
-  _NavItem('Maintenance',   Icons.build_rounded,                  '/management/my-maintenance'),
 ];
 
 class ManagementShell extends StatelessWidget {
@@ -145,8 +138,7 @@ class _NarrowLayout extends StatelessWidget {
   const _NarrowLayout({required this.child, required this.location});
 
   String get _currentTitle {
-    final all = [..._navItems, ..._personalNavItems];
-    return all.firstWhere((i) => i.route == location,
+    return _navItems.firstWhere((i) => i.route == location,
         orElse: () => _navItems.first).label;
   }
 
@@ -161,7 +153,7 @@ class _NarrowLayout extends StatelessWidget {
           const ThemeToggle(),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            icon: const NotificationBellIcon(color: Colors.white),
             onPressed: () => context.go('/management/notifications'),
           ),
           const Padding(
@@ -206,11 +198,6 @@ class _Sidebar extends StatelessWidget {
                     items: _editFormItems,
                     location: location,
                   ),
-                  const _SectionDivider(label: 'My Space'),
-                  ..._personalNavItems.map((item) => _SidebarTile(
-                      item: item,
-                      selected: location == item.route ||
-                          location.startsWith('${item.route}/'))),
                 ],
               ),
             ),
@@ -506,11 +493,6 @@ class _DrawerContent extends StatelessWidget {
                   location: location,
                   closeDrawer: true,
                 ),
-                const _SectionDivider(label: 'My Space'),
-                ..._personalNavItems.map((item) => _SidebarTile(
-                    item: item,
-                    selected: location == item.route,
-                    closeDrawer: true)),
               ],
             ),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/leave_form_config.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -220,6 +221,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         'version_number': _nextVersionNumber,
         'created_by': UserSession.name.isNotEmpty ? UserSession.name : 'HR',
       });
+      NotificationService.formEditSubmitted(formName: 'Leave Form');
       if (mounted) {
         _snack('Sent to Management for approval.', _green);
         _nextVersionNumber++;
@@ -265,6 +267,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
       );
       LeaveFormConfig.invalidate();
+      NotificationService.formEditDecided(formName: 'Leave Form', approved: true);
       if (mounted) {
         _snack('Version approved and published.', _green);
         await Future.wait([_load(), _loadHistory()]);
@@ -315,6 +318,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         decidedBy: UserSession.name.isNotEmpty ? UserSession.name : 'Management',
         note: noteCtrl.text.trim(),
       );
+      NotificationService.formEditDecided(formName: 'Leave Form', approved: false);
       if (mounted) {
         _snack('Version rejected.', Colors.red.shade700);
         await _loadHistory();

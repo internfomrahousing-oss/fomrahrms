@@ -7,6 +7,7 @@ import '../models/employee_store.dart';
 import '../models/user_session.dart';
 import '../services/user_store.dart';
 import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -214,7 +215,44 @@ void _pickTeam() {
     TaskStore.tasks.add(task);
     await SupabaseService.saveTask(task);
 
+    // Fire-and-forget: notify every assignee, but never the assigner themselves.
+    _notifyAssignees(task);
+
     if (mounted) context.pop();
+  }
+
+  // Resolves each assignee's email + role and sends a "task assigned" notification.
+  Future<void> _notifyAssignees(Task task) async {
+    final names = <String>{
+      if (task.assignedEmployee.isNotEmpty) task.assignedEmployee,
+      ...task.teamMembers,
+    };
+    if (names.isEmpty) return;
+    final users = await UserStore.load();
+    for (final name in names) {
+      AppUser? user;
+      for (final u in users) {
+        if (u.name.trim() == name.trim()) {
+          user = u;
+          break;
+        }
+      }
+      if (user == null) continue;
+      if (user.email.trim().toLowerCase() == UserSession.email.trim().toLowerCase()) {
+        continue; // don't notify the assigner about their own assignment
+      }
+      final routePrefix = switch (AppUser.userRoleFor(user.role)) {
+        UserRole.hr               => '',
+        UserRole.employee         => '/employee',
+        UserRole.reportingManager => '/manager',
+        UserRole.management       => '/management',
+      };
+      NotificationService.taskAssigned(
+        taskName: task.name,
+        assigneeEmail: user.email,
+        assigneeRoutePrefix: routePrefix,
+      );
+    }
   }
 
   @override

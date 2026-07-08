@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
@@ -96,6 +97,13 @@ class _MyTasksPageState extends State<MyTasksPage> {
   void _onDone(Task t) {
     setState(() => t.status = TaskStatus.completed);
     SupabaseService.updateTaskStatus(t.id, TaskStatus.completed);
+    // Fire-and-forget: let this employee's reporting manager know.
+    if (UserSession.reportingManager.isNotEmpty) {
+      NotificationService.taskCompleted(
+        taskName: t.name,
+        reportingManagerName: UserSession.reportingManager,
+      );
+    }
   }
 
   // Group task done: mark member complete; flip overall if all done
@@ -110,6 +118,13 @@ class _MyTasksPageState extends State<MyTasksPage> {
       if (allCompleted) t.status = TaskStatus.completed;
     });
     SupabaseService.updateTeamMemberStatus(t.id, updated, allCompleted);
+    // Only notify once the whole group task is done, and only fire-and-forget.
+    if (allCompleted && UserSession.reportingManager.isNotEmpty) {
+      NotificationService.taskCompleted(
+        taskName: t.name,
+        reportingManagerName: UserSession.reportingManager,
+      );
+    }
   }
 
   @override

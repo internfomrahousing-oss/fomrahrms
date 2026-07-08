@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 import '../services/user_store.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
@@ -228,6 +229,10 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
         'hr_status':        'accepted',
         'assigned_manager': managerName,
       });
+      NotificationService.candidateAssignedToManager(
+        candidateName: (row['name'] ?? '').toString(),
+        managerName: managerName,
+      );
       await _fetch();
     } catch (e) {
       if (mounted) {
