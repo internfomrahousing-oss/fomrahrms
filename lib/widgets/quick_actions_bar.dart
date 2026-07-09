@@ -3,35 +3,120 @@ import '../models/user_session.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart';
 
-void _showBlock(BuildContext context, Widget block) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (_) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.55,
-      minChildSize: 0.35,
-      maxChildSize: 0.85,
-      builder: (_, ctrl) => Column(children: [
-        Container(
-          width: 40, height: 4,
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-              color: Colors.black12, borderRadius: BorderRadius.circular(2)),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            controller: ctrl,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: block,
+/// A quick-action icon that, on tap, opens its own anchored dropdown panel
+/// (positioned just below the icon) containing [block] — rather than a
+/// shared full-screen bottom sheet. Each of the 4 quick-action icons gets
+/// its own independent dropdown.
+class QuickActionDropdownIcon extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final Widget block;
+  final double boxSize;
+  final double iconSize;
+  final BorderRadius borderRadius;
+  final bool whiteIcon;
+  const QuickActionDropdownIcon({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.block,
+    this.boxSize = 36,
+    this.iconSize = 18,
+    this.borderRadius = const BorderRadius.all(Radius.circular(10)),
+    this.whiteIcon = false,
+  });
+
+  @override
+  State<QuickActionDropdownIcon> createState() => _QuickActionDropdownIconState();
+}
+
+class _QuickActionDropdownIconState extends State<QuickActionDropdownIcon> {
+  final _link = LayerLink();
+  OverlayEntry? _entry;
+
+  void _toggle() {
+    if (_entry != null) {
+      _close();
+    } else {
+      _open();
+    }
+  }
+
+  void _open() {
+    final overlay = Overlay.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final panelWidth = (screenWidth - 32).clamp(240, 320).toDouble();
+
+    _entry = OverlayEntry(builder: (_) {
+      return Stack(children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _close,
           ),
         ),
-      ]),
-    ),
-  );
+        CompositedTransformFollower(
+          link: _link,
+          showWhenUnlinked: false,
+          targetAnchor: Alignment.bottomRight,
+          followerAnchor: Alignment.topRight,
+          offset: const Offset(0, 8),
+          child: Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surface,
+            child: Container(
+              width: panelWidth,
+              constraints: const BoxConstraints(maxHeight: 420),
+              padding: const EdgeInsets.all(4),
+              child: SingleChildScrollView(child: widget.block),
+            ),
+          ),
+        ),
+      ]);
+    });
+    overlay.insert(_entry!);
+    setState(() {});
+  }
+
+  void _close() {
+    _entry?.remove();
+    _entry = null;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _entry?.remove();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _link,
+      child: Tooltip(
+        message: widget.label,
+        child: InkWell(
+          onTap: _toggle,
+          borderRadius: widget.borderRadius,
+          child: Container(
+            width: widget.boxSize,
+            height: widget.boxSize,
+            decoration: BoxDecoration(
+              color: widget.color.withValues(alpha: widget.whiteIcon ? 0.18 : 0.15),
+              borderRadius: widget.borderRadius,
+              border: Border.all(color: widget.color.withValues(alpha: 0.35)),
+            ),
+            child: Icon(widget.icon, size: widget.iconSize,
+                color: widget.whiteIcon ? Colors.white : widget.color),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // Single professional accent shared by all quick-action icons (was a
@@ -85,21 +170,11 @@ class QuickActionsBody extends StatelessWidget {
             final q = _qData[i];
             return Padding(
               padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
-              child: Tooltip(
-                message: q.label,
-                child: InkWell(
-                  onTap: () => _showBlock(context, _blockFor(i)),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: q.color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: q.color.withValues(alpha: 0.35)),
-                    ),
-                    child: Icon(q.icon, size: 18, color: q.color),
-                  ),
-                ),
+              child: QuickActionDropdownIcon(
+                icon: q.icon,
+                color: q.color,
+                label: q.label,
+                block: _blockFor(i),
               ),
             );
           }),
@@ -122,29 +197,14 @@ class QuickActionIconsVertical extends StatelessWidget {
         final q = _qData[i];
         return Padding(
           padding: EdgeInsets.only(bottom: i < _qData.length - 1 ? 8 : 0),
-          child: Tooltip(
-            message: q.label,
-            child: GestureDetector(
-              onTap: () => _showBlock(context, _blockFor(i)),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: q.color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: q.color.withValues(alpha: 0.45), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: q.color.withValues(alpha: 0.18),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Icon(q.icon, size: 22, color: q.color),
-              ),
-            ),
+          child: QuickActionDropdownIcon(
+            icon: q.icon,
+            color: q.color,
+            label: q.label,
+            block: _blockFor(i),
+            boxSize: 44,
+            iconSize: 22,
+            borderRadius: BorderRadius.circular(12),
           ),
         );
       }),
@@ -164,22 +224,14 @@ class QuickActionIcons extends StatelessWidget {
         final q = _qData[i];
         return Padding(
           padding: EdgeInsets.only(left: i == 0 ? 0 : 6),
-          child: Tooltip(
-            message: q.label,
-            child: InkWell(
-              onTap: () => _showBlock(context, _blockFor(i)),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: q.color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: q.color.withValues(alpha: 0.35), width: 1),
-                ),
-                child: Icon(q.icon, color: Colors.white, size: 20),
-              ),
-            ),
+          child: QuickActionDropdownIcon(
+            icon: q.icon,
+            color: q.color,
+            label: q.label,
+            block: _blockFor(i),
+            boxSize: 36,
+            iconSize: 20,
+            whiteIcon: true,
           ),
         );
       }),

@@ -1,5 +1,4 @@
 import 'dart:html' as html_lib;
-import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
@@ -9,6 +8,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
+import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
 
 CheckInRowStatus _rowStatus(AttendanceRecord r, List<LeaveApplication> leaveApps) {
@@ -722,7 +722,7 @@ class _AttendanceDetailDialog extends StatelessWidget {
               ],
               if (r.gpsPoints.isNotEmpty || r.location.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _RouteMap(record: r),
+                _RouteSection(record: r),
               ],
               if (r.checkInTime.isNotEmpty && hasCheckOut) ...[
                 const SizedBox(height: 16),
@@ -822,90 +822,22 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ── Route map widget ─────────────────────────────────────────────────────────
+// ── Route map section ────────────────────────────────────────────────────────
 
-class _RouteMap extends StatefulWidget {
+class _RouteSection extends StatelessWidget {
   final AttendanceRecord record;
-  const _RouteMap({required this.record});
-
-  @override
-  State<_RouteMap> createState() => _RouteMapState();
-}
-
-class _RouteMapState extends State<_RouteMap> {
-  static final _registered = <String>{};
-
-  String get _viewId {
-    final pts = widget.record.gpsPoints.length;
-    return 'hr_route_${widget.record.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_$pts';
-  }
+  const _RouteSection({required this.record});
 
   List<List<double>> get _points {
-    if (widget.record.gpsPoints.isNotEmpty) return widget.record.gpsPoints;
+    if (record.gpsPoints.isNotEmpty) return record.gpsPoints;
     // Fallback: single point from location field
-    final parts = widget.record.location.split(',');
+    final parts = record.location.split(',');
     if (parts.length == 2) {
       final lat = double.tryParse(parts[0].trim());
       final lng = double.tryParse(parts[1].trim());
       if (lat != null && lng != null) return [[lat, lng]];
     }
     return [];
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final pts = _points;
-    if (pts.isEmpty) return;
-    if (_registered.contains(_viewId)) return;
-    _registered.add(_viewId);
-
-    // Build JS points array
-    final jsPts = pts.map((p) => '[${p[0]},${p[1]}]').join(',');
-
-    final html = '''
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <style>body{margin:0;padding:0;} #map{width:100%;height:100%;}</style>
-      <div id="map"></div>
-      <script>
-        var pts = [$jsPts];
-        var map = L.map('map', {zoomControl:true});
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          {attribution:'© OpenStreetMap'}).addTo(map);
-
-        if (pts.length > 1) {
-          var route = L.polyline(pts, {color:'#1565C0', weight:4, opacity:0.85}).addTo(map);
-
-          // Green circle = start
-          L.circleMarker(pts[0], {
-            radius:8, color:'#fff', weight:2,
-            fillColor:'#2E7D32', fillOpacity:1
-          }).addTo(map).bindPopup('Check-in location');
-
-          // Red circle = latest point
-          L.circleMarker(pts[pts.length-1], {
-            radius:9, color:'#fff', weight:2,
-            fillColor:'#C62828', fillOpacity:1
-          }).addTo(map).bindPopup('Last known location');
-
-          map.fitBounds(route.getBounds(), {padding:[30,30]});
-        } else {
-          L.marker(pts[0]).addTo(map).bindPopup('Location').openPopup();
-          map.setView(pts[0], 15);
-        }
-      </script>
-    ''';
-
-    final blob = html_lib.Blob([html], 'text/html');
-    final url  = html_lib.Url.createObjectUrl(blob);
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewId, (_) => html_lib.IFrameElement()
-        ..src = url
-        ..style.border = 'none'
-        ..style.width  = '100%'
-        ..style.height = '100%',
-    );
   }
 
   @override
@@ -925,13 +857,7 @@ class _RouteMapState extends State<_RouteMap> {
         ),
       ]),
       const SizedBox(height: 8),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          height: 200,
-          child: HtmlElementView(viewType: _viewId),
-        ),
-      ),
+      RouteMapView(points: pts, recordId: record.id, keyPrefix: 'hr_route'),
       const SizedBox(height: 6),
       Text(
         'Last: ${last[0].toStringAsFixed(6)}, ${last[1].toStringAsFixed(6)}',

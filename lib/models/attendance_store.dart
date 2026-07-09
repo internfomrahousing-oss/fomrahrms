@@ -22,19 +22,10 @@ class LateComingRecord {
   const LateComingRecord({required this.employee, required this.date, required this.arrivalTime, required this.reason});
 }
 
-class GpsRecord {
-  final String employee;
-  final String date;
-  final String location;
-  final String time;
-  const GpsRecord({required this.employee, required this.date, required this.location, required this.time});
-}
-
 class AttendanceStore {
   static final List<CheckInRecord>    checkIns   = [];
   static final List<CheckOutRecord>   checkOuts  = [];
   static final List<LateComingRecord> lateComing = [];
-  static final List<GpsRecord>        gpsRecords = [];
 
   static bool isCheckedIn = false;
 }

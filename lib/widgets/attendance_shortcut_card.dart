@@ -938,9 +938,8 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
 
-    final lat = GpsTrackingService.latestLat;
-    final lng = GpsTrackingService.latestLng;
-    final loc = (lat != null && lng != null) ? '$lat,$lng' : '';
+    final pos = await GpsTrackingService.getCurrentLocation();
+    final loc = pos != null ? '${pos.latitude},${pos.longitude}' : '';
 
     final err = await SupabaseService.saveCheckIn(
       employeeName: empName,
