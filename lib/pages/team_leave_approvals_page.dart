@@ -9,6 +9,8 @@ import '../services/user_store.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
+enum _SortOrder { newestFirst, oldestFirst }
+
 class TeamLeaveApprovalsPage extends StatefulWidget {
   /// isManagement: controls header label and icon (management vs manager)
   /// showAll: when true, shows every employee's leaves; when false, team only
@@ -24,17 +26,29 @@ class TeamLeaveApprovalsPage extends StatefulWidget {
   State<TeamLeaveApprovalsPage> createState() => _TeamLeaveApprovalsPageState();
 }
 
-class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
-  static const _color = Color(0xFF111827);
+class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
+    with SingleTickerProviderStateMixin {
+  static Color get _blue => AppTheme.primaryBlue;
   bool get _isMgmt   => widget.isManagement;
   bool get _showAll  => widget.showAll;
+
+  late TabController _tabController;
 
   Set<String> _teamNames = {};
   List<AppUser> _users = [];
   bool _teamLoaded = false;
   String _search = '';
   LeaveApprovalStatus? _filterStatus;
+  String? _departmentFilter;
+  _SortOrder _sort = _SortOrder.newestFirst;
+  bool _showFilterPanel = false;
   bool _loading = false;
+
+  bool _holidayBannerDismissed = false;
+  bool _permBannerDismissed = false;
+
+  int _page = 0;
+  int _rowsPerPage = 10;
 
   List<LeaveApplication> get _requests {
     if (_showAll) return LeaveStore.applications;
@@ -58,7 +72,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
         r.leaveType.toLowerCase().contains(_search.toLowerCase());
     final matchStatus =
         _filterStatus == null || r.managerStatus == _filterStatus;
-    return matchSearch && matchStatus;
+    final matchDept =
+        _departmentFilter == null || r.department == _departmentFilter;
+    return matchSearch && matchStatus && matchDept;
   }
 
   List<LeaveApplication> get _filtered =>
@@ -67,74 +83,78 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
   bool _isPermCompOff(LeaveApplication a) =>
       a.leaveType == 'Permission' || a.leaveType == 'Comp Off';
 
+  List<LeaveApplication> _sorted(List<LeaveApplication> list) {
+    final out = List<LeaveApplication>.from(list);
+    out.sort((a, b) => _sort == _SortOrder.newestFirst
+        ? b.appliedOn.compareTo(a.appliedOn)
+        : a.appliedOn.compareTo(b.appliedOn));
+    return out;
+  }
+
   List<LeaveApplication> get _leaveSection {
     var src = _filtered.where((a) => !_isPermCompOff(a));
     // Manager only handles ≤ 2-day regular leaves; holidays go to Management
     if (!_isMgmt && !_showAll) src = src.where((a) => a.effectiveDays <= 2);
-    return src.toList();
+    return _sorted(src.toList());
   }
 
   List<LeaveApplication> get _permSection =>
-      _filtered.where((a) => a.leaveType == 'Permission').toList();
+      _sorted(_filtered.where((a) => a.leaveType == 'Permission').toList());
 
   List<LeaveApplication> get _compOffSection =>
-      _filtered.where((a) => a.leaveType == 'Comp Off').toList();
+      _sorted(_filtered.where((a) => a.leaveType == 'Comp Off').toList());
 
+  List<LeaveApplication> get _currentTabList => switch (_tabController.index) {
+        1 => _permSection,
+        2 => _compOffSection,
+        _ => _leaveSection,
+      };
+
+  // Stat cards reflect the full scope for this page (team or all), not the
+  // currently-typed search/status filter — they're an overview, not a tally
+  // of the visible rows.
   int get _pendingCount =>
-      _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
+      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.pending).length;
   int get _approvedCount =>
-      _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.approved).length;
+      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.approved).length;
   int get _deniedCount =>
-      _filtered.where((r) => r.managerStatus == LeaveApprovalStatus.denied).length;
-
-  Widget _statCardsRow() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final tiles = [
-        _StatTile(
-          icon: Icons.list_alt_rounded, color: _color,
-          value: '${_filtered.length}', label: 'Total',
-          active: _filterStatus == null,
-          onTap: () => setState(() => _filterStatus = null),
-        ),
-        _StatTile(
-          icon: Icons.hourglass_empty_rounded, color: Colors.orange.shade700,
-          value: '$_pendingCount', label: 'Pending',
-          active: _filterStatus == LeaveApprovalStatus.pending,
-          onTap: () => setState(() => _filterStatus =
-              _filterStatus == LeaveApprovalStatus.pending ? null : LeaveApprovalStatus.pending),
-        ),
-        _StatTile(
-          icon: Icons.check_circle_rounded, color: Colors.green.shade700,
-          value: '$_approvedCount', label: 'Approved',
-          active: _filterStatus == LeaveApprovalStatus.approved,
-          onTap: () => setState(() => _filterStatus =
-              _filterStatus == LeaveApprovalStatus.approved ? null : LeaveApprovalStatus.approved),
-        ),
-        _StatTile(
-          icon: Icons.cancel_rounded, color: Colors.red.shade700,
-          value: '$_deniedCount', label: 'Denied',
-          active: _filterStatus == LeaveApprovalStatus.denied,
-          onTap: () => setState(() => _filterStatus =
-              _filterStatus == LeaveApprovalStatus.denied ? null : LeaveApprovalStatus.denied),
-        ),
-      ];
-      if (constraints.maxWidth > 560) {
-        return Row(children: [
-          for (var i = 0; i < tiles.length; i++) ...[
-            if (i > 0) const SizedBox(width: 12),
-            Expanded(child: tiles[i]),
-          ],
-        ]);
-      }
-      return Wrap(spacing: 12, runSpacing: 12,
-          children: [for (final t in tiles) SizedBox(width: 150, child: t)]);
-    });
+      _requests.where((r) => r.managerStatus == LeaveApprovalStatus.denied).length;
+  int get _approvalRate {
+    final decided = _approvedCount + _deniedCount;
+    if (decided == 0) return 100;
+    return (_approvedCount / decided * 100).round();
   }
+
+  List<String> get _departments {
+    final set = _requests.map((r) => r.department).where((d) => d.isNotEmpty).toSet();
+    return set.toList()..sort();
+  }
+
+  AppUser? _userFor(String name) {
+    final n = name.trim().toLowerCase();
+    for (final u in _users) {
+      if (u.name.trim().toLowerCase() == n) return u;
+    }
+    return null;
+  }
+
+  void _resetPage() => setState(() => _page = 0);
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) return;
+      setState(() => _page = 0);
+    });
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -289,488 +309,953 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage> {
     }
   }
 
+  // ── Detail dialog ────────────────────────────────────────────────────────
+
+  void _showDetails(LeaveApplication req) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 640),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Row(children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: _blue.withValues(alpha: 0.1),
+                    child: Text(
+                      req.employeeName.isNotEmpty ? req.employeeName[0].toUpperCase() : '?',
+                      style: TextStyle(color: _blue, fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(req.employeeName,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      if (req.department.isNotEmpty)
+                        Text(req.department,
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ]),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ]),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _blue.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _blue.withValues(alpha: 0.12)),
+                  ),
+                  child: Column(children: [
+                    _DetailRow(Icons.label_rounded, 'Leave Type', req.leaveType),
+                    const SizedBox(height: 8),
+                    _DetailRow(Icons.date_range_rounded, 'Duration',
+                        '${_fmtDate(req.from)}  →  ${_fmtDate(req.to)}'),
+                    const SizedBox(height: 8),
+                    _DetailRow(Icons.numbers_rounded, 'Days',
+                        req.isHalfDay ? '½ day' : '${req.days} day${req.days == 1 ? '' : 's'}'),
+                    const SizedBox(height: 8),
+                    _DetailRow(Icons.calendar_today_rounded, 'Applied On', _fmtDateTime(req.appliedOn)),
+                    if (req.reason.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _DetailRow(Icons.notes_rounded, 'Reason', req.reason),
+                    ],
+                  ]),
+                ),
+                if (req.effectiveDays > 2) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.beach_access_rounded, size: 13, color: Colors.red.shade700),
+                        const SizedBox(width: 5),
+                        Text('Holiday — goes to Management',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red.shade700)),
+                      ]),
+                    ),
+                  ),
+                ],
+                if (req.leaveType == 'Permission') ...[
+                  const SizedBox(height: 10),
+                  Builder(builder: (ctx) {
+                    final used = LeaveStore.permUsedThisMonth(req.employeeName);
+                    final remaining = (120 - used).clamp(0, 120);
+                    final badgeColor = remaining == 0
+                        ? Colors.red.shade700
+                        : remaining <= 30 ? Colors.orange.shade700 : AppTheme.accentBlue;
+                    return Row(children: [
+                      Icon(Icons.schedule_rounded, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Text('Monthly: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: badgeColor.withValues(alpha: 0.35)),
+                        ),
+                        child: Text(
+                          remaining == 0 ? 'Limit reached' : '$remaining min left this month',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
+                        ),
+                      ),
+                    ]);
+                  }),
+                ],
+                const SizedBox(height: 16),
+                if (!widget.isManagement && req.managementDecided)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.lock_rounded, size: 15, color: Colors.grey.shade500),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Decision locked by Management: ${_sl(req.managerStatus)}'
+                          '${req.decidedBy.isNotEmpty ? ' (${req.decidedBy})' : ''}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ]),
+                  )
+                else if (req.managerStatus == LeaveApprovalStatus.pending)
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () { Navigator.pop(ctx); _deny(req); },
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        label: const Text('Deny'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red.shade400,
+                          side: BorderSide(color: Colors.red.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () { Navigator.pop(ctx); _approve(req); },
+                        icon: const Icon(Icons.check_rounded, size: 16),
+                        label: const Text('Approve'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ])
+                else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _sc(req.managerStatus).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(children: [
+                      Icon(_si(req.managerStatus), size: 16, color: _sc(req.managerStatus)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${_sl(req.managerStatus)} by ${req.decidedBy.isEmpty ? 'Manager' : req.decidedBy}'
+                          '${req.decidedAt != null ? ' · ${_fmtDateTime(req.decidedAt!)}' : ''}',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _sc(req.managerStatus)),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  if (req.managerStatus == LeaveApprovalStatus.denied && req.rejectionComment.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text('Reason: ${req.rejectionComment}',
+                          style: TextStyle(fontSize: 12, color: Colors.red.shade800)),
+                    ),
+                  ],
+                ],
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    if (_isMgmt && _showAll) return _buildWithTabs(context);
-    final filtered = _filtered;
+    final title = _showAll ? 'All Leave Approvals' : 'Team Leave Approvals';
+    final subtitle = _showAll
+        ? 'View and edit all employee leave decisions'
+        : 'Review and approve leave requests from your team';
+
     return Scaffold(
       backgroundColor: null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Header
-          Row(children: [
-            const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+      body: Column(children: [
+        // ── Fixed header ─────────────────────────────────────────────────
+        Container(
+          color: Theme.of(context).colorScheme.surface,
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const NavBackButton(),
+              const SizedBox(width: 8),
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _isMgmt ? Icons.admin_panel_settings_rounded : Icons.group_rounded,
+                  color: _blue, size: 22),
               ),
-              child: Icon(
-                _isMgmt
-                    ? Icons.admin_panel_settings_rounded
-                    : Icons.group_rounded,
-                color: _color, size: 26),
-            ),
-            const SizedBox(width: 16),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                _showAll ? 'All Leave Approvals' : 'Team Leave Approvals',
-                style: Theme.of(context).textTheme.headlineMedium,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: Theme.of(context).textTheme.headlineMedium),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                ]),
               ),
-              Text(
-                _showAll
-                    ? 'View and edit all employee leave decisions'
-                    : 'Employees reporting directly to you',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: IconButton(
+                  tooltip: 'Refresh',
+                  icon: Icon(Icons.refresh_rounded, color: _blue, size: 20),
+                  onPressed: _loadData,
+                ),
               ),
             ]),
-            const Spacer(),
-            IconButton(
-              tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh_rounded, color: _color),
-              onPressed: _loadData,
+            const SizedBox(height: 18),
+
+            // ── Stat cards ──────────────────────────────────────────────
+            _StatCardsRow(
+              pending: _pendingCount,
+              approved: _approvedCount,
+              denied: _deniedCount,
+              approvalRate: _approvalRate,
             ),
-          ]),
-          const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-          // Stat cards
-          _statCardsRow(),
-          const SizedBox(height: 16),
+            // ── Tabs + filter toggle ───────────────────────────────────
+            Row(children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    _PillTab(
+                      label: 'Leave Applications',
+                      count: _leaveSection.length,
+                      selected: _tabController.index == 0,
+                      onTap: () => setState(() { _tabController.index = 0; _page = 0; }),
+                    ),
+                    const SizedBox(width: 8),
+                    _PillTab(
+                      label: 'Permission Applications',
+                      count: _permSection.length,
+                      selected: _tabController.index == 1,
+                      onTap: () => setState(() { _tabController.index = 1; _page = 0; }),
+                    ),
+                    const SizedBox(width: 8),
+                    _PillTab(
+                      label: 'Comp Off Applications',
+                      count: _compOffSection.length,
+                      selected: _tabController.index == 2,
+                      onTap: () => setState(() { _tabController.index = 2; _page = 0; }),
+                    ),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (_departments.length > 1)
+                _FilterToggleButton(
+                  active: _showFilterPanel,
+                  hasSelection: _departmentFilter != null,
+                  onTap: () => setState(() => _showFilterPanel = !_showFilterPanel),
+                ),
+            ]),
+            const SizedBox(height: 12),
 
-          // Search bar
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: TextField(
-                onChanged: (v) => setState(() => _search = v),
+            if (_showFilterPanel && _departments.length > 1) ...[
+              _DropdownField<String?>(
+                label: 'Department',
+                value: _departmentFilter,
+                icon: Icons.apartment_rounded,
+                display: (v) => v ?? 'All',
+                options: [null, ..._departments],
+                onChanged: (v) { setState(() => _departmentFilter = v); _resetPage(); },
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Search + status + sort ─────────────────────────────────
+            LayoutBuilder(builder: (context, constraints) {
+              final search = TextField(
+                onChanged: (v) { setState(() => _search = v); _resetPage(); },
                 decoration: InputDecoration(
                   hintText: 'Search employee or leave type...',
-                  prefixIcon:
-                      const Icon(Icons.search_rounded, color: _color, size: 20),
+                  prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
                   suffixIcon: _search.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
-                          onPressed: () => setState(() => _search = ''))
+                          onPressed: () { setState(() => _search = ''); _resetPage(); })
                       : null,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: _color, width: 2),
-                  ),
                   filled: true,
-                  fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
+              );
+              final statusDropdown = _DropdownField<LeaveApprovalStatus?>(
+                label: 'Status',
+                value: _filterStatus,
+                icon: Icons.filter_alt_rounded,
+                display: (s) => s == null ? 'All Status' : _sl(s),
+                options: const [null, ...LeaveApprovalStatus.values],
+                onChanged: (v) { setState(() => _filterStatus = v); _resetPage(); },
+              );
+              final sortDropdown = _DropdownField<_SortOrder>(
+                label: 'Sort',
+                value: _sort,
+                icon: Icons.swap_vert_rounded,
+                display: (s) => s == _SortOrder.newestFirst ? 'Newest First' : 'Oldest First',
+                options: _SortOrder.values,
+                onChanged: (v) => setState(() => _sort = v),
+              );
 
-          if (_filterStatus != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(children: [
-                Text(
-                  'Showing: ${_filterStatus!.name[0].toUpperCase()}${_filterStatus!.name.substring(1)} only',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
+              if (constraints.maxWidth < 760) {
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  search,
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 8, runSpacing: 8, children: [statusDropdown, sortDropdown]),
+                ]);
+              }
+              return Row(children: [
+                Expanded(child: search),
                 const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => setState(() => _filterStatus = null),
-                  child: const Text('Clear',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: _color,
-                          fontWeight: FontWeight.w600)),
-                ),
-              ]),
-            ),
+                statusDropdown,
+                const SizedBox(width: 8),
+                sortDropdown,
+              ]);
+            }),
+            const SizedBox(height: 14),
 
-          if (_loading)
-            const Center(
-                child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: CircularProgressIndicator())),
-
-          if (!_loading && !_isMgmt && _teamLoaded && _teamNames.isEmpty)
-            _emptyCard(
-              icon: Icons.group_off_rounded,
-              title: 'No employees assigned to you',
-              subtitle:
-                  'Ask Management to assign employees via Administration → Edit User → Reporting Manager.',
-            )
-          else if (!_loading && _requests.isEmpty)
-            _emptyCard(
-              icon: Icons.inbox_rounded,
-              title: _isMgmt
-                  ? 'No leave requests yet'
-                  : 'No leave requests from your team',
-              subtitle: 'Leave requests will appear here for approval.',
-            )
-          else if (!_loading && _filtered.isEmpty)
-            _emptyCard(
-              icon: Icons.search_off_rounded,
-              title: 'No results match your search',
-              subtitle: '',
-            )
-          else if (!_loading) ...[
-            // ── Leave Applications ──────────────────────────────────────────
-            _SectionHeader(
-              label: 'Leave Applications',
-              count: _leaveSection.length,
-              color: const Color(0xFF111827),
-              icon: Icons.event_note_rounded,
-            ),
-            const SizedBox(height: 8),
-            if (!_isMgmt)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _holidayPolicyNotice(context),
+            if (_tabController.index == 0 && !_holidayBannerDismissed)
+              _dismissibleBanner(
+                'Leaves longer than 2 days are forwarded to Management for approval.',
+                () => setState(() => _holidayBannerDismissed = true),
               ),
-            if (_leaveSection.isEmpty)
-              _emptyCard(
-                icon: Icons.event_available_rounded,
-                title: 'No leave requests',
-                subtitle: '',
-              )
-            else
-              ..._leaveSection.map((app) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RequestCard(
-                      request:      app,
-                      isManagement: _isMgmt,
-                      onApprove:    () => _approve(app),
-                      onDeny:       () => _deny(app),
-                      onReset:      () => _reset(app),
-                    ),
-                  )),
-            const SizedBox(height: 20),
+            if (_tabController.index == 1 && !_permBannerDismissed)
+              _dismissibleBanner(
+                'Each employee is entitled to 2 hours of permission per month.',
+                () => setState(() => _permBannerDismissed = true),
+              ),
+            const SizedBox(height: 4),
+          ]),
+        ),
 
-            // ── Permission Applications ─────────────────────────────────────
-            _SectionHeader(
-              label: 'Permission Applications',
-              count: _permSection.length,
-              color: AppTheme.accentBlue,
-              icon: Icons.access_time_rounded,
-            ),
-            const SizedBox(height: 8),
-            _permLimitBanner(context),
-            const SizedBox(height: 8),
-            if (_permSection.isEmpty)
-              _emptyCard(
-                icon: Icons.schedule_rounded,
-                title: 'No permission requests',
-                subtitle: '',
-              )
-            else
-              ..._permSection.map((app) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RequestCard(
-                      request:      app,
-                      isManagement: _isMgmt,
-                      onApprove:    () => _approve(app),
-                      onDeny:       () => _deny(app),
-                      onReset:      () => _reset(app),
-                    ),
-                  )),
-            const SizedBox(height: 20),
-
-            // ── Comp Off Applications ───────────────────────────────────────
-            _SectionHeader(
-              label: 'Comp Off Applications',
-              count: _compOffSection.length,
-              color: const Color(0xFF22C55E),
-              icon: Icons.swap_horiz_rounded,
-            ),
-            const SizedBox(height: 8),
-            if (_compOffSection.isEmpty)
-              _emptyCard(
-                icon: Icons.swap_horiz_rounded,
-                title: 'No comp off requests',
-                subtitle: '',
-              )
-            else
-              ..._compOffSection.map((app) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RequestCard(
-                      request:      app,
-                      isManagement: _isMgmt,
-                      onApprove:    () => _approve(app),
-                      onDeny:       () => _deny(app),
-                      onReset:      () => _reset(app),
-                    ),
-                  )),
-          ],
-        ]),
-      ),
+        // ── Scrollable body ─────────────────────────────────────────────
+        Expanded(
+          child: AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) => _buildBody(context),
+          ),
+        ),
+      ]),
     );
   }
 
-  // ── Management "All Leave Approvals" tabbed view ─────────────────────────────
-
-  Widget _buildWithTabs(BuildContext context) {
-    final leaveApps   = _filtered.where((a) => !_isPermCompOff(a)).toList();
-    final permApps    = _permSection;
-    final compOffApps = _compOffSection;
-
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: null,
-        body: Column(children: [
-          // Fixed header
-          Container(
-            color: Theme.of(context).colorScheme.surface,
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Header row
-              Row(children: [
-                const NavBackButton(),
-                const SizedBox(width: 8),
-                Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(
-                    color: _color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.admin_panel_settings_rounded, color: _color, size: 26),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('All Leave Approvals', style: Theme.of(context).textTheme.headlineMedium),
-                    const Text('View and edit all employee leave decisions',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                  ]),
-                ),
-                IconButton(
-                  tooltip: 'Refresh',
-                  icon: const Icon(Icons.refresh_rounded, color: _color),
-                  onPressed: _loadData,
-                ),
-              ]),
-              const SizedBox(height: 16),
-
-              // Stat cards
-              _statCardsRow(),
-              const SizedBox(height: 12),
-
-              // Search bar
-              Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: TextField(
-                    onChanged: (v) => setState(() => _search = v),
-                    decoration: InputDecoration(
-                      hintText: 'Search employee or leave type...',
-                      prefixIcon: const Icon(Icons.search_rounded, color: _color, size: 20),
-                      suffixIcon: _search.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () => setState(() => _search = ''))
-                          : null,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).dividerColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: _color, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Tabs
-              TabBar(
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor:
-                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                indicatorColor: Theme.of(context).colorScheme.primary,
-                labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                tabs: [
-                  Tab(text: 'Leaves (${leaveApps.length})'),
-                  Tab(text: 'Permission (${permApps.length})'),
-                  Tab(text: 'Comp Off (${compOffApps.length})'),
-                ],
-              ),
-            ]),
-          ),
-
-          // Tab content
+  Widget _dismissibleBanner(String text, VoidCallback onDismiss) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF3C7),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.6)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.info_outline_rounded, size: 15, color: Color(0xFFF57F17)),
+          const SizedBox(width: 8),
           Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : TabBarView(children: [
-                    _tabList(context, leaveApps,   'No leave applications yet.'),
-                    _tabList(context, permApps,    'No permission requests.'),
-                    _tabList(context, compOffApps, 'No comp off requests.'),
-                  ]),
+            child: Text(text,
+                style: const TextStyle(fontSize: 11, color: Color(0xFFF57F17), fontWeight: FontWeight.w500)),
+          ),
+          GestureDetector(
+            onTap: onDismiss,
+            child: const Icon(Icons.close_rounded, size: 15, color: Color(0xFFF57F17)),
           ),
         ]),
       ),
     );
   }
 
-  Widget _tabList(BuildContext context, List<LeaveApplication> apps, String emptyMsg) {
-    if (apps.isEmpty) {
-      final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3);
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.inbox_rounded, size: 52, color: muted),
-          const SizedBox(height: 12),
-          Text(emptyMsg,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: muted, fontSize: 14)),
-        ]),
+  Widget _buildBody(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (!_isMgmt && _teamLoaded && _teamNames.isEmpty) {
+      return _emptyCard(
+        icon: Icons.group_off_rounded,
+        title: 'No employees assigned to you',
+        subtitle: 'Ask Management to assign employees via Administration → Edit User → Reporting Manager.',
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: apps.length,
-      itemBuilder: (_, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _RequestCard(
-          request:      apps[i],
-          isManagement: true,
-          onApprove:    () => _approve(apps[i]),
-          onDeny:       () => _deny(apps[i]),
-          onReset:      () => _reset(apps[i]),
-        ),
-      ),
-    );
-  }
+    if (_requests.isEmpty) {
+      return _emptyCard(
+        icon: Icons.inbox_rounded,
+        title: _isMgmt ? 'No leave requests yet' : 'No leave requests from your team',
+        subtitle: 'Leave requests will appear here for approval.',
+      );
+    }
 
-  Widget _holidayPolicyNotice(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.amber.withValues(alpha: 0.12)
-            : const Color(0xFFFEF3C7),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: Colors.amber.withValues(alpha: isDark ? 0.4 : 0.6)),
-      ),
-      child: Row(children: [
-        Icon(Icons.info_outline_rounded,
-            size: 15,
-            color: isDark
-                ? Colors.amber.shade300
-                : const Color(0xFFF57F17)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'Leaves > 2 days go directly to Management for approval.',
-            style: TextStyle(
-                fontSize: 11,
-                color: isDark
-                    ? Colors.amber.shade300
-                    : const Color(0xFFF57F17),
-                fontWeight: FontWeight.w500),
+    final list = _currentTabList;
+    if (list.isEmpty) {
+      return _emptyCard(
+        icon: Icons.search_off_rounded,
+        title: 'No requests match your filters',
+        subtitle: '',
+      );
+    }
+
+    final start = _page * _rowsPerPage;
+    final pageItems = start >= list.length
+        ? <LeaveApplication>[]
+        : list.sublist(start, (start + _rowsPerPage).clamp(0, list.length));
+
+    return Column(children: [
+      Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+          itemCount: pageItems.length,
+          itemBuilder: (_, i) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _RequestRow(
+              request: pageItems[i],
+              isManagement: _isMgmt,
+              user: _userFor(pageItems[i].employeeName),
+              onApprove: () => _approve(pageItems[i]),
+              onDeny: () => _deny(pageItems[i]),
+              onReset: () => _reset(pageItems[i]),
+              onViewDetails: () => _showDetails(pageItems[i]),
+            ),
           ),
         ),
-      ]),
-    );
-  }
-
-  Widget _permLimitBanner(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.accentBlue.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: AppTheme.accentBlue.withValues(alpha: 0.25)),
       ),
-      child: Row(children: [
-        Icon(Icons.info_outline_rounded,
-            size: 15, color: AppTheme.accentBlue),
-        SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'Each employee is entitled to 2 hours of permission per month.',
-            style: TextStyle(
-                fontSize: 11,
-                color: AppTheme.accentBlue,
-                fontWeight: FontWeight.w500),
-          ),
-        ),
-      ]),
-    );
+      _Pagination(
+        total: list.length,
+        page: _page,
+        rowsPerPage: _rowsPerPage,
+        onPageChanged: (p) => setState(() => _page = p),
+        onRowsPerPageChanged: (r) => setState(() { _rowsPerPage = r; _page = 0; }),
+      ),
+    ]);
   }
 
-  Widget _emptyCard(
-      {required IconData icon,
-      required String title,
-      required String subtitle}) {
-    return Card(
+  Widget _emptyCard({required IconData icon, required String title, required String subtitle}) {
+    return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-        child: Center(
-          child: Builder(builder: (context) {
-            final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3);
-            return Column(children: [
-              Icon(icon, size: 52, color: muted),
-              const SizedBox(height: 12),
-              Text(title, style: TextStyle(color: muted, fontSize: 14)),
-              if (subtitle.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(subtitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: muted, fontSize: 12)),
-              ],
-            ]);
-          }),
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+            child: Builder(builder: (context) {
+              final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3);
+              return Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(icon, size: 52, color: muted),
+                const SizedBox(height: 12),
+                Text(title, style: TextStyle(color: muted, fontSize: 14)),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(subtitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: muted, fontSize: 12)),
+                ],
+              ]);
+            }),
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Request card ───────────────────────────────────────────────────────────────
+// ── Formatting helpers ──────────────────────────────────────────────────────
+
+const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 String _fmtDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-class _RequestCard extends StatefulWidget {
-  final LeaveApplication request;
-  final bool isManagement;
-  final VoidCallback onApprove;
-  final VoidCallback onDeny;
-  final VoidCallback onReset;
+String _fmtDateShort(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
 
-  const _RequestCard({
-    required this.request,
-    required this.isManagement,
-    required this.onApprove,
-    required this.onDeny,
-    required this.onReset,
+String _fmtTime(DateTime d) {
+  final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final m = d.minute.toString().padLeft(2, '0');
+  final ap = d.hour >= 12 ? 'PM' : 'AM';
+  return '$h:$m $ap';
+}
+
+String _fmtDateTime(DateTime d) => '${_fmtDateShort(d)}, ${_fmtTime(d)}';
+
+Color _sc(LeaveApprovalStatus s) => switch (s) {
+      LeaveApprovalStatus.approved => Colors.green.shade700,
+      LeaveApprovalStatus.denied   => Colors.red.shade700,
+      LeaveApprovalStatus.pending  => Colors.orange.shade700,
+    };
+IconData _si(LeaveApprovalStatus s) => switch (s) {
+      LeaveApprovalStatus.approved => Icons.check_circle_rounded,
+      LeaveApprovalStatus.denied   => Icons.cancel_rounded,
+      LeaveApprovalStatus.pending  => Icons.hourglass_empty_rounded,
+    };
+String _sl(LeaveApprovalStatus s) => switch (s) {
+      LeaveApprovalStatus.approved => 'Approved',
+      LeaveApprovalStatus.denied   => 'Denied',
+      LeaveApprovalStatus.pending  => 'Pending',
+    };
+
+// ── Stat cards ───────────────────────────────────────────────────────────────
+
+class _StatCardsRow extends StatelessWidget {
+  final int pending;
+  final int approved;
+  final int denied;
+  final int approvalRate;
+  const _StatCardsRow({
+    required this.pending,
+    required this.approved,
+    required this.denied,
+    required this.approvalRate,
   });
 
   @override
-  State<_RequestCard> createState() => _RequestCardState();
+  Widget build(BuildContext context) {
+    final tiles = [
+      _StatTile(
+        icon: Icons.hourglass_top_rounded,
+        color: AppTheme.warning,
+        value: '$pending',
+        label: 'Pending',
+        sublabel: 'Needs your action',
+      ),
+      _StatTile(
+        icon: Icons.check_circle_rounded,
+        color: AppTheme.success,
+        value: '$approved',
+        label: 'Approved',
+        sublabel: 'This month',
+      ),
+      _StatTile(
+        icon: Icons.cancel_rounded,
+        color: AppTheme.error,
+        value: '$denied',
+        label: 'Denied',
+        sublabel: 'This month',
+      ),
+      _StatTile(
+        icon: Icons.trending_up_rounded,
+        color: AppTheme.primaryBlue,
+        value: '$approvalRate%',
+        label: 'Approval Rate',
+        sublabel: 'This month',
+      ),
+    ];
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 640;
+      if (wide) {
+        return Row(children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(child: tiles[i]),
+          ],
+        ]);
+      }
+      return Wrap(
+        spacing: 12, runSpacing: 12,
+        children: [for (final t in tiles) SizedBox(width: 160, child: t)],
+      );
+    });
+  }
 }
 
-class _RequestCardState extends State<_RequestCard> {
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
+  final String sublabel;
+  const _StatTile({
+    required this.icon,
+    required this.color,
+    required this.value,
+    required this.label,
+    required this.sublabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(value,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+              Text(label,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+              Text(sublabel,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500)),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Pill tab ─────────────────────────────────────────────────────────────────
+
+class _PillTab extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PillTab({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.primaryBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text('$label  $count',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : Colors.grey.shade600)),
+      ),
+    );
+  }
+}
+
+// ── Filter toggle button ───────────────────────────────────────────────────
+
+class _FilterToggleButton extends StatelessWidget {
+  final bool active;
+  final bool hasSelection;
+  final VoidCallback onTap;
+  const _FilterToggleButton({required this.active, required this.hasSelection, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(clipBehavior: Clip.none, children: [
+      InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: active ? AppTheme.primaryBlue : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: active ? AppTheme.primaryBlue : const Color(0xFFDDDDDD)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.filter_list_rounded, size: 16, color: active ? Colors.white : AppTheme.primaryBlue),
+            const SizedBox(width: 5),
+            Text('Filter',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                    color: active ? Colors.white : AppTheme.primaryBlue)),
+          ]),
+        ),
+      ),
+      if (hasSelection)
+        Positioned(
+          top: -3, right: -3,
+          child: Container(
+            width: 8, height: 8,
+            decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+          ),
+        ),
+    ]);
+  }
+}
+
+// ── Generic dropdown field ────────────────────────────────────────────────────
+
+class _DropdownField<T> extends StatelessWidget {
+  final String label;
+  final T value;
+  final IconData icon;
+  final String Function(T) display;
+  final List<T> options;
+  final ValueChanged<T> onChanged;
+
+  const _DropdownField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.display,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<T>(
+      initialValue: value,
+      onSelected: onChanged,
+      offset: const Offset(0, 42),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => options.map((o) {
+        final selected = o == value;
+        return PopupMenuItem<T>(
+          value: o,
+          child: Text(display(o),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? AppTheme.primaryBlue : const Color(0xFF111827))),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFDDDDDD)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text('$label: ',
+              style: const TextStyle(fontSize: 12.5, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Text(display(value),
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Pagination ───────────────────────────────────────────────────────────────
+
+class _Pagination extends StatelessWidget {
+  final int total;
+  final int page;
+  final int rowsPerPage;
+  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int> onRowsPerPageChanged;
+
+  const _Pagination({
+    required this.total,
+    required this.page,
+    required this.rowsPerPage,
+    required this.onPageChanged,
+    required this.onRowsPerPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final totalPages = (total / rowsPerPage).ceil().clamp(1, 999999);
+    final start = total == 0 ? 0 : page * rowsPerPage + 1;
+    final end = ((page + 1) * rowsPerPage).clamp(0, total);
+
+    // Windowed page numbers: first, last, and up to 2 neighbours of current.
+    final pages = <int>{0, totalPages - 1};
+    for (var p = page - 1; p <= page + 1; p++) {
+      if (p >= 0 && p < totalPages) pages.add(p);
+    }
+    final sortedPages = pages.toList()..sort();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 640;
+        final summary = Text('Showing $start to $end of $total',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600));
+
+        final pager = Row(mainAxisSize: MainAxisSize.min, children: [
+          IconButton(
+            iconSize: 18,
+            onPressed: page > 0 ? () => onPageChanged(page - 1) : null,
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          for (var i = 0; i < sortedPages.length; i++) ...[
+            if (i > 0 && sortedPages[i] - sortedPages[i - 1] > 1)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text('…', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+              ),
+            _PageNumberButton(
+              number: sortedPages[i] + 1,
+              selected: sortedPages[i] == page,
+              onTap: () => onPageChanged(sortedPages[i]),
+            ),
+          ],
+          IconButton(
+            iconSize: 18,
+            onPressed: page < totalPages - 1 ? () => onPageChanged(page + 1) : null,
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+        ]);
+
+        final rowsDropdown = _DropdownField<int>(
+          label: 'Rows per page',
+          value: rowsPerPage,
+          icon: Icons.list_rounded,
+          display: (v) => '$v',
+          options: const [10, 20, 50],
+          onChanged: onRowsPerPageChanged,
+        );
+
+        if (narrow) {
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            summary,
+            const SizedBox(height: 8),
+            Row(children: [Expanded(child: Center(child: pager)), rowsDropdown]),
+          ]);
+        }
+        return Row(children: [
+          summary,
+          const Spacer(),
+          pager,
+          const Spacer(),
+          rowsDropdown,
+        ]);
+      }),
+    );
+  }
+}
+
+class _PageNumberButton extends StatelessWidget {
+  final int number;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PageNumberButton({required this.number, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          width: 30, height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primaryBlue : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: selected ? AppTheme.primaryBlue : const Color(0xFFE5E7EB)),
+          ),
+          child: Text('$number',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : const Color(0xFF6B7280))),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Request row (compact) ───────────────────────────────────────────────────
+
+class _RequestRow extends StatefulWidget {
+  final LeaveApplication request;
+  final bool isManagement;
+  final AppUser? user;
+  final VoidCallback onApprove;
+  final VoidCallback onDeny;
+  final VoidCallback onReset;
+  final VoidCallback onViewDetails;
+
+  const _RequestRow({
+    required this.request,
+    required this.isManagement,
+    required this.user,
+    required this.onApprove,
+    required this.onDeny,
+    required this.onReset,
+    required this.onViewDetails,
+  });
+
+  @override
+  State<_RequestRow> createState() => _RequestRowState();
+}
+
+class _RequestRowState extends State<_RequestRow> {
   static const _undoWindow = Duration(minutes: 10);
   Timer? _timer;
 
@@ -780,16 +1265,6 @@ class _RequestCardState extends State<_RequestCard> {
     return DateTime.now().difference(da) < _undoWindow;
   }
 
-  String get _countdown {
-    final da = widget.request.decidedAt;
-    if (da == null) return '';
-    final remaining = _undoWindow - DateTime.now().difference(da);
-    if (remaining.isNegative) return '';
-    final m = remaining.inMinutes;
-    final s = remaining.inSeconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-
   @override
   void initState() {
     super.initState();
@@ -797,7 +1272,7 @@ class _RequestCardState extends State<_RequestCard> {
   }
 
   @override
-  void didUpdateWidget(covariant _RequestCard old) {
+  void didUpdateWidget(covariant _RequestRow old) {
     super.didUpdateWidget(old);
     _timer?.cancel();
     _maybeStartTimer();
@@ -818,288 +1293,238 @@ class _RequestCardState extends State<_RequestCard> {
     super.dispose();
   }
 
-  static Color _sc(LeaveApprovalStatus s) => switch (s) {
-        LeaveApprovalStatus.approved => Colors.green.shade700,
-        LeaveApprovalStatus.denied   => Colors.red.shade700,
-        LeaveApprovalStatus.pending  => Colors.orange.shade700,
-      };
-  static IconData _si(LeaveApprovalStatus s) => switch (s) {
-        LeaveApprovalStatus.approved => Icons.check_circle_rounded,
-        LeaveApprovalStatus.denied   => Icons.cancel_rounded,
-        LeaveApprovalStatus.pending  => Icons.hourglass_empty_rounded,
-      };
-  static String _sl(LeaveApprovalStatus s) => switch (s) {
-        LeaveApprovalStatus.approved => 'Approved',
-        LeaveApprovalStatus.denied   => 'Denied',
-        LeaveApprovalStatus.pending  => 'Pending',
+  @override
+  Widget build(BuildContext context) {
+    final req = widget.request;
+    final status = req.managerStatus;
+    final locked = !widget.isManagement && req.managementDecided;
+
+    final nameBlock = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      CircleAvatar(
+        radius: 18,
+        backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+        child: Text(
+          req.employeeName.isNotEmpty ? req.employeeName[0].toUpperCase() : '?',
+          style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(req.employeeName,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          if (widget.user?.designation.isNotEmpty ?? false)
+            Text(widget.user!.designation,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          if (widget.user?.employeeId.isNotEmpty ?? false)
+            Text(widget.user!.employeeId,
+                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500)),
+        ]),
+      ),
+    ]);
+
+    final leaveBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _LeaveTypeChip(req.leaveType),
+      const SizedBox(height: 4),
+      Text('${_fmtDate(req.from)} – ${_fmtDate(req.to)}',
+          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700)),
+      Text(req.isHalfDay ? '½ Day' : '${req.days} Day${req.days == 1 ? '' : 's'}',
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+    ]);
+
+    final reasonBlock = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(Icons.notes_rounded, size: 13, color: Colors.grey.shade500),
+      const SizedBox(width: 5),
+      Expanded(
+        child: Text(req.reason.isEmpty ? '—' : req.reason,
+            maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700)),
+      ),
+    ]);
+
+    final appliedBlock = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey.shade500),
+      const SizedBox(width: 5),
+      Expanded(
+        child: Text(_fmtDateTime(req.appliedOn),
+            maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700)),
+      ),
+    ]);
+
+    final statusBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _StatusPill(_sl(status), _sc(status), _si(status)),
+      if (status != LeaveApprovalStatus.pending) ...[
+        const SizedBox(height: 4),
+        Text('by ${req.decidedBy.isEmpty ? 'Manager' : req.decidedBy}',
+            style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500)),
+        if (req.decidedAt != null)
+          Text(_fmtDateTime(req.decidedAt!),
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+      ],
+    ]);
+
+    final actions = Row(mainAxisSize: MainAxisSize.min, children: [
+      if (locked)
+        Icon(Icons.lock_rounded, size: 16, color: Colors.grey.shade400)
+      else if (status == LeaveApprovalStatus.pending) ...[
+        SizedBox(
+          height: 32,
+          child: ElevatedButton(
+            onPressed: widget.onApprove,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            child: const Text('Approve'),
+          ),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          height: 32,
+          child: OutlinedButton(
+            onPressed: widget.onDeny,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red.shade600,
+              side: BorderSide(color: Colors.red.shade300),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            child: const Text('Reject'),
+          ),
+        ),
+      ] else
+        SizedBox(
+          height: 32,
+          child: OutlinedButton.icon(
+            onPressed: widget.onViewDetails,
+            icon: const Icon(Icons.visibility_outlined, size: 14),
+            label: const Text('View Details'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryBlue,
+              side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      if (!locked)
+        PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert_rounded, size: 18, color: Colors.grey.shade500),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onSelected: (v) {
+            if (v == 'details') widget.onViewDetails();
+            if (v == 'reset') widget.onReset();
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'details', child: Text('View Details')),
+            if (_canUndo)
+              const PopupMenuItem(value: 'reset', child: Text('Reset to Pending')),
+          ],
+        ),
+    ]);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          LayoutBuilder(builder: (context, constraints) {
+            if (constraints.maxWidth < 900) {
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [Expanded(child: nameBlock), statusBlock]),
+                const SizedBox(height: 10),
+                leaveBlock,
+                const SizedBox(height: 8),
+                reasonBlock,
+                const SizedBox(height: 6),
+                appliedBlock,
+                const SizedBox(height: 10),
+                Align(alignment: Alignment.centerRight, child: actions),
+              ]);
+            }
+            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(flex: 3, child: nameBlock),
+              Expanded(flex: 2, child: leaveBlock),
+              Expanded(flex: 3, child: reasonBlock),
+              Expanded(flex: 2, child: appliedBlock),
+              Expanded(flex: 2, child: statusBlock),
+              actions,
+            ]);
+          }),
+          if (status == LeaveApprovalStatus.denied && req.rejectionComment.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(children: [
+                Icon(Icons.close_rounded, size: 13, color: Colors.red.shade700),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text('Reason: ${req.rejectionComment}',
+                      style: TextStyle(fontSize: 11.5, color: Colors.red.shade800)),
+                ),
+              ]),
+            ),
+          ],
+          if (locked) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Decision locked by Management: ${_sl(status)}'
+                '${req.decidedBy.isNotEmpty ? ' (${req.decidedBy})' : ''}',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Leave type chip ─────────────────────────────────────────────────────────
+
+class _LeaveTypeChip extends StatelessWidget {
+  final String type;
+  const _LeaveTypeChip(this.type);
+
+  IconData get _icon => switch (type) {
+        'Permission' => Icons.access_time_rounded,
+        'Comp Off'   => Icons.swap_horiz_rounded,
+        _            => Icons.event_note_rounded,
       };
 
   @override
   Widget build(BuildContext context) {
-    final status = widget.request.managerStatus;
-    final sc     = _sc(status);
-    final si     = _si(status);
-    final sl     = _sl(status);
-
-    final req = widget.request;
-    return Card(
-      child: Builder(builder: (context) {
-        final cs = Theme.of(context).colorScheme;
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final onSurface = cs.onSurface;
-        final primary = cs.primary;
-
-        return Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Employee header
-            Row(children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: primary.withValues(alpha: isDark ? 0.2 : 0.1),
-                child: Text(
-                  req.employeeName.isNotEmpty
-                      ? req.employeeName[0].toUpperCase()
-                      : '?',
-                  style: TextStyle(
-                      color: primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(req.employeeName,
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: onSurface)),
-                      if (req.department.isNotEmpty)
-                        Text(req.department,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: onSurface.withValues(alpha: 0.5))),
-                    ]),
-              ),
-              _StatusPill(sl, sc, si),
-            ]),
-            const SizedBox(height: 14),
-
-            // Holiday badge
-            if (req.effectiveDays > 2) ...[
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.red.withValues(alpha: 0.15)
-                        : Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: isDark ? Colors.red.shade700 : Colors.red.shade200),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.beach_access_rounded,
-                        size: 13,
-                        color: isDark ? Colors.red.shade300 : Colors.red.shade700),
-                    const SizedBox(width: 5),
-                    Text('Holiday',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.red.shade300 : Colors.red.shade700)),
-                  ]),
-                ),
-              ]),
-              const SizedBox(height: 10),
-            ],
-
-            // Leave details
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: isDark ? 0.08 : 0.04),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: primary.withValues(alpha: isDark ? 0.18 : 0.08)),
-              ),
-              child: Column(children: [
-                _DetailRow(Icons.label_rounded,      'Leave Type', req.leaveType),
-                const SizedBox(height: 8),
-                _DetailRow(Icons.date_range_rounded, 'Duration',
-                    '${_fmtDate(req.from)}  →  ${_fmtDate(req.to)}'),
-                const SizedBox(height: 8),
-                _DetailRow(Icons.numbers_rounded,    'Days',
-                    req.isHalfDay
-                        ? '½ day'
-                        : '${req.days} day${req.days == 1 ? '' : 's'}'),
-                if (req.reason.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  _DetailRow(Icons.notes_rounded, 'Reason', req.reason),
-                ],
-                if (req.leaveType == 'Permission') ...[
-                  const SizedBox(height: 8),
-                  Builder(builder: (ctx) {
-                    final mu        = Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.5);
-                    final used      = LeaveStore.permUsedThisMonth(req.employeeName);
-                    final remaining = (120 - used).clamp(0, 120);
-                    final badgeColor = remaining == 0
-                        ? Colors.red.shade700
-                        : remaining <= 30
-                            ? Colors.orange.shade700
-                            : AppTheme.accentBlue;
-                    return Row(children: [
-                      Icon(Icons.schedule_rounded, size: 14, color: mu),
-                      const SizedBox(width: 8),
-                      Text('Monthly: ',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: mu,
-                              fontWeight: FontWeight.w500)),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: badgeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: badgeColor.withValues(alpha: 0.35)),
-                        ),
-                        child: Text(
-                          remaining == 0
-                              ? 'Limit reached'
-                              : '$remaining min left this month',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: badgeColor),
-                        ),
-                      ),
-                    ]);
-                  }),
-                ],
-              ]),
-            ),
-            const SizedBox(height: 14),
-
-            // Action row — locked for managers when management has already decided
-            if (!widget.isManagement && req.managementDecided)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: onSurface.withValues(alpha: isDark ? 0.08 : 0.05),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: onSurface.withValues(alpha: isDark ? 0.15 : 0.12)),
-                ),
-                child: Row(children: [
-                  Icon(Icons.lock_rounded,
-                      size: 15, color: onSurface.withValues(alpha: 0.4)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Decision locked by Management: $sl'
-                      '${req.decidedBy.isNotEmpty ? ' (${req.decidedBy})' : ''}',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: onSurface.withValues(alpha: 0.6),
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ]),
-              )
-            else if (status == LeaveApprovalStatus.pending)
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: widget.onDeny,
-                    icon: const Icon(Icons.close_rounded, size: 16),
-                    label: const Text('Deny'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade400,
-                      side: BorderSide(color: Colors.red.shade300),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: widget.onApprove,
-                    icon: const Icon(Icons.check_rounded, size: 16),
-                    label: const Text('Approve'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              ])
-            else
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: sc.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(si, size: 16, color: sc),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$sl by ${req.decidedBy.isEmpty ? 'Manager' : req.decidedBy}',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: sc),
-                    ),
-                  ]),
-                ),
-                const Spacer(),
-                if (_canUndo)
-                  TextButton.icon(
-                    onPressed: widget.onReset,
-                    icon: const Icon(Icons.undo_rounded, size: 15),
-                    label: Text('Undo ($_countdown)',
-                        style: const TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                        foregroundColor: onSurface.withValues(alpha: 0.5)),
-                  ),
-              ]),
-
-            // Denial reason
-            if (status == LeaveApprovalStatus.denied &&
-                req.rejectionComment.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: isDark ? 0.15 : 0.07),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                      color: Colors.red.withValues(alpha: isDark ? 0.4 : 0.25)),
-                ),
-                child: Text(req.rejectionComment,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? Colors.red.shade300 : Colors.red.shade800)),
-              ),
-            ],
-          ]),
-        );
-      }),
-    );
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(_icon, size: 13, color: AppTheme.primaryBlue),
+      const SizedBox(width: 5),
+      Flexible(
+        child: Text(type,
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryBlue)),
+      ),
+    ]);
   }
 }
 
@@ -1113,22 +1538,14 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final muted = cs.onSurface.withValues(alpha: 0.5);
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, size: 14, color: muted),
+      Icon(icon, size: 14, color: Colors.grey.shade500),
       const SizedBox(width: 8),
       Text('$label: ',
-          style: TextStyle(
-              fontSize: 12,
-              color: muted,
-              fontWeight: FontWeight.w500)),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
       Expanded(
         child: Text(value,
-            style: TextStyle(
-                fontSize: 12,
-                color: cs.primary,
-                fontWeight: FontWeight.w600)),
+            style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue, fontWeight: FontWeight.w600)),
       ),
     ]);
   }
@@ -1152,115 +1569,8 @@ class _StatusPill extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 12, color: color),
         const SizedBox(width: 5),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
       ]),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-  final IconData icon;
-  const _SectionHeader({
-    required this.label,
-    required this.count,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: color)),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text('$count',
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white)),
-          ),
-        ]),
-      ),
-      Expanded(
-          child: Divider(color: color.withValues(alpha: 0.2), indent: 10)),
-    ]);
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String value;
-  final String label;
-  final bool active;
-  final VoidCallback? onTap;
-  const _StatTile({
-    required this.icon,
-    required this.color,
-    required this.value,
-    required this.label,
-    this.active = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: active ? color : const Color(0xFFE5E7EB), width: active ? 1.5 : 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            Container(
-              width: 38, height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 19),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-                Text(label,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-              ]),
-            ),
-          ]),
-        ),
-      ),
     );
   }
 }
