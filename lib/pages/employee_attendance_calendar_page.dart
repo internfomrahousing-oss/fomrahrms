@@ -10,7 +10,10 @@ import '../theme/app_theme.dart';
 Color get _blue => AppTheme.primaryBlue;
 const _green  = Color(0xFF22C55E);
 const _purple = Color(0xFF2563EB); // fixed status color for "Late Coming" — not theme-driven
-const _red    = Color(0xFFEF4444);
+const _yellow = Color(0xFFF9A825);
+const _orange = Color(0xFFFB923C); // "Leave Applied"
+const _teal   = Color(0xFF14B8A6); // "Permission"
+const _violet = Color(0xFF8B5CF6); // "Comp Off"
 
 class EmployeeAttendanceCalendarPage extends StatefulWidget {
   final String employeeId;
@@ -33,6 +36,10 @@ class _EmployeeAttendanceCalendarPageState
   bool _loading = true;
   Map<int, AttendanceRecord> _attendance = {};
   Set<int> _leaveDays = {};
+  Set<int> _permissionDays = {};
+  Set<int> _compOffDays = {};
+  Set<int> _holidayDays = {};
+  int? _selectedDay;
 
   @override
   void initState() {
@@ -44,9 +51,14 @@ class _EmployeeAttendanceCalendarPageState
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final records = await SupabaseService.fetchAttendanceForMonth(
-        widget.employeeId, _month.year, _month.month);
+    final results = await Future.wait([
+      SupabaseService.fetchAttendanceForMonth(widget.employeeId, _month.year, _month.month),
+      SupabaseService.fetchHolidays(_month.year),
+    ]);
     if (!mounted) return;
+
+    final records  = results[0] as List<AttendanceRecord>;
+    final holidays = results[1] as List<Map<String, dynamic>>;
 
     final Map<int, AttendanceRecord> map = {};
     for (final r in records) {
@@ -54,21 +66,54 @@ class _EmployeeAttendanceCalendarPageState
       if (d != null) map[d] = r;
     }
 
-    final Set<int> leaves = {};
+    // Build holiday set for current month (HR-entered holidays + all Sundays)
+    final Set<int> holidayDays = {};
+    for (final h in holidays) {
+      final date = DateTime.tryParse(h['holiday_date'] as String? ?? '');
+      if (date != null && date.year == _month.year && date.month == _month.month) {
+        holidayDays.add(date.day);
+      }
+    }
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+    for (int d = 1; d <= daysInMonth; d++) {
+      if (DateTime(_month.year, _month.month, d).weekday == DateTime.sunday) {
+        holidayDays.add(d);
+      }
+    }
+
+    // Approved leave/permission/comp-off days — exclude weekends and holidays.
+    // Permission and Comp Off are distinct leaveType values from a regular
+    // full-day Leave, so each gets its own set rather than lumping them
+    // together as "on leave".
+    final Set<int> leaves = {}, permissions = {}, compOffs = {};
     for (final app in LeaveStore.applications) {
       if (app.employeeName != widget.employeeName) continue;
       if (app.managerStatus != LeaveApprovalStatus.approved) continue;
+      final target = switch (app.leaveType) {
+        'Permission' => permissions,
+        'Comp Off'   => compOffs,
+        _            => leaves,
+      };
       var d = app.from;
       while (!d.isAfter(app.to)) {
-        if (d.year == _month.year && d.month == _month.month) leaves.add(d.day);
+        if (d.year == _month.year && d.month == _month.month) {
+          final wd = d.weekday;
+          if (wd != DateTime.saturday && wd != DateTime.sunday && !holidayDays.contains(d.day)) {
+            target.add(d.day);
+          }
+        }
         d = d.add(const Duration(days: 1));
       }
     }
 
     setState(() {
-      _attendance = map;
-      _leaveDays  = leaves;
-      _loading    = false;
+      _attendance     = map;
+      _leaveDays      = leaves;
+      _permissionDays = permissions;
+      _compOffDays    = compOffs;
+      _holidayDays    = holidayDays;
+      _loading        = false;
+      _selectedDay    = null;
     });
   }
 
@@ -83,34 +128,52 @@ class _EmployeeAttendanceCalendarPageState
     return checkInStatusFor(r.checkInTime, date, widget.employeeName, LeaveStore.applications);
   }
 
+  // Precedence: actual attendance > holiday > leave > permission > comp off.
   Color? _statusColor(int day) {
-    if (_leaveDays.contains(day)) return _red;
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) {
       return _status(day).status == CheckInStatus.late ? _purple : _green;
     }
+    if (_holidayDays.contains(day)) return _yellow;
+    if (_leaveDays.contains(day)) return _orange;
+    if (_permissionDays.contains(day)) return _teal;
+    if (_compOffDays.contains(day)) return _violet;
     return null;
   }
 
   void _onTap(int day) {
-    final rec     = _attendance[day];
-    final isLeave = _leaveDays.contains(day);
-    if (rec == null && !isLeave) return;
+    final rec          = _attendance[day];
+    final isLeave       = _leaveDays.contains(day);
+    final isPermission  = _permissionDays.contains(day);
+    final isCompOff     = _compOffDays.contains(day);
+    if (rec == null && !isLeave && !isPermission && !isCompOff) return;
+
+    setState(() => _selectedDay = _selectedDay == day ? null : day);
+  }
+
+  // Builds the inline dropdown card for the currently selected day, shown
+  // right under its row in the calendar grid — null when nothing selected.
+  Widget? _selectedDayContent() {
+    final day = _selectedDay;
+    if (day == null) return null;
+    final rec         = _attendance[day];
+    final isLeave      = _leaveDays.contains(day);
+    final isPermission = _permissionDays.contains(day);
+    final isCompOff    = _compOffDays.contains(day);
 
     final dayDate = DateTime(_month.year, _month.month, day);
     const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const dow = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     final label = '${dow[dayDate.weekday - 1]}, $day ${mon[dayDate.month - 1]} ${dayDate.year}';
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _DaySheet(
-        label: label,
-        record: rec,
-        isLeave: isLeave,
-        status: rec != null ? _status(day) : const CheckInRowStatus(CheckInStatus.none, 0),
-      ),
+    return _DaySheet(
+      label: label,
+      record: rec,
+      isLeave: isLeave,
+      isPermission: isPermission,
+      isCompOff: isCompOff,
+      status: rec != null ? _status(day) : const CheckInRowStatus(CheckInStatus.none, 0),
+      onClose: () => setState(() => _selectedDay = null),
     );
   }
 
@@ -207,6 +270,8 @@ class _EmployeeAttendanceCalendarPageState
                       today: now,
                       statusColor: _statusColor,
                       onTap: _onTap,
+                      selectedDay: _selectedDay,
+                      selectedDayContent: _selectedDayContent(),
                     ),
                 ]),
               ),
@@ -217,7 +282,10 @@ class _EmployeeAttendanceCalendarPageState
             Wrap(spacing: 20, runSpacing: 8, children: const [
               _Legend(color: _green,  label: 'Present'),
               _Legend(color: _purple, label: 'Late Coming'),
-              _Legend(color: _red,    label: 'Absent'),
+              _Legend(color: _orange, label: 'Leave Applied'),
+              _Legend(color: _teal,   label: 'Permission'),
+              _Legend(color: _violet, label: 'Comp Off'),
+              _Legend(color: _yellow, label: 'Holiday'),
             ]),
             const SizedBox(height: 24),
           ]),
@@ -233,12 +301,16 @@ class _CalendarGrid extends StatelessWidget {
   final DateTime today;
   final Color? Function(int day) statusColor;
   final void Function(int day) onTap;
+  final int? selectedDay;
+  final Widget? selectedDayContent;
 
   const _CalendarGrid({
     required this.month,
     required this.today,
     required this.statusColor,
     required this.onTap,
+    this.selectedDay,
+    this.selectedDayContent,
   });
 
   @override
@@ -310,22 +382,45 @@ class _CalendarGrid extends StatelessWidget {
     for (int i = 0; i < cells.length; i += 7) {
       rows.add(Row(children: cells.sublist(i, i + 7)));
     }
-    return Column(children: rows);
+
+    final day = selectedDay;
+    if (day != null && selectedDayContent != null) {
+      final rowIndex = (offset + day - 1) ~/ 7;
+      if (rowIndex >= 0 && rowIndex < rows.length) {
+        rows.insert(rowIndex + 1, Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: selectedDayContent,
+        ));
+      }
+    }
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: Column(children: rows),
+    );
   }
 }
 
-// ── Day detail bottom sheet ───────────────────────────────────────────────────
+// ── Day detail dropdown card ──────────────────────────────────────────────────
 class _DaySheet extends StatelessWidget {
   final String label;
   final AttendanceRecord? record;
   final bool isLeave;
+  final bool isPermission;
+  final bool isCompOff;
   final CheckInRowStatus status;
+  final VoidCallback onClose;
 
   const _DaySheet({
     required this.label,
     required this.record,
     required this.isLeave,
+    this.isPermission = false,
+    this.isCompOff = false,
     required this.status,
+    required this.onClose,
   });
 
   static String? _dur(String inT, String outT) {
@@ -345,38 +440,38 @@ class _DaySheet extends StatelessWidget {
     final rec    = record;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final hasAttendance = rec != null && rec.checkInTime.isNotEmpty;
+
     final String statusLabel;
     final Color  statusColor;
-    if (isLeave) {
-      statusLabel = 'Absent';
-      statusColor = _red;
-    } else if (status.status == CheckInStatus.late) {
-      statusLabel = 'Late Coming';
-      statusColor = _purple;
+    if (hasAttendance) {
+      statusLabel = status.status == CheckInStatus.late ? 'Late Coming' : 'Present';
+      statusColor = status.status == CheckInStatus.late ? _purple : _green;
+    } else if (isLeave) {
+      statusLabel = 'Leave Applied';
+      statusColor = _orange;
+    } else if (isPermission) {
+      statusLabel = 'Permission';
+      statusColor = _teal;
     } else {
-      statusLabel = 'Present';
-      statusColor = _green;
+      statusLabel = 'Comp Off';
+      statusColor = _violet;
     }
 
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.only(
-        left: 24, right: 24, top: 0,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
-      ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(height: 12),
-        Container(
-          width: 36, height: 4,
-          decoration: BoxDecoration(
-            color: cs.onSurface.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+            blurRadius: 16, offset: const Offset(0, 6),
           ),
-        ),
-        const SizedBox(height: 20),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
         Row(children: [
           Expanded(
             child: Text(label,
@@ -393,16 +488,19 @@ class _DaySheet extends StatelessWidget {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                     color: statusColor)),
           ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onClose,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close_rounded, size: 18,
+                  color: cs.onSurface.withValues(alpha: 0.4)),
+            ),
+          ),
         ]),
-        const SizedBox(height: 20),
-        if (isLeave) ...[
-          Row(children: [
-            Icon(Icons.event_busy_rounded, size: 18, color: _red),
-            const SizedBox(width: 10),
-            Text('On approved leave', style: TextStyle(fontSize: 13,
-                color: cs.onSurface.withValues(alpha: 0.7))),
-          ]),
-        ] else if (rec != null && rec.checkInTime.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        if (hasAttendance) ...[
           _detailRow(context, Icons.login_rounded, 'Check In', rec.checkInTime, _green),
           if (rec.checkInNote.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -428,6 +526,27 @@ class _DaySheet extends StatelessWidget {
           ] else
             _detailRow(context, Icons.logout_rounded, 'Check Out', '— not recorded',
                 cs.onSurface.withValues(alpha: 0.4)),
+        ] else if (isLeave) ...[
+          Row(children: [
+            Icon(Icons.event_busy_rounded, size: 18, color: _orange),
+            const SizedBox(width: 10),
+            Text('On approved leave', style: TextStyle(fontSize: 13,
+                color: cs.onSurface.withValues(alpha: 0.7))),
+          ]),
+        ] else if (isPermission) ...[
+          Row(children: [
+            Icon(Icons.event_note_rounded, size: 18, color: _teal),
+            const SizedBox(width: 10),
+            Text('Approved permission — no attendance recorded', style: TextStyle(fontSize: 13,
+                color: cs.onSurface.withValues(alpha: 0.7))),
+          ]),
+        ] else ...[
+          Row(children: [
+            Icon(Icons.swap_horiz_rounded, size: 18, color: _violet),
+            const SizedBox(width: 10),
+            Text('On approved Comp Off', style: TextStyle(fontSize: 13,
+                color: cs.onSurface.withValues(alpha: 0.7))),
+          ]),
         ],
         const SizedBox(height: 8),
       ]),
