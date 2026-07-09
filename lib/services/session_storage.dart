@@ -1,5 +1,5 @@
-import 'dart:html' as html;
 import '../models/user_session.dart';
+import '../utils/kv_store.dart';
 
 class SessionStorage {
   static const _kRole             = 'fomra_role';
@@ -12,30 +12,28 @@ class SessionStorage {
 
   static const _duration = Duration(hours: 8);
 
-  static void save() {
-    final storage = html.window.localStorage;
-    storage[_kRole]             = UserSession.role.name;
-    storage[_kName]             = UserSession.name;
-    storage[_kEmployeeId]       = UserSession.employeeId;
-    storage[_kEmail]            = UserSession.email;
-    storage[_kDesignation]      = UserSession.designation;
-    storage[_kReportingManager] = UserSession.reportingManager;
-    storage[_kExpiry]           =
-        DateTime.now().add(_duration).millisecondsSinceEpoch.toString();
+  static Future<void> save() async {
+    await kvSetString(_kRole, UserSession.role.name);
+    await kvSetString(_kName, UserSession.name);
+    await kvSetString(_kEmployeeId, UserSession.employeeId);
+    await kvSetString(_kEmail, UserSession.email);
+    await kvSetString(_kDesignation, UserSession.designation);
+    await kvSetString(_kReportingManager, UserSession.reportingManager);
+    await kvSetString(_kExpiry,
+        DateTime.now().add(_duration).millisecondsSinceEpoch.toString());
   }
 
-  static bool restore() {
+  static Future<bool> restore() async {
     try {
-      final storage   = html.window.localStorage;
-      final expiryStr = storage[_kExpiry];
+      final expiryStr = await kvGetString(_kExpiry);
       if (expiryStr == null) return false;
       final expiry =
           DateTime.fromMillisecondsSinceEpoch(int.parse(expiryStr));
       if (DateTime.now().isAfter(expiry)) {
-        clear();
+        await clear();
         return false;
       }
-      final roleName = storage[_kRole];
+      final roleName = await kvGetString(_kRole);
       if (roleName == null) return false;
       final role = UserRole.values.firstWhere(
         (r) => r.name == roleName,
@@ -43,11 +41,11 @@ class SessionStorage {
       );
       UserSession.loggedIn         = true;
       UserSession.role             = role;
-      UserSession.name             = storage[_kName] ?? '';
-      UserSession.employeeId       = storage[_kEmployeeId] ?? '';
-      UserSession.email            = storage[_kEmail] ?? '';
-      UserSession.designation      = storage[_kDesignation] ?? '';
-      UserSession.reportingManager = storage[_kReportingManager] ?? '';
+      UserSession.name             = await kvGetString(_kName) ?? '';
+      UserSession.employeeId       = await kvGetString(_kEmployeeId) ?? '';
+      UserSession.email            = await kvGetString(_kEmail) ?? '';
+      UserSession.designation      = await kvGetString(_kDesignation) ?? '';
+      UserSession.reportingManager = await kvGetString(_kReportingManager) ?? '';
       // Photo URL is fetched from main() once Supabase has finished
       // initializing (fetching it here would race Supabase.initialize()
       // and silently fail every time).
@@ -57,14 +55,13 @@ class SessionStorage {
     }
   }
 
-  static void clear() {
-    final storage = html.window.localStorage;
-    storage.remove(_kRole);
-    storage.remove(_kName);
-    storage.remove(_kEmployeeId);
-    storage.remove(_kEmail);
-    storage.remove(_kExpiry);
-    storage.remove(_kDesignation);
-    storage.remove(_kReportingManager);
+  static Future<void> clear() async {
+    await kvRemove(_kRole);
+    await kvRemove(_kName);
+    await kvRemove(_kEmployeeId);
+    await kvRemove(_kEmail);
+    await kvRemove(_kExpiry);
+    await kvRemove(_kDesignation);
+    await kvRemove(_kReportingManager);
   }
 }
