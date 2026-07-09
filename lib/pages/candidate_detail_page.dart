@@ -1,21 +1,10 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import '../models/candidate_store.dart';
+import '../utils/open_url.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
 Color get _blue => AppTheme.primaryBlue;
-
-void _openUrl(String url) {
-  if (url.isEmpty) return;
-  final a = html.AnchorElement(href: url)
-    ..target = '_blank'
-    ..rel = 'noopener noreferrer';
-  html.document.body?.append(a);
-  a.click();
-  a.remove();
-}
 
 class CandidateDetailPage extends StatelessWidget {
   const CandidateDetailPage({super.key});
@@ -62,19 +51,32 @@ class CandidateDetailPage extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),
-            // Resume button
-            if (_val(d, 'resume_url').isNotEmpty)
-              ElevatedButton.icon(
-                onPressed: () => _openUrl(_val(d, 'resume_url')),
-                icon: const Icon(Icons.download_rounded, size: 16),
-                label: const Text('Resume', style: TextStyle(fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue, foregroundColor: Colors.white,
-                  elevation: 0,
+            // Resume: view (opens inline, no download) + download
+            if (_val(d, 'resume_url').isNotEmpty) ...[
+              OutlinedButton.icon(
+                onPressed: () => openUrl(_val(d, 'resume_url')),
+                icon: const Icon(Icons.visibility_outlined, size: 16),
+                label: const Text('View Resume', style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _blue,
+                  side: BorderSide(color: _blue),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => downloadUrl(_val(d, 'resume_url')),
+                icon: const Icon(Icons.download_rounded, size: 20),
+                tooltip: 'Download Resume',
+                style: IconButton.styleFrom(
+                  backgroundColor: _blue.withValues(alpha: 0.1),
+                  foregroundColor: _blue,
+                  padding: const EdgeInsets.all(10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
           ]),
         ),
 

@@ -1,5 +1,3 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +10,7 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/form_version_label.dart';
+import '../utils/open_url.dart';
 import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
@@ -369,10 +368,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   }
 
   void _openForm() {
-    html.window.open(
-      'https://fomrahrms-zeta.vercel.app/#/onboarding-form',
-      '_blank',
-    );
+    openUrl('https://fomrahrms-zeta.vercel.app/#/onboarding-form');
   }
 
   void _copyLink() {
@@ -1458,18 +1454,20 @@ Widget _attachmentsSection(dynamic data) {
             Text(type, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             Text(name, style: const TextStyle(fontSize: 12, color: Color(0xFF111827))),
           ])),
-          if (url.isNotEmpty)
+          if (url.isNotEmpty) ...[
             TextButton(
-              onPressed: () {
-                final a = html.AnchorElement(href: url)
-                  ..target = '_blank'
-                  ..rel = 'noopener noreferrer';
-                html.document.body?.append(a);
-                a.click();
-                a.remove();
-              },
+              onPressed: () => openUrl(url),
               child: const Text('View', style: TextStyle(fontSize: 12)),
             ),
+            IconButton(
+              onPressed: () => downloadUrl(url),
+              icon: const Icon(Icons.download_rounded, size: 16),
+              tooltip: 'Download',
+              color: _blue,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            ),
+          ],
         ]),
       );
     }),
