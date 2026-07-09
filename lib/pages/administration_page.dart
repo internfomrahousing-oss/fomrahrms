@@ -277,7 +277,7 @@ class _UsersTab extends StatelessWidget {
                     ],
                     _Chip(label: u.role, color: _roleColor(u.role)),
                   ]),
-                  if ((u.role == 'Employee' || u.role == 'Manager') && u.reportingManager.isNotEmpty) ...[
+                  if (['Employee', 'Manager', 'HR'].contains(u.role) && u.reportingManager.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Row(children: [
                       const Icon(Icons.manage_accounts_rounded, size: 11, color: Color(0xFF6B7280)),
@@ -339,7 +339,10 @@ class _UsersTab extends StatelessWidget {
     String selectedRole = existing?.role ?? 'Employee';
     String selectedManager = existing?.reportingManager ?? '';
     final roleNames = ['Employee', 'Manager', 'HR', 'Management'];
-    final managerNames = users.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+    // This dialog is Management-only (route-gated) and Management is the
+    // ultimate RM-change approver, so edits here save directly with no
+    // pending-approval step, unlike the HR-facing edit dialog.
+    final managerNames = users.where((u) => u.isReportingManager).map((u) => u.name).toList();
 
     showDialog(
       context: context,
@@ -417,7 +420,7 @@ class _UsersTab extends StatelessWidget {
                   ),
                 ]),
               ),
-              if ((selectedRole == 'Employee' || selectedRole == 'Manager') && managerNames.isNotEmpty) ...[
+              if (['Employee', 'Manager', 'HR'].contains(selectedRole) && managerNames.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: managerNames.contains(selectedManager) ? selectedManager : null,
@@ -467,7 +470,7 @@ class _UsersTab extends StatelessWidget {
                     employeeId:       empIdCtrl.text.trim(),
                     designation:      desigCtrl.text.trim(),
                     role:             selectedRole,
-                    reportingManager: (selectedRole == 'Employee' || selectedRole == 'Manager') ? selectedManager : '',
+                    reportingManager: ['Employee', 'Manager', 'HR'].contains(selectedRole) ? selectedManager : '',
                     dateOfJoining:    todayStr,
                   );
                   users.add(target);
@@ -477,7 +480,7 @@ class _UsersTab extends StatelessWidget {
                   existing.employeeId       = empIdCtrl.text.trim();
                   existing.designation      = desigCtrl.text.trim();
                   existing.role             = selectedRole;
-                  existing.reportingManager = (selectedRole == 'Employee' || selectedRole == 'Manager') ? selectedManager : '';
+                  existing.reportingManager = ['Employee', 'Manager', 'HR'].contains(selectedRole) ? selectedManager : '';
                   if (existing.dateOfJoining.isEmpty) existing.dateOfJoining = todayStr;
                   target = existing;
                 }

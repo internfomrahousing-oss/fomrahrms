@@ -10,6 +10,16 @@ import '../theme/app_theme.dart';
 
 Color get _mgmtColor => AppTheme.sidebarSelectedBg;
 
+const _avatarPalette = <Color>[
+  Color(0xFF6366F1), Color(0xFFEC4899), Color(0xFF22C55E),
+  Color(0xFFF59E0B), Color(0xFF06B6D4), Color(0xFF8B5CF6),
+  Color(0xFFEF4444), Color(0xFF14B8A6),
+];
+Color _avatarColor(String name) =>
+    _avatarPalette[name.isEmpty ? 0 : name.codeUnitAt(0) % _avatarPalette.length];
+
+enum _MgmtReviewFilter { all, pending, accepted, rejected }
+
 class ManagementInterviewReviewPage extends StatefulWidget {
   const ManagementInterviewReviewPage({super.key});
 
@@ -27,6 +37,31 @@ class _ManagementInterviewReviewPageState
   List<Map<String, dynamic>> _candidates = [];
   bool _candidatesLoading = false;
   String? _candidatesError;
+  String _search = '';
+  _MgmtReviewFilter _filter = _MgmtReviewFilter.all;
+
+  String _mgmtStatusOf(Map<String, dynamic> row) =>
+      (row['management_status'] as String?) ?? 'pending';
+
+  int get _countPending  => _candidates.where((r) => _mgmtStatusOf(r) == 'pending').length;
+  int get _countAccepted => _candidates.where((r) => _mgmtStatusOf(r) == 'accepted').length;
+  int get _countRejected => _candidates.where((r) => _mgmtStatusOf(r) == 'rejected').length;
+
+  List<Map<String, dynamic>> get _filteredCandidates {
+    final q = _search.trim().toLowerCase();
+    return _candidates.where((r) {
+      final status = _mgmtStatusOf(r);
+      final matchesFilter = switch (_filter) {
+        _MgmtReviewFilter.all => true,
+        _MgmtReviewFilter.pending => status == 'pending',
+        _MgmtReviewFilter.accepted => status == 'accepted',
+        _MgmtReviewFilter.rejected => status == 'rejected',
+      };
+      if (!matchesFilter) return false;
+      if (q.isEmpty) return true;
+      return r.values.any((v) => v.toString().toLowerCase().contains(q));
+    }).toList();
+  }
 
   // ── Tab 2: Form Approvals ─────────────────────────────────────────
   List<Map<String, dynamic>> _formVersions = [];
@@ -580,28 +615,98 @@ class _ManagementInterviewReviewPageState
             controller: _tabController,
             children: [
               // Tab 1: Candidate Reviews
-              _candidatesLoading
-                  ? Center(
-                      child: CircularProgressIndicator(color: _mgmtColor))
-                  : _candidatesError != null
-                      ? _ErrorView(
-                          error: _candidatesError!,
-                          onRetry: _fetchCandidates)
-                      : _candidates.isEmpty
-                          ? const _EmptyCandidates()
-                          : _CandidateList(
-                              items: _candidates,
-                              cellFn: _cell,
-                              statusBadgeFn: _statusBadge,
-                              onApprove: _showApproveDialog,
-                              onReject: _showRejectDialog,
-                              onComment: _showCommentDialog,
-                              onDelete: _deleteRecord,
-                              onView: (row) {
-                                CandidateStore.selected = row;
-                                context.push('/management/candidate-detail');
-                              },
+              Column(children: [
+                if (_candidates.isNotEmpty)
+                  Container(
+                    color: Colors.white,
+                    padding: EdgeInsets.fromLTRB(pad, 12, pad, 12),
+                    child: Column(children: [
+                      _ReviewStatsRow(
+                        total: _candidates.length,
+                        pending: _countPending,
+                        accepted: _countAccepted,
+                        rejected: _countRejected,
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(builder: (context, constraints) {
+                        final narrowRow = constraints.maxWidth < 560;
+                        final search = TextField(
+                          onChanged: (v) => setState(() => _search = v),
+                          decoration: InputDecoration(
+                            hintText: 'Search candidates…',
+                            prefixIcon: Icon(Icons.search_rounded, color: _mgmtColor, size: 20),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          ),
+                        );
+                        final chips = SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(children: [
+                            _FilterChip(
+                              label: 'All (${_candidates.length})',
+                              color: _mgmtColor,
+                              selected: _filter == _MgmtReviewFilter.all,
+                              onTap: () => setState(() => _filter = _MgmtReviewFilter.all),
                             ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: 'Pending ($_countPending)',
+                              color: const Color(0xFFF59E0B),
+                              selected: _filter == _MgmtReviewFilter.pending,
+                              onTap: () => setState(() => _filter = _MgmtReviewFilter.pending),
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: 'Accepted ($_countAccepted)',
+                              color: const Color(0xFF22C55E),
+                              selected: _filter == _MgmtReviewFilter.accepted,
+                              onTap: () => setState(() => _filter = _MgmtReviewFilter.accepted),
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: 'Rejected ($_countRejected)',
+                              color: const Color(0xFFEF4444),
+                              selected: _filter == _MgmtReviewFilter.rejected,
+                              onTap: () => setState(() => _filter = _MgmtReviewFilter.rejected),
+                            ),
+                          ]),
+                        );
+                        return narrowRow
+                            ? Column(children: [search, const SizedBox(height: 10), chips])
+                            : Row(children: [Expanded(child: search), const SizedBox(width: 10), chips]);
+                      }),
+                    ]),
+                  ),
+                Expanded(
+                  child: _candidatesLoading
+                      ? Center(
+                          child: CircularProgressIndicator(color: _mgmtColor))
+                      : _candidatesError != null
+                          ? _ErrorView(
+                              error: _candidatesError!,
+                              onRetry: _fetchCandidates)
+                          : _candidates.isEmpty
+                              ? const _EmptyCandidates()
+                              : _filteredCandidates.isEmpty
+                                  ? const _EmptyFilterState()
+                                  : _CandidateList(
+                                      items: _filteredCandidates,
+                                      cellFn: _cell,
+                                      statusBadgeFn: _statusBadge,
+                                      onApprove: _showApproveDialog,
+                                      onReject: _showRejectDialog,
+                                      onComment: _showCommentDialog,
+                                      onDelete: _deleteRecord,
+                                      onView: (row) {
+                                        CandidateStore.selected = row;
+                                        context.push('/management/candidate-detail');
+                                      },
+                                    ),
+                ),
+              ]),
 
               // Tab 2: Form Approvals
               _formLoading
@@ -692,12 +797,11 @@ class _CandidateList extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor:
-                          AppTheme.sidebarSelectedBg.withValues(alpha: 0.1),
+                      backgroundColor: _avatarColor(name).withValues(alpha: 0.15),
                       child: Text(
                         name.isNotEmpty ? name[0].toUpperCase() : '?',
                         style: TextStyle(
-                            color: _mgmtColor,
+                            color: _avatarColor(name),
                             fontWeight: FontWeight.bold,
                             fontSize: 17),
                       ),
@@ -1514,6 +1618,113 @@ class _EmptyCandidates extends StatelessWidget {
         Text('Candidates accepted by a Manager will appear here.',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
+    );
+  }
+}
+
+class _EmptyFilterState extends StatelessWidget {
+  const _EmptyFilterState();
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
+        const SizedBox(height: 10),
+        Text('No candidates match this filter',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+      ]),
+    );
+  }
+}
+
+// ── Summary stats row ────────────────────────────────────────────────────────
+class _ReviewStatsRow extends StatelessWidget {
+  final int total;
+  final int pending;
+  final int accepted;
+  final int rejected;
+  const _ReviewStatsRow({
+    required this.total,
+    required this.pending,
+    required this.accepted,
+    required this.rejected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = [
+      ('Total', '$total', Icons.people_alt_rounded, _mgmtColor),
+      ('Pending Review', '$pending', Icons.hourglass_empty_rounded, const Color(0xFFF59E0B)),
+      ('Accepted', '$accepted', Icons.check_circle_rounded, const Color(0xFF22C55E)),
+      ('Rejected', '$rejected', Icons.cancel_rounded, const Color(0xFFEF4444)),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth > 720 ? 4 : constraints.maxWidth > 400 ? 2 : 1;
+      final tileWidth = (constraints.maxWidth - (cols - 1) * 10) / cols;
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: cards.map((c) => SizedBox(
+          width: tileWidth,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: c.$4.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: c.$4.withValues(alpha: 0.18)),
+            ),
+            child: Row(children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(color: c.$4, shape: BoxShape.circle),
+                child: Icon(c.$3, size: 16, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(c.$1, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
+                  Text(c.$2, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: c.$4)),
+                ]),
+              ),
+            ]),
+          ),
+        )).toList(),
+      );
+    });
+  }
+}
+
+// ── Status filter chip ───────────────────────────────────────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Colors.white : const Color(0xFF6B7280))),
+      ),
     );
   }
 }

@@ -1,17 +1,29 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:js_util' as js_util;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
 import '../models/form_config.dart';
-import '../widgets/web_file_picker.dart';
+import '../utils/image_compress.dart';
+import '../utils/pdf_compress.dart';
+import '../widgets/app_file_picker.dart';
 import '../theme/app_theme.dart';
+
+const _mimeByExt = {
+  'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+  'gif': 'image/gif', 'webp': 'image/webp', 'heic': 'image/heic',
+  'pdf': 'application/pdf',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
+
+String _mimeFromName(String name) {
+  final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+  return _mimeByExt[ext] ?? 'application/octet-stream';
+}
 
 Color get _blue => AppTheme.primaryBlue;
 
@@ -152,23 +164,16 @@ class _CandidateApplicationFormPageState
     }
   }
 
-  Future<void> _handleCustomFile(String fieldId, html.File rawFile) async {
+  Future<void> _handleCustomFile(String fieldId, PlatformFile rawFile) async {
     setState(() => _customFileUploading[fieldId] = true);
     try {
-      final reader = html.FileReader();
-      reader.readAsDataUrl(rawFile);
-      await Future.any([
-        reader.onLoad.first,
-        reader.onError.first.then((_) => throw Exception('Could not read file')),
-      ]);
-      final dataUrl = reader.result as String;
-      final comma = dataUrl.indexOf(',');
-      if (comma < 0) throw 'Malformed data URL';
-      var bytes = base64Decode(dataUrl.substring(comma + 1));
-      var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+      final rawBytes = rawFile.bytes;
+      if (rawBytes == null) throw 'Could not read file';
+      var bytes = rawBytes;
+      var mime  = _mimeFromName(rawFile.name);
       if (mime.startsWith('image/')) {
         // Photos: auto-compress to ≤200 KB
-        final compressed = await _compressImage(bytes, mime);
+        final compressed = await compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       } else {
         // Documents: reject if > 1 MB
@@ -377,58 +382,6 @@ class _CandidateApplicationFormPageState
       ),
     );
     if (picked != null) setState(() => _declarationDate = picked);
-  }
-
-  // Compress image via Canvas API to ≤200 KB.
-  Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
-    try {
-      final blob = html.Blob([bytes], mime);
-      final url  = html.Url.createObjectUrlFromBlob(blob);
-      final img  = html.ImageElement(src: url);
-      await Future.any([
-        img.onLoad.first,
-        img.onError.first.then((_) => throw Exception('Image load failed')),
-      ]);
-      html.Url.revokeObjectUrl(url);
-      int w = img.naturalWidth, h = img.naturalHeight;
-      const maxDim = 1200;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) { h = (h * maxDim / w).round(); w = maxDim; }
-        else       { w = (w * maxDim / h).round(); h = maxDim; }
-      }
-      const target = 200 * 1024; // 200 KB
-      for (final q in [0.8, 0.6, 0.4, 0.2, 0.1, 0.05]) {
-        final c = html.CanvasElement(width: w, height: h);
-        c.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-        final out = Uint8List.fromList(base64Decode(c.toDataUrl('image/jpeg', q).split(',').last));
-        if (out.length <= target) return out;
-      }
-      // Last resort: halve dimensions
-      w = (w * 0.6).round(); h = (h * 0.6).round();
-      final c = html.CanvasElement(width: w, height: h);
-      c.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-      return Uint8List.fromList(base64Decode(c.toDataUrl('image/jpeg', 0.05).split(',').last));
-    } catch (_) { return null; }
-  }
-
-  // Best-effort PDF compression via pdf-lib (loaded from CDN in web/index.html):
-  // re-serializes the PDF with object-stream compression. This shrinks
-  // redundant objects/streams but can't guarantee hitting an exact target for
-  // image-heavy/scanned PDFs without re-rendering pages, which this does not do.
-  Future<Uint8List?> _compressPdf(Uint8List bytes) async {
-    try {
-      final pdfLib   = js_util.getProperty(html.window, 'PDFLib');
-      final docClass = js_util.getProperty(pdfLib, 'PDFDocument');
-      final doc = await js_util.promiseToFuture(
-          js_util.callMethod(docClass, 'load', [bytes]));
-      final opts = js_util.newObject();
-      js_util.setProperty(opts, 'useObjectStreams', true);
-      final saved = await js_util.promiseToFuture<Uint8List>(
-          js_util.callMethod(doc, 'save', [opts]));
-      return saved;
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<void> _submit() async {
@@ -941,34 +894,27 @@ class _CandidateApplicationFormPageState
                               ),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                              child: WebFilePicker(
+                              child: AppFilePicker(
                                 accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,image/*',
-                                onRawFiles: (rawFiles) async {
+                                onFiles: (rawFiles) async {
                                   final rawFile = rawFiles.first;
                                   if (mounted) setState(() => _resumeError = null);
                                   try {
-                                    final reader = html.FileReader();
-                                    reader.readAsDataUrl(rawFile);
-                                    await Future.any([
-                                      reader.onLoad.first,
-                                      reader.onError.first.then((_) => throw Exception('Could not read file')),
-                                    ]);
-                                    final dataUrl = reader.result as String;
-                                    final comma  = dataUrl.indexOf(',');
-                                    if (comma < 0) throw 'Malformed data URL';
-                                    var bytes = base64Decode(dataUrl.substring(comma + 1));
-                                    var mime  = rawFile.type.isEmpty ? 'application/octet-stream' : rawFile.type;
+                                    final rawBytes = rawFile.bytes;
+                                    if (rawBytes == null) throw 'Could not read file';
+                                    var bytes = rawBytes;
+                                    var mime  = _mimeFromName(rawFile.name);
                                     var name  = rawFile.name;
                                     if (mime.startsWith('image/')) {
                                       // Photos: auto-compress to ≤200 KB
-                                      final c = await _compressImage(bytes, mime);
+                                      final c = await compressImage(bytes, mime);
                                       if (c != null) { bytes = c; mime = 'image/jpeg'; name = '${name.replaceAll(RegExp(r'\.[^.]+$'), '')}.jpg'; }
                                     } else {
                                       final isPdf = mime == 'application/pdf' ||
                                           name.toLowerCase().endsWith('.pdf');
                                       if (isPdf && bytes.length > 500 * 1024) {
                                         // PDFs: auto-compress toward ≤500 KB (best effort)
-                                        final c = await _compressPdf(bytes);
+                                        final c = await compressPdf(bytes);
                                         if (c != null && c.length < bytes.length) bytes = c;
                                       }
                                       // Reject if still too large after compression (Word docs
@@ -1810,7 +1756,7 @@ class _CustomFileUploader extends StatelessWidget {
   final bool isRequired;
   final String? fileName;
   final bool uploading;
-  final void Function(html.File) onRawFile;
+  final void Function(PlatformFile) onRawFile;
   final String accept;
   final bool isPhoto;
   const _CustomFileUploader({
@@ -1912,9 +1858,9 @@ class _CustomFileUploader extends StatelessWidget {
             const SizedBox(width: 12),
             uploading
                 ? uploadBtn(null)
-                : WebFilePicker(
+                : AppFilePicker(
                     accept: accept,
-                    onRawFiles: (files) => onRawFile(files.first),
+                    onFiles: (files) => onRawFile(files.first),
                     builder: (trigger) => uploadBtn(trigger),
                   ),
           ]),

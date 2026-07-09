@@ -1,7 +1,7 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_store.dart';
@@ -824,7 +824,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 ),
                 onPressed: email.isEmpty ? null : () async {
                   Navigator.pop(ctx);
-                  html.window.open(mailtoUrl, '_self');
+                  launchUrl(Uri.parse(mailtoUrl));
                   final id = (row['id'] ?? '').toString();
                   if (id.isNotEmpty) {
                     try {
@@ -870,8 +870,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   actions: [
                     OutlinedButton.icon(
                       onPressed: () {
-                        html.window.navigator.clipboard
-                            ?.writeText(_activeFormLink);
+                        Clipboard.setData(ClipboardData(text: _activeFormLink));
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                           content: Text('Form link copied to clipboard'),
                           duration: Duration(seconds: 2),
@@ -892,7 +891,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     ),
                     ElevatedButton.icon(
                       onPressed: () =>
-                          html.window.open(_activeFormLink, '_blank'),
+                          launchUrl(Uri.parse(_activeFormLink)),
                       icon: const Icon(Icons.assignment_ind_rounded, size: 16),
                       label: const Text('Application Form',
                           style: TextStyle(fontSize: 13)),
@@ -1304,7 +1303,7 @@ class _ApplicationCard extends StatelessWidget {
 
   void _quickEmail(String email) {
     if (email.isEmpty) return;
-    html.window.open('mailto:$email', '_self');
+    launchUrl(Uri.parse('mailto:$email'));
   }
 
   @override

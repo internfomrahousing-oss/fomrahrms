@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/location_consent.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
@@ -67,6 +68,9 @@ class _CheckInPageState extends State<CheckInPage> {
   }
 
   Future<void> _onCheckIn() async {
+    await ensureLocationConsent(context);
+    if (!mounted) return;
+
     final now = DateTime.now();
     final date =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';

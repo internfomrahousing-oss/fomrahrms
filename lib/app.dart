@@ -50,6 +50,7 @@ import 'pages/employee_attendance_page.dart';
 import 'pages/hr_attendance_records_page.dart';
 import 'pages/hr_attendance_detail_page.dart';
 import 'pages/hr_employee_records_page.dart';
+import 'pages/reporting_managers_page.dart';
 import 'pages/employee_leave_page.dart';
 import 'pages/my_leave_approvals_page.dart';
 import 'pages/my_leave_balance_page.dart';
@@ -180,6 +181,7 @@ final _router = GoRouter(
           columns: ['Employee', 'Date', 'Arrival Time', 'Late By', 'Deduction'],
         )),
         GoRoute(path: '/employee-management/records', builder: (_, __) => const HrEmployeeRecordsPage()),
+        GoRoute(path: '/employee-management/reporting-managers', builder: (_, __) => const ReportingManagersPage()),
         GoRoute(path: '/leave-management',                builder: (_, __) {
           if (UserSession.role == UserRole.hr) return const HrLeaveRecordsPage();
           if (UserSession.role == UserRole.management) {
@@ -262,6 +264,10 @@ final _router = GoRouter(
         GoRoute(path: '/employee/my-journey',               builder: (_, __) => const MyJourneyPage()),
         GoRoute(path: '/employee/notifications',            builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/employee/settings',                 builder: (_, __) => const SettingsPage()),
+        // "My Team" — reachable by anyone flagged isReportingManager, even
+        // if their role isn't Manager (see reporting-manager-overhaul).
+        GoRoute(path: '/employee/my-team/records',          builder: (_, __) => const HrEmployeeRecordsPage()),
+        GoRoute(path: '/employee/my-team/leave-approvals',  builder: (_, __) => const TeamLeaveApprovalsPage()),
       ],
     ),
 
@@ -328,6 +334,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/employee-management',    builder: (_, __) => const HrEmployeeRecordsPage()),
         GoRoute(path: '/management/employee-management/add',builder: (_, __) => const AddEmployeePage()),
         GoRoute(path: '/management/employee-management/profile', builder: (_, __) => const EmployeeProfilePage()),
+        GoRoute(path: '/management/employee-management/reporting-managers', builder: (_, __) => const ReportingManagersPage()),
         GoRoute(path: '/management/attendance-management',  builder: (_, __) => const HrAttendanceRecordsPage(routePrefix: '/management')),
         GoRoute(path: '/management/attendance/employee-attendance-calendar', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;

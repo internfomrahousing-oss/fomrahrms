@@ -85,7 +85,8 @@ class _LoginPageState extends State<LoginPage> {
           dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
           email: dynamicUser.email,
           designation: dynamicUser.designation,
-          reportingManager: dynamicUser.reportingManager);
+          reportingManager: dynamicUser.reportingManager,
+          isReportingManager: dynamicUser.isReportingManager);
       return;
     }
 
@@ -99,7 +100,8 @@ class _LoginPageState extends State<LoginPage> {
     }
     final systemEmail = email.toLowerCase();
     await _ensureSystemUserProvisioned(systemEmail, match);
-    _completeLogin(match.$2, match.$3, match.$4, email: systemEmail);
+    _completeLogin(match.$2, match.$3, match.$4, email: systemEmail,
+        isReportingManager: match.$2 == UserRole.reportingManager);
   }
 
   // System-credential logins (HR/Manager/Employee demo accounts) never had a
@@ -136,6 +138,7 @@ class _LoginPageState extends State<LoginPage> {
       password: match.$1,
       dateOfJoining: now,
       onrollConfirmedAt: now,
+      isReportingManager: match.$2 == UserRole.reportingManager,
     ));
   }
 
@@ -162,13 +165,15 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     _completeLogin(AppUser.userRoleFor(user.role), user.name,
         user.employeeId.isNotEmpty ? user.employeeId : user.email,
-        email: user.email);
+        email: user.email,
+        isReportingManager: user.isReportingManager);
   }
 
   void _completeLogin(UserRole role, String name, String employeeId, {
     String email = '',
     String designation = '',
     String reportingManager = '',
+    bool isReportingManager = false,
   }) {
     UserSession.loggedIn         = true;
     UserSession.role             = role;
@@ -177,6 +182,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.email            = email;
     UserSession.designation      = designation;
     UserSession.reportingManager = reportingManager;
+    UserSession.isReportingManager = isReportingManager;
     SessionStorage.save();
     themeNotifier.loadForUser(employeeId);
     // Fetch photo URL in background — widgets listen via ValueNotifier pattern

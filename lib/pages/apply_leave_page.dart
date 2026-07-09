@@ -1,6 +1,4 @@
-import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/leave_form_config.dart';
@@ -10,7 +8,6 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
-import '../widgets/web_file_picker.dart';
 import '../theme/app_theme.dart';
 
 class ApplyLeavePage extends StatefulWidget {
@@ -242,31 +239,26 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     if (picked != null) setState(() => _toDate = picked);
   }
 
-  Future<void> _pickProofFile(List<html.File> files) async {
-    if (files.isEmpty) return;
-    final file = files.first;
-    final isPdf = file.type == 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
-      _showSnack('Please select a PDF file.', Colors.red);
+  Future<void> _pickProofFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      _showSnack('Could not read file.', Colors.red);
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (bytes.length > 5 * 1024 * 1024) {
       _showSnack('File too large — please keep it under 5 MB.', Colors.red);
       return;
     }
 
     setState(() => _uploadingProof = true);
     try {
-      final reader = html.FileReader();
-      reader.readAsDataUrl(file);
-      await Future.any([
-        reader.onLoad.first,
-        reader.onError.first.then((_) => throw Exception('Could not read file')),
-      ]);
-      final dataUrl = reader.result as String;
-      final comma = dataUrl.indexOf(',');
-      if (comma < 0) throw Exception('Malformed file data');
-      final bytes = base64Decode(dataUrl.substring(comma + 1));
       final url = await SupabaseService.uploadFile(bytes, file.name, 'application/pdf');
       if (!mounted) return;
       setState(() {
@@ -667,21 +659,16 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                               _proofFileName = '';
                             }),
                           ),
-                        WebFilePicker(
-                          accept: '.pdf,application/pdf',
-                          enabled: !_uploadingProof,
-                          onRawFiles: _pickProofFile,
-                          builder: (trigger) => OutlinedButton(
-                            onPressed: _uploadingProof ? null : trigger,
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: _uploadingProof
-                                ? const SizedBox(
-                                    width: 16, height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2))
-                                : Text(_proofFileName.isNotEmpty ? 'Replace' : 'Upload'),
+                        OutlinedButton(
+                          onPressed: _uploadingProof ? null : _pickProofFile,
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
+                          child: _uploadingProof
+                              ? const SizedBox(
+                                  width: 16, height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2))
+                              : Text(_proofFileName.isNotEmpty ? 'Replace' : 'Upload'),
                         ),
                       ]),
                     ),

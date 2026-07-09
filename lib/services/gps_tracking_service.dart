@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:geolocator/geolocator.dart';
 import '../models/user_session.dart';
 import 'supabase_service.dart';
@@ -50,11 +51,17 @@ class GpsTrackingService {
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) return;
 
+    // On Android, try to escalate from "while in use" to "always" so
+    // tracking survives the app being backgrounded/closed. Android only
+    // offers this as a second prompt after the first grant — if the user
+    // declines, tracking still works while the app is open/foregrounded.
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        perm == LocationPermission.whileInUse) {
+      perm = await Geolocator.requestPermission();
+    }
+
     _subscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
+      locationSettings: _platformLocationSettings(),
     ).listen(_recordPoint);
 
     // Movement-based updates alone leave long gaps for employees who stay
@@ -64,6 +71,22 @@ class GpsTrackingService {
       final pos = await getCurrentLocation();
       if (pos != null) _recordPoint(pos);
     });
+  }
+
+  static LocationSettings _platformLocationSettings() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'FOMRA HRMS — location tracking active',
+          notificationText: 'Tracking your location while you\'re checked in.',
+          enableWakeLock: true,
+          setOngoing: true,
+        ),
+      );
+    }
+    return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10);
   }
 
   static void _recordPoint(Position pos) {

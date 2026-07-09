@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeNotifier extends ValueNotifier<ThemeMode> {
   static const _kPrefix = 'fomra_theme';
@@ -12,10 +11,11 @@ class ThemeNotifier extends ValueNotifier<ThemeMode> {
       _userId.isNotEmpty ? '${_kPrefix}_$_userId' : _kPrefix;
 
   /// Call after login with the employee's ID.
-  void loadForUser(String userId) {
+  Future<void> loadForUser(String userId) async {
     _userId = userId;
     try {
-      final saved = html.window.localStorage[_key];
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_key);
       value = saved == 'dark' ? ThemeMode.dark : ThemeMode.light;
     } catch (_) {
       value = ThemeMode.light;
@@ -30,9 +30,9 @@ class ThemeNotifier extends ValueNotifier<ThemeMode> {
 
   void setMode(ThemeMode mode) {
     value = mode;
-    try {
-      html.window.localStorage[_key] = mode == ThemeMode.dark ? 'dark' : 'light';
-    } catch (_) {}
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString(_key, mode == ThemeMode.dark ? 'dark' : 'light');
+    }).catchError((_) {});
   }
 }
 

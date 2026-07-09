@@ -8,6 +8,16 @@ import '../widgets/back_button.dart';
 
 const _blue = Color(0xFF111827);
 
+const _avatarPalette = <Color>[
+  Color(0xFF6366F1), Color(0xFFEC4899), Color(0xFF22C55E),
+  Color(0xFFF59E0B), Color(0xFF06B6D4), Color(0xFF8B5CF6),
+  Color(0xFFEF4444), Color(0xFF14B8A6),
+];
+Color _avatarColor(String name) =>
+    _avatarPalette[name.isEmpty ? 0 : name.codeUnitAt(0) % _avatarPalette.length];
+
+enum _ReviewFilter { all, pending, accepted, rejected }
+
 class ManagerInterviewReviewPage extends StatefulWidget {
   const ManagerInterviewReviewPage({super.key});
 
@@ -21,11 +31,36 @@ class _ManagerInterviewReviewPageState
   List<Map<String, dynamic>> _items   = [];
   bool _loading = false;
   String? _error;
+  String _search = '';
+  _ReviewFilter _filter = _ReviewFilter.all;
 
   @override
   void initState() {
     super.initState();
     _fetch();
+  }
+
+  String _statusOf(Map<String, dynamic> row) =>
+      (row['manager_status'] as String?) ?? 'pending';
+
+  int get _countPending  => _items.where((r) => _statusOf(r) == 'pending').length;
+  int get _countAccepted => _items.where((r) => _statusOf(r) == 'accepted').length;
+  int get _countRejected => _items.where((r) => _statusOf(r) == 'rejected').length;
+
+  List<Map<String, dynamic>> get _filteredItems {
+    final q = _search.trim().toLowerCase();
+    return _items.where((r) {
+      final status = _statusOf(r);
+      final matchesFilter = switch (_filter) {
+        _ReviewFilter.all => true,
+        _ReviewFilter.pending => status == 'pending',
+        _ReviewFilter.accepted => status == 'accepted',
+        _ReviewFilter.rejected => status == 'rejected',
+      };
+      if (!matchesFilter) return false;
+      if (q.isEmpty) return true;
+      return r.values.any((v) => v.toString().toLowerCase().contains(q));
+    }).toList();
   }
 
   Future<void> _fetch() async {
@@ -295,6 +330,71 @@ class _ManagerInterviewReviewPageState
           ]),
         ),
 
+        if (_items.isNotEmpty)
+          Container(
+            color: Colors.white,
+            padding: EdgeInsets.fromLTRB(pad, 0, pad, 16),
+            child: Column(children: [
+              _ReviewStatsRow(
+                total: _items.length,
+                pending: _countPending,
+                accepted: _countAccepted,
+                rejected: _countRejected,
+              ),
+              const SizedBox(height: 14),
+              LayoutBuilder(builder: (context, constraints) {
+                final narrowRow = constraints.maxWidth < 560;
+                final search = TextField(
+                  onChanged: (v) => setState(() => _search = v),
+                  decoration: InputDecoration(
+                    hintText: 'Search candidates…',
+                    prefixIcon: const Icon(Icons.search_rounded, color: _blue, size: 20),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  ),
+                );
+                final chips = SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    _FilterChip(
+                      label: 'All (${_items.length})',
+                      color: _blue,
+                      selected: _filter == _ReviewFilter.all,
+                      onTap: () => setState(() => _filter = _ReviewFilter.all),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Pending ($_countPending)',
+                      color: const Color(0xFFF59E0B),
+                      selected: _filter == _ReviewFilter.pending,
+                      onTap: () => setState(() => _filter = _ReviewFilter.pending),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Accepted ($_countAccepted)',
+                      color: const Color(0xFF22C55E),
+                      selected: _filter == _ReviewFilter.accepted,
+                      onTap: () => setState(() => _filter = _ReviewFilter.accepted),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Rejected ($_countRejected)',
+                      color: const Color(0xFFEF4444),
+                      selected: _filter == _ReviewFilter.rejected,
+                      onTap: () => setState(() => _filter = _ReviewFilter.rejected),
+                    ),
+                  ]),
+                );
+                return narrowRow
+                    ? Column(children: [search, const SizedBox(height: 10), chips])
+                    : Row(children: [Expanded(child: search), const SizedBox(width: 10), chips]);
+              }),
+            ]),
+          ),
+
         // ── Body ──────────────────────────────────────────────────────
         Expanded(
           child: _loading
@@ -304,11 +404,13 @@ class _ManagerInterviewReviewPageState
                   ? _ErrorView(error: _error!, onRetry: _fetch)
                   : _items.isEmpty
                       ? const _EmptyState()
-                      : ListView.builder(
+                      : _filteredItems.isEmpty
+                          ? const _EmptyFilterState()
+                          : ListView.builder(
                           padding: const EdgeInsets.all(16),
-                          itemCount: _items.length,
+                          itemCount: _filteredItems.length,
                           itemBuilder: (context, idx) {
-                            final row = _items[idx];
+                            final row = _filteredItems[idx];
                             final mStatus =
                                 (row['manager_status'] as String?) ??
                                     'pending';
@@ -350,14 +452,14 @@ class _ManagerInterviewReviewPageState
                                       children: [
                                         CircleAvatar(
                                           radius: 22,
-                                          backgroundColor: _blue
-                                              .withValues(alpha: 0.1),
+                                          backgroundColor: _avatarColor(name)
+                                              .withValues(alpha: 0.15),
                                           child: Text(
                                             name.isNotEmpty
                                                 ? name[0].toUpperCase()
                                                 : '?',
-                                            style: const TextStyle(
-                                                color: _blue,
+                                            style: TextStyle(
+                                                color: _avatarColor(name),
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 17),
                                           ),
@@ -570,6 +672,113 @@ class _EmptyState extends StatelessWidget {
             style:
                 TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
+    );
+  }
+}
+
+class _EmptyFilterState extends StatelessWidget {
+  const _EmptyFilterState();
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
+        const SizedBox(height: 10),
+        Text('No candidates match this filter',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+      ]),
+    );
+  }
+}
+
+// ── Summary stats row ────────────────────────────────────────────────────────
+class _ReviewStatsRow extends StatelessWidget {
+  final int total;
+  final int pending;
+  final int accepted;
+  final int rejected;
+  const _ReviewStatsRow({
+    required this.total,
+    required this.pending,
+    required this.accepted,
+    required this.rejected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = [
+      ('Total Assigned', '$total', Icons.people_alt_rounded, _blue),
+      ('Pending Review', '$pending', Icons.hourglass_empty_rounded, const Color(0xFFF59E0B)),
+      ('Accepted', '$accepted', Icons.check_circle_rounded, const Color(0xFF22C55E)),
+      ('Rejected', '$rejected', Icons.cancel_rounded, const Color(0xFFEF4444)),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth > 720 ? 4 : constraints.maxWidth > 400 ? 2 : 1;
+      final tileWidth = (constraints.maxWidth - (cols - 1) * 10) / cols;
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: cards.map((c) => SizedBox(
+          width: tileWidth,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: c.$4.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: c.$4.withValues(alpha: 0.18)),
+            ),
+            child: Row(children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(color: c.$4, shape: BoxShape.circle),
+                child: Icon(c.$3, size: 16, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(c.$1, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
+                  Text(c.$2, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: c.$4)),
+                ]),
+              ),
+            ]),
+          ),
+        )).toList(),
+      );
+    });
+  }
+}
+
+// ── Status filter chip ───────────────────────────────────────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Colors.white : const Color(0xFF6B7280))),
+      ),
     );
   }
 }

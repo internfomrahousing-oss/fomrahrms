@@ -1,6 +1,5 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../models/form_config.dart';
@@ -570,8 +569,7 @@ class _EditFormPageState extends State<EditFormPage> {
               if (!_loading) ...[
                 OutlinedButton.icon(
                   onPressed: () {
-                    html.window.navigator.clipboard
-                        ?.writeText(_activeFormLink);
+                    Clipboard.setData(ClipboardData(text: _activeFormLink));
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('Current form link copied'),
                       backgroundColor: Color(0xFF22C55E),
@@ -1760,7 +1758,7 @@ class _VersionHistoryCard extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: () {
-                  html.window.navigator.clipboard?.writeText(link);
+                  Clipboard.setData(ClipboardData(text: link));
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Link copied'),
                     backgroundColor: Color(0xFF22C55E),

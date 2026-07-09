@@ -7,6 +7,7 @@ import '../services/attendance_access.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/location_consent.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart' show InfoCard;
 import 'hover_lift.dart';
@@ -931,6 +932,9 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
   Future<void> _checkIn() async {
+    await ensureLocationConsent(context);
+    if (!mounted) return;
+
     setState(() => _submitting = true);
     final now = DateTime.now();
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';

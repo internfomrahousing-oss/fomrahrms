@@ -11,6 +11,11 @@ class AppUser {
   String password;            // individual password; empty = use role default
   int leaveAllocation;        // total leave days per year, set by HR
   String reportingManager;    // name of the manager this employee reports to
+  String reportingManagerPending;      // proposed new manager name awaiting Management approval; '' = none
+  String reportingManagerRequestedAt;  // ISO datetime the change was requested; empty = no pending request
+  bool   isReportingManager;           // eligible to be selected as someone's RM
+  bool   isReportingManagerPending;    // proposed new flag value awaiting Management approval
+  String isReportingManagerRequestedAt; // ISO datetime the change was requested; empty = no pending request
   String mobile;
   String address;
   String dateOfJoining;       // ISO date string, set when management creates the user
@@ -54,6 +59,11 @@ class AppUser {
     this.password = '',
     this.leaveAllocation = 21,
     this.reportingManager = '',
+    this.reportingManagerPending = '',
+    this.reportingManagerRequestedAt = '',
+    this.isReportingManager = false,
+    this.isReportingManagerPending = false,
+    this.isReportingManagerRequestedAt = '',
     this.mobile = '',
     this.address = '',
     this.dateOfJoining = '',
@@ -85,6 +95,8 @@ class AppUser {
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
   bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
+  bool get hasPendingReportingManagerChange => reportingManagerRequestedAt.isNotEmpty;
+  bool get hasPendingRmFlagChange => isReportingManagerRequestedAt.isNotEmpty;
 
   /// Whether this employee should see app-based Check In / Check Out.
   /// Office employees are tracked via the biometric device instead, unless
@@ -199,6 +211,11 @@ class AppUser {
     'password':              password,
     'leaveAllocation':       leaveAllocation,
     'reportingManager':      reportingManager,
+    'reportingManagerPending':     reportingManagerPending,
+    'reportingManagerRequestedAt': reportingManagerRequestedAt,
+    'isReportingManager':          isReportingManager,
+    'isReportingManagerPending':   isReportingManagerPending,
+    'isReportingManagerRequestedAt': isReportingManagerRequestedAt,
     'mobile':                mobile,
     'address':               address,
     'dateOfJoining':         dateOfJoining,
@@ -237,6 +254,11 @@ class AppUser {
     password:             j['password']             as String? ?? '',
     leaveAllocation:      j['leaveAllocation']      as int?    ?? 21,
     reportingManager:     j['reportingManager']     as String? ?? '',
+    reportingManagerPending:     j['reportingManagerPending']     as String? ?? '',
+    reportingManagerRequestedAt: j['reportingManagerRequestedAt'] as String? ?? '',
+    isReportingManager:            j['isReportingManager']            as bool?   ?? false,
+    isReportingManagerPending:     j['isReportingManagerPending']     as bool?   ?? false,
+    isReportingManagerRequestedAt: j['isReportingManagerRequestedAt'] as String? ?? '',
     mobile:               j['mobile']               as String? ?? '',
     address:              j['address']              as String? ?? '',
     dateOfJoining:        j['dateOfJoining']        as String? ?? '',

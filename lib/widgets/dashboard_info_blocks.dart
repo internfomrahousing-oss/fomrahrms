@@ -15,6 +15,20 @@ Color get _purple => AppTheme.primaryBlue;
 const _months = ['Jan','Feb','Mar','Apr','May','Jun',
                   'Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// Cap for the scrollable list area inside Announcements / Holidays /
+// Birthdays cards, so the card itself stops growing once data piles up —
+// extra items scroll within this height instead of pushing the layout.
+const double _listMaxHeight = 260;
+
+// Wraps a list Column in a fixed-height scroll area (used by the three
+// growing-list cards above) so long lists scroll instead of resizing the card.
+Widget _scrollableList(Widget column) => SizedBox(
+      height: _listMaxHeight,
+      child: Scrollbar(
+        child: SingleChildScrollView(child: column),
+      ),
+    );
+
 String _fmtDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')} ${_months[d.month - 1]}';
 
@@ -359,7 +373,7 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
           ? const _Loader()
           : _items.isEmpty
               ? _Empty('No announcements yet')
-              : Column(
+              : _scrollableList(Column(
                   children: _items.asMap().entries.map((e) {
                     final i = e.key;
                     final item = e.value;
@@ -448,7 +462,7 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                       ],
                     );
                   }).toList(),
-                ),
+                )),
     );
   }
 }
@@ -547,7 +561,7 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
           ? const _Loader()
           : _items.isEmpty
               ? _Empty('No holidays added yet')
-              : Column(
+              : _scrollableList(Column(
                   children: _items.map((item) {
                     final date =
                         DateTime.tryParse(item['holiday_date'] as String? ?? '') ??
@@ -587,7 +601,7 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
                       ]),
                     );
                   }).toList(),
-                ),
+                )),
     );
   }
 }
@@ -866,7 +880,7 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
           ? const _Loader()
           : _items.isEmpty
               ? _Empty('No birthdays this month')
-              : Column(
+              : _scrollableList(Column(
                   children: _items.map((item) {
                     final date =
                         DateTime.tryParse(item['birthday_date'] as String? ?? '') ??
@@ -908,7 +922,7 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
                       ]),
                     );
                   }).toList(),
-                ),
+                )),
     );
   }
 }

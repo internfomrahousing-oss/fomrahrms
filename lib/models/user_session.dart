@@ -10,6 +10,7 @@ class UserSession {
   static String   email           = '';
   static String   designation     = '';
   static String   reportingManager= '';
+  static bool     isReportingManager = false;
 
   // Backed by a ValueNotifier so widgets built before the background photo
   // fetch (e.g. after a page refresh) can still update once the URL arrives.
@@ -34,6 +35,7 @@ class UserSession {
     email            = '';
     designation      = '';
     reportingManager = '';
+    isReportingManager = false;
     photoUrl         = '';
   }
 }

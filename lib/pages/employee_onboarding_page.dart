@@ -883,7 +883,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
 
   Future<void> _sendToManagement(BuildContext context) async {
     final allUsers = await _loadAllUsers();
-    final managers = allUsers.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+    final managers = allUsers.where((u) => u.isReportingManager).map((u) => u.name).toList();
     await _fetchLinkedInterview();
     if (!context.mounted) return;
 

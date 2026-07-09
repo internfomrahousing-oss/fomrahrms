@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
@@ -75,11 +76,14 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
     });
   }
 
-  // Managers see only employees assigned to them; HR/management see everyone.
+  // HR/Management see everyone; anyone flagged as a reporting manager (any
+  // role) sees only the employees assigned to them.
   List<AppUser> _baseList(List<AppUser> users) {
-    if (UserSession.role != UserRole.reportingManager) return users;
+    final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
+    if (isHrOrMgmt) return users;
+    if (!UserSession.isReportingManager) return const [];
     final me = UserSession.name.trim().toLowerCase();
-    if (me.isEmpty) return users;
+    if (me.isEmpty) return const [];
     return users
         .where((u) => u.reportingManager.trim().toLowerCase() == me)
         .toList();
@@ -211,6 +215,27 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                 ),
               ),
               const SizedBox(width: 8),
+              if (UserSession.role == UserRole.hr ||
+                  UserSession.role == UserRole.management) ...[
+                OutlinedButton.icon(
+                  onPressed: () => context.push(UserSession.role == UserRole.management
+                      ? '/management/employee-management/reporting-managers'
+                      : '/employee-management/reporting-managers'),
+                  icon: const Icon(Icons.account_tree_rounded, size: 16),
+                  label: const Text('Reporting Managers'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _color,
+                    side: BorderSide(color: _color.withValues(alpha: 0.4)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    textStyle: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               if (UserSession.role == UserRole.hr ||
                   UserSession.role == UserRole.management)
                 ElevatedButton.icon(
@@ -1341,7 +1366,9 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     final isManagement = UserSession.role == UserRole.management;
     // On-roll requests go to HR and the employee's own reporting manager, independently.
     // Management only acts on the separate On-Roll Approvals page once both have accepted.
-    final isReportingManager = UserSession.role == UserRole.reportingManager &&
+    // "Reporting manager" here is flag-based, not role-based — any flagged RM
+    // (Employee/HR/Management role) named on this record can act as manager stage.
+    final isReportingManager = UserSession.isReportingManager &&
         UserSession.name.trim().toLowerCase() == _user.reportingManager.trim().toLowerCase();
     final canActHr = isHr;
     final canActManager = isReportingManager;
@@ -1897,6 +1924,7 @@ class _EditDialogState extends State<_EditDialog> {
   late String _role;
   late String _manager;
   late bool _active;
+  late bool _isRmFlag;
   bool _saving = false;
 
   static String _prefix(String email) => email.endsWith(_domain)
@@ -1923,6 +1951,7 @@ class _EditDialogState extends State<_EditDialog> {
     _role    = u?.role ?? 'Employee';
     _manager = u?.reportingManager ?? '';
     _active  = u?.active ?? true;
+    _isRmFlag = u?.isReportingManager ?? false;
   }
 
   @override
@@ -1948,8 +1977,34 @@ class _EditDialogState extends State<_EditDialog> {
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     final joiningVal = _joiningCtrl.text.trim();
     final existingJoining = widget.user?.dateOfJoining ?? '';
-    final reportingMgr =
-        (['Employee', 'Manager'].contains(_role)) ? _manager : '';
+
+    // Reporting manager: a brand-new employee, or a first-time assignment
+    // (currently empty), saves directly. Changing an already-set value
+    // requires Management approval — same convention as grossPay/workLocation.
+    final roleHasMgr = ['Employee', 'Manager', 'HR'].contains(_role);
+    final requestedMgr = roleHasMgr ? _manager : '';
+    final prevMgr = widget.user?.reportingManager ?? '';
+    final mgrIsChange = roleHasMgr && widget.user != null &&
+        prevMgr.isNotEmpty && requestedMgr != prevMgr;
+    final finalMgr = mgrIsChange ? prevMgr : requestedMgr;
+    final mgrPending = mgrIsChange
+        ? requestedMgr
+        : (roleHasMgr ? (widget.user?.reportingManagerPending ?? '') : '');
+    final mgrPendingAt = mgrIsChange
+        ? now.toIso8601String()
+        : (roleHasMgr ? (widget.user?.reportingManagerRequestedAt ?? '') : '');
+
+    // "Is Reporting Manager" flag: always requires Management approval to
+    // change (never saved directly), regardless of current value.
+    final prevFlag = widget.user?.isReportingManager ?? false;
+    final flagIsChange = widget.user != null && _isRmFlag != prevFlag;
+    final finalFlag = flagIsChange ? prevFlag : _isRmFlag;
+    final flagPending = flagIsChange
+        ? _isRmFlag
+        : (widget.user?.isReportingManagerPending ?? false);
+    final flagPendingAt = flagIsChange
+        ? now.toIso8601String()
+        : (widget.user?.isReportingManagerRequestedAt ?? '');
 
     final updated = AppUser(
       name:             name,
@@ -1963,7 +2018,12 @@ class _EditDialogState extends State<_EditDialog> {
       password:         widget.user?.password ?? '',
       leaveAllocation:  int.tryParse(_leaveCtrl.text.trim()) ??
                         (widget.user?.leaveAllocation ?? 21),
-      reportingManager: reportingMgr,
+      reportingManager: finalMgr,
+      reportingManagerPending:      mgrPending,
+      reportingManagerRequestedAt:  mgrPendingAt,
+      isReportingManager:           finalFlag,
+      isReportingManagerPending:    flagPending,
+      isReportingManagerRequestedAt: flagPendingAt,
       mobile:           _mobileCtrl.text.trim(),
       address:          _addressCtrl.text.trim(),
       dateOfJoining:    joiningVal.isNotEmpty
@@ -2016,7 +2076,7 @@ class _EditDialogState extends State<_EditDialog> {
   }
 
   List<String> get _managerNames => widget.allUsers
-      .where((u) => u.role == 'Manager')
+      .where((u) => u.isReportingManager)
       .map((u) => u.name)
       .toList();
 
@@ -2215,11 +2275,11 @@ class _EditDialogState extends State<_EditDialog> {
               ),
             ),
 
-            // Reporting manager (only for Employee / Manager roles)
-            if (['Employee', 'Manager'].contains(_role) &&
+            // Reporting manager (Employee / Manager / HR roles)
+            if (['Employee', 'Manager', 'HR'].contains(_role) &&
                 mgrs.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.only(bottom: 4),
                 child: DropdownButtonFormField<String>(
                   value: mgrs.contains(_manager) ? _manager : null,
                   decoration: _dropDeco(
@@ -2235,6 +2295,46 @@ class _EditDialogState extends State<_EditDialog> {
                   onChanged: (v) => setState(() => _manager = v ?? ''),
                 ),
               ),
+              if (widget.user?.hasPendingReportingManagerChange ?? false)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    'Pending Management approval → '
+                    '${widget.user!.reportingManagerPending.isEmpty ? 'None' : widget.user!.reportingManagerPending}',
+                    style: TextStyle(
+                        fontSize: 11.5, color: Colors.orange.shade800, fontWeight: FontWeight.w600),
+                  ),
+                )
+              else
+                const SizedBox(height: 10),
+            ],
+
+            // "Is Reporting Manager" flag — only meaningful once the record
+            // exists; new employees default to false and can be flagged after
+            // creation. Flipping this always requires Management approval.
+            if (widget.user != null) ...[
+              Card(
+                color: null,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                child: SwitchListTile(
+                  value: _isRmFlag,
+                  activeColor: _color,
+                  onChanged: (v) => setState(() => _isRmFlag = v),
+                  title: const Text('Is Reporting Manager',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  subtitle: Text(
+                      widget.user!.hasPendingRmFlagChange
+                          ? 'Requested: ${widget.user!.isReportingManagerPending ? 'Make RM' : 'Remove RM'} (awaiting Management)'
+                          : 'Eligible to be selected as someone’s reporting manager',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ),
+              const SizedBox(height: 14),
             ],
 
             // Active toggle

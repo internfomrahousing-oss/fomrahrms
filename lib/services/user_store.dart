@@ -33,6 +33,25 @@ class UserStore {
     await SupabaseService.upsertAppUser(u);
   }
 
+  // Requests a reporting-manager reassignment for [user], awaiting Management
+  // approval on the Approvals page — mirrors the grossPay/workLocation
+  // pending-change pattern. Callers should only use this for an *existing*
+  // non-empty reportingManager; a first-time assignment can be set directly.
+  static Future<void> requestReportingManagerChange(
+      AppUser user, String newManagerName) async {
+    user.reportingManagerPending = newManagerName;
+    user.reportingManagerRequestedAt = DateTime.now().toIso8601String();
+    await upsertOne(user);
+  }
+
+  // Requests a change to [user]'s RM-eligibility flag, awaiting Management
+  // approval — always required, regardless of current value.
+  static Future<void> requestRmFlagChange(AppUser user, bool newValue) async {
+    user.isReportingManagerPending = newValue;
+    user.isReportingManagerRequestedAt = DateTime.now().toIso8601String();
+    await upsertOne(user);
+  }
+
   static Future<void> deleteOne(String email) async {
     await SupabaseService.deleteAppUser(email);
     final users = await _loadLocal();

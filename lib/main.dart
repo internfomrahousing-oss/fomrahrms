@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'models/color_theme_notifier.dart';
@@ -11,14 +10,16 @@ import 'models/user_session.dart';
 import 'services/notification_service.dart';
 import 'services/supabase_service.dart';
 import 'services/session_storage.dart';
+import 'utils/url_strategy.dart';
 import 'widgets/notification_popup_overlay.dart';
 
 void main() async {
-  setUrlStrategy(HashUrlStrategy());
+  configureUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Restore persisted login before the router guard runs.
-  final restored = SessionStorage.restore();
+  // Restore persisted login before the router guard runs — must be awaited
+  // since the router reads UserSession synchronously at first build.
+  final restored = await SessionStorage.restore();
   // Load theme preference for the restored user so dark/light persists after refresh.
   if (restored) themeNotifier.loadForUser(UserSession.employeeId);
 

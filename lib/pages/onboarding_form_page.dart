@@ -1,17 +1,14 @@
-// ignore: avoid_web_libraries_in_flutter
 import 'dart:async';
-import 'dart:convert';
-import 'dart:html' as html;
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:js_util' as js_util;
-import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/onboarding_form_config.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
-import '../widgets/web_file_picker.dart';
+import '../utils/image_compress.dart';
+import '../utils/pdf_compress.dart';
+import '../widgets/app_file_picker.dart';
 import '../theme/app_theme.dart';
 
 class _AttachFile {
@@ -275,30 +272,38 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   // ── File helpers ──────────────────────────────────────────────────────────
 
-  // Reads bytes from a raw html.File via data-URL.
+  static const _mimeByExt = {
+    'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+    'gif': 'image/gif', 'webp': 'image/webp', 'heic': 'image/heic',
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  };
+
+  static String _mimeFromName(String name) {
+    final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+    return _mimeByExt[ext] ?? 'application/octet-stream';
+  }
+
+  // Reads bytes from a picked file.
   // Photos → auto-compressed to ≤200 KB. Documents → rejected if > 1 MB.
-  Future<_AttachFile?> _processRawFile(html.File file) async {
+  Future<_AttachFile?> _processRawFile(PlatformFile file) async {
     try {
-      final reader = html.FileReader();
-      reader.readAsDataUrl(file);
-      await Future.any([
-        reader.onLoad.first,
-        reader.onError.first.then((_) => throw Exception('Could not read file')),
-      ]);
-      final dataUrl = reader.result as String;
-      final comma = dataUrl.indexOf(',');
-      if (comma < 0) throw 'Malformed data URL';
-      var bytes = base64Decode(dataUrl.substring(comma + 1));
-      var mime = file.type.isEmpty ? 'application/octet-stream' : file.type;
+      final rawBytes = file.bytes;
+      if (rawBytes == null) throw 'Could not read file';
+      var bytes = rawBytes;
+      var mime = _mimeFromName(file.name);
       if (mime.startsWith('image/')) {
         // Photos: auto-compress to ≤200 KB
-        final compressed = await _compressImage(bytes, mime);
+        final compressed = await compressImage(bytes, mime);
         if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
       } else {
-        final isPdf = mime == 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        final isPdf = mime == 'application/pdf';
         if (isPdf && bytes.length > 500 * 1024) {
           // PDFs: auto-compress toward ≤500 KB (best effort)
-          final compressed = await _compressPdf(bytes);
+          final compressed = await compressPdf(bytes);
           if (compressed != null && compressed.length < bytes.length) bytes = compressed;
         }
         // Reject if still too large after compression (Word docs can't be
@@ -317,66 +322,6 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 6),
         ));
-      return null;
-    }
-  }
-
-  // Compress image via Canvas API to ≤200 KB.
-  // Scales to max 1200 px on the long edge, then tries descending quality.
-  Future<Uint8List?> _compressImage(Uint8List bytes, String mime) async {
-    try {
-      final blob = html.Blob([bytes], mime);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final img = html.ImageElement(src: url);
-      await Future.any([
-        img.onLoad.first,
-        img.onError.first.then((_) => throw Exception('Image load failed')),
-      ]);
-      html.Url.revokeObjectUrl(url);
-
-      int w = img.naturalWidth;
-      int h = img.naturalHeight;
-      const maxDim = 1200;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) { h = (h * maxDim / w).round(); w = maxDim; }
-        else        { w = (w * maxDim / h).round(); h = maxDim; }
-      }
-
-      const target = 200 * 1024; // 200 KB
-      for (final quality in [0.8, 0.6, 0.4, 0.2, 0.1, 0.05]) {
-        final canvas = html.CanvasElement(width: w, height: h);
-        canvas.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-        final compressed =
-            Uint8List.fromList(base64Decode(canvas.toDataUrl('image/jpeg', quality).split(',').last));
-        if (compressed.length <= target) return compressed;
-      }
-      // Last resort: halve dimensions and use lowest quality
-      w = (w * 0.6).round(); h = (h * 0.6).round();
-      final canvas = html.CanvasElement(width: w, height: h);
-      canvas.context2D.drawImageScaled(img, 0, 0, w.toDouble(), h.toDouble());
-      return Uint8List.fromList(
-          base64Decode(canvas.toDataUrl('image/jpeg', 0.05).split(',').last));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  // Best-effort PDF compression via pdf-lib (loaded from CDN in web/index.html):
-  // re-serializes the PDF with object-stream compression. This shrinks
-  // redundant objects/streams but can't guarantee hitting an exact target for
-  // image-heavy/scanned PDFs without re-rendering pages, which this does not do.
-  Future<Uint8List?> _compressPdf(Uint8List bytes) async {
-    try {
-      final pdfLib   = js_util.getProperty(html.window, 'PDFLib');
-      final docClass = js_util.getProperty(pdfLib, 'PDFDocument');
-      final doc = await js_util.promiseToFuture(
-          js_util.callMethod(docClass, 'load', [bytes]));
-      final opts = js_util.newObject();
-      js_util.setProperty(opts, 'useObjectStreams', true);
-      final saved = await js_util.promiseToFuture<Uint8List>(
-          js_util.callMethod(doc, 'save', [opts]));
-      return saved;
-    } catch (_) {
       return null;
     }
   }
@@ -500,9 +445,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             ],
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              child: WebFilePicker(
+              child: AppFilePicker(
                 accept: fileAccept,
-                onRawFiles: (rawFiles) async {
+                onFiles: (rawFiles) async {
                   final f = await _processRawFile(rawFiles.first);
                   if (f == null || !mounted) {
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -1514,10 +1459,10 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             // Upload button
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              child: WebFilePicker(
+              child: AppFilePicker(
                 accept: 'image/*,.pdf,.doc,.docx,.xls,.xlsx',
                 multiple: true,
-                onRawFiles: (rawFiles) async {
+                onFiles: (rawFiles) async {
                   for (final rf in rawFiles) {
                     final f = await _processRawFile(rf);
                     if (f != null && mounted) {
@@ -1928,7 +1873,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Widget _fileUploadTile({
     required String label,
     required _AttachFile? file,
-    required void Function(html.File) onRawFile,
+    required void Function(PlatformFile) onRawFile,
     required VoidCallback onRemove,
     bool fullWidth = false,
     String accept = 'image/*,.pdf',
@@ -1961,9 +1906,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         ]),
       );
     }
-    return WebFilePicker(
+    return AppFilePicker(
       accept: accept,
-      onRawFiles: (files) => onRawFile(files.first),
+      onFiles: (files) => onRawFile(files.first),
       builder: (trigger) => OutlinedButton.icon(
         icon: const Icon(Icons.upload_file_rounded, size: 14),
         label: Text(label,

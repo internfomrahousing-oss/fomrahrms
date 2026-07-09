@@ -97,6 +97,10 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _users.where((u) => u.hasPendingGrossPayChange).toList();
   List<AppUser> get _pendingWorkLocation =>
       _users.where((u) => u.hasPendingWorkLocationChange).toList();
+  List<AppUser> get _pendingReportingManager =>
+      _users.where((u) => u.hasPendingReportingManagerChange).toList();
+  List<AppUser> get _pendingRmFlag =>
+      _users.where((u) => u.hasPendingRmFlagChange).toList();
 
   List<Map<String, dynamic>> _pendingOf(List<Map<String, dynamic>> versions) =>
       versions.where((v) => (v['status'] as String?) == 'pending').toList();
@@ -123,6 +127,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _pendingOnroll.length +
       _pendingGrossPay.length +
       _pendingWorkLocation.length +
+      _pendingReportingManager.length +
+      _pendingRmFlag.length +
       _pendingOf(_leaveVersions).length +
       _pendingOf(_interviewVersions).length +
       _pendingOf(_onboardingVersions).length +
@@ -176,6 +182,24 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       if (approve) u.workLocation = u.workLocationPending;
       u.workLocationPending = '';
       u.workLocationRequestedAt = '';
+    });
+    await UserStore.upsertOne(u);
+  }
+
+  Future<void> _decideReportingManager(AppUser u, bool approve) async {
+    setState(() {
+      if (approve) u.reportingManager = u.reportingManagerPending;
+      u.reportingManagerPending = '';
+      u.reportingManagerRequestedAt = '';
+    });
+    await UserStore.upsertOne(u);
+  }
+
+  Future<void> _decideRmFlag(AppUser u, bool approve) async {
+    setState(() {
+      if (approve) u.isReportingManager = u.isReportingManagerPending;
+      u.isReportingManagerPending = false;
+      u.isReportingManagerRequestedAt = '';
     });
     await UserStore.upsertOne(u);
   }
@@ -266,6 +290,42 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         ),
       );
 
+  _CategoryInfo get _reportingManagerCategory => _CategoryInfo(
+        icon: Icons.manage_accounts_rounded,
+        color: Colors.deepPurple.shade700,
+        label: 'Reporting Manager Change Requests',
+        pending: _pendingReportingManager.length,
+        approved: 0,
+        rejected: 0,
+        total: _pendingReportingManager.length,
+        onViewAll: () => _showPendingSheet(
+          label: 'Reporting Manager Change Requests',
+          color: Colors.deepPurple.shade700,
+          cards: _pendingReportingManager
+              .map((u) => _reportingManagerCard(u,
+                  onApprove: () => _decideReportingManager(u, true), onDeny: () => _decideReportingManager(u, false)))
+              .toList(),
+        ),
+      );
+
+  _CategoryInfo get _rmFlagCategory => _CategoryInfo(
+        icon: Icons.supervisor_account_rounded,
+        color: Colors.brown.shade600,
+        label: '"Is Reporting Manager" Requests',
+        pending: _pendingRmFlag.length,
+        approved: 0,
+        rejected: 0,
+        total: _pendingRmFlag.length,
+        onViewAll: () => _showPendingSheet(
+          label: '"Is Reporting Manager" Requests',
+          color: Colors.brown.shade600,
+          cards: _pendingRmFlag
+              .map((u) => _rmFlagCard(u,
+                  onApprove: () => _decideRmFlag(u, true), onDeny: () => _decideRmFlag(u, false)))
+              .toList(),
+        ),
+      );
+
   _CategoryInfo _formCategory(String label, List<Map<String, dynamic>> versions) => _CategoryInfo(
         icon: Icons.description_rounded,
         color: AppTheme.primaryBlue,
@@ -287,6 +347,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<_CategoryInfo> get _allCategories => [
         _leaveCategory, _permissionCategory, _compOffCategory,
         _onrollCategory, _grossPayCategory, _workLocationCategory,
+        _reportingManagerCategory, _rmFlagCategory,
         _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
         _policyCategory, _maintenanceFormCategory,
       ];
@@ -450,7 +511,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                     _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
                     _tabView([_grossPayCategory]),
                     _tabView([_onrollCategory]),
-                    _tabView([_workLocationCategory]),
+                    _tabView([_workLocationCategory, _reportingManagerCategory, _rmFlagCategory]),
                     _tabView([
                       _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
                       _policyCategory, _maintenanceFormCategory,
@@ -540,6 +601,34 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       subtitle: u.designation,
       details: ['${u.workLocation.isEmpty ? '—' : u.workLocation} → ${u.workLocationPending}'],
       meta: _fmtIso(u.workLocationRequestedAt),
+      onApprove: onApprove,
+      onDeny: onDeny,
+    );
+  }
+
+  Widget _reportingManagerCard(AppUser u, {required VoidCallback onApprove, required VoidCallback onDeny}) {
+    return _ApprovalCard(
+      title: u.name,
+      subtitle: u.designation,
+      details: [
+        '${u.reportingManager.isEmpty ? '—' : u.reportingManager} → '
+        '${u.reportingManagerPending.isEmpty ? 'None' : u.reportingManagerPending}',
+      ],
+      meta: _fmtIso(u.reportingManagerRequestedAt),
+      onApprove: onApprove,
+      onDeny: onDeny,
+    );
+  }
+
+  Widget _rmFlagCard(AppUser u, {required VoidCallback onApprove, required VoidCallback onDeny}) {
+    return _ApprovalCard(
+      title: u.name,
+      subtitle: u.designation,
+      details: [
+        '${u.isReportingManager ? 'Is RM' : 'Not RM'} → '
+        '${u.isReportingManagerPending ? 'Make RM' : 'Remove RM'}',
+      ],
+      meta: _fmtIso(u.isReportingManagerRequestedAt),
       onApprove: onApprove,
       onDeny: onDeny,
     );

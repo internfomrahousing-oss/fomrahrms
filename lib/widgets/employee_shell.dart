@@ -17,7 +17,7 @@ class _NavItem {
   const _NavItem(this.label, this.icon, this.route);
 }
 
-const _empNavItems = [
+const _baseEmpNavItems = [
   _NavItem('Dashboard',            Icons.dashboard_rounded,               '/employee/dashboard'),
   _NavItem('My Profile',           Icons.person_rounded,                  '/employee/profile'),
   _NavItem('My Attendance and Leaves', Icons.event_note_rounded,          '/employee/attendance-leaves'),
@@ -25,6 +25,18 @@ const _empNavItems = [
   _NavItem('Maintenance',          Icons.build_rounded,                   '/employee/maintenance-management'),
   _NavItem('My Notifications',     Icons.notifications_rounded,           '/employee/notifications'),
 ];
+
+// Extra "My Team" nav for anyone flagged isReportingManager, even if their
+// role isn't Manager (see reporting-manager-overhaul).
+const _myTeamNavItems = [
+  _NavItem('My Team',              Icons.groups_rounded,                  '/employee/my-team/records'),
+  _NavItem('Team Leave Approvals', Icons.event_available_rounded,         '/employee/my-team/leave-approvals'),
+];
+
+List<_NavItem> get _empNavItems => [
+      ..._baseEmpNavItems,
+      if (UserSession.isReportingManager) ..._myTeamNavItems,
+    ];
 
 class EmployeeShell extends StatelessWidget {
   final Widget child;

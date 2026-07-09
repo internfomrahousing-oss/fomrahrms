@@ -71,12 +71,15 @@ static const _priorities = [
     final users = await UserStore.load();
     if (mounted) {
       setState(() {
-        // Filter based on role:
-        // Manager → only direct reports; HR/Management → everyone
+        // HR/Management → everyone; a flagged reporting manager (any role)
+        // → only their direct reports; anyone else → no assignable users.
         final active = users.where((u) => u.active).toList();
-        _users = UserSession.role == UserRole.reportingManager
-            ? active.where((u) => u.reportingManager == UserSession.name).toList()
-            : active;
+        final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
+        _users = isHrOrMgmt
+            ? active
+            : (UserSession.isReportingManager
+                ? active.where((u) => u.reportingManager == UserSession.name).toList()
+                : <AppUser>[]);
       });
     }
   }
