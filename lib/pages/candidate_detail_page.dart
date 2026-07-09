@@ -54,7 +54,7 @@ class CandidateDetailPage extends StatelessWidget {
             // Resume: view (opens inline, no download) + download
             if (_val(d, 'resume_url').isNotEmpty) ...[
               OutlinedButton.icon(
-                onPressed: () => openUrl(_val(d, 'resume_url')),
+                onPressed: () => viewAttachment(_val(d, 'resume_url')),
                 icon: const Icon(Icons.visibility_outlined, size: 16),
                 label: const Text('View Resume', style: TextStyle(fontSize: 13)),
                 style: OutlinedButton.styleFrom(

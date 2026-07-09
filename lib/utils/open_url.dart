@@ -21,3 +21,19 @@ void downloadUrl(String url) {
   });
   launchUrl(withDownload, mode: LaunchMode.externalApplication);
 }
+
+const _officeExts = {'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'};
+
+/// Opens an attachment for viewing without downloading it. Images and PDFs
+/// have native browser renderers, so those open as-is; Word/Excel/PowerPoint
+/// files have none (the browser would just save them), so those are routed
+/// through Microsoft's Office Online viewer, which renders the document
+/// in-page from its public URL.
+void viewAttachment(String url) {
+  if (url.isEmpty) return;
+  final ext = Uri.parse(url).path.split('.').last.toLowerCase();
+  final target = _officeExts.contains(ext)
+      ? 'https://view.officeapps.live.com/op/view.aspx?src=${Uri.encodeComponent(url)}'
+      : url;
+  launchUrl(Uri.parse(target), mode: LaunchMode.externalApplication);
+}

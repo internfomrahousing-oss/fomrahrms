@@ -1456,7 +1456,7 @@ Widget _attachmentsSection(dynamic data) {
           ])),
           if (url.isNotEmpty) ...[
             TextButton(
-              onPressed: () => openUrl(url),
+              onPressed: () => viewAttachment(url),
               child: const Text('View', style: TextStyle(fontSize: 12)),
             ),
             IconButton(
