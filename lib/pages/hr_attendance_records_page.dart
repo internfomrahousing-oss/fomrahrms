@@ -1,4 +1,3 @@
-import 'dart:html' as html_lib;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
@@ -7,6 +6,7 @@ import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
+import '../utils/csv_export.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
@@ -35,7 +35,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   List<AttendanceRecord> _records = [];
   List<LeaveApplication> _leaveApps = [];
   List<AppUser> _allUsers = [];
-  int _totalUsers = 0;
+  String? _departmentFilter;
+  Map<String, List<AttendanceRecord>> _trendByDate = {};
+  DateTime? _lastUpdated;
+  final _recordsSectionKey = GlobalKey();
 
   @override
   void initState() {
@@ -46,20 +49,54 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   String _dateToStr(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
+  /// The 7 calendar days ending on [_selectedDate], oldest first — the
+  /// window the summary card's sparklines and day-over-day deltas draw from.
+  List<DateTime> get _trendDates =>
+      List.generate(7, (i) => _selectedDate.subtract(Duration(days: 6 - i)));
+
   Future<void> _loadRecords() async {
     setState(() => _isLoading = true);
+    final trendDateStrs = _trendDates.map(_dateToStr).toList();
     final results = await Future.wait([
       SupabaseService.fetchAttendanceForDate(_dateToStr(_selectedDate)),
       UserStore.load(),
       SupabaseService.fetchLeaveApplications(),
+      SupabaseService.fetchAttendanceForDates(trendDateStrs),
     ]);
     if (mounted) setState(() {
       _records = results[0] as List<AttendanceRecord>;
       _allUsers = (results[1] as List<AppUser>).where((u) => u.active).toList();
-      _totalUsers = _allUsers.length;
       _leaveApps = results[2] as List<LeaveApplication>;
+      final trendRecords = results[3] as List<AttendanceRecord>;
+      _trendByDate = {
+        for (final d in trendDateStrs)
+          d: trendRecords.where((r) => r.date == d).toList(),
+      };
+      _lastUpdated = DateTime.now();
       _isLoading = false;
     });
+  }
+
+  List<String> get _departments {
+    final set = _allUsers
+        .map((u) => u.department.trim())
+        .where((d) => d.isNotEmpty)
+        .toSet()
+        .toList();
+    set.sort();
+    return set;
+  }
+
+  List<AppUser> get _summaryUsers => _departmentFilter == null
+      ? _allUsers
+      : _allUsers.where((u) => u.department == _departmentFilter).toList();
+
+  void _scrollToRecords() {
+    final ctx = _recordsSectionKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(ctx,
+          duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+    }
   }
 
   /// Attendance rows plus one synthetic "Absent" row for every active
@@ -120,7 +157,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     }
   }
 
-  void _exportCsv() {
+  Future<void> _exportCsv() async {
     final rows = _displayRecords.where((r) => _matches(r.employeeName)).toList();
     final buffer = StringBuffer('Employee,Employee ID,Date,Check-In,Check-Out,Status\n');
     for (final r in rows) {
@@ -135,12 +172,10 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
       buffer.writeln('"${r.employeeName}","${r.employeeId}","${r.date}",'
           '"${r.checkInTime}","${r.checkOutTime}","$status"');
     }
-    final blob = html_lib.Blob([buffer.toString()], 'text/csv');
-    final url = html_lib.Url.createObjectUrl(blob);
-    html_lib.AnchorElement(href: url)
-      ..setAttribute('download', 'attendance_${_dateToStr(_selectedDate).replaceAll('/', '-')}.csv')
-      ..click();
-    html_lib.Url.revokeObjectUrl(url);
+    await exportCsv(
+      'attendance_${_dateToStr(_selectedDate).replaceAll('/', '-')}.csv',
+      buffer.toString(),
+    );
   }
 
   void _showEmployeeList(BuildContext context) {
@@ -353,10 +388,37 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
               child: Center(child: CircularProgressIndicator(color: _color)),
             )
           else ...[
-            _AttendanceSummaryCard(
-                records: _records, totalUsers: _totalUsers, leaveApps: _leaveApps),
+            Builder(builder: (context) {
+              final summaryUsers = _summaryUsers;
+              final summaryUserNames =
+                  summaryUsers.map((u) => u.name.toLowerCase()).toSet();
+              final summaryRecords = _departmentFilter == null
+                  ? _records
+                  : _records
+                      .where((r) =>
+                          summaryUserNames.contains(r.employeeName.toLowerCase()))
+                      .toList();
+              return _AttendanceSummaryCard(
+                records: summaryRecords,
+                totalUsers: summaryUsers.length,
+                leaveApps: _leaveApps,
+                selectedDate: _selectedDate,
+                isToday: _isToday,
+                isRefreshing: _isLoading,
+                trendByDate: _trendByDate,
+                summaryUserNames:
+                    _departmentFilter == null ? null : summaryUserNames,
+                departments: _departments,
+                departmentFilter: _departmentFilter,
+                onDepartmentChanged: (v) => setState(() => _departmentFilter = v),
+                onRefresh: _loadRecords,
+                lastUpdated: _lastUpdated,
+                onViewDetails: _scrollToRecords,
+              );
+            }),
             const SizedBox(height: 16),
             _Section(
+              key: _recordsSectionKey,
               title: 'Attendance Records',
               subtitle: '${filtered.length} employee${filtered.length == 1 ? '' : 's'}',
               color: _color,
@@ -382,102 +444,541 @@ class _AttendanceSummaryCard extends StatelessWidget {
   final List<AttendanceRecord> records;
   final List<LeaveApplication> leaveApps;
   final int totalUsers;
-  const _AttendanceSummaryCard(
-      {required this.records, required this.totalUsers, required this.leaveApps});
+  final DateTime selectedDate;
+  final bool isToday;
+  final bool isRefreshing;
+  final Map<String, List<AttendanceRecord>> trendByDate;
+  // Restricts trend/comp-off day math to this set of employee names when a
+  // department filter is active; null means "everyone".
+  final Set<String>? summaryUserNames;
+  final List<String> departments;
+  final String? departmentFilter;
+  final ValueChanged<String?> onDepartmentChanged;
+  final VoidCallback onRefresh;
+  final DateTime? lastUpdated;
+  final VoidCallback onViewDetails;
 
-  static const _green = Color(0xFF22C55E);
+  const _AttendanceSummaryCard({
+    required this.records,
+    required this.totalUsers,
+    required this.leaveApps,
+    required this.selectedDate,
+    required this.isToday,
+    required this.isRefreshing,
+    required this.trendByDate,
+    required this.summaryUserNames,
+    required this.departments,
+    required this.departmentFilter,
+    required this.onDepartmentChanged,
+    required this.onRefresh,
+    required this.lastUpdated,
+    required this.onViewDetails,
+  });
+
+  static const _green  = Color(0xFF22C55E);
+  static const _red    = Color(0xFFEF4444);
+  static const _orange = Color(0xFFF59E0B);
+  static const _purple = Color(0xFFA855F7);
+  static const _gray   = Color(0xFF6B7280);
+  static const _teal   = Color(0xFF15803D);
+
+  String _dateStr(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  bool _covers(LeaveApplication a, DateTime d) =>
+      !d.isBefore(DateTime(a.from.year, a.from.month, a.from.day)) &&
+      !d.isAfter(DateTime(a.to.year, a.to.month, a.to.day));
+
+  List<AttendanceRecord> _forNames(List<AttendanceRecord> recs) =>
+      summaryUserNames == null
+          ? recs
+          : recs.where((r) => summaryUserNames!.contains(r.employeeName.toLowerCase())).toList();
+
+  int _compOffCount(DateTime d) => leaveApps
+      .where((a) =>
+          a.leaveType == 'Comp Off' &&
+          a.managerStatus == LeaveApprovalStatus.approved &&
+          _covers(a, d) &&
+          (summaryUserNames == null ||
+              summaryUserNames!.contains(a.employeeName.toLowerCase())))
+      .map((a) => a.employeeName.toLowerCase())
+      .toSet()
+      .length;
 
   @override
   Widget build(BuildContext context) {
     final present = records.where((r) => r.checkInTime.isNotEmpty).length;
     final absent  = (totalUsers - present).clamp(0, totalUsers);
-
     final statuses = records.map((r) => _rowStatus(r, leaveApps)).toList();
     final lateArrivals = statuses.where((s) => s.status == CheckInStatus.late).length;
     final onPermission = statuses.where((s) => s.status == CheckInStatus.permission).length;
+    final compOff = _compOffCount(selectedDate);
 
-    String pct(int n) => totalUsers == 0 ? '0.0' : (n / totalUsers * 100).toStringAsFixed(1);
+    // 7-day trend (oldest→newest, ending on selectedDate) for the sparklines
+    // and the "vs yesterday" delta badges.
+    final trendDates = List.generate(7, (i) => selectedDate.subtract(Duration(days: 6 - i)));
+    final trendDayData = trendDates.map((d) {
+      final recs = _forNames(trendByDate[_dateStr(d)] ?? const []);
+      final st = recs.map((r) => _rowStatus(r, leaveApps)).toList();
+      return (
+        present: recs.where((r) => r.checkInTime.isNotEmpty).length,
+        late: st.where((s) => s.status == CheckInStatus.late).length,
+        permission: st.where((s) => s.status == CheckInStatus.permission).length,
+        compOff: _compOffCount(d),
+      );
+    }).toList();
+
+    double pct(int n) => totalUsers == 0 ? 0 : n / totalUsers * 100;
+    double deltaPct(
+        int Function(({int present, int late, int permission, int compOff}) d) pick) {
+      if (trendDayData.length < 2) return 0;
+      final today = trendDayData.last, yesterday = trendDayData[trendDayData.length - 2];
+      return pct(pick(today)) - pct(pick(yesterday));
+    }
 
     final stats = [
-      ('Present', '$present', '${pct(present)}% of total', Icons.check_circle_rounded, _green),
-      ('Absent',  '$absent',  '${pct(absent)}% of total',  Icons.cancel_rounded, const Color(0xFFEF4444)),
-      ('Late Arrivals', '$lateArrivals', '${pct(lateArrivals)}% of total', Icons.schedule_rounded, const Color(0xFFF59E0B)),
-      ('On Permission', '$onPermission', '${pct(onPermission)}% of total', Icons.event_note_rounded, const Color(0xFFF97316)),
-      ('Comp Off',      '—', '0.0% of total', Icons.mail_rounded, const Color(0xFF6B7280)),
-      ('On Duty',       '—', '0.0% of total', Icons.work_rounded, const Color(0xFF15803D)),
+      _StatSpec('Present', present, pct(present), deltaPct((d) => d.present),
+          Icons.check_circle_rounded, _green,
+          trendDayData.map((d) => d.present.toDouble()).toList()),
+      _StatSpec('Absent', absent, pct(absent), -deltaPct((d) => d.present),
+          Icons.cancel_rounded, _red,
+          trendDayData.map((d) => (totalUsers - d.present).clamp(0, totalUsers).toDouble()).toList()),
+      _StatSpec('Late Arrivals', lateArrivals, pct(lateArrivals), deltaPct((d) => d.late),
+          Icons.schedule_rounded, _orange,
+          trendDayData.map((d) => d.late.toDouble()).toList()),
+      _StatSpec('On Permission', onPermission, pct(onPermission), deltaPct((d) => d.permission),
+          Icons.event_note_rounded, _purple,
+          trendDayData.map((d) => d.permission.toDouble()).toList()),
+      _StatSpec('Comp Off', compOff, pct(compOff), deltaPct((d) => d.compOff),
+          Icons.swap_horiz_rounded, _gray,
+          trendDayData.map((d) => d.compOff.toDouble()).toList()),
+      _StatSpec('On Duty', 0, 0, 0, Icons.work_rounded, _teal,
+          List.filled(trendDayData.length, 0.0)),
     ];
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Summary',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827))),
-          const SizedBox(height: 14),
+          _SummaryHeader(
+            selectedDate: selectedDate,
+            isToday: isToday,
+            isRefreshing: isRefreshing,
+            departments: departments,
+            departmentFilter: departmentFilter,
+            onDepartmentChanged: onDepartmentChanged,
+            onRefresh: onRefresh,
+          ),
+          const SizedBox(height: 20),
           LayoutBuilder(builder: (context, constraints) {
-            final cols = constraints.maxWidth > 720 ? 3 : constraints.maxWidth > 420 ? 2 : 1;
+            final cols = constraints.maxWidth > 980 ? 6
+                : constraints.maxWidth > 680 ? 3
+                : constraints.maxWidth > 420 ? 2 : 1;
             final tileWidth = (constraints.maxWidth - (cols - 1) * 12) / cols;
             return Wrap(
               spacing: 12,
               runSpacing: 12,
               children: stats.map((s) => SizedBox(
                 width: tileWidth,
-                child: _SumStat(
-                  label: s.$1,
-                  value: s.$2,
-                  sub: s.$3,
-                  icon: s.$4,
-                  color: s.$5,
-                ),
+                child: _StatCard(spec: s, totalUsers: totalUsers),
               )).toList(),
             );
           }),
+          const SizedBox(height: 18),
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 14),
+          _SummaryFooter(
+            totalUsers: totalUsers,
+            lastUpdated: lastUpdated,
+            onRefresh: onRefresh,
+            onViewDetails: onViewDetails,
+          ),
         ]),
       ),
     );
   }
 }
 
-class _SumStat extends StatelessWidget {
+class _StatSpec {
   final String label;
-  final String value;
-  final String sub;
+  final int value;
+  final double pctOfTotal;
+  final double deltaPct;
   final IconData icon;
   final Color color;
-  const _SumStat({required this.label, required this.value, required this.sub,
-      required this.icon, required this.color});
+  final List<double> trend;
+  const _StatSpec(this.label, this.value, this.pctOfTotal, this.deltaPct,
+      this.icon, this.color, this.trend);
+}
+
+// ── Header: title, live date badge, department filter, refresh ────────────────
+
+class _SummaryHeader extends StatelessWidget {
+  final DateTime selectedDate;
+  final bool isToday;
+  final bool isRefreshing;
+  final List<String> departments;
+  final String? departmentFilter;
+  final ValueChanged<String?> onDepartmentChanged;
+  final VoidCallback onRefresh;
+
+  const _SummaryHeader({
+    required this.selectedDate,
+    required this.isToday,
+    required this.isRefreshing,
+    required this.departments,
+    required this.departmentFilter,
+    required this.onDepartmentChanged,
+    required this.onRefresh,
+  });
+
+  static const _months = ['January','February','March','April','May','June',
+      'July','August','September','October','November','December'];
+  static const _days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    final dateLabel =
+        '${_months[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year} · '
+        '${_days[selectedDate.weekday - 1]}';
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final narrow = constraints.maxWidth < 720;
+      final titleBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(isToday ? 'Today Attendance Summary' : 'Attendance Summary',
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
+                color: Color(0xFF111827))),
+        const SizedBox(height: 3),
+        Text(
+            isToday
+                ? "Real-time overview of today's attendance status"
+                : 'Overview of attendance status for the selected date',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+      ]);
+
+      final rightControls = Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
         Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Icon(icon, size: 19, color: Colors.white),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label,
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827))),
-            const SizedBox(height: 4),
-            Text(value,
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color)),
-            const SizedBox(height: 2),
-            Text(sub, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.calendar_today_rounded, size: 13, color: Color(0xFF6B7280)),
+            const SizedBox(width: 7),
+            Text(dateLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                color: Color(0xFF374151))),
           ]),
         ),
-      ]),
+        if (isToday)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.circle, size: 8, color: Color(0xFF22C55E)),
+              SizedBox(width: 6),
+              Text('Live', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                  color: Color(0xFF16A34A))),
+            ]),
+          ),
+        PopupMenuButton<String?>(
+          tooltip: 'Filter by department',
+          onSelected: onDepartmentChanged,
+          itemBuilder: (context) => [
+            const PopupMenuItem(value: null, child: Text('All Departments')),
+            ...departments.map((d) => PopupMenuItem(value: d, child: Text(d))),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.filter_alt_outlined, size: 14, color: Color(0xFF6B7280)),
+              const SizedBox(width: 7),
+              Text(departmentFilter ?? 'Filter by Department',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                      color: Color(0xFF374151))),
+              const SizedBox(width: 6),
+              const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
+            ]),
+          ),
+        ),
+        Tooltip(
+          message: 'Refresh',
+          child: InkWell(
+            onTap: isRefreshing ? null : onRefresh,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: isRefreshing
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF6B7280)),
+            ),
+          ),
+        ),
+      ]);
+
+      return narrow
+          ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              titleBlock,
+              const SizedBox(height: 12),
+              rightControls,
+            ])
+          : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: titleBlock),
+              const SizedBox(width: 12),
+              rightControls,
+            ]);
+    });
+  }
+}
+
+// ── One stat tile: icon, delta badge, big number, % of total, sparkline ───────
+
+class _StatCard extends StatelessWidget {
+  final _StatSpec spec;
+  final int totalUsers;
+  const _StatCard({required this.spec, required this.totalUsers});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = spec.color;
+    final delta = spec.deltaPct;
+    final deltaGlyph = delta > 0.05 ? '↑' : delta < -0.05 ? '↓' : '↔';
+    final deltaText = '$deltaGlyph ${delta.abs().toStringAsFixed(1)}%';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(children: [
+          Container(width: 4, color: color),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    width: 30, height: 30,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(spec.icon, size: 15, color: color),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(spec.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827))),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(deltaText,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                Text('${spec.value}',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color)),
+                const SizedBox(height: 1),
+                Text(spec.value == 1 ? 'Employee' : 'Employees',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 8),
+                Row(children: [
+                  const Icon(Icons.people_alt_outlined, size: 12, color: Color(0xFF9CA3AF)),
+                  const SizedBox(width: 5),
+                  Text('${spec.pctOfTotal.toStringAsFixed(1)}% of total workforce',
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF6B7280))),
+                ]),
+                const SizedBox(height: 10),
+                _Sparkline(values: spec.trend, color: color),
+              ]),
+            ),
+          ),
+        ]),
+      ),
     );
+  }
+}
+
+// ── Sparkline ───────────────────────────────────────────────────────────────
+
+class _Sparkline extends StatelessWidget {
+  final List<double> values;
+  final Color color;
+  const _Sparkline({required this.values, required this.color});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 34,
+        width: double.infinity,
+        child: CustomPaint(painter: _SparklinePainter(values: values, color: color)),
+      );
+}
+
+class _SparklinePainter extends CustomPainter {
+  final List<double> values;
+  final Color color;
+  const _SparklinePainter({required this.values, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2 || size.width <= 0) return;
+    final maxV = values.reduce((a, b) => a > b ? a : b);
+    final minV = values.reduce((a, b) => a < b ? a : b);
+    final range = (maxV - minV) == 0 ? 1.0 : (maxV - minV);
+    final dx = size.width / (values.length - 1);
+
+    final points = <Offset>[];
+    for (int i = 0; i < values.length; i++) {
+      final normalized = (values[i] - minV) / range;
+      final y = size.height - (normalized * size.height * 0.75 + size.height * 0.1);
+      points.add(Offset(dx * i, y));
+    }
+
+    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final p in points.skip(1)) {
+      linePath.lineTo(p.dx, p.dy);
+    }
+
+    final fillPath = Path.from(linePath)
+      ..lineTo(points.last.dx, size.height)
+      ..lineTo(points.first.dx, size.height)
+      ..close();
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0)],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+
+    final dotPaint = Paint()..color = color;
+    for (final p in points) {
+      canvas.drawCircle(p, 2, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklinePainter oldDelegate) =>
+      oldDelegate.values != values || oldDelegate.color != color;
+}
+
+// ── Footer: total workforce, last updated, view detailed report ───────────────
+
+class _SummaryFooter extends StatelessWidget {
+  final int totalUsers;
+  final DateTime? lastUpdated;
+  final VoidCallback onRefresh;
+  final VoidCallback onViewDetails;
+  const _SummaryFooter({
+    required this.totalUsers,
+    required this.lastUpdated,
+    required this.onRefresh,
+    required this.onViewDetails,
+  });
+
+  String _fmtTime(DateTime d) {
+    final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final m = d.minute.toString().padLeft(2, '0');
+    final ampm = d.hour >= 12 ? 'PM' : 'AM';
+    return '$h:$m $ampm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final narrow = constraints.maxWidth < 620;
+      final info = Wrap(spacing: 20, runSpacing: 8, children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.people_alt_outlined, size: 15, color: Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text.rich(TextSpan(children: [
+            const TextSpan(text: 'Total Workforce: ',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+            TextSpan(text: '$totalUsers Employees',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827))),
+          ])),
+        ]),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.access_time_rounded, size: 15, color: Color(0xFF6B7280)),
+          const SizedBox(width: 6),
+          Text(lastUpdated == null ? 'Last updated: —' : 'Last updated: ${_fmtTime(lastUpdated!)}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onRefresh,
+            borderRadius: BorderRadius.circular(12),
+            child: const Padding(
+              padding: EdgeInsets.all(3),
+              child: Icon(Icons.refresh_rounded, size: 14, color: Color(0xFF6B7280)),
+            ),
+          ),
+        ]),
+      ]);
+
+      final button = OutlinedButton(
+        onPressed: onViewDetails,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF111827),
+          side: const BorderSide(color: Color(0xFFE5E7EB)),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Text('View Detailed Report',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+          Icon(Icons.chevron_right_rounded, size: 16),
+        ]),
+      );
+
+      return narrow
+          ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              info,
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: button),
+            ])
+          : Row(children: [
+              Expanded(child: info),
+              const SizedBox(width: 12),
+              button,
+            ]);
+    });
   }
 }
 
@@ -1057,7 +1558,8 @@ class _Section extends StatelessWidget {
   final Color color;
   final Widget child;
   const _Section(
-      {required this.title,
+      {super.key,
+      required this.title,
       required this.subtitle,
       required this.color,
       required this.child});

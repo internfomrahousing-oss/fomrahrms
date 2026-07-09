@@ -274,6 +274,15 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists work_location_requested_at text default '';
   alter table app_users add column if not exists emergency_attendance_enabled boolean default false;
   alter table app_users add column if not exists department text default '';
+  alter table app_users add column if not exists reporting_manager_pending text default '';
+  alter table app_users add column if not exists reporting_manager_requested_at text default '';
+  alter table app_users add column if not exists is_reporting_manager boolean default false;
+  alter table app_users add column if not exists is_reporting_manager_pending boolean default false;
+  alter table app_users add column if not exists is_reporting_manager_requested_at text default '';
+
+  -- One-time backfill: existing Manager-role users must keep RM-dropdown
+  -- eligibility now that eligibility is flag-based, not role-based.
+  update app_users set is_reporting_manager = true where role = 'Manager' and is_reporting_manager = false;
 
   create table if not exists tasks (
     id text primary key,
@@ -780,6 +789,11 @@ class SupabaseService {
         password:             (row['password']                as String?) ?? '',
         leaveAllocation:      (row['leave_allocation']        as int?)    ?? 21,
         reportingManager:     (row['reporting_manager']       as String?) ?? '',
+        reportingManagerPending:     (row['reporting_manager_pending']       as String?) ?? '',
+        reportingManagerRequestedAt: (row['reporting_manager_requested_at']  as String?) ?? '',
+        isReportingManager:            (row['is_reporting_manager']            as bool?)   ?? false,
+        isReportingManagerPending:     (row['is_reporting_manager_pending']    as bool?)   ?? false,
+        isReportingManagerRequestedAt: (row['is_reporting_manager_requested_at'] as String?) ?? '',
         mobile:               (row['mobile']                  as String?) ?? '',
         address:              (row['address']                 as String?) ?? '',
         dateOfJoining:        (row['date_of_joining']         as String?) ?? '',
@@ -823,6 +837,11 @@ class SupabaseService {
       'password':                 u.password,
       'leave_allocation':         u.leaveAllocation,
       'reporting_manager':        u.reportingManager,
+      'reporting_manager_pending':        u.reportingManagerPending,
+      'reporting_manager_requested_at':   u.reportingManagerRequestedAt,
+      'is_reporting_manager':             u.isReportingManager,
+      'is_reporting_manager_pending':     u.isReportingManagerPending,
+      'is_reporting_manager_requested_at': u.isReportingManagerRequestedAt,
       'mobile':                   u.mobile,
       'address':                  u.address,
       'date_of_joining':          u.dateOfJoining,
@@ -1393,6 +1412,34 @@ class SupabaseService {
           ?.from('attendance_records')
           .select()
           .eq('date', date)
+          .order('created_at', ascending: true);
+      if (data == null) return [];
+      return (data as List).map((row) => AttendanceRecord(
+        id:           row['id'] as String,
+        employeeName: row['employee_name'] as String,
+        employeeId:   (row['employee_id']    as String?) ?? '',
+        date:         row['date'] as String,
+        checkInTime:  (row['check_in_time']  as String?) ?? '',
+        checkOutTime: (row['check_out_time'] as String?) ?? '',
+        location:     (row['location']        as String?) ?? '',
+        gpsPoints:    _parseGpsPoints(row['gps_points']),
+        checkInNote:  (row['check_in_note']  as String?) ?? '',
+        checkOutNote: (row['check_out_note'] as String?) ?? '',
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Attendance records for several dates ("dd/MM/yyyy" strings) in one
+  /// query — used to build the attendance summary's day-over-day trend.
+  static Future<List<AttendanceRecord>> fetchAttendanceForDates(List<String> dates) async {
+    if (dates.isEmpty) return [];
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .inFilter('date', dates)
           .order('created_at', ascending: true);
       if (data == null) return [];
       return (data as List).map((row) => AttendanceRecord(
