@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,6 +27,7 @@ class _LoginPageState extends State<LoginPage> {
   static const _textMuted  = Color(0xFF64748B);
   static const _borderGray = Color(0xFFE2E8F0);
   static const _errorRed   = Color(0xFFDC2626);
+  static const _infinityBlue = Color(0xFFA9BEE0);
 
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -246,7 +248,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ── Left panel: gradient backdrop, logo, and a building-wireframe motif ──
+  // ── Left panel: infinity motif, Infinitheism tagline, and a mountain /
+  // lake / lotus scene — the spiritual backdrop behind the FOMRA wordmark ──
   Widget _logoPanel() {
     return Container(
       decoration: const BoxDecoration(
@@ -258,27 +261,46 @@ class _LoginPageState extends State<LoginPage> {
       ),
       child: Stack(children: [
         Positioned(
-          top: -70, right: -70,
-          child: Container(
-            width: 240, height: 240,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.55),
-            ),
-          ),
+          left: 0, right: 0, bottom: 0, height: 320,
+          child: CustomPaint(painter: _InfinitheismScenePainter(), size: Size.infinite),
         ),
         Positioned(
-          left: 0, right: 0, bottom: 0, height: 280,
-          child: CustomPaint(painter: _BuildingPainter()),
-        ),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(48),
-            child: FomraLogoMark(wordmarkSize: 64),
-          ),
+          top: 0, left: 0, right: 0, bottom: 200,
+          child: Center(child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: _brandBlock(compact: false),
+          )),
         ),
       ]),
     );
+  }
+
+  // Infinity glyph + Infinitheism tagline + divider + FOMRA wordmark.
+  // Shared between the wide left panel and the compact mobile header.
+  Widget _brandBlock({required bool compact}) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Icons.all_inclusive_rounded, size: compact ? 24 : 30, color: _infinityBlue),
+      SizedBox(height: compact ? 12 : 18),
+      Text('YOU ARE NOT THE BODY, YOU ARE NOT THE MIND,',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+              fontSize: compact ? 9.5 : 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.1,
+              color: _textMuted)),
+      const SizedBox(height: 4),
+      Text('YOU ARE INFINITY ITSELF.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+              fontSize: compact ? 11.5 : 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.0,
+              color: _textDark)),
+      SizedBox(height: compact ? 14 : 18),
+      Container(width: 36, height: 2, color: _infinityBlue.withValues(alpha: 0.7)),
+      SizedBox(height: compact ? 20 : 28),
+      FomraLogoMark(wordmarkSize: compact ? 40 : 46),
+    ]);
   }
 
   // ── Right panel: the actual sign-in form ───────────────────────────────
@@ -293,11 +315,15 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (showCompactLogo) ...[
-                const Center(child: FomraLogoMark(wordmarkSize: 40)),
+                Center(child: _brandBlock(compact: true)),
                 const SizedBox(height: 36),
               ],
 
               if (_pendingUser == null) ...[
+                Center(
+                  child: Icon(Icons.spa_rounded, size: 32, color: _navy.withValues(alpha: 0.55)),
+                ),
+                const SizedBox(height: 14),
                 Text('Welcome back',
                     style: GoogleFonts.inter(
                         fontSize: 28, fontWeight: FontWeight.w800, color: _textDark)),
@@ -383,15 +409,14 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _orDivider() => Padding(
+  Widget _infinityDivider() => Padding(
         padding: const EdgeInsets.symmetric(vertical: 22),
         child: Row(children: [
+          Icon(Icons.all_inclusive_rounded, size: 14, color: _textMuted),
+          const SizedBox(width: 10),
           const Expanded(child: Divider(color: _borderGray, thickness: 1)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('or', style: GoogleFonts.inter(fontSize: 13, color: _textMuted)),
-          ),
-          const Expanded(child: Divider(color: _borderGray, thickness: 1)),
+          const SizedBox(width: 10),
+          Icon(Icons.all_inclusive_rounded, size: 14, color: _textMuted),
         ]),
       );
 
@@ -453,7 +478,7 @@ class _LoginPageState extends State<LoginPage> {
             : Text('Sign In',
                 style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
-      _orDivider(),
+      _infinityDivider(),
       _securityNote(),
     ]);
   }
@@ -542,35 +567,104 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-// A faint skyscraper wireframe — a tapered tower silhouette filled with a
-// thin grid — anchored to the bottom-left corner of the logo panel.
-class _BuildingPainter extends CustomPainter {
+// A serene mountain range mirrored in a still lake, with a soft glow and a
+// blossoming lotus resting on the waterline — the Infinitheism motif behind
+// the sign-in form's "you are infinity itself" tagline.
+class _InfinitheismScenePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(0, size.height * 0.32)
-      ..lineTo(size.width * 0.6, size.height * 0.04)
-      ..lineTo(size.width * 0.6, size.height)
-      ..close();
+    final w = size.width, h = size.height;
+    final horizonY = h * 0.34;
 
-    canvas.drawPath(path, Paint()..color = const Color(0xFF3B6FB0).withValues(alpha: 0.05));
+    // Warm glow behind the peaks, radiating down onto the water.
+    final glowRect = Rect.fromCircle(center: Offset(w / 2, horizonY), radius: w * 0.55);
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0)],
+        ).createShader(glowRect),
+    );
 
-    canvas.save();
-    canvas.clipPath(path);
-    final linePaint = Paint()
-      ..color = const Color(0xFF3B6FB0).withValues(alpha: 0.16)
-      ..strokeWidth = 1;
-    const step = 18.0;
-    for (double x = 0; x < size.width * 0.6; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), linePaint);
+    // Layered mountain silhouettes, lightest (furthest) to darkest (nearest).
+    final layers = [
+      (color: const Color(0xFFC3CEE6), alpha: 0.45, amp: 0.16, freq: 3.2, phase: 0.4),
+      (color: const Color(0xFF9DAFD6), alpha: 0.55, amp: 0.13, freq: 4.1, phase: 1.7),
+      (color: const Color(0xFF6E82B8), alpha: 0.65, amp: 0.10, freq: 5.3, phase: 3.1),
+    ];
+    for (final layer in layers) {
+      final path = _mountainPath(w, horizonY, layer.amp * h, layer.freq, layer.phase);
+      canvas.drawPath(path, Paint()..color = layer.color.withValues(alpha: layer.alpha));
     }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width * 0.6, y), linePaint);
+
+    // Still water beneath the horizon, fading toward the bottom edge.
+    final waterRect = Rect.fromLTWH(0, horizonY, w, h - horizonY);
+    canvas.drawRect(
+      waterRect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [const Color(0xFFDCE4F4).withValues(alpha: 0.55), Colors.white.withValues(alpha: 0.05)],
+        ).createShader(waterRect),
+    );
+
+    // Mirrored, softened reflection of the mountains in the water.
+    canvas.save();
+    canvas.clipRect(waterRect);
+    for (final layer in layers) {
+      final path = _mountainPath(w, horizonY, layer.amp * h, layer.freq, layer.phase);
+      canvas.save();
+      canvas.translate(0, 2 * horizonY);
+      canvas.scale(1, -1);
+      canvas.drawPath(path, Paint()..color = layer.color.withValues(alpha: layer.alpha * 0.35));
+      canvas.restore();
     }
     canvas.restore();
+
+    _drawLotus(canvas, Offset(w / 2, horizonY), math.min(w, h) * 0.30);
+  }
+
+  Path _mountainPath(double w, double horizonY, double amp, double freq, double phase) {
+    final path = Path()..moveTo(0, horizonY);
+    const steps = 40;
+    for (int i = 0; i <= steps; i++) {
+      final x = w * i / steps;
+      final y = horizonY - amp * (0.5 + 0.5 * math.sin(freq * i / steps * math.pi + phase)).abs();
+      path.lineTo(x, y);
+    }
+    path.lineTo(w, horizonY);
+    path.close();
+    return path;
+  }
+
+  void _drawLotus(Canvas canvas, Offset center, double scale) {
+    final outerPaint = Paint()..color = Colors.white.withValues(alpha: 0.75);
+    final innerPaint = Paint()..color = Colors.white.withValues(alpha: 0.92);
+
+    Path petal(double length, double width) {
+      return Path()
+        ..moveTo(0, 0)
+        ..cubicTo(-width, -length * 0.42, -width * 0.55, -length * 0.85, 0, -length)
+        ..cubicTo(width * 0.55, -length * 0.85, width, -length * 0.42, 0, 0)
+        ..close();
+    }
+
+    void drawRing(List<double> anglesDeg, Path shape, Paint paint) {
+      for (final deg in anglesDeg) {
+        canvas.save();
+        canvas.translate(center.dx, center.dy);
+        canvas.rotate(deg * math.pi / 180);
+        canvas.drawPath(shape, paint);
+        canvas.restore();
+      }
+    }
+
+    drawRing([-72, -43, -14, 14, 43, 72], petal(scale * 0.62, scale * 0.22), outerPaint);
+    drawRing([-28, -9, 9, 28], petal(scale * 0.82, scale * 0.16), innerPaint);
+    drawRing([0], petal(scale * 0.52, scale * 0.11), innerPaint);
   }
 
   @override
-  bool shouldRepaint(covariant _BuildingPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _InfinitheismScenePainter oldDelegate) => false;
 }
