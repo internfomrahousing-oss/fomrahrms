@@ -29,6 +29,15 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   List<AppUser> _employees = [];
   List<LeaveApplication> get _applications => LeaveStore.applications;
 
+  // ── Employee Allocations tab: search / filter / pagination state ─────────
+  final _searchController = TextEditingController();
+  String _search = '';
+  String _deptFilter = 'All';
+  String _desigFilter = 'All';
+  String _statusFilter = 'Active';
+  int _page = 1;
+  int _pageSize = 10;
+
   List<LeaveApplication> get _monthApps {
     return _applications.where((a) =>
         a.from.year == _selectedMonth.year &&
@@ -57,6 +66,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   @override
   void dispose() {
     _tabs.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -80,6 +90,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
         setState(() {
           _employees = users.where((u) => u.role == 'Employee' || u.role == 'Manager').toList();
           _loading = false;
+          _page = 1;
         });
       }
     } catch (_) {
@@ -116,6 +127,13 @@ static String _fmtD(double d) =>
 
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  String _fmtJoined(String iso) {
+    if (iso.isEmpty) return '—';
+    final d = DateTime.tryParse(iso);
+    if (d == null) return '—';
+    return '${d.day.toString().padLeft(2, '0')} ${_monthNames[d.month - 1].substring(0, 3)} ${d.year}';
+  }
 
   Future<void> _pickMonth() async {
     final now = DateTime.now();
@@ -227,6 +245,73 @@ static String _fmtD(double d) =>
 
   // ── Tab 1: Employee allocations ───────────────────────────────────────────
 
+  List<String> get _departmentOptions {
+    final set = <String>{};
+    for (final e in _employees) {
+      if (e.department.isNotEmpty) set.add(e.department);
+    }
+    final list = set.toList()..sort();
+    return ['All', ...list];
+  }
+
+  List<String> get _designationOptions {
+    final set = <String>{};
+    for (final e in _employees) {
+      if (e.designation.isNotEmpty) set.add(e.designation);
+    }
+    final list = set.toList()..sort();
+    return ['All', ...list];
+  }
+
+  List<AppUser> get _filteredEmployees {
+    final q = _search.trim().toLowerCase();
+    return _employees.where((e) {
+      final matchesSearch = q.isEmpty ||
+          e.name.toLowerCase().contains(q) ||
+          e.email.toLowerCase().contains(q) ||
+          e.role.toLowerCase().contains(q);
+      final matchesDept = _deptFilter == 'All' || e.department == _deptFilter;
+      final matchesDesig = _desigFilter == 'All' || e.designation == _desigFilter;
+      final matchesStatus = _statusFilter == 'All' ||
+          (_statusFilter == 'Active' ? e.active : !e.active);
+      return matchesSearch && matchesDept && matchesDesig && matchesStatus;
+    }).toList();
+  }
+
+  int _pageCountFor(int total) => total == 0 ? 1 : (total / _pageSize).ceil();
+
+  double get _orgTotalAvailable {
+    double sum = 0;
+    for (final u in _employees) {
+      sum += (u.monthlyMl - _usedBucket(u.name, 'ML')).clamp(0, u.monthlyMl.toDouble());
+      sum += (u.monthlyCl - _usedBucket(u.name, 'CL')).clamp(0, u.monthlyCl.toDouble());
+      final elQuota = (u.monthlyEl * 12).toDouble();
+      sum += (elQuota - _elUsedSince(u.name, u.elLastAvailedAt)).clamp(0, elQuota);
+    }
+    return sum;
+  }
+
+  double get _orgTotalUsed {
+    double sum = 0;
+    for (final u in _employees) {
+      sum += _usedBucket(u.name, 'ML');
+      sum += _usedBucket(u.name, 'CL');
+      sum += _elUsedSince(u.name, u.elLastAvailedAt);
+    }
+    return sum;
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _search = '';
+      _searchController.clear();
+      _deptFilter = 'All';
+      _desigFilter = 'All';
+      _statusFilter = 'Active';
+      _page = 1;
+    });
+  }
+
   Widget _buildAllocationsTab() {
     if (_employees.isEmpty) {
       return Center(
@@ -241,66 +326,398 @@ static String _fmtD(double d) =>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _employees.length,
-      itemBuilder: (context, i) {
-        final user = _employees[i];
+    final filtered = _filteredEmployees;
+    final pageCount = _pageCountFor(filtered.length);
+    final page = _page.clamp(1, pageCount);
+    final start = (page - 1) * _pageSize;
+    final paged = filtered.isEmpty
+        ? <AppUser>[]
+        : filtered.sublist(start, (start + _pageSize).clamp(0, filtered.length));
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Employee info row
-              Row(children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: _color.withValues(alpha: 0.12),
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(user.name,
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _buildStatsRow(),
+        const SizedBox(height: 16),
+        _buildFilterBar(),
+        const SizedBox(height: 16),
+        if (filtered.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Center(
+                child: Column(children: [
+                  Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
+                  const SizedBox(height: 10),
+                  Text('No employees match these filters',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+                ]),
+              ),
+            ),
+          )
+        else ...[
+          ...paged.map((u) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildEmployeeCard(u),
+              )),
+          const SizedBox(height: 8),
+          _buildPaginationFooter(filtered.length, pageCount, page),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildStatsRow() {
+    final cards = [
+      _StatCard(
+        icon: Icons.groups_rounded,
+        color: _color,
+        label: 'Total Employees',
+        value: '${_employees.where((e) => e.active).length}',
+        caption: 'Active employees',
+      ),
+      _StatCard(
+        icon: Icons.event_note_rounded,
+        color: Colors.green.shade600,
+        label: 'Total Leave Types',
+        value: '3',
+        caption: 'ML, CL, EL',
+      ),
+      _StatCard(
+        icon: Icons.calendar_month_rounded,
+        color: Colors.purple.shade600,
+        label: 'Total Available',
+        value: _fmtD(_orgTotalAvailable),
+        caption: 'Across all leave types',
+      ),
+      _StatCard(
+        icon: Icons.swap_horiz_rounded,
+        color: Colors.orange.shade700,
+        label: 'Total Used',
+        value: _fmtD(_orgTotalUsed),
+        caption: 'Across all leave types',
+      ),
+    ];
+
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 700) {
+        final w = (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: cards.map((c) => SizedBox(width: w, child: c)).toList(),
+        );
+      }
+      final statsRow = Row(children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          Expanded(child: cards[i]),
+          if (i != cards.length - 1) const SizedBox(width: 12),
+        ],
+      ]);
+      if (constraints.maxWidth < 950) return statsRow;
+      return Row(children: [
+        Expanded(child: statsRow),
+        const SizedBox(width: 16),
+        _buildIllustration(),
+      ]);
+    });
+  }
+
+  Widget _buildIllustration() {
+    return Container(
+      width: 150,
+      height: 112,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_color.withValues(alpha: 0.08), _color.withValues(alpha: 0.02)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Stack(alignment: Alignment.center, children: [
+        Icon(Icons.all_inclusive_rounded, size: 42, color: _color.withValues(alpha: 0.18)),
+        Icon(Icons.self_improvement_rounded, size: 46, color: _color.withValues(alpha: 0.55)),
+      ]),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final search = TextField(
+            controller: _searchController,
+            onChanged: (v) => setState(() { _search = v; _page = 1; }),
+            decoration: InputDecoration(
+              hintText: 'Search employee by name, email or role...',
+              prefixIcon: Icon(Icons.search_rounded, color: _color, size: 20),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          );
+          final deptDropdown = _filterDropdown('Department', _deptFilter, _departmentOptions,
+              (v) => setState(() { _deptFilter = v!; _page = 1; }));
+          final desigDropdown = _filterDropdown('Designation', _desigFilter, _designationOptions,
+              (v) => setState(() { _desigFilter = v!; _page = 1; }));
+          final statusDropdown = _filterDropdown('Status', _statusFilter, const ['All', 'Active', 'Inactive'],
+              (v) => setState(() { _statusFilter = v!; _page = 1; }));
+          final resetBtn = OutlinedButton.icon(
+            onPressed: _resetFilters,
+            icon: const Icon(Icons.restart_alt_rounded, size: 16),
+            label: const Text('Reset'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            ),
+          );
+
+          if (constraints.maxWidth < 760) {
+            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              search,
+              const SizedBox(height: 10),
+              Wrap(spacing: 10, runSpacing: 10, children: [
+                SizedBox(width: (constraints.maxWidth - 10) / 2, child: deptDropdown),
+                SizedBox(width: (constraints.maxWidth - 10) / 2, child: desigDropdown),
+                SizedBox(width: (constraints.maxWidth - 10) / 2, child: statusDropdown),
+                resetBtn,
+              ]),
+            ]);
+          }
+
+          return Row(children: [
+            Expanded(flex: 3, child: search),
+            const SizedBox(width: 10),
+            Expanded(flex: 2, child: deptDropdown),
+            const SizedBox(width: 10),
+            Expanded(flex: 2, child: desigDropdown),
+            const SizedBox(width: 10),
+            Expanded(flex: 2, child: statusDropdown),
+            const SizedBox(width: 10),
+            resetBtn,
+          ]);
+        }),
+      ),
+    );
+  }
+
+  Widget _filterDropdown(String label, String value, List<String> options, ValueChanged<String?> onChanged) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      ),
+      items: options
+          .map((o) => DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)))
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildEmployeeCard(AppUser user) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final info = Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: _color.withValues(alpha: 0.12),
+              child: Text(
+                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Flexible(
+                    child: Text(user.name,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                             color: Color(0xFF111827))),
-                    Text(user.email,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                    Text(user.designation.isEmpty ? user.role : '${user.designation} · ${user.role}',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                  ]),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7, height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: user.active ? Colors.green.shade600 : Colors.grey.shade400,
+                    ),
+                  ),
+                ]),
+                Text(user.email,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                const SizedBox(height: 6),
+                Text(user.designation.isEmpty ? user.role : user.designation,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827))),
+                if (user.department.isNotEmpty)
+                  Text(user.department, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (user.active ? Colors.green : Colors.grey).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(user.active ? 'Active' : 'Inactive',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                          color: user.active ? Colors.green.shade700 : Colors.grey.shade600)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${user.employeeId.isEmpty ? '—' : user.employeeId} · Joined on ${_fmtJoined(user.dateOfJoining)}',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                 ),
               ]),
+            ),
+          ]);
+
+          final balances = Row(children: [
+            _LeaveTypeBlock('ML',
+              icon: Icons.wb_twilight_rounded,
+              used: _usedBucket(user.name, 'ML'),
+              quota: user.monthlyMl,
+              color: AppTheme.accentBlue),
+            const SizedBox(width: 8),
+            _LeaveTypeBlock('CL',
+              icon: Icons.event_available_rounded,
+              used: _usedBucket(user.name, 'CL'),
+              quota: user.monthlyCl,
+              color: Colors.teal.shade700),
+            const SizedBox(width: 8),
+            _LeaveTypeBlock('EL',
+              icon: Icons.card_giftcard_rounded,
+              used: _elUsedSince(user.name, user.elLastAvailedAt),
+              quota: user.monthlyEl * 12,
+              color: Colors.purple.shade700),
+          ]);
+
+          if (constraints.maxWidth < 640) {
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              info,
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 10),
+              balances,
+            ]);
+          }
 
-              // ML / CL reset monthly; EL is cumulative
-              Row(children: [
-                _LeaveTypeBlock('ML',
-                  used: _usedBucket(user.name, 'ML'),
-                  quota: user.monthlyMl,
-                  color: AppTheme.accentBlue),
-                const SizedBox(width: 8),
-                _LeaveTypeBlock('CL',
-                  used: _usedBucket(user.name, 'CL'),
-                  quota: user.monthlyCl,
-                  color: Colors.teal.shade700),
-                const SizedBox(width: 8),
-                _LeaveTypeBlock('EL',
-                  used: _elUsedSince(user.name, user.elLastAvailedAt),
-                  quota: user.monthlyEl * 12,
-                  color: Colors.purple.shade700),
-              ]),
-            ]),
-          ),
-        );
-      },
+          return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 4, child: info),
+            const SizedBox(width: 16),
+            Expanded(flex: 5, child: balances),
+          ]);
+        }),
+      ),
     );
+  }
+
+  Widget _buildPaginationFooter(int totalCount, int pageCount, int page) {
+    final rangeStart = totalCount == 0 ? 0 : (page - 1) * _pageSize + 1;
+    final rangeEnd = (page * _pageSize).clamp(0, totalCount);
+
+    final info = Text('Showing $rangeStart to $rangeEnd of $totalCount employees',
+        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)));
+
+    final pageSizeDropdown = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.borderSubtle),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _pageSize,
+          isDense: true,
+          items: const [10, 20, 50]
+              .map((n) => DropdownMenuItem(value: n, child: Text('$n per page', style: const TextStyle(fontSize: 12))))
+              .toList(),
+          onChanged: (v) => setState(() { _pageSize = v!; _page = 1; }),
+        ),
+      ),
+    );
+
+    final pager = Row(mainAxisSize: MainAxisSize.min, children: [
+      IconButton(
+        icon: const Icon(Icons.chevron_left_rounded),
+        color: page > 1 ? _color : Colors.grey.shade400,
+        onPressed: page > 1 ? () => setState(() => _page = page - 1) : null,
+      ),
+      for (final entry in _pageWindow(pageCount, page))
+        entry == '...'
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text('...', style: TextStyle(color: Color(0xFF6B7280))),
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => setState(() => _page = entry as int),
+                  child: Container(
+                    width: 32, height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: entry == page ? _color : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('$entry',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: entry == page ? Colors.white : const Color(0xFF111827),
+                        )),
+                  ),
+                ),
+              ),
+      IconButton(
+        icon: const Icon(Icons.chevron_right_rounded),
+        color: page < pageCount ? _color : Colors.grey.shade400,
+        onPressed: page < pageCount ? () => setState(() => _page = page + 1) : null,
+      ),
+    ]);
+
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 640) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          info,
+          const SizedBox(height: 8),
+          Row(children: [pageSizeDropdown, const Spacer(), pager]),
+        ]);
+      }
+      return Row(children: [
+        info,
+        const Spacer(),
+        pageSizeDropdown,
+        const SizedBox(width: 16),
+        pager,
+      ]);
+    });
+  }
+
+  /// Builds the compact page-number window (e.g. 1 … 4 5 6 … 13), always
+  /// including the first, last, and pages adjacent to the current one.
+  List<Object> _pageWindow(int total, int current) {
+    if (total <= 7) return List.generate(total, (i) => i + 1);
+    final keep = <int>{1, total, current};
+    if (current - 1 >= 1) keep.add(current - 1);
+    if (current + 1 <= total) keep.add(current + 1);
+    final sorted = keep.toList()..sort();
+    final result = <Object>[];
+    for (var i = 0; i < sorted.length; i++) {
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.add('...');
+      result.add(sorted[i]);
+    }
+    return result;
   }
 
   // ── Tabs 2-4: Applications filtered by type ──────────────────────────────
@@ -427,28 +844,66 @@ static String _fmtD(double d) =>
 
 // ── Shared small widgets ─────────────────────────────────────────────────────
 
-class _StatChip extends StatelessWidget {
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
   final String label;
   final String value;
-  final Color color;
-  const _StatChip(this.label, this.value, this.color);
+  final String caption;
+  const _StatCard({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.caption,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      Text(value,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-      Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
-    ]);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(label,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Text(value,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+          const SizedBox(height: 2),
+          Text(caption, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+        ]),
+      ),
+    );
   }
 }
 
 class _LeaveTypeBlock extends StatelessWidget {
   final String type;
+  final IconData icon;
   final double used;
   final int quota;
   final Color color;
-  const _LeaveTypeBlock(this.type, {required this.used, required this.quota, required this.color});
+  const _LeaveTypeBlock(this.type, {
+    required this.icon,
+    required this.used,
+    required this.quota,
+    required this.color,
+  });
 
   static String _fmt(double d) =>
       d % 1 == 0 ? '${d.toInt()}d' : '${d.toStringAsFixed(1)}d';
@@ -456,36 +911,56 @@ class _LeaveTypeBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final available = (quota - used).clamp(0.0, quota.toDouble());
+    final ratio = quota == 0 ? 0.0 : (used / quota).clamp(0.0, 1.0);
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
+          color: color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color.withValues(alpha: 0.18)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(type,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
-          const SizedBox(height: 5),
+          Row(children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(type,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color)),
+            const Spacer(),
+            Text(_fmt(quota.toDouble()),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color)),
+          ]),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 5,
+              backgroundColor: color.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(children: [
             Icon(Icons.event_available_rounded, size: 11, color: Colors.green.shade700),
             const SizedBox(width: 3),
-            Text(_fmt(available),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                    color: Colors.green.shade700)),
-            const SizedBox(width: 2),
-            const Text('available', style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+            Flexible(
+              child: Text('${_fmt(available)} available',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                      color: Colors.green.shade700)),
+            ),
           ]),
           const SizedBox(height: 2),
           Row(children: [
             Icon(Icons.check_circle_outline_rounded, size: 11, color: Colors.orange.shade700),
             const SizedBox(width: 3),
-            Text(_fmt(used),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                    color: Colors.orange.shade700)),
-            const SizedBox(width: 2),
-            const Text('used', style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+            Flexible(
+              child: Text('${_fmt(used)} used',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                      color: Colors.orange.shade700)),
+            ),
           ]),
         ]),
       ),
