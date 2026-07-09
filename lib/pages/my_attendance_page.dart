@@ -18,6 +18,10 @@ const _orange = Color(0xFFFB923C); // "Leave Applied"
 const _teal   = Color(0xFF14B8A6); // "Permission"
 const _violet = Color(0xFF8B5CF6); // "Comp Off"
 
+// Height of one calendar day row (5 top pad + 32 circle + 5 bottom pad),
+// used to position the day-detail dropdown without shifting the grid.
+const double _dayRowHeight = 42.0;
+
 class MyAttendancePage extends StatefulWidget {
   final String checkInRoute;
   // When true, renders just the content (no Scaffold/back-button/page title)
@@ -422,6 +426,10 @@ class _CalendarGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) => _buildGrid(context, constraints));
+  }
+
+  Widget _buildGrid(BuildContext context, BoxConstraints constraints) {
     final cs          = Theme.of(context).colorScheme;
     final firstDay    = DateTime(month.year, month.month, 1);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
@@ -503,23 +511,27 @@ class _CalendarGrid extends StatelessWidget {
       rows.add(Row(children: cells.sublist(i, i + 7)));
     }
 
+    final stackChildren = <Widget>[Column(children: rows)];
+
     final day = selectedDay;
     if (day != null && selectedDayContent != null) {
-      final rowIndex = (offset + day - 1) ~/ 7;
-      if (rowIndex >= 0 && rowIndex < rows.length) {
-        rows.insert(rowIndex + 1, Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: selectedDayContent,
-        ));
-      }
+      final dayIndex = offset + day - 1;
+      final rowIndex = dayIndex ~/ 7;
+      final colIndex = dayIndex % 7;
+      const cardWidth = 250.0;
+      final colWidth  = constraints.maxWidth / 7;
+      final maxLeft   = (constraints.maxWidth - cardWidth).clamp(0.0, double.infinity);
+      final left      = (colIndex * colWidth + colWidth / 2 - cardWidth / 2)
+          .clamp(0.0, maxLeft);
+      stackChildren.add(Positioned(
+        top: (rowIndex + 1) * _dayRowHeight - 4,
+        left: left,
+        width: cardWidth,
+        child: selectedDayContent!,
+      ));
     }
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      alignment: Alignment.topCenter,
-      child: Column(children: rows),
-    );
+    return Stack(clipBehavior: Clip.none, children: stackChildren);
   }
 }
 
@@ -586,62 +598,64 @@ class _DaySheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: statusColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-            blurRadius: 16, offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+            blurRadius: 14, offset: const Offset(0, 5),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 16, 20),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(
             child: Text(label,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                     color: cs.onSurface)),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(statusLabel,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                    color: statusColor)),
-          ),
-          const SizedBox(width: 4),
           InkWell(
             onTap: onClose,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.close_rounded, size: 18,
+              padding: const EdgeInsets.all(2),
+              child: Icon(Icons.close_rounded, size: 15,
                   color: cs.onSurface.withValues(alpha: 0.4)),
             ),
           ),
         ]),
-        const SizedBox(height: 16),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(statusLabel,
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                  color: statusColor)),
+        ),
+        const SizedBox(height: 10),
 
         if (hasAttendance) ...[
           _detailRow(context, Icons.login_rounded, 'Check In', rec.checkInTime, _green),
           if (status.status == CheckInStatus.permission) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Row(children: [
-              Icon(Icons.event_note_rounded, size: 16, color: _blue),
-              const SizedBox(width: 8),
-              Text('Covered by approved permission (${permLabel(status.permMinutes)})',
-                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7))),
+              Icon(Icons.event_note_rounded, size: 13, color: _blue),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Covered by permission (${permLabel(status.permMinutes)})',
+                    style: TextStyle(fontSize: 10.5, color: cs.onSurface.withValues(alpha: 0.7))),
+              ),
             ]),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (rec.checkOutTime.isNotEmpty) ...[
             _detailRow(context, Icons.logout_rounded, 'Check Out', rec.checkOutTime,
                 const Color(0xFF15803D)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             if (_dur(rec.checkInTime, rec.checkOutTime) != null)
               _detailRow(context, Icons.timelapse_rounded, 'Duration',
                   _dur(rec.checkInTime, rec.checkOutTime)!, _blue),
@@ -649,37 +663,28 @@ class _DaySheet extends StatelessWidget {
             _detailRow(context, Icons.logout_rounded, 'Check Out', '— not recorded',
                 cs.onSurface.withValues(alpha: 0.4)),
         ] else if (isLeave) ...[
-          Row(children: [
-            Icon(Icons.event_busy_rounded, size: 18, color: _orange),
-            const SizedBox(width: 10),
-            Text('On approved leave', style: TextStyle(fontSize: 13,
-                color: cs.onSurface.withValues(alpha: 0.7))),
-          ]),
+          _noteRow(context, Icons.event_busy_rounded, _orange, 'On approved leave'),
         ] else if (isPermission) ...[
-          Row(children: [
-            Icon(Icons.event_note_rounded, size: 18, color: _teal),
-            const SizedBox(width: 10),
-            Text('Approved permission — no attendance recorded', style: TextStyle(fontSize: 13,
-                color: cs.onSurface.withValues(alpha: 0.7))),
-          ]),
+          _noteRow(context, Icons.event_note_rounded, _teal, 'Approved permission — no attendance recorded'),
         ] else if (isCompOff) ...[
-          Row(children: [
-            Icon(Icons.swap_horiz_rounded, size: 18, color: _violet),
-            const SizedBox(width: 10),
-            Text('On approved Comp Off', style: TextStyle(fontSize: 13,
-                color: cs.onSurface.withValues(alpha: 0.7))),
-          ]),
+          _noteRow(context, Icons.swap_horiz_rounded, _violet, 'On approved Comp Off'),
         ] else if (isAbsent) ...[
-          Row(children: [
-            Icon(Icons.event_busy_rounded, size: 18, color: _red),
-            const SizedBox(width: 10),
-            Text('No attendance recorded', style: TextStyle(fontSize: 13,
-                color: cs.onSurface.withValues(alpha: 0.7))),
-          ]),
+          _noteRow(context, Icons.event_busy_rounded, _red, 'No attendance recorded'),
         ],
-        const SizedBox(height: 8),
       ]),
     );
+  }
+
+  Widget _noteRow(BuildContext context, IconData icon, Color color, String text) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(icon, size: 14, color: color),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(text, style: TextStyle(fontSize: 11.5,
+            color: cs.onSurface.withValues(alpha: 0.7))),
+      ),
+    ]);
   }
 
   Widget _detailRow(BuildContext context, IconData icon, String label,
@@ -687,18 +692,18 @@ class _DaySheet extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Row(children: [
       Container(
-        width: 36, height: 36,
+        width: 26, height: 26,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(7),
         ),
-        child: Icon(icon, size: 18, color: color),
+        child: Icon(icon, size: 13, color: color),
       ),
-      const SizedBox(width: 12),
+      const SizedBox(width: 8),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(fontSize: 11,
+        Text(label, style: TextStyle(fontSize: 9.5,
             color: cs.onSurface.withValues(alpha: 0.5))),
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
             fontFamily: 'monospace', color: color)),
       ]),
     ]);
