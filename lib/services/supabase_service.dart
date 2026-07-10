@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
+import '../models/appraisal_store.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
@@ -434,6 +435,25 @@ import '../models/user_session.dart';
   create trigger notifications_push_trigger
     after insert on notifications
     for each row execute function notify_push();
+
+  -- Employee performance appraisal forms (Task Management → Performance
+  -- Management). One row per filled form per employee; history = every row
+  -- for that employee_email, newest first.
+  create table if not exists appraisal_forms (
+    id text primary key,
+    employee_email text not null,
+    employee_id text default '',
+    employee_name text default '',
+    status text not null default 'draft', -- 'draft' | 'completed'
+    moved_to_salary_hike boolean not null default false,
+    data jsonb not null default '{}',
+    created_by text default '',
+    last_edited_by text default '',
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
+  create index if not exists appraisal_forms_employee_idx on appraisal_forms (employee_email);
+  alter table appraisal_forms disable row level security;
 */
 
 class SupabaseService {
@@ -975,6 +995,26 @@ class SupabaseService {
       if (data == null) return [];
       return (data as List)
           .map((row) => Task.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Appraisal Forms ──────────────────────────────────────────────────
+
+  static Future<void> saveAppraisalForm(AppraisalForm form) async {
+    try {
+      await _db?.from('appraisal_forms').upsert(form.toRow());
+    } catch (_) {}
+  }
+
+  static Future<List<AppraisalForm>> fetchAppraisalForms() async {
+    try {
+      final data = await _db?.from('appraisal_forms').select().order('created_at', ascending: false);
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => AppraisalForm.fromRow(Map<String, dynamic>.from(row as Map)))
           .toList();
     } catch (_) {
       return [];
@@ -1979,6 +2019,35 @@ class SupabaseService {
     try {
       await _db?.from('device_tokens').delete().eq('token', token);
     } catch (_) {}
+  }
+
+  // ── Transactional email (Zoho SMTP via the send-email Edge Function) ────
+
+  /// Returns null on success, or an error message on failure — callers show
+  /// the message directly (e.g. in a SnackBar) rather than throwing, since
+  /// a failed send is an expected, user-facing outcome (bad address, SMTP
+  /// hiccup), not a bug.
+  static Future<String?> sendEmail({
+    required String to,
+    required String subject,
+    required String body,
+  }) async {
+    try {
+      final res = await _db?.functions.invoke('send-email', body: {
+        'to': to,
+        'subject': subject,
+        'body': body,
+      });
+      if (res == null) return 'Not connected';
+      if (res.status != 200) {
+        final data = res.data;
+        final err = data is Map ? data['error'] : null;
+        return err?.toString() ?? 'Failed to send (status ${res.status})';
+      }
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
   }
 
   // ── Notification preferences (muted categories) ─────────────────────────

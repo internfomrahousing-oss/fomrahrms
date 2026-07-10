@@ -6,6 +6,8 @@ import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
+import 'performance_management_page.dart';
+import 'salary_hike_engine_page.dart';
 
 enum _TaskSort { dueDate, priority, recentlyAdded, alphabetical }
 
@@ -245,15 +247,13 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   onSortChanged: (v) => setState(() => _sort = v),
                   onDelete: _onDelete,
                 ),
-                const _PlaceholderTab(
-                  icon: Icons.trending_up_rounded,
-                  title: 'Performance Management',
-                  subtitle: 'Coming soon',
+                const SingleChildScrollView(
+                  padding: EdgeInsets.all(24),
+                  child: PerformanceManagementBody(),
                 ),
-                const _PlaceholderTab(
-                  icon: Icons.monetization_on_rounded,
-                  title: 'Salary Hike Engine',
-                  subtitle: 'Coming soon',
+                const SingleChildScrollView(
+                  padding: EdgeInsets.all(24),
+                  child: SalaryHikeEngineBody(),
                 ),
               ],
             ),
@@ -743,50 +743,6 @@ class _TaskFilterChip extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? Colors.white : const Color(0xFF6B7280))),
-      ),
-    );
-  }
-}
-
-// ── Placeholder tab ──────────────────────────────────────────────────────────
-
-class _PlaceholderTab extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _PlaceholderTab({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(icon, color: AppTheme.primaryBlue, size: 40),
-          ),
-          const SizedBox(height: 20),
-          Text(title,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(subtitle,
-              style:
-                  TextStyle(fontSize: 14, color: Colors.grey.shade500)),
-        ],
       ),
     );
   }

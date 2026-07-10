@@ -256,6 +256,35 @@ class NotificationService {
         targetReportingManager: reportingManagerName,
       );
 
+  /// HR started filling an employee's KRA section — notify their Reporting
+  /// Manager so they can add their own remarks.
+  static Future<void> appraisalStarted({
+    required String employeeName,
+    required String reportingManagerName,
+  }) {
+    if (reportingManagerName.trim().isEmpty) return Future.value();
+    return _create(
+      type: 'appraisal_started',
+      title: 'Appraisal form started',
+      body: '$employeeName\'s appraisal form is ready for your review',
+      route: '/manager/performance-management',
+      targetReportingManager: reportingManagerName,
+    );
+  }
+
+  /// The Reporting Manager started filling an employee's KRA section —
+  /// notify HR.
+  static Future<void> appraisalStartedByManager({
+    required String employeeName,
+  }) =>
+      _create(
+        type: 'appraisal_started',
+        title: 'Appraisal form started',
+        body: '$employeeName\'s appraisal form is ready for your review',
+        route: '/performance-management',
+        targetRole: 'HR',
+      );
+
   /// HR/Management-wide visibility into every task status change (not just
   /// completion), distinct from [taskCompleted] which only tells the
   /// reporting manager.

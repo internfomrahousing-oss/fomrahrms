@@ -27,7 +27,11 @@ import 'pages/leave_balance_page.dart';
 import 'pages/task_management_page.dart';
 import 'pages/add_task_page.dart';
 import 'pages/performance_management_page.dart';
+import 'pages/employee_appraisal_page.dart';
+import 'pages/appraisal_form_editor_page.dart';
 import 'pages/salary_hike_engine_page.dart';
+import 'models/app_user.dart';
+import 'models/appraisal_store.dart';
 import 'pages/payroll_management_page.dart';
 import 'pages/interview_process_page.dart';
 import 'pages/candidate_application_form_page.dart';
@@ -198,6 +202,17 @@ final _router = GoRouter(
         GoRoute(path: '/task-management',                 builder: (_, __) => const TaskManagementPage()),
         GoRoute(path: '/task-management/add',             builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/performance-management',          builder: (_, __) => const PerformanceManagementPage()),
+        GoRoute(path: '/performance-management/employee', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return EmployeeAppraisalPage(employee: extra['employee'] as AppUser);
+        }),
+        GoRoute(path: '/performance-management/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(
+            employee: extra['employee'] as AppUser,
+            existing: extra['existing'] as AppraisalForm?,
+          );
+        }),
         GoRoute(path: '/salary-hike-engine',              builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/payroll-management',              builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
@@ -301,6 +316,17 @@ final _router = GoRouter(
         GoRoute(path: '/manager/task-management',         builder: (_, __) => const TaskManagementPage()),
         GoRoute(path: '/manager/task-management/add',     builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/manager/performance-management',  builder: (_, __) => const PerformanceManagementPage()),
+        GoRoute(path: '/manager/performance-management/employee', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return EmployeeAppraisalPage(employee: extra['employee'] as AppUser);
+        }),
+        GoRoute(path: '/manager/performance-management/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(
+            employee: extra['employee'] as AppUser,
+            existing: extra['existing'] as AppraisalForm?,
+          );
+        }),
         GoRoute(path: '/manager/salary-hike-engine',      builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/manager/interview-process',       builder: (_, __) => const InterviewProcessPage()),
         GoRoute(path: '/manager/interview-review',        builder: (_, __) => const ManagerInterviewReviewPage()),
@@ -360,6 +386,17 @@ final _router = GoRouter(
         GoRoute(path: '/management/task-management',        builder: (_, __) => const TaskManagementPage()),
         GoRoute(path: '/management/task-management/add',    builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/management/performance-management', builder: (_, __) => const PerformanceManagementPage()),
+        GoRoute(path: '/management/performance-management/employee', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return EmployeeAppraisalPage(employee: extra['employee'] as AppUser);
+        }),
+        GoRoute(path: '/management/performance-management/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(
+            employee: extra['employee'] as AppUser,
+            existing: extra['existing'] as AppraisalForm?,
+          );
+        }),
         GoRoute(path: '/management/salary-hike-engine',     builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/management/payroll-management',     builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/management/interview-process',      builder: (_, __) => const InterviewProcessPage()),
