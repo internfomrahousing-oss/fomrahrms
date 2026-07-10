@@ -20,6 +20,7 @@ class _NavItem {
 
 const _hrNavItems = [
   _NavItem('Dashboard',            Icons.dashboard_rounded,     '/manager/dashboard'),
+  _NavItem('Employee Management',  Icons.people_alt_rounded,    '/manager/employee-management'),
   _NavItem('Interview Review',     Icons.rate_review_rounded,   '/manager/interview-review'),
   _NavItem('Team Leave Approvals', Icons.group_rounded,         '/manager/leave/team-approvals'),
   _NavItem('Task Management',      Icons.task_alt_rounded,      '/manager/task-management'),
