@@ -105,8 +105,8 @@ class _DashboardPageState extends State<DashboardPage> {
                         extraTiles: [
                           QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
                               color: AppTheme.primaryBlue, route: '/hr/my-leave'),
-                          QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
-                              color: AppTheme.warning, route: '/attendance-management'),
+                          QuickTile(label: 'KRA', icon: Icons.flag_rounded,
+                              color: AppTheme.warning, route: '/hr/my-kra'),
                         ],
                       ),
                       const MyTasksBlock(viewAllRoute: '/hr/my-tasks'),

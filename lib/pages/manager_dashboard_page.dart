@@ -48,8 +48,8 @@ class ManagerDashboardPage extends StatelessWidget {
                       extraTiles: [
                         QuickTile(label: 'Leave Request', icon: Icons.event_available_rounded,
                             color: AppTheme.primaryBlue, route: '/manager/my-leave'),
-                        QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
-                            color: AppTheme.warning, route: '/manager/attendance-management'),
+                        QuickTile(label: 'KRA', icon: Icons.flag_rounded,
+                            color: AppTheme.warning, route: '/manager/my-kra'),
                       ],
                     ),
                     const MyTasksBlock(viewAllRoute: '/manager/my-tasks', modern: true),
