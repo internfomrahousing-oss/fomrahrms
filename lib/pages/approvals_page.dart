@@ -265,9 +265,10 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         onViewAll: () => _showPendingSheet(
           label: 'Gross Pay Change Requests',
           color: Colors.indigo.shade700,
-          cards: _pendingGrossPay
+          buildCards: (refresh) => _pendingGrossPay
               .map((u) => _grossPayCard(u,
-                  onApprove: () => _decideGrossPay(u, true), onDeny: () => _decideGrossPay(u, false)))
+                  onApprove: () async { await _decideGrossPay(u, true); refresh(); },
+                  onDeny: () async { await _decideGrossPay(u, false); refresh(); }))
               .toList(),
         ),
       );
@@ -283,9 +284,10 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         onViewAll: () => _showPendingSheet(
           label: 'Work Location Change Requests',
           color: Colors.teal.shade700,
-          cards: _pendingWorkLocation
+          buildCards: (refresh) => _pendingWorkLocation
               .map((u) => _workLocationCard(u,
-                  onApprove: () => _decideWorkLocation(u, true), onDeny: () => _decideWorkLocation(u, false)))
+                  onApprove: () async { await _decideWorkLocation(u, true); refresh(); },
+                  onDeny: () async { await _decideWorkLocation(u, false); refresh(); }))
               .toList(),
         ),
       );
@@ -301,9 +303,10 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         onViewAll: () => _showPendingSheet(
           label: 'Reporting Manager Change Requests',
           color: Colors.deepPurple.shade700,
-          cards: _pendingReportingManager
+          buildCards: (refresh) => _pendingReportingManager
               .map((u) => _reportingManagerCard(u,
-                  onApprove: () => _decideReportingManager(u, true), onDeny: () => _decideReportingManager(u, false)))
+                  onApprove: () async { await _decideReportingManager(u, true); refresh(); },
+                  onDeny: () async { await _decideReportingManager(u, false); refresh(); }))
               .toList(),
         ),
       );
@@ -319,9 +322,10 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         onViewAll: () => _showPendingSheet(
           label: '"Is Reporting Manager" Requests',
           color: Colors.brown.shade600,
-          cards: _pendingRmFlag
+          buildCards: (refresh) => _pendingRmFlag
               .map((u) => _rmFlagCard(u,
-                  onApprove: () => _decideRmFlag(u, true), onDeny: () => _decideRmFlag(u, false)))
+                  onApprove: () async { await _decideRmFlag(u, true); refresh(); },
+                  onDeny: () async { await _decideRmFlag(u, false); refresh(); }))
               .toList(),
         ),
       );
@@ -352,34 +356,47 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         _policyCategory, _maintenanceFormCategory,
       ];
 
-  void _showPendingSheet({required String label, required Color color, required List<Widget> cards}) {
+  // [buildCards] is re-invoked on every [refresh] call so that approving or
+  // denying an item inside the open sheet removes it from the list right
+  // away — the sheet lives in the Navigator's overlay, not this widget's
+  // subtree, so it never rebuilds on its own when this State calls setState.
+  void _showPendingSheet({
+    required String label,
+    required Color color,
+    required List<Widget> Function(void Function() refresh) buildCards,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (ctx, scrollController) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Icon(Icons.pending_actions_rounded, color: color, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text(label,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color))),
-              IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
-            ]),
-            const Divider(),
-            Expanded(
-              child: cards.isEmpty
-                  ? Center(child: Text('Nothing pending',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 13)))
-                  : ListView(controller: scrollController, children: cards),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final cards = buildCards(() => setSheetState(() {}));
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (ctx, scrollController) => Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(Icons.pending_actions_rounded, color: color, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(label,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color))),
+                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
+                ]),
+                const Divider(),
+                Expanded(
+                  child: cards.isEmpty
+                      ? Center(child: Text('Nothing pending',
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 13)))
+                      : ListView(controller: scrollController, children: cards),
+                ),
+              ]),
             ),
-          ]),
-        ),
+          );
+        },
       ),
     );
   }

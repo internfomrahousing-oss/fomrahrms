@@ -7,9 +7,11 @@ import '../widgets/back_button.dart';
 
 /// Groups employees by their Reporting Manager and lets HR/Management add or
 /// remove people from a manager's team, and flag any employee as RM-eligible.
-/// Every mutation here creates a pending request awaiting Management
-/// approval — same flow as editing an employee's Reporting Manager field
-/// directly (see hr_employee_records_page.dart), just a grouped view of it.
+/// HR mutations create a pending request awaiting Management approval — same
+/// flow as editing an employee's Reporting Manager field directly (see
+/// hr_employee_records_page.dart). Management mutations apply immediately,
+/// since Management is the approver and would otherwise have to approve its
+/// own requests.
 class ReportingManagersPage extends StatefulWidget {
   const ReportingManagersPage({super.key});
 
@@ -24,6 +26,11 @@ class _ReportingManagersPageState extends State<ReportingManagersPage> {
 
   bool get _canEdit =>
       UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
+
+  // Management is the approver, so its own changes apply immediately instead
+  // of going through the pending-approval queue it would then have to clear
+  // itself. Only HR-initiated changes need Management sign-off.
+  bool get _isManagement => UserSession.role == UserRole.management;
 
   @override
   void initState() {
@@ -54,34 +61,51 @@ class _ReportingManagersPageState extends State<ReportingManagersPage> {
       _users.where((u) => u.hasPendingRmFlagChange).toList();
 
   Future<void> _requestManagerChange(AppUser user, String newManagerName) async {
-    await UserStore.requestReportingManagerChange(user, newManagerName);
+    if (_isManagement) {
+      await UserStore.applyReportingManagerChange(user, newManagerName);
+    } else {
+      await UserStore.requestReportingManagerChange(user, newManagerName);
+    }
     await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(newManagerName.isEmpty
-          ? 'Requested removal of ${user.name} — awaiting Management approval'
-          : 'Requested ${user.name} → $newManagerName — awaiting Management approval'),
+      content: Text(_isManagement
+          ? (newManagerName.isEmpty
+              ? 'Removed ${user.name} from their team'
+              : '${user.name} now reports to $newManagerName')
+          : (newManagerName.isEmpty
+              ? 'Requested removal of ${user.name} — awaiting Management approval'
+              : 'Requested ${user.name} → $newManagerName — awaiting Management approval')),
       backgroundColor: _color,
     ));
   }
 
   Future<void> _requestFlagChange(AppUser user, bool newValue) async {
-    await UserStore.requestRmFlagChange(user, newValue);
+    if (_isManagement) {
+      await UserStore.applyRmFlagChange(user, newValue);
+    } else {
+      await UserStore.requestRmFlagChange(user, newValue);
+    }
     await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-          'Requested ${newValue ? 'making' : 'removing'} ${user.name} ${newValue ? 'a Reporting Manager' : 'as a Reporting Manager'} — awaiting Management approval'),
+      content: Text(_isManagement
+          ? '${user.name} ${newValue ? 'is now a Reporting Manager' : 'is no longer a Reporting Manager'}'
+          : 'Requested ${newValue ? 'making' : 'removing'} ${user.name} ${newValue ? 'a Reporting Manager' : 'as a Reporting Manager'} — awaiting Management approval'),
       backgroundColor: _color,
     ));
+
+    if (newValue) await _pickTeamForNewRm(user);
   }
 
+  List<AppUser> _teamCandidates(AppUser rm) => _users
+      .where((u) => u.active && u.email != rm.email &&
+          u.reportingManager.trim().toLowerCase() != rm.name.trim().toLowerCase())
+      .toList()
+    ..sort((a, b) => a.name.compareTo(b.name));
+
   Future<void> _pickEmployeeToAdd(AppUser rm) async {
-    final candidates = _users
-        .where((u) => u.active && u.email != rm.email &&
-            u.reportingManager.trim().toLowerCase() != rm.name.trim().toLowerCase())
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final candidates = _teamCandidates(rm);
     if (candidates.isEmpty) return;
 
     final picked = await showDialog<AppUser>(
@@ -92,6 +116,41 @@ class _ReportingManagersPageState extends State<ReportingManagersPage> {
       ),
     );
     if (picked != null) await _requestManagerChange(picked, rm.name);
+  }
+
+  // After flagging someone as RM, offer to build their team right away
+  // instead of making HR add each report one-by-one from the Teams list.
+  Future<void> _pickTeamForNewRm(AppUser rm) async {
+    final candidates = _teamCandidates(rm);
+    if (candidates.isEmpty) return;
+
+    final picked = await showDialog<List<AppUser>>(
+      context: context,
+      builder: (ctx) => _MultiSearchPickerDialog(
+        title: 'Choose ${rm.name}\'s team',
+        subtitle: _isManagement
+            ? 'Assign employees to report to ${rm.name} now'
+            : 'Request these employees to report to ${rm.name}',
+        users: candidates,
+      ),
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+
+    for (final u in picked) {
+      if (_isManagement) {
+        await UserStore.applyReportingManagerChange(u, rm.name);
+      } else {
+        await UserStore.requestReportingManagerChange(u, rm.name);
+      }
+    }
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(_isManagement
+          ? 'Assigned ${picked.length} employee${picked.length == 1 ? '' : 's'} to ${rm.name}\'s team'
+          : 'Requested ${picked.length} employee${picked.length == 1 ? '' : 's'} → ${rm.name} — awaiting Management approval'),
+      backgroundColor: _color,
+    ));
   }
 
   @override
@@ -138,6 +197,7 @@ class _ReportingManagersPageState extends State<ReportingManagersPage> {
                     _ManageFlagsCard(
                       users: _users.where((u) => u.active).toList(),
                       onToggle: _requestFlagChange,
+                      isManagement: _isManagement,
                     ),
                     const SizedBox(height: 16),
                     Text('Teams', style: Theme.of(context).textTheme.titleMedium),
@@ -220,7 +280,8 @@ class _PendingCard extends StatelessWidget {
 class _ManageFlagsCard extends StatefulWidget {
   final List<AppUser> users;
   final void Function(AppUser user, bool newValue) onToggle;
-  const _ManageFlagsCard({required this.users, required this.onToggle});
+  final bool isManagement;
+  const _ManageFlagsCard({required this.users, required this.onToggle, required this.isManagement});
 
   @override
   State<_ManageFlagsCard> createState() => _ManageFlagsCardState();
@@ -244,8 +305,11 @@ class _ManageFlagsCardState extends State<_ManageFlagsCard> {
           leading: Icon(Icons.supervisor_account_rounded, color: AppTheme.primaryBlue),
           title: const Text('Manage Reporting Managers',
               style: TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: const Text('Flag any employee as RM-eligible (requires Management approval)',
-              style: TextStyle(fontSize: 12)),
+          subtitle: Text(
+              widget.isManagement
+                  ? 'Flag any employee as RM-eligible — applies immediately'
+                  : 'Flag any employee as RM-eligible (requires Management approval)',
+              style: const TextStyle(fontSize: 12)),
           trailing: Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded),
           onTap: () => setState(() => _expanded = !_expanded),
         ),
@@ -428,6 +492,98 @@ class _SearchPickerDialogState extends State<_SearchPickerDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      ],
+    );
+  }
+}
+
+class _MultiSearchPickerDialog extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final List<AppUser> users;
+  const _MultiSearchPickerDialog({
+    required this.title,
+    required this.subtitle,
+    required this.users,
+  });
+
+  @override
+  State<_MultiSearchPickerDialog> createState() => _MultiSearchPickerDialogState();
+}
+
+class _MultiSearchPickerDialogState extends State<_MultiSearchPickerDialog> {
+  String _search = '';
+  final Set<String> _selected = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.users
+        .where((u) => u.name.toLowerCase().contains(_search.toLowerCase()))
+        .toList();
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: 380,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(widget.subtitle,
+                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Search employees…',
+              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              isDense: true,
+            ),
+            onChanged: (v) => setState(() => _search = v),
+          ),
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 320),
+            child: filtered.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('No matching employees'),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) {
+                      final u = filtered[i];
+                      return CheckboxListTile(
+                        dense: true,
+                        value: _selected.contains(u.email),
+                        title: Text(u.name),
+                        subtitle: Text('${u.role} · ${u.designation}'),
+                        onChanged: (v) => setState(() {
+                          if (v ?? false) {
+                            _selected.add(u.email);
+                          } else {
+                            _selected.remove(u.email);
+                          }
+                        }),
+                      );
+                    },
+                  ),
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Skip'),
+        ),
+        ElevatedButton(
+          onPressed: _selected.isEmpty
+              ? null
+              : () => Navigator.pop(
+                  context, widget.users.where((u) => _selected.contains(u.email)).toList()),
+          child: Text('Add ${_selected.isEmpty ? '' : '(${_selected.length})'}'.trim()),
+        ),
       ],
     );
   }

@@ -52,6 +52,25 @@ class UserStore {
     await upsertOne(user);
   }
 
+  // Applies a reporting-manager reassignment immediately, with no approval
+  // step — used when Management (the approver itself) makes the change.
+  static Future<void> applyReportingManagerChange(
+      AppUser user, String newManagerName) async {
+    user.reportingManager = newManagerName;
+    user.reportingManagerPending = '';
+    user.reportingManagerRequestedAt = '';
+    await upsertOne(user);
+  }
+
+  // Applies an RM-eligibility flag change immediately, with no approval step
+  // — used when Management (the approver itself) makes the change.
+  static Future<void> applyRmFlagChange(AppUser user, bool newValue) async {
+    user.isReportingManager = newValue;
+    user.isReportingManagerPending = false;
+    user.isReportingManagerRequestedAt = '';
+    await upsertOne(user);
+  }
+
   static Future<void> deleteOne(String email) async {
     await SupabaseService.deleteAppUser(email);
     final users = await _loadLocal();
