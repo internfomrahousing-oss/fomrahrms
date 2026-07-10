@@ -400,6 +400,40 @@ import '../models/user_session.dart';
     muted_categories jsonb default '[]'
   );
   alter table notification_preferences disable row level security;
+
+  -- Push notifications (FCM) — one row per signed-in device. Keyed by the
+  -- token itself (not email+platform) so re-registering the same device
+  -- after a login on a different account cleanly replaces the old owner.
+  create table if not exists device_tokens (
+    token text primary key,
+    email text not null,
+    platform text not null, -- 'android' | 'web'
+    updated_at timestamptz default now()
+  );
+  alter table device_tokens disable row level security;
+
+  -- Fires the send-push Edge Function on every new notification row, so
+  -- every existing NotificationService._create() call site gets push for
+  -- free without any code changes on the Flutter side.
+  create extension if not exists pg_net with schema extensions;
+  create or replace function notify_push() returns trigger as $$
+  begin
+    perform net.http_post(
+      url := 'https://jjkijnmrtkkukdboajxu.functions.supabase.co/send-push',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqa2lqbm1ydGtrdWtkYm9hanh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTE0NDMsImV4cCI6MjA5NzY4NzQ0M30.6I2swrTQDDT0phQvRqDkLFFo_BxtmxD3NE9R8lDbDeI'
+      ),
+      body := jsonb_build_object('record', row_to_json(new))
+    );
+    return new;
+  end;
+  $$ language plpgsql;
+
+  drop trigger if exists notifications_push_trigger on notifications;
+  create trigger notifications_push_trigger
+    after insert on notifications
+    for each row execute function notify_push();
 */
 
 class SupabaseService {
@@ -1921,6 +1955,29 @@ class SupabaseService {
   static Future<void> markNotificationRead(String id, List<String> readBy) async {
     try {
       await _db?.from('notifications').update({'read_by': readBy}).eq('id', id);
+    } catch (_) {}
+  }
+
+  // ── Push notification device tokens ─────────────────────────────────────
+
+  static Future<void> upsertDeviceToken({
+    required String token,
+    required String email,
+    required String platform,
+  }) async {
+    try {
+      await _db?.from('device_tokens').upsert({
+        'token':      token,
+        'email':      email,
+        'platform':   platform,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> deleteDeviceToken(String token) async {
+    try {
+      await _db?.from('device_tokens').delete().eq('token', token);
     } catch (_) {}
   }
 

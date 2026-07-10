@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/notification_store.dart';
 import '../models/theme_notifier.dart';
 import '../services/notification_service.dart';
+import '../services/push_notification_service.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
@@ -201,6 +202,7 @@ class _LoginPageState extends State<LoginPage> {
     if (role == UserRole.hr || role == UserRole.management) {
       NotificationService.checkDailyReminders();
     }
+    PushNotificationService.init();
     setState(() => _loading = false);
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');

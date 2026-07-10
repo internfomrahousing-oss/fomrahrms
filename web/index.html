@@ -53,6 +53,24 @@
   <!-- Used to shrink PDF resumes/documents before upload (see _compressPdf in
        candidate_application_form_page.dart / onboarding_form_page.dart). -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <!-- Loaded eagerly (not dynamically injected by the Dart plugin) so the
+       dev.flutter.pigeon.firebase_core_platform_interface platform channel
+       has a real window.firebase to bridge to by the time main.dart calls
+       Firebase.initializeApp() — see lib/services/push_notification_service.dart. -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: 'AIzaSyAC-GB_Sqjr2a-Ie1dwkkkfDWInHeT6yUQ',
+      authDomain: 'fomrahrms.firebaseapp.com',
+      projectId: 'fomrahrms',
+      storageBucket: 'fomrahrms.firebasestorage.app',
+      messagingSenderId: '148406608884',
+      appId: '1:148406608884:web:8a7c1b6009aee1d5ce4fa1',
+    });
+  </script>
+
   <script src="bundle.js" defer></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

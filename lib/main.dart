@@ -8,6 +8,7 @@ import 'models/notification_store.dart';
 import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
 import 'services/notification_service.dart';
+import 'services/push_notification_service.dart';
 import 'services/supabase_service.dart';
 import 'services/session_storage.dart';
 import 'utils/url_strategy.dart';
@@ -46,6 +47,7 @@ void main() async {
         if (UserSession.role == UserRole.hr || UserSession.role == UserRole.management) {
           NotificationService.checkDailyReminders();
         }
+        PushNotificationService.init();
       }
     });
     SupabaseService.restoreCheckInState();

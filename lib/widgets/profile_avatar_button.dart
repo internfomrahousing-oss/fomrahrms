@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/user_session.dart';
 import '../models/theme_notifier.dart';
+import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
@@ -117,6 +118,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
               onSignOut: () {
                 Navigator.of(context).pop();
                 themeNotifier.reset();
+                PushNotificationService.unregister();
                 SessionStorage.clear();
                 UserSession.clear();
                 context.go('/login');
