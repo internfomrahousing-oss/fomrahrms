@@ -29,6 +29,9 @@ import 'pages/add_task_page.dart';
 import 'pages/performance_management_page.dart';
 import 'pages/employee_appraisal_page.dart';
 import 'pages/appraisal_form_editor_page.dart';
+import 'pages/kra_management_page.dart';
+import 'pages/employee_kra_page.dart';
+import 'pages/my_kra_page.dart';
 import 'pages/salary_hike_engine_page.dart';
 import 'models/app_user.dart';
 import 'models/appraisal_store.dart';
@@ -186,6 +189,11 @@ final _router = GoRouter(
         )),
         GoRoute(path: '/employee-management/records', builder: (_, __) => const HrEmployeeRecordsPage()),
         GoRoute(path: '/employee-management/reporting-managers', builder: (_, __) => const ReportingManagersPage()),
+        GoRoute(path: '/kra-management',          builder: (_, __) => const KraManagementPage()),
+        GoRoute(path: '/kra-management/employee', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return EmployeeKraPage(employee: extra['employee'] as AppUser);
+        }),
         GoRoute(path: '/leave-management',                builder: (_, __) {
           if (UserSession.role == UserRole.hr) return const HrLeaveRecordsPage();
           if (UserSession.role == UserRole.management) {
@@ -239,6 +247,7 @@ final _router = GoRouter(
         GoRoute(path: '/hr/attendance-leaves',       builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/hr/attendance/check-in-out', leavePrefix: '')),
         GoRoute(path: '/hr/my-tasks',               builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/hr/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
+        GoRoute(path: '/hr/my-kra',                 builder: (_, __) => const MyKraPage()),
         GoRoute(path: '/hr/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/hr/interview-form',         builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/hr/employee-onboarding',    builder: (_, __) => const MyOnboardingFormPage()),
@@ -272,6 +281,7 @@ final _router = GoRouter(
         GoRoute(path: '/employee/tasks',                    builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/employee/tasks/add',                builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/employee/payslips',                 builder: (_, __) => const MyPayslipsPage()),
+        GoRoute(path: '/employee/kra',                      builder: (_, __) => const MyKraPage()),
         GoRoute(path: '/employee/profile',                  builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/employee/maintenance-management',   builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/employee/employee-onboarding',      builder: (_, __) => const MyOnboardingFormPage()),
@@ -345,6 +355,7 @@ final _router = GoRouter(
         GoRoute(path: '/manager/my-tasks',                builder: (_, __) => const MyTasksPage()),
         GoRoute(path: '/manager/my-tasks/add',            builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/manager/my-payslips',             builder: (_, __) => const MyPayslipsPage()),
+        GoRoute(path: '/manager/my-kra',                  builder: (_, __) => const MyKraPage()),
         GoRoute(path: '/manager/my-profile',              builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/manager/interview-form',          builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/manager/my-journey',              builder: (_, __) => const MyJourneyPage()),

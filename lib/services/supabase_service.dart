@@ -11,6 +11,7 @@ import '../models/notification_store.dart';
 import '../models/payslip_store.dart';
 import '../models/profile_store.dart';
 import '../models/employee_store.dart';
+import '../models/kra_store.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 
@@ -454,6 +455,22 @@ import '../models/user_session.dart';
   );
   create index if not exists appraisal_forms_employee_idx on appraisal_forms (employee_email);
   alter table appraisal_forms disable row level security;
+
+  -- KRA (Key Result Areas) documents HR uploads per employee. One row per
+  -- uploaded file; history = every row for that employee_email, newest first.
+  -- Files themselves live in the existing RESUME storage bucket under
+  -- kra_uploads/.
+  create table if not exists kra_documents (
+    id text primary key,
+    employee_email text not null,
+    employee_name text default '',
+    file_name text default '',
+    file_url text default '',
+    uploaded_by text default '',
+    uploaded_at timestamptz not null default now()
+  );
+  create index if not exists kra_documents_employee_idx on kra_documents (employee_email);
+  alter table kra_documents disable row level security;
 */
 
 class SupabaseService {
@@ -1020,6 +1037,41 @@ class SupabaseService {
     } catch (_) {
       return [];
     }
+  }
+
+  // ── KRA Documents ─────────────────────────────────────────────────────
+
+  // Throws on failure so callers can surface the error to the user.
+  static Future<String> uploadKraFile(
+      Uint8List bytes, String fileName, String mimeType) async {
+    final safe = fileName.replaceAll(RegExp(r'[^\w.\-]'), '_');
+    final path = 'kra_uploads/${DateTime.now().millisecondsSinceEpoch}_$safe';
+    await _db!.storage.from('RESUME').uploadBinary(
+      path, bytes,
+      fileOptions: FileOptions(
+          contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
+    );
+    return _db!.storage.from('RESUME').getPublicUrl(path);
+  }
+
+  static Future<void> saveKraDocument(KraDocument doc) async {
+    await _db?.from('kra_documents').upsert(doc.toRow());
+  }
+
+  static Future<List<KraDocument>> fetchKraDocuments() async {
+    try {
+      final data = await _db?.from('kra_documents').select().order('uploaded_at', ascending: false);
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => KraDocument.fromRow(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> deleteKraDocument(String id) async {
+    await _db?.from('kra_documents').delete().eq('id', id);
   }
 
   // ── Form Versions ─────────────────────────────────────────────────

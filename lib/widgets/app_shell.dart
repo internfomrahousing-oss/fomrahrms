@@ -10,7 +10,7 @@ import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
 import 'quick_actions_bar.dart';
-import 'notification_bell_icon.dart';
+import 'notification_bell_button.dart';
 
 class _NavItem {
   final String label;
@@ -42,6 +42,7 @@ const _navItems = [
   _NavItem('Employee Onboarding', Icons.how_to_reg_rounded, '/employee-onboarding'),
   _NavItem('Lead Management', Icons.leaderboard_rounded, '/lead-management'),
   _NavItem('Maintenance Management', Icons.build_rounded, '/maintenance-management'),
+  _NavItem('KRA', Icons.flag_rounded, '/kra-management'),
   _NavItem('Notifications', Icons.notifications_rounded, '/notifications'),
   _NavItem('Reports & Analytics', Icons.bar_chart_rounded, '/reports-analytics'),
 ];
@@ -101,7 +102,6 @@ class _WideLayoutState extends State<_WideLayout> {
             onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
             homeRoute: '/dashboard',
             notificationsRoute: '/notifications',
-            searchRoute: '/employee-management',
             hideProfile: widget.location == '/dashboard',
           ),
           Expanded(
@@ -164,9 +164,9 @@ class _NarrowLayout extends StatelessWidget {
         actions: [
           const ThemeToggle(),
           const SizedBox(width: 4),
-          IconButton(
-            icon: const NotificationBellIcon(color: Colors.white),
-            onPressed: () => context.go('/notifications'),
+          const NotificationBellButton(
+            notificationsRoute: '/notifications',
+            color: Colors.white,
           ),
           const Padding(
             padding: EdgeInsets.only(right: 8),

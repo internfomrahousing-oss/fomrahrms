@@ -9,7 +9,7 @@ import '../models/theme_notifier.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'quick_actions_bar.dart';
-import 'notification_bell_icon.dart';
+import 'notification_bell_button.dart';
 
 class _NavItem {
   final String label;
@@ -79,7 +79,6 @@ class _WideLayoutState extends State<_WideLayout> {
             onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
             homeRoute: '/manager/dashboard',
             notificationsRoute: '/manager/notifications',
-            searchRoute: '/manager/employee-management',
             hideProfile: widget.location == '/manager/dashboard',
           ),
           Expanded(
@@ -144,9 +143,9 @@ class _NarrowLayout extends StatelessWidget {
         actions: [
           const ThemeToggle(),
           const SizedBox(width: 4),
-          IconButton(
-            icon: const NotificationBellIcon(color: Colors.white),
-            onPressed: () => context.go('/manager/notifications'),
+          const NotificationBellButton(
+            notificationsRoute: '/manager/notifications',
+            color: Colors.white,
           ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
