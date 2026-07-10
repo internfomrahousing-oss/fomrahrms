@@ -40,6 +40,8 @@ const _navItems = [
   _NavItem('Leave Management',       Icons.event_available_rounded,        '/management/leave-management'),
   _NavItem('Team Leave Approvals',   Icons.group_rounded,                  '/management/leave/team-approvals'),
   _NavItem('Task Management',        Icons.task_alt_rounded,               '/management/task-management'),
+  _NavItem('KRA',                    Icons.flag_rounded,                   '/management/kra-management'),
+  _NavItem('KRA Approvals',          Icons.fact_check_rounded,             '/management/kra-approvals'),
   _NavItem('Payroll Management',     Icons.account_balance_wallet_rounded, '/management/payroll-management'),
   _NavItem('Interview Process',      Icons.record_voice_over_rounded,      '/management/interview-process'),
   _NavItem('Interview Review',       Icons.admin_panel_settings_rounded,   '/management/interview-review'),

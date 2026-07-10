@@ -32,6 +32,7 @@ import 'pages/appraisal_form_editor_page.dart';
 import 'pages/kra_management_page.dart';
 import 'pages/employee_kra_page.dart';
 import 'pages/my_kra_page.dart';
+import 'pages/kra_approvals_page.dart';
 import 'pages/salary_hike_engine_page.dart';
 import 'models/app_user.dart';
 import 'models/appraisal_store.dart';
@@ -394,6 +395,12 @@ final _router = GoRouter(
         GoRoute(path: '/management/leave/team-approvals',   builder: (_, __) => const TeamLeaveApprovalsPage(isManagement: true, showAll: false)),
         GoRoute(path: '/management/leave/employee-records', builder: (_, __) => const HrLeaveRecordsPage()),
         GoRoute(path: '/management/onroll-approvals',       builder: (_, __) => const OnrollApprovalsPage()),
+        GoRoute(path: '/management/kra-management',          builder: (_, __) => const KraManagementPage()),
+        GoRoute(path: '/management/kra-management/employee', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return EmployeeKraPage(employee: extra['employee'] as AppUser);
+        }),
+        GoRoute(path: '/management/kra-approvals',            builder: (_, __) => const KraApprovalsPage()),
         GoRoute(path: '/management/task-management',        builder: (_, __) => const TaskManagementPage()),
         GoRoute(path: '/management/task-management/add',    builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/management/performance-management', builder: (_, __) => const PerformanceManagementPage()),

@@ -33,7 +33,9 @@ class _MyKraPageState extends State<MyKraPage> {
     if (!mounted) return;
     final me = UserSession.email.trim().toLowerCase();
     setState(() {
-      _docs = all.where((d) => d.employeeEmail.trim().toLowerCase() == me).toList()
+      // Only approved documents are visible here — anything HR uploaded is
+      // held pending until Management approves it.
+      _docs = all.where((d) => d.employeeEmail.trim().toLowerCase() == me && d.isApproved).toList()
         ..sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
       _loading = false;
     });

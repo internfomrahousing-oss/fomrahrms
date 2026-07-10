@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
+import '../models/kra_store.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
@@ -28,6 +29,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<Map<String, dynamic>> _onboardingVersions = [];
   List<Map<String, dynamic>> _policyVersions = [];
   List<Map<String, dynamic>> _maintenanceVersions = [];
+  List<KraDocument> _kraDocs = [];
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         SupabaseService.fetchOnboardingFormVersions(),
         SupabaseService.fetchHRPolicyVersions(),
         SupabaseService.fetchMaintenanceFormVersions(),
+        SupabaseService.fetchKraDocuments(),
       ]);
       final leaves = results[0] as List<LeaveApplication>;
       if (leaves.isNotEmpty) {
@@ -69,6 +72,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         _onboardingVersions = results[4] as List<Map<String, dynamic>>;
         _policyVersions = results[5] as List<Map<String, dynamic>>;
         _maintenanceVersions = results[6] as List<Map<String, dynamic>>;
+        _kraDocs = results[7] as List<KraDocument>;
         _loading = false;
       });
     } catch (_) {
@@ -105,6 +109,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<Map<String, dynamic>> _pendingOf(List<Map<String, dynamic>> versions) =>
       versions.where((v) => (v['status'] as String?) == 'pending').toList();
 
+  List<KraDocument> get _pendingKra => _kraDocs.where((d) => d.isPending).toList();
+
   // ── Past (decided) slices ───────────────────────────────────────────────
 
   List<LeaveApplication> _decidedSorted(Iterable<LeaveApplication> src) {
@@ -133,7 +139,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _pendingOf(_interviewVersions).length +
       _pendingOf(_onboardingVersions).length +
       _pendingOf(_policyVersions).length +
-      _pendingOf(_maintenanceVersions).length;
+      _pendingOf(_maintenanceVersions).length +
+      _pendingKra.length;
 
   // ── This-month approval-rate stats (banner) ─────────────────────────────
   // Only categories that retain a permanent, timestamped decision record can
@@ -153,6 +160,9 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       for (final v in versions.where((v) => (v['status'] as String?) != 'pending')) {
         yield ((v['status'] as String?) == 'approved', DateTime.tryParse(v['created_at']?.toString() ?? ''));
       }
+    }
+    for (final d in _kraDocs.where((d) => !d.isPending)) {
+      yield (d.isApproved, DateTime.tryParse(d.decidedAt));
     }
   }
 
@@ -330,6 +340,17 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         ),
       );
 
+  _CategoryInfo get _kraCategory => _CategoryInfo(
+        icon: Icons.flag_rounded,
+        color: Colors.orange.shade700,
+        label: 'KRA Approvals',
+        pending: _pendingKra.length,
+        approved: _kraDocs.where((d) => d.isApproved).length,
+        rejected: _kraDocs.where((d) => d.isRejected).length,
+        total: _kraDocs.length,
+        onViewAll: () => context.push('/management/kra-approvals'),
+      );
+
   _CategoryInfo _formCategory(String label, List<Map<String, dynamic>> versions) => _CategoryInfo(
         icon: Icons.description_rounded,
         color: AppTheme.primaryBlue,
@@ -351,7 +372,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<_CategoryInfo> get _allCategories => [
         _leaveCategory, _permissionCategory, _compOffCategory,
         _onrollCategory, _grossPayCategory, _workLocationCategory,
-        _reportingManagerCategory, _rmFlagCategory,
+        _reportingManagerCategory, _rmFlagCategory, _kraCategory,
         _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
         _policyCategory, _maintenanceFormCategory,
       ];
@@ -528,7 +549,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                     _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
                     _tabView([_grossPayCategory]),
                     _tabView([_onrollCategory]),
-                    _tabView([_workLocationCategory, _reportingManagerCategory, _rmFlagCategory]),
+                    _tabView([_workLocationCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
                     _tabView([
                       _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
                       _policyCategory, _maintenanceFormCategory,

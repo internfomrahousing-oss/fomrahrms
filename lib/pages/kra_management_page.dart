@@ -101,7 +101,11 @@ class _KraManagementBodyState extends State<_KraManagementBody> {
   }
 
   Future<void> _openEmployee(AppUser u) async {
-    await context.push('/kra-management/employee', extra: {'employee': u});
+    final loc = GoRouterState.of(context).uri.path;
+    final route = loc.startsWith('/management')
+        ? '/management/kra-management/employee'
+        : '/kra-management/employee';
+    await context.push(route, extra: {'employee': u});
     if (mounted) _load();
   }
 

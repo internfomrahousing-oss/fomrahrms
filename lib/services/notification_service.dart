@@ -285,6 +285,29 @@ class NotificationService {
         targetRole: 'HR',
       );
 
+  /// HR uploaded a KRA document — it's held pending until Management
+  /// approves it, so Management needs to know it's waiting.
+  static Future<void> kraUploaded({required String employeeName}) => _create(
+        type: 'kra_uploaded',
+        title: 'KRA pending approval',
+        body: '$employeeName\'s new KRA document needs your review',
+        route: '/management/kra-approvals',
+        targetRole: 'Management',
+      );
+
+  /// Management approved/rejected an HR-uploaded KRA — HR (who uploaded it)
+  /// needs to know the outcome.
+  static Future<void> kraDecided({
+    required String employeeName,
+    required bool approved,
+  }) => _create(
+        type: 'kra_decided',
+        title: approved ? 'KRA approved' : 'KRA rejected',
+        body: '$employeeName\'s KRA document was ${approved ? 'approved' : 'rejected'} by Management',
+        route: '/kra-management',
+        targetRole: 'HR',
+      );
+
   /// HR/Management-wide visibility into every task status change (not just
   /// completion), distinct from [taskCompleted] which only tells the
   /// reporting manager.

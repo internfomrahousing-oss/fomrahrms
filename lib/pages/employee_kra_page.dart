@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/kra_store.dart';
 import '../models/user_session.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/open_url.dart';
 import '../widgets/app_file_picker.dart';
@@ -45,8 +46,9 @@ class _EmployeeKraPageState extends State<EmployeeKraPage> {
     setState(() => _loading = true);
     final all = await SupabaseService.fetchKraDocuments();
     if (!mounted) return;
+    final email = widget.employee.email.trim().toLowerCase();
     setState(() {
-      _docs = all.where((d) => d.employeeEmail == widget.employee.email).toList()
+      _docs = all.where((d) => d.employeeEmail.trim().toLowerCase() == email).toList()
         ..sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
       _loading = false;
     });
@@ -79,6 +81,7 @@ class _EmployeeKraPageState extends State<EmployeeKraPage> {
     setState(() => _uploading = true);
     try {
       final url = await SupabaseService.uploadKraFile(bytes, file.name, _mimeFromName(file.name));
+      final isManagement = UserSession.role == UserRole.management;
       final doc = KraDocument(
         id: KraStore.generateId(),
         employeeEmail: widget.employee.email,
@@ -86,12 +89,22 @@ class _EmployeeKraPageState extends State<EmployeeKraPage> {
         fileName: file.name,
         fileUrl: url,
         uploadedBy: UserSession.name,
+        // Management is the approver, so its own uploads need no review;
+        // everyone else's (HR's) go in pending until Management approves.
+        status: isManagement ? 'approved' : 'pending',
+        decidedBy: isManagement ? UserSession.name : '',
+        decidedAt: isManagement ? DateTime.now().toIso8601String() : '',
       );
       await SupabaseService.saveKraDocument(doc);
+      if (!isManagement) {
+        await NotificationService.kraUploaded(employeeName: widget.employee.name);
+      }
       await _load();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Uploaded ${doc.fileName}'),
+        content: Text(isManagement
+            ? 'Uploaded ${doc.fileName}'
+            : 'Uploaded ${doc.fileName} — pending Management approval'),
         backgroundColor: _color,
       ));
     } catch (e) {
@@ -261,12 +274,23 @@ class _DocCard extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(doc.fileName,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+              Row(children: [
+                Expanded(
+                  child: Text(doc.fileName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                ),
+                const SizedBox(width: 8),
+                _StatusBadge(doc.status),
+              ]),
               const SizedBox(height: 3),
               Text('Uploaded by ${doc.uploadedBy.isEmpty ? '—' : doc.uploadedBy} · $dateLabel',
                   style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+              if (doc.isRejected && doc.reviewNote.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text('Reason: ${doc.reviewNote}',
+                    style: TextStyle(fontSize: 11.5, color: Colors.red.shade700, fontStyle: FontStyle.italic)),
+              ],
             ]),
           ),
           IconButton(
@@ -287,6 +311,26 @@ class _DocCard extends StatelessWidget {
             ),
         ]),
       ),
+    );
+  }
+}
+
+/// Pending/Approved/Rejected pill — shared look across the KRA pages.
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge(this.status);
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      'approved' => ('Approved', Colors.green.shade700),
+      'rejected' => ('Rejected', Colors.red.shade700),
+      _ => ('Pending Approval', Colors.orange.shade700),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+      child: Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: color)),
     );
   }
 }

@@ -101,6 +101,10 @@ import '../models/user_session.dart';
     color_theme text default 'midnightBlue'
   );
   alter table app_settings add column if not exists emergency_attendance_all boolean default false;
+  -- Empty banner_quote means "no Management override" — the app rotates
+  -- through a built-in daily Mahatria Ra quote instead.
+  alter table app_settings add column if not exists banner_quote text default '';
+  alter table app_settings add column if not exists banner_quote_author text default '';
 
   create table if not exists payslip_requests (
     id text primary key,
@@ -456,10 +460,14 @@ import '../models/user_session.dart';
   create index if not exists appraisal_forms_employee_idx on appraisal_forms (employee_email);
   alter table appraisal_forms disable row level security;
 
-  -- KRA (Key Result Areas) documents HR uploads per employee. One row per
-  -- uploaded file; history = every row for that employee_email, newest first.
-  -- Files themselves live in the existing RESUME storage bucket under
-  -- kra_uploads/.
+  -- KRA (Key Result Areas) documents HR or Management upload per employee.
+  -- One row per uploaded file; history = every row for that employee_email,
+  -- newest first. Files themselves live in the existing RESUME storage
+  -- bucket under kra_uploads/.
+  --
+  -- HR uploads start 'pending' and only reach the employee once Management
+  -- approves (see kra_approvals_page.dart); Management's own uploads are
+  -- saved as 'approved' directly (no self-review needed).
   create table if not exists kra_documents (
     id text primary key,
     employee_email text not null,
@@ -467,10 +475,20 @@ import '../models/user_session.dart';
     file_name text default '',
     file_url text default '',
     uploaded_by text default '',
-    uploaded_at timestamptz not null default now()
+    uploaded_at timestamptz not null default now(),
+    status text not null default 'pending', -- 'pending' | 'approved' | 'rejected'
+    decided_by text default '',
+    decided_at timestamptz,
+    review_note text default ''
   );
   create index if not exists kra_documents_employee_idx on kra_documents (employee_email);
   alter table kra_documents disable row level security;
+
+  -- Run this instead if kra_documents already exists from before the approval workflow:
+  -- alter table kra_documents add column if not exists status text not null default 'pending';
+  -- alter table kra_documents add column if not exists decided_by text default '';
+  -- alter table kra_documents add column if not exists decided_at timestamptz;
+  -- alter table kra_documents add column if not exists review_note text default '';
 */
 
 class SupabaseService {
@@ -1072,6 +1090,20 @@ class SupabaseService {
 
   static Future<void> deleteKraDocument(String id) async {
     await _db?.from('kra_documents').delete().eq('id', id);
+  }
+
+  static Future<void> updateKraStatus(
+    String id,
+    String status, {
+    String decidedBy = '',
+    String reviewNote = '',
+  }) async {
+    await _db?.from('kra_documents').update({
+      'status': status,
+      'decided_by': decidedBy,
+      'decided_at': DateTime.now().toIso8601String(),
+      'review_note': reviewNote,
+    }).eq('id', id);
   }
 
   // ── Form Versions ─────────────────────────────────────────────────
@@ -1911,6 +1943,35 @@ class SupabaseService {
       await _db?.from('app_settings').upsert({
         'id': 'global',
         'emergency_attendance_all': enabled,
+      });
+    } catch (_) {}
+  }
+
+  // ── App settings (global welcome-banner quote) ───────────────────────────────
+
+  static Future<Map<String, String>?> fetchBannerQuote() async {
+    try {
+      final data = await _db
+          ?.from('app_settings')
+          .select('banner_quote, banner_quote_author')
+          .eq('id', 'global')
+          .maybeSingle();
+      if (data == null) return null;
+      return {
+        'quote': (data['banner_quote'] as String?) ?? '',
+        'author': (data['banner_quote_author'] as String?) ?? '',
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> setBannerQuote(String quote, String author) async {
+    try {
+      await _db?.from('app_settings').upsert({
+        'id': 'global',
+        'banner_quote': quote,
+        'banner_quote_author': author,
       });
     } catch (_) {}
   }
