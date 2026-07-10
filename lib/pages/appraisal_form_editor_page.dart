@@ -32,14 +32,40 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
 
   Future<void> _save({bool complete = false}) async {
     setState(() => _saving = true);
+    final prevStatus = _form.status;
+    final prevMoved = _form.movedToSalaryHike;
+    final prevKraNotified = _form.kraStartNotified;
     _form.lastEditedBy = UserSession.name;
     _form.updatedAt = DateTime.now();
     if (complete) {
       _form.status = 'completed';
       _form.movedToSalaryHike = true;
     }
-    if (!_form.kraStartNotified && _form.kra.isNotEmpty) {
-      _form.kraStartNotified = true;
+    final shouldNotifyKraStart = !_form.kraStartNotified && _form.kra.isNotEmpty;
+    if (shouldNotifyKraStart) _form.kraStartNotified = true;
+
+    try {
+      await SupabaseService.saveAppraisalForm(_form);
+    } catch (e) {
+      // Roll back the local flags so a failed save doesn't leave the UI
+      // showing "completed"/notified state that was never persisted.
+      _form.status = prevStatus;
+      _form.movedToSalaryHike = prevMoved;
+      _form.kraStartNotified = prevKraNotified;
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not save — nothing was persisted: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
+    if (shouldNotifyKraStart) {
       if (UserSession.role == UserRole.reportingManager) {
         await NotificationService.appraisalStartedByManager(employeeName: _form.employeeName);
       } else if (_form.reportingManager.trim().isNotEmpty) {
@@ -49,7 +75,6 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
         );
       }
     }
-    await SupabaseService.saveAppraisalForm(_form);
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(

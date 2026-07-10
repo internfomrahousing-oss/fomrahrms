@@ -1003,10 +1003,11 @@ class SupabaseService {
 
   // ── Appraisal Forms ──────────────────────────────────────────────────
 
+  // Unlike most save*() methods here, this one does NOT swallow errors —
+  // the appraisal form editor needs to tell the user a save actually failed
+  // (e.g. RLS misconfiguration) instead of showing a false "Draft saved".
   static Future<void> saveAppraisalForm(AppraisalForm form) async {
-    try {
-      await _db?.from('appraisal_forms').upsert(form.toRow());
-    } catch (_) {}
+    await _db?.from('appraisal_forms').upsert(form.toRow());
   }
 
   static Future<List<AppraisalForm>> fetchAppraisalForms() async {
