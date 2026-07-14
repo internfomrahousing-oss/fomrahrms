@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 import '../theme/app_theme.dart';
 import 'performance_management_page.dart';
 import 'salary_hike_engine_page.dart';
@@ -376,84 +377,86 @@ class _TasksTab extends StatelessWidget {
               ),
             );
 
-            final priorityDropdown = _DropdownField<TaskPriority?>(
-              label: 'Priority',
-              value: priorityFilter,
-              icon: Icons.flag_rounded,
-              display: (p) => p == null ? 'All' : taskPriorityLabel(p),
-              options: const [null, ...TaskPriority.values],
-              onChanged: onPriorityChanged,
-            );
+            final statusLabelOf = (TaskStatus s) =>
+                '${filters.firstWhere((f) => f.$1 == s).$2} (${countFor(s)})';
 
-            final assigneeDropdown = _DropdownField<String?>(
-              label: 'Assignee',
-              value: assigneeFilter,
-              icon: Icons.person_rounded,
-              display: (a) => a ?? 'All',
-              options: [null, ...assignees],
-              onChanged: onAssigneeChanged,
-            );
-
-            final sortDropdown = _DropdownField<_TaskSort>(
-              label: 'Sort',
-              value: sort,
-              icon: Icons.swap_vert_rounded,
-              display: (s) => switch (s) {
-                _TaskSort.dueDate => 'Due Date',
-                _TaskSort.priority => 'Priority',
-                _TaskSort.recentlyAdded => 'Recently Added',
-                _TaskSort.alphabetical => 'A → Z',
+            final filterBtn = FilterTriggerButton(
+              hasActiveFilters: currentFilter != null ||
+                  priorityFilter != null ||
+                  assigneeFilter != null ||
+                  sort != _TaskSort.dueDate,
+              onTap: () {
+                TaskStatus? statusDraft = currentFilter;
+                TaskPriority? priorityDraft = priorityFilter;
+                String? assigneeDraft = assigneeFilter;
+                _TaskSort sortDraft = sort;
+                showFilterPanel(
+                  context,
+                  title: 'Filters',
+                  onReset: () {
+                    statusDraft = null;
+                    priorityDraft = null;
+                    assigneeDraft = null;
+                    sortDraft = _TaskSort.dueDate;
+                  },
+                  onApply: () {
+                    onFilterChanged(statusDraft);
+                    onPriorityChanged(priorityDraft);
+                    onAssigneeChanged(assigneeDraft);
+                    onSortChanged(sortDraft);
+                  },
+                  builder: (context, setPanelState) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FilterChipGroup<TaskStatus>(
+                        label: 'Status',
+                        value: statusDraft,
+                        options: const [TaskStatus.assigned, TaskStatus.pending,
+                            TaskStatus.inProgress, TaskStatus.completed, TaskStatus.delayed],
+                        labelOf: statusLabelOf,
+                        onChanged: (v) => setPanelState(() => statusDraft = v),
+                      ),
+                      FilterChipGroup<TaskPriority>(
+                        label: 'Priority',
+                        value: priorityDraft,
+                        options: TaskPriority.values,
+                        labelOf: taskPriorityLabel,
+                        onChanged: (v) => setPanelState(() => priorityDraft = v),
+                      ),
+                      FilterDropdownField<String>(
+                        label: 'Assignee',
+                        value: assigneeDraft,
+                        options: assignees,
+                        labelOf: (a) => a,
+                        allLabel: 'All',
+                        onChanged: (v) => setPanelState(() => assigneeDraft = v),
+                      ),
+                      FilterChipGroup<_TaskSort>(
+                        label: 'Sort',
+                        value: sortDraft == _TaskSort.dueDate ? null : sortDraft,
+                        options: const [_TaskSort.priority, _TaskSort.recentlyAdded, _TaskSort.alphabetical],
+                        labelOf: (s) => switch (s) {
+                          _TaskSort.dueDate => 'Due Date',
+                          _TaskSort.priority => 'Priority',
+                          _TaskSort.recentlyAdded => 'Recently Added',
+                          _TaskSort.alphabetical => 'A → Z',
+                        },
+                        onChanged: (v) => setPanelState(() => sortDraft = v ?? _TaskSort.dueDate),
+                      ),
+                    ],
+                  ),
+                );
               },
-              options: _TaskSort.values,
-              onChanged: onSortChanged,
             );
 
-            if (constraints.maxWidth < 760) {
-              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Card(child: Padding(padding: const EdgeInsets.all(16), child: search)),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  priorityDropdown,
-                  assigneeDropdown,
-                  sortDropdown,
-                ]),
-              ]);
-            }
             return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
               Expanded(
                 child: Card(child: Padding(padding: const EdgeInsets.all(16), child: search)),
               ),
               const SizedBox(width: 10),
-              priorityDropdown,
-              const SizedBox(width: 8),
-              assigneeDropdown,
-              const SizedBox(width: 8),
-              sortDropdown,
+              filterBtn,
             ]);
           }),
-          const SizedBox(height: 16),
-
-          // Status filter chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: filters.map((f) {
-                final active = currentFilter == f.$1;
-                final color = f.$1 == null
-                    ? const Color(0xFF111827)
-                    : taskStatusColor(f.$1!);
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _TaskFilterChip(
-                    label: '${f.$2} (${countFor(f.$1)})',
-                    selected: active,
-                    color: color,
-                    onTap: () => onFilterChanged(f.$1),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
           const SizedBox(height: 16),
 
           // Task list
@@ -656,113 +659,6 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-// ── Dropdown field ───────────────────────────────────────────────────────────
-
-class _DropdownField<T> extends StatelessWidget {
-  final String label;
-  final T value;
-  final IconData icon;
-  final String Function(T) display;
-  final List<T> options;
-  final ValueChanged<T> onChanged;
-
-  const _DropdownField({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.display,
-    required this.options,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      initialValue: value,
-      onSelected: onChanged,
-      offset: const Offset(0, 42),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (context) => options.map((o) {
-        final selected = o == value;
-        return PopupMenuItem<T>(
-          value: o,
-          child: Text(display(o),
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? AppTheme.primaryBlue : const Color(0xFF111827))),
-        );
-      }).toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 15, color: Colors.grey.shade500),
-          const SizedBox(width: 6),
-          Text('$label: ',
-              style: TextStyle(
-                  fontSize: 12.5,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500)),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 110),
-            child: Text(display(value),
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827))),
-          ),
-          const SizedBox(width: 4),
-          Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Colors.grey.shade500),
-        ]),
-      ),
-    );
-  }
-}
-
-// ── Filter chip ──────────────────────────────────────────────────────────────
-
-class _TaskFilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final Color color;
-  final VoidCallback onTap;
-  const _TaskFilterChip({
-    required this.label,
-    required this.selected,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : Theme.of(context).colorScheme.outlineVariant,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? Colors.white : const Color(0xFF6B7280))),
-      ),
-    );
-  }
-}
 
 String _filterLabel(TaskStatus s) => switch (s) {
       TaskStatus.assigned => 'Assigned',
