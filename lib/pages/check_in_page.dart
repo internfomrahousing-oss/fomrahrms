@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
+import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
@@ -10,6 +11,35 @@ import '../utils/location_consent.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
+
+// Note box only needs to appear once check-in slips past the grace time.
+bool _isLateCheckIn(String hhmm) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return false;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return false;
+  return (h * 60 + m) > (9 * 60 + 30);
+}
+
+// An approved Permission application already covering today explains the
+// late arrival, so the note box shouldn't nag for one on top of it.
+bool _onApprovedPermissionToday(List<LeaveApplication> apps) {
+  final today = DateTime.now();
+  final me = UserSession.name.trim().toLowerCase();
+  bool coversToday(LeaveApplication a) {
+    final d = DateTime(today.year, today.month, today.day);
+    final f = DateTime(a.from.year, a.from.month, a.from.day);
+    final t = DateTime(a.to.year, a.to.month, a.to.day);
+    return !d.isBefore(f) && !d.isAfter(t);
+  }
+
+  return apps.any((a) =>
+      a.employeeName.trim().toLowerCase() == me &&
+      a.leaveType == 'Permission' &&
+      a.managerStatus == LeaveApprovalStatus.approved &&
+      coversToday(a));
+}
 
 class CheckInPage extends StatefulWidget {
   const CheckInPage({super.key});
@@ -23,6 +53,7 @@ class _CheckInPageState extends State<CheckInPage> {
 
   bool _loading = true;
   AttendanceRecord? _record; // today's record from Supabase
+  bool _onPermission = false;
 
   final _timeController = TextEditingController();
   final _noteController = TextEditingController();
@@ -50,10 +81,16 @@ class _CheckInPageState extends State<CheckInPage> {
   }
 
   Future<void> _loadTodayRecord() async {
-    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    final results = await Future.wait([
+      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
+      SupabaseService.fetchLeaveApplications(),
+    ]);
     if (!mounted) return;
+    final rec = results[0] as AttendanceRecord?;
+    final apps = results[1] as List<LeaveApplication>;
     setState(() {
       _record = rec;
+      _onPermission = _onApprovedPermissionToday(apps);
       _loading = false;
     });
     if (rec != null && rec.checkInTime.isNotEmpty) {
@@ -153,6 +190,7 @@ class _CheckInPageState extends State<CheckInPage> {
             _CheckInForm(
               timeController: _timeController,
               noteController: _noteController,
+              onPermission: _onPermission,
               color: _color,
               cs: cs,
               onRefreshTime: _autoFillTime,
@@ -320,13 +358,14 @@ class _CheckedInView extends StatelessWidget {
 class _CheckInForm extends StatelessWidget {
   final TextEditingController timeController;
   final TextEditingController noteController;
+  final bool onPermission;
   final Color color;
   final ColorScheme cs;
   final VoidCallback onRefreshTime;
   final VoidCallback onCheckIn;
   const _CheckInForm({
-    required this.timeController, required this.noteController, required this.color,
-    required this.cs, required this.onRefreshTime, required this.onCheckIn,
+    required this.timeController, required this.noteController, required this.onPermission,
+    required this.color, required this.cs, required this.onRefreshTime, required this.onCheckIn,
   });
 
   @override
@@ -335,54 +374,62 @@ class _CheckInForm extends StatelessWidget {
       Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(children: [
-            TextField(
-              controller: timeController,
-              decoration: InputDecoration(
-                labelText: 'Check-In Time',
-                prefixIcon: Icon(Icons.access_time_rounded, color: color, size: 20),
-                suffixIcon: IconButton(
-                  tooltip: 'Refresh time',
-                  icon: Icon(Icons.schedule_rounded, color: color),
-                  onPressed: onRefreshTime,
+          child: ListenableBuilder(
+            listenable: timeController,
+            builder: (context, _) {
+              final showNote = !onPermission && _isLateCheckIn(timeController.text);
+              return Column(children: [
+                TextField(
+                  controller: timeController,
+                  decoration: InputDecoration(
+                    labelText: 'Check-In Time',
+                    prefixIcon: Icon(Icons.access_time_rounded, color: color, size: 20),
+                    suffixIcon: IconButton(
+                      tooltip: 'Refresh time',
+                      icon: Icon(Icons.schedule_rounded, color: color),
+                      onPressed: onRefreshTime,
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: color, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: cs.surface,
+                    labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+                  ),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: cs.outlineVariant),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: color, width: 2),
-                ),
-                filled: true,
-                fillColor: cs.surface,
-                labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: noteController,
-              maxLines: 2,
-              decoration: InputDecoration(
-                labelText: 'Note (optional)',
-                hintText: 'e.g. working from client site',
-                prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: cs.outlineVariant),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: color, width: 2),
-                ),
-                filled: true,
-                fillColor: cs.surface,
-                labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
-              ),
-            ),
-          ]),
+                if (showNote) ...[
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Reason for late check-in (optional)',
+                      hintText: 'e.g. traffic delay, doctor appointment',
+                      prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: cs.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: color, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: cs.surface,
+                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+                    ),
+                  ),
+                ],
+              ]);
+            },
+          ),
         ),
       ),
       const SizedBox(height: 16),

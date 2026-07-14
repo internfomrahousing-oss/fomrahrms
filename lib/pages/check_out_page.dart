@@ -1,11 +1,41 @@
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
+import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
+
+// Note box only needs to appear for an early check-out (before the cutoff).
+bool _isEarlyCheckOut(String hhmm) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return false;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return false;
+  return (h * 60 + m) < (18 * 60 + 30);
+}
+
+// An approved Permission application already covering today explains the
+// early departure, so the note box shouldn't nag for one on top of it.
+bool _onApprovedPermissionToday(List<LeaveApplication> apps) {
+  final today = DateTime.now();
+  final me = UserSession.name.trim().toLowerCase();
+  bool coversToday(LeaveApplication a) {
+    final d = DateTime(today.year, today.month, today.day);
+    final f = DateTime(a.from.year, a.from.month, a.from.day);
+    final t = DateTime(a.to.year, a.to.month, a.to.day);
+    return !d.isBefore(f) && !d.isAfter(t);
+  }
+
+  return apps.any((a) =>
+      a.employeeName.trim().toLowerCase() == me &&
+      a.leaveType == 'Permission' &&
+      a.managerStatus == LeaveApprovalStatus.approved &&
+      coversToday(a));
+}
 
 class CheckOutPage extends StatefulWidget {
   const CheckOutPage({super.key});
@@ -19,6 +49,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
   bool _loading = true;
   AttendanceRecord? _record;
+  bool _onPermission = false;
 
   final _timeController = TextEditingController();
   final _noteController = TextEditingController();
@@ -44,10 +75,16 @@ class _CheckOutPageState extends State<CheckOutPage> {
   }
 
   Future<void> _loadTodayRecord() async {
-    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    final results = await Future.wait([
+      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
+      SupabaseService.fetchLeaveApplications(),
+    ]);
     if (!mounted) return;
+    final rec = results[0] as AttendanceRecord?;
+    final apps = results[1] as List<LeaveApplication>;
     setState(() {
       _record = rec;
+      _onPermission = _onApprovedPermissionToday(apps);
       _loading = false;
     });
   }
@@ -140,54 +177,62 @@ class _CheckOutPageState extends State<CheckOutPage> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: Column(children: [
-                  TextField(
-                    controller: _timeController,
-                    decoration: InputDecoration(
-                      labelText: 'Check-Out Time',
-                      prefixIcon: Icon(Icons.access_time_rounded, color: _color, size: 20),
-                      suffixIcon: IconButton(
-                        tooltip: 'Refresh time',
-                        icon: Icon(Icons.schedule_rounded, color: _color),
-                        onPressed: _autoFillTime,
+                child: ListenableBuilder(
+                  listenable: _timeController,
+                  builder: (context, _) {
+                    final showNote = !_onPermission && _isEarlyCheckOut(_timeController.text);
+                    return Column(children: [
+                      TextField(
+                        controller: _timeController,
+                        decoration: InputDecoration(
+                          labelText: 'Check-Out Time',
+                          prefixIcon: Icon(Icons.access_time_rounded, color: _color, size: 20),
+                          suffixIcon: IconButton(
+                            tooltip: 'Refresh time',
+                            icon: Icon(Icons.schedule_rounded, color: _color),
+                            onPressed: _autoFillTime,
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: cs.outlineVariant),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: _color, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: cs.surface,
+                          labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+                        ),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: cs.outlineVariant),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: _color, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: cs.surface,
-                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: _noteController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      labelText: 'Note (optional)',
-                      hintText: 'e.g. left early for client meeting',
-                      prefixIcon: Icon(Icons.edit_note_rounded, color: _color, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: cs.outlineVariant),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: _color, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: cs.surface,
-                      labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
-                    ),
-                  ),
-                ]),
+                      if (showNote) ...[
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _noteController,
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            labelText: 'Reason for early check-out (optional)',
+                            hintText: 'e.g. left early for client meeting',
+                            prefixIcon: Icon(Icons.edit_note_rounded, color: _color, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: cs.outlineVariant),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: _color, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: cs.surface,
+                            labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+                          ),
+                        ),
+                      ],
+                    ]);
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 16),

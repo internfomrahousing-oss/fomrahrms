@@ -9,14 +9,17 @@ import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
-Color get _blue => AppTheme.primaryBlue;
-const _green  = Color(0xFF22C55E);
-const _purple = Color(0xFF2563EB); // fixed status color for "Late Coming" — not theme-driven
-const _red    = Color(0xFFEF4444);
-const _yellow = Color(0xFFF9A825);
-const _orange = Color(0xFFFB923C); // "Leave Applied"
-const _teal   = Color(0xFF14B8A6); // "Permission"
-const _violet = Color(0xFF8B5CF6); // "Comp Off"
+// Fixed status colors — not theme-driven. Chosen as a set (not just
+// pairwise) so every status stays distinguishable, including for
+// colorblind users; see scripts/validate_palette.js in the dataviz skill.
+Color get _blue    => AppTheme.primaryBlue;
+const _green   = Color(0xFF008300);
+const _purple  = Color(0xFF2A78D6); // "Late Coming"
+const _red     = Color(0xFFE34948);
+const _yellow  = Color(0xFFEDA100); // "Holiday"
+const _magenta = Color(0xFFE87BA4); // "Leave Applied"
+const _teal    = Color(0xFF1BAF7A); // "Permission"
+const _violet  = Color(0xFF4A3AA7); // "Comp Off"
 
 // Height of one calendar day row (5 top pad + 32 circle + 5 bottom pad),
 // used to position the day-detail dropdown without shifting the grid.
@@ -46,6 +49,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   Set<int> _permissionDays = {};
   Set<int> _compOffDays = {};
   Set<int> _holidayDays = {};
+  List<LeaveApplication> _leaveApps = [];
   bool _canCheckInOut = true;
   int? _selectedDay;
 
@@ -64,6 +68,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       SupabaseService.fetchAttendanceForMonth(UserSession.employeeId, _month.year, _month.month),
       SupabaseService.fetchHolidays(_month.year),
       AttendanceAccess.canCheckInOut(),
+      SupabaseService.fetchLeaveApplications(),
     ]);
     if (!mounted) return;
 
@@ -71,6 +76,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final records  = results[1] as List<AttendanceRecord>;
     final holidays = results[2] as List<Map<String, dynamic>>;
     _canCheckInOut = results[3] as bool;
+    final leaveApps = results[4] as List<LeaveApplication>;
 
     if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
       AttendanceStore.isCheckedIn = true;
@@ -103,7 +109,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     // together as "on leave" (which used to make even a same-day approved
     // Permission render as a full "Absent" day).
     final Set<int> leaves = {}, permissions = {}, compOffs = {};
-    for (final app in LeaveStore.applications) {
+    for (final app in leaveApps) {
       if (app.employeeName != UserSession.name) continue;
       if (app.managerStatus != LeaveApprovalStatus.approved) continue;
       final target = switch (app.leaveType) {
@@ -130,6 +136,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       _permissionDays  = permissions;
       _compOffDays     = compOffs;
       _holidayDays     = holidayDays;
+      _leaveApps       = leaveApps;
       _loading         = false;
       _selectedDay     = null;
     });
@@ -143,7 +150,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final r = _attendance[day];
     if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
     final date = DateTime(_month.year, _month.month, day);
-    return checkInStatusFor(r.checkInTime, date, UserSession.name, LeaveStore.applications);
+    return checkInStatusFor(r.checkInTime, date, UserSession.name, _leaveApps);
   }
 
   // True when a day has no check-in, no approved leave/permission/comp-off,
@@ -170,7 +177,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       return _status(day).status == CheckInStatus.late ? _purple : _green;
     }
     if (_holidayDays.contains(day)) return _yellow;
-    if (_leaveDays.contains(day)) return _orange;
+    if (_leaveDays.contains(day)) return _magenta;
     if (_permissionDays.contains(day)) return _teal;
     if (_compOffDays.contains(day)) return _violet;
     if (_isMissedDay(day)) return _red;
@@ -379,7 +386,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
             Wrap(spacing: 20, runSpacing: 8, children: const [
               _Legend(color: _green,  label: 'Present'),
               _Legend(color: _purple, label: 'Late Coming'),
-              _Legend(color: _orange, label: 'Leave Applied'),
+              _Legend(color: _magenta, label: 'Leave Applied'),
               _Legend(color: _teal,   label: 'Permission'),
               _Legend(color: _violet, label: 'Comp Off'),
               _Legend(color: _red,    label: 'Absent'),
@@ -583,7 +590,7 @@ class _DaySheet extends StatelessWidget {
       statusColor = status.status == CheckInStatus.late ? _purple : _green;
     } else if (isLeave) {
       statusLabel = 'Leave Applied';
-      statusColor = _orange;
+      statusColor = _magenta;
     } else if (isPermission) {
       statusLabel = 'Permission';
       statusColor = _teal;
@@ -663,7 +670,7 @@ class _DaySheet extends StatelessWidget {
             _detailRow(context, Icons.logout_rounded, 'Check Out', '— not recorded',
                 cs.onSurface.withValues(alpha: 0.4)),
         ] else if (isLeave) ...[
-          _noteRow(context, Icons.event_busy_rounded, _orange, 'On approved leave'),
+          _noteRow(context, Icons.event_busy_rounded, _magenta, 'On approved leave'),
         ] else if (isPermission) ...[
           _noteRow(context, Icons.event_note_rounded, _teal, 'Approved permission — no attendance recorded'),
         ] else if (isCompOff) ...[
