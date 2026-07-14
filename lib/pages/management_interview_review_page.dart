@@ -6,6 +6,7 @@ import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 import '../theme/app_theme.dart';
 
 Color get _mgmtColor => AppTheme.sidebarSelectedBg;
@@ -642,41 +643,34 @@ class _ManagementInterviewReviewPageState
                                 borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                           ),
                         );
-                        final chips = SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(children: [
-                            _FilterChip(
-                              label: 'All (${_candidates.length})',
-                              color: _mgmtColor,
-                              selected: _filter == _MgmtReviewFilter.all,
-                              onTap: () => setState(() => _filter = _MgmtReviewFilter.all),
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Pending ($_countPending)',
-                              color: const Color(0xFFF59E0B),
-                              selected: _filter == _MgmtReviewFilter.pending,
-                              onTap: () => setState(() => _filter = _MgmtReviewFilter.pending),
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Accepted ($_countAccepted)',
-                              color: const Color(0xFF22C55E),
-                              selected: _filter == _MgmtReviewFilter.accepted,
-                              onTap: () => setState(() => _filter = _MgmtReviewFilter.accepted),
-                            ),
-                            const SizedBox(width: 8),
-                            _FilterChip(
-                              label: 'Rejected ($_countRejected)',
-                              color: const Color(0xFFEF4444),
-                              selected: _filter == _MgmtReviewFilter.rejected,
-                              onTap: () => setState(() => _filter = _MgmtReviewFilter.rejected),
-                            ),
-                          ]),
+                        final filterBtn = FilterTriggerButton(
+                          hasActiveFilters: _filter != _MgmtReviewFilter.all,
+                          onTap: () {
+                            _MgmtReviewFilter draft = _filter;
+                            showFilterPanel(
+                              context,
+                              title: 'Filters',
+                              onReset: () => draft = _MgmtReviewFilter.all,
+                              onApply: () => setState(() => _filter = draft),
+                              builder: (context, setPanelState) => FilterChipGroup<_MgmtReviewFilter>(
+                                label: 'Status',
+                                value: draft == _MgmtReviewFilter.all ? null : draft,
+                                options: const [_MgmtReviewFilter.pending, _MgmtReviewFilter.accepted,
+                                    _MgmtReviewFilter.rejected],
+                                labelOf: (f) => switch (f) {
+                                  _MgmtReviewFilter.all => 'All (${_candidates.length})',
+                                  _MgmtReviewFilter.pending => 'Pending ($_countPending)',
+                                  _MgmtReviewFilter.accepted => 'Accepted ($_countAccepted)',
+                                  _MgmtReviewFilter.rejected => 'Rejected ($_countRejected)',
+                                },
+                                onChanged: (v) => setPanelState(() => draft = v ?? _MgmtReviewFilter.all),
+                              ),
+                            );
+                          },
                         );
                         return narrowRow
-                            ? Column(children: [search, const SizedBox(height: 10), chips])
-                            : Row(children: [Expanded(child: search), const SizedBox(width: 10), chips]);
+                            ? Column(children: [search, const SizedBox(height: 10), filterBtn])
+                            : Row(children: [Expanded(child: search), const SizedBox(width: 10), filterBtn]);
                       }),
                     ]),
                   ),
@@ -1691,41 +1685,6 @@ class _ReviewStatsRow extends StatelessWidget {
         )).toList(),
       );
     });
-  }
-}
-
-// ── Status filter chip ───────────────────────────────────────────────────────
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-  const _FilterChip({
-    required this.label,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB)),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? Colors.white : const Color(0xFF6B7280))),
-      ),
-    );
   }
 }
 

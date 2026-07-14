@@ -7,6 +7,7 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -119,49 +120,35 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ],
             ),
             const SizedBox(height: 14),
-            SizedBox(
-              height: 34,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _FilterChip(
-                    label: 'Last 24h',
-                    icon: Icons.schedule_rounded,
-                    selected: !_showAll,
-                    onTap: () => setState(() => _showAll = false),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'All time',
-                    icon: Icons.history_rounded,
-                    selected: _showAll,
-                    onTap: () => setState(() => _showAll = true),
-                  ),
-                  if (presentCategories.length > 1) ...[
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      width: 1,
-                      color: AppTheme.borderSubtle,
+            FilterTriggerButton(
+              hasActiveFilters: _showAll || _viewFilter != null,
+              onTap: () {
+                bool showAllDraft = _showAll;
+                String? viewFilterDraft = _viewFilter;
+                showFilterPanel(
+                  context,
+                  title: 'Filters',
+                  onReset: () { showAllDraft = false; viewFilterDraft = null; },
+                  onApply: () => setState(() { _showAll = showAllDraft; _viewFilter = viewFilterDraft; }),
+                  builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    FilterChipGroup<bool>(
+                      label: 'Time range',
+                      value: showAllDraft ? true : null,
+                      options: const [true],
+                      labelOf: (_) => 'All time',
+                      onChanged: (v) => setPanelState(() => showAllDraft = v ?? false),
                     ),
-                    _FilterChip(
-                      label: 'All',
-                      selected: _viewFilter == null,
-                      onTap: () => setState(() => _viewFilter = null),
-                    ),
-                    const SizedBox(width: 8),
-                    for (final c in presentCategories) ...[
-                      _FilterChip(
-                        label: c.label,
-                        icon: c.icon,
-                        selected: _viewFilter == c.id,
-                        onTap: () => setState(
-                            () => _viewFilter = _viewFilter == c.id ? null : c.id),
+                    if (presentCategories.length > 1)
+                      FilterChipGroup<String>(
+                        label: 'Category',
+                        value: viewFilterDraft,
+                        options: presentCategories.map((c) => c.id).toList(),
+                        labelOf: (id) => presentCategories.firstWhere((c) => c.id == id).label,
+                        onChanged: (v) => setPanelState(() => viewFilterDraft = v),
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
-                ],
-              ),
+                  ]),
+                );
+              },
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -184,51 +171,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             ),
                           ),
                         ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final bool selected;
-  final VoidCallback onTap;
-  const _FilterChip({
-    required this.label,
-    this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(17),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primaryBlue : AppTheme.lightBlue,
-          borderRadius: BorderRadius.circular(17),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 15, color: selected ? Colors.white : AppTheme.primaryBlue),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : AppTheme.primaryBlue,
-              ),
             ),
           ],
         ),

@@ -8,6 +8,7 @@ import '../services/user_store.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../constants/org_lists.dart';
+import '../widgets/filter_panel.dart';
 import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
@@ -533,6 +534,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     TimeOfDay joiningTime = const TimeOfDay(hour: 9, minute: 30);
 
     final letterCtrl = TextEditingController();
+    bool sending = false;
 
     String _fmtDate(DateTime d) =>
         '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -597,8 +599,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
           // Initialise on first build
           if (letterCtrl.text.isEmpty) _refreshLetter(setDlgState);
 
-          final subject   = Uri.encodeComponent('Offer Letter – Fomra Housing & Infrastructure Pvt Ltd');
-          final mailtoUrl = 'mailto:$email?subject=$subject&body=${Uri.encodeComponent(letterCtrl.text)}';
+          const subject = 'Offer Letter – Fomra Housing & Infrastructure Pvt Ltd';
 
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -621,7 +622,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _EmailField(label: 'To', value: email.isNotEmpty ? email : '(email not on file)'),
                   const SizedBox(height: 8),
-                  _EmailField(label: 'Subject', value: 'Offer Letter – Fomra Housing & Infrastructure Pvt Ltd'),
+                  _EmailField(label: 'Subject', value: subject),
                   const SizedBox(height: 14),
 
                   // ── Row 1: Title field + Position dropdown ──────────────
@@ -815,16 +816,36 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 child: const Text('Close'),
               ),
               ElevatedButton.icon(
-                icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                label: const Text('Send Offer Letter'),
+                icon: sending
+                    ? const SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.send_rounded, size: 15),
+                label: Text(sending ? 'Sending…' : 'Send Offer Letter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentBlue,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                onPressed: email.isEmpty ? null : () async {
+                onPressed: email.isEmpty || sending ? null : () async {
+                  setDlgState(() => sending = true);
+                  final error = await SupabaseService.sendEmail(
+                    to: email,
+                    subject: subject,
+                    body: letterCtrl.text,
+                  );
+                  if (error != null) {
+                    setDlgState(() => sending = false);
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text('Failed to send: $error')),
+                      );
+                    }
+                    return;
+                  }
+                  letterCtrl.dispose();
                   Navigator.pop(ctx);
-                  launchUrl(Uri.parse(mailtoUrl));
                   final id = (row['id'] ?? '').toString();
                   if (id.isNotEmpty) {
                     try {
@@ -1031,60 +1052,76 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                         ),
                       ),
                     );
-                    final dropdowns = Wrap(spacing: 8, runSpacing: 8, children: [
-                      _FilterDropdown(
-                        icon: Icons.apartment_rounded,
-                        label: 'Department',
-                        value: _deptFilter,
-                        options: _departmentOptions,
-                        onChanged: (v) => setState(() { _deptFilter = v; _applyFilter(); }),
-                      ),
-                      _FilterDropdown(
-                        icon: Icons.timeline_rounded,
-                        label: 'Experience',
-                        value: _expFilter,
-                        options: _expBuckets,
-                        onChanged: (v) => setState(() { _expFilter = v; _applyFilter(); }),
-                      ),
-                      _FilterDropdown(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Assigned',
-                        value: _assignedFilter,
-                        options: _assignedOptions,
-                        onChanged: (v) => setState(() { _assignedFilter = v; _applyFilter(); }),
-                      ),
-                      _FilterDropdown(
-                        icon: Icons.swap_vert_rounded,
-                        label: 'Sort',
-                        value: switch (_sort) {
-                          _SortOrder.latest     => 'Latest',
-                          _SortOrder.oldest     => 'Oldest',
-                          _SortOrder.nameAz     => 'Name A–Z',
-                          _SortOrder.expHighLow => 'Experience',
-                        },
-                        options: const ['Latest', 'Oldest', 'Name A–Z', 'Experience'],
-                        onChanged: (v) => setState(() {
-                          _sort = switch (v) {
-                            'Oldest'     => _SortOrder.oldest,
-                            'Name A–Z'   => _SortOrder.nameAz,
-                            'Experience' => _SortOrder.expHighLow,
-                            _            => _SortOrder.latest,
-                          };
-                          _applyFilter();
-                        }),
-                      ),
-                    ]);
+                    final filterBtn = FilterTriggerButton(
+                      hasActiveFilters: _deptFilter != 'All' || _expFilter != 'All'
+                          || _assignedFilter != 'All' || _sort != _SortOrder.latest,
+                      onTap: () {
+                        String deptDraft = _deptFilter;
+                        String expDraft = _expFilter;
+                        String assignedDraft = _assignedFilter;
+                        _SortOrder sortDraft = _sort;
+                        showFilterPanel(
+                          context,
+                          title: 'Filters',
+                          onReset: () {
+                            deptDraft = 'All'; expDraft = 'All'; assignedDraft = 'All'; sortDraft = _SortOrder.latest;
+                          },
+                          onApply: () => setState(() {
+                            _deptFilter = deptDraft; _expFilter = expDraft; _assignedFilter = assignedDraft;
+                            _sort = sortDraft;
+                            _applyFilter();
+                          }),
+                          builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            FilterDropdownField<String>(
+                              label: 'Department',
+                              value: deptDraft == 'All' ? null : deptDraft,
+                              options: _departmentOptions.where((o) => o != 'All').toList(),
+                              labelOf: (d) => d,
+                              allLabel: 'All Departments',
+                              onChanged: (v) => setPanelState(() => deptDraft = v ?? 'All'),
+                            ),
+                            FilterChipGroup<String>(
+                              label: 'Experience',
+                              value: expDraft == 'All' ? null : expDraft,
+                              options: _expBuckets.where((o) => o != 'All').toList(),
+                              labelOf: (d) => d,
+                              onChanged: (v) => setPanelState(() => expDraft = v ?? 'All'),
+                            ),
+                            FilterDropdownField<String>(
+                              label: 'Assigned',
+                              value: assignedDraft == 'All' ? null : assignedDraft,
+                              options: _assignedOptions.where((o) => o != 'All').toList(),
+                              labelOf: (d) => d,
+                              allLabel: 'All',
+                              onChanged: (v) => setPanelState(() => assignedDraft = v ?? 'All'),
+                            ),
+                            FilterChipGroup<_SortOrder>(
+                              label: 'Sort',
+                              value: sortDraft == _SortOrder.latest ? null : sortDraft,
+                              options: const [_SortOrder.oldest, _SortOrder.nameAz, _SortOrder.expHighLow],
+                              labelOf: (s) => switch (s) {
+                                _SortOrder.latest     => 'Latest',
+                                _SortOrder.oldest     => 'Oldest',
+                                _SortOrder.nameAz     => 'Name A–Z',
+                                _SortOrder.expHighLow => 'Experience',
+                              },
+                              onChanged: (v) => setPanelState(() => sortDraft = v ?? _SortOrder.latest),
+                            ),
+                          ]),
+                        );
+                      },
+                    );
                     if (constraints.maxWidth < 760) {
                       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         search,
                         const SizedBox(height: 8),
-                        dropdowns,
+                        filterBtn,
                       ]);
                     }
                     return Row(children: [
                       Expanded(child: search),
                       const SizedBox(width: 10),
-                      dropdowns,
+                      filterBtn,
                     ]);
                   }),
                 ],
@@ -1131,64 +1168,6 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                           ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Filter dropdown ────────────────────────────────────────────────────────────
-
-class _FilterDropdown extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final List<String> options;
-  final ValueChanged<String> onChanged;
-  const _FilterDropdown({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      initialValue: value,
-      onSelected: onChanged,
-      offset: const Offset(0, 40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (context) => options.map((o) {
-        final selected = o == value;
-        return PopupMenuItem(
-          value: o,
-          child: Row(children: [
-            Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
-                size: 15, color: selected ? AppTheme.primaryBlue : const Color(0xFF9CA3AF)),
-            const SizedBox(width: 10),
-            Text(o, style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? AppTheme.primaryBlue : const Color(0xFF111827))),
-          ]),
-        );
-      }).toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 15, color: const Color(0xFF6B7280)),
-          const SizedBox(width: 6),
-          Text('$label: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
-        ]),
       ),
     );
   }

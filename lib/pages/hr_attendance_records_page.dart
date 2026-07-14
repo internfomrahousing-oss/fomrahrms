@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
@@ -8,6 +9,7 @@ import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
 import '../utils/csv_export.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
 
@@ -77,15 +79,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     });
   }
 
-  List<String> get _departments {
-    final set = _allUsers
-        .map((u) => u.department.trim())
-        .where((d) => d.isNotEmpty)
-        .toSet()
-        .toList();
-    set.sort();
-    return set;
-  }
+  List<String> get _departments => kDepartments;
 
   List<AppUser> get _summaryUsers => _departmentFilter == null
       ? _allUsers
@@ -684,30 +678,28 @@ class _SummaryHeader extends StatelessWidget {
                   color: Color(0xFF16A34A))),
             ]),
           ),
-        PopupMenuButton<String?>(
-          tooltip: 'Filter by department',
-          onSelected: onDepartmentChanged,
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: null, child: Text('All Departments')),
-            ...departments.map((d) => PopupMenuItem(value: d, child: Text(d))),
-          ],
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.filter_alt_outlined, size: 14, color: Color(0xFF6B7280)),
-              const SizedBox(width: 7),
-              Text(departmentFilter ?? 'Filter by Department',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151))),
-              const SizedBox(width: 6),
-              const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
-            ]),
-          ),
-        ),
+        Builder(builder: (context) {
+          return FilterTriggerButton(
+            hasActiveFilters: departmentFilter != null,
+            onTap: () {
+              String? draft = departmentFilter;
+              showFilterPanel(
+                context,
+                title: 'Filters',
+                onReset: () => draft = null,
+                onApply: () => onDepartmentChanged(draft),
+                builder: (context, setPanelState) => FilterDropdownField<String>(
+                  label: 'Department',
+                  value: draft,
+                  options: departments,
+                  labelOf: (d) => d,
+                  allLabel: 'All Departments',
+                  onChanged: (v) => setPanelState(() => draft = v),
+                ),
+              );
+            },
+          );
+        }),
         Tooltip(
           message: 'Refresh',
           child: InkWell(

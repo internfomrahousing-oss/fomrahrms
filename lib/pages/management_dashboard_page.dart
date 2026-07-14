@@ -12,6 +12,7 @@ import '../widgets/fade_in.dart';
 import '../widgets/hover_lift.dart';
 import '../widgets/milestone_confetti.dart';
 import '../widgets/stat_strip.dart';
+import '../widgets/quote_picker_block.dart';
 import '../widgets/theme_picker_block.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -130,6 +131,9 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                   SizedBox(height: narrow ? 24 : 32),
 
                   const ThemePickerBlock(),
+                  SizedBox(height: narrow ? 24 : 32),
+
+                  const QuotePickerBlock(),
                   SizedBox(height: narrow ? 24 : 32),
 
                   _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),

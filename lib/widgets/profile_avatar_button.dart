@@ -144,6 +144,16 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
 
     if (widget.large) {
       // ── Banner variant: avatar + camera menu + dropdown chevron ──────
+      final bannerLight = widget.light;
+      final avatarBg = bannerLight
+          ? AppTheme.primaryBlue.withValues(alpha: 0.14)
+          : Colors.white.withValues(alpha: 0.20);
+      final avatarFg = bannerLight ? AppTheme.primaryBlue : Colors.white;
+      final chevronColor = bannerLight
+          ? AppTheme.primaryBlue.withValues(alpha: 0.55)
+          : Colors.white.withValues(alpha: 0.70);
+      final cameraBorder = bannerLight ? Colors.white : Colors.white;
+
       return GestureDetector(
         key: _key,
         onTap: _openMenu,
@@ -151,18 +161,18 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
           Stack(clipBehavior: Clip.none, children: [
             CircleAvatar(
               radius: widget.avatarRadius,
-              backgroundColor: Colors.white.withValues(alpha: 0.20),
+              backgroundColor: avatarBg,
               backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
               child: _uploadingPhoto
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2, color: avatarFg))
                   : (photoUrl.isEmpty
                       ? Text(initial,
                           style: TextStyle(
-                              color: Colors.white,
+                              color: avatarFg,
                               fontWeight: FontWeight.bold,
                               fontSize: widget.avatarRadius * 0.73))
                       : null),
@@ -202,7 +212,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                   decoration: BoxDecoration(
                     color: AppTheme.primaryBlue,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: cameraBorder, width: 2),
                   ),
                   child: const Icon(Icons.camera_alt_rounded,
                       size: 14, color: Colors.white),
@@ -212,7 +222,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
           ]),
           const SizedBox(height: 6),
           Icon(Icons.keyboard_arrow_down_rounded,
-              color: Colors.white.withValues(alpha: 0.70), size: 18),
+              color: chevronColor, size: 18),
         ]),
       );
     }

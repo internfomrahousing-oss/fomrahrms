@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/color_theme_notifier.dart';
+import '../models/banner_quote_notifier.dart';
 import '../models/user_session.dart';
-import '../theme/app_theme.dart';
+import 'lotus_motif.dart';
 import 'profile_avatar_button.dart';
 
 class WelcomeBanner extends StatefulWidget {
@@ -22,6 +22,8 @@ class WelcomeBanner extends StatefulWidget {
 }
 
 class _WelcomeBannerState extends State<WelcomeBanner> {
+  static const _navy = Color(0xFF3B4258);
+
   late DateTime _now;
   late Timer _timer;
 
@@ -52,62 +54,90 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
     final name = UserSession.name.isNotEmpty ? UserSession.name : 'Admin';
     final wide = MediaQuery.of(context).size.width > 500;
     return ListenableBuilder(
-      listenable: colorThemeNotifier,
+      listenable: bannerQuoteNotifier,
       builder: (context, _) => _bannerBody(name, wide),
     );
   }
 
   Widget _bannerBody(String name, bool wide) {
-    final dark = AppTheme.primaryBlueDark;
-    final mid = Color.lerp(dark, AppTheme.primaryBlue, 0.55)!;
+    final quote = bannerQuoteNotifier.value;
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [dark, mid, AppTheme.primaryBlue],
-          stops: const [0.0, 0.55, 1.0],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          colors: [Color(0xFFFBF1E7), Color(0xFFF3ECF4), Color(0xFFE9F1F8)],
+          stops: [0.0, 0.55, 1.0],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
-      padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 18, wide ? 28 : 16, 18),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$_greeting, $name \u{1F44B}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
+      child: Stack(
+        children: [
+          const Positioned(right: 4, bottom: -8, child: LotusMotif(size: 128)),
+          Padding(
+            padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 18, wide ? 28 : 16, 18),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_greeting, $name \u{1F44B}',
+                      style: const TextStyle(
+                        color: _navy,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(widget.subtitle,
+                        style: TextStyle(color: _navy.withValues(alpha: 0.55), fontSize: 12.5, height: 1.3)),
+                    if (quote.text.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        '“${quote.text}”',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _navy.withValues(alpha: 0.75),
+                          fontSize: 12.5,
+                          fontStyle: FontStyle.italic,
+                          height: 1.4,
+                        ),
+                      ),
+                      if (quote.author.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text('— ${quote.author}',
+                            style: TextStyle(
+                                color: _navy.withValues(alpha: 0.5),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(widget.subtitle,
-                  style: const TextStyle(color: Colors.white60, fontSize: 12.5, height: 1.3)),
-            ],
+              if (widget.onRefresh != null) ...[
+                Tooltip(
+                  message: 'Refresh',
+                  child: InkWell(
+                    onTap: widget.onRefresh,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(Icons.refresh_rounded, color: _navy.withValues(alpha: 0.45), size: 18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              const ProfileAvatarButton(large: true, avatarRadius: 36, light: true),
+            ]),
           ),
-        ),
-        if (widget.onRefresh != null) ...[
-          Tooltip(
-            message: 'Refresh',
-            child: InkWell(
-              onTap: widget.onRefresh,
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(Icons.refresh_rounded, color: Colors.white60, size: 18),
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
         ],
-        const ProfileAvatarButton(large: true, avatarRadius: 36),
-      ]),
+      ),
     );
   }
 }

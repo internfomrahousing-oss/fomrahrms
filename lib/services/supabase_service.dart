@@ -1833,22 +1833,99 @@ class SupabaseService {
   }
 
   // ── Birthdays ──────────────────────────────────────────────────────────────
+  // Auto-derived from the Date of Birth candidates fill in on the onboarding
+  // form (form_data->>'date_of_birth', format dd/MM/yyyy), for whichever
+  // submission resulted in an actual employee account (status =
+  // 'access_granted'). The manual 'birthdays' table remains as a fallback for
+  // employees hired before onboarding captured DOB, or missed by name-matching.
+
+  static DateTime? _parseOnboardingDob(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty) return null;
+    final parts = t.split('/');
+    if (parts.length == 3) {
+      final d = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      final y = int.tryParse(parts[2]);
+      if (d != null && m != null && y != null) {
+        try {
+          return DateTime(y, m, d);
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+    return DateTime.tryParse(t);
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchOnboardingBirthdaysForMonth(
+      int month) async {
+    try {
+      final data = await _db
+          ?.from('onboarding_forms')
+          .select('name, form_data, assigned_emp_id, status, submitted_at')
+          .eq('status', 'access_granted')
+          .order('submitted_at', ascending: false);
+      if (data == null) return [];
+      final rows = List<Map<String, dynamic>>.from(data as List);
+      final seenEmpIds = <String>{};
+      final result = <Map<String, dynamic>>[];
+      for (final row in rows) {
+        final empId = (row['assigned_emp_id'] as String? ?? '').trim();
+        // One entry per employee — keep only their most recent submission.
+        if (empId.isEmpty || !seenEmpIds.add(empId)) continue;
+        final name = (row['name'] as String? ?? '').trim();
+        if (name.isEmpty) continue;
+        final fd = row['form_data'];
+        final dobRaw = fd is Map ? (fd['date_of_birth'] as String? ?? '') : '';
+        final dob = _parseOnboardingDob(dobRaw);
+        if (dob == null || dob.month != month) continue;
+        result.add({
+          'name': name,
+          'birthday_date': dob.toIso8601String().substring(0, 10),
+        });
+      }
+      result.sort((a, b) =>
+          (DateTime.tryParse(a['birthday_date'] as String) ?? DateTime.now())
+              .day
+              .compareTo((DateTime.tryParse(b['birthday_date'] as String) ??
+                      DateTime.now())
+                  .day));
+      return result;
+    } catch (_) {
+      return [];
+    }
+  }
 
   static Future<List<Map<String, dynamic>>> fetchBirthdaysForMonth(
       int month) async {
+    final auto = await fetchOnboardingBirthdaysForMonth(month);
     try {
       final data = await _db
           ?.from('birthdays')
           .select()
           .order('birthday_date', ascending: true);
-      if (data == null) return [];
-      final all = List<Map<String, dynamic>>.from(data as List);
-      return all.where((row) {
+      if (data == null) return auto;
+      final manual = List<Map<String, dynamic>>.from(data as List).where((row) {
         final d = DateTime.tryParse(row['birthday_date'] as String? ?? '');
         return d != null && d.month == month;
-      }).toList();
+      });
+      final autoNames =
+          auto.map((r) => (r['name'] as String).trim().toLowerCase()).toSet();
+      final merged = [
+        ...auto,
+        ...manual.where((r) =>
+            !autoNames.contains((r['name'] as String? ?? '').trim().toLowerCase())),
+      ];
+      merged.sort((a, b) =>
+          (DateTime.tryParse(a['birthday_date'] as String? ?? '') ?? DateTime.now())
+              .day
+              .compareTo((DateTime.tryParse(b['birthday_date'] as String? ?? '') ??
+                      DateTime.now())
+                  .day));
+      return merged;
     } catch (_) {
-      return [];
+      return auto;
     }
   }
 

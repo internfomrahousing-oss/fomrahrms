@@ -5,6 +5,7 @@ import '../services/notification_service.dart';
 import '../models/candidate_store.dart';
 import '../models/user_session.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 
 const _blue = Color(0xFF111827);
 
@@ -356,41 +357,33 @@ class _ManagerInterviewReviewPageState
                         borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   ),
                 );
-                final chips = SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    _FilterChip(
-                      label: 'All (${_items.length})',
-                      color: _blue,
-                      selected: _filter == _ReviewFilter.all,
-                      onTap: () => setState(() => _filter = _ReviewFilter.all),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Pending ($_countPending)',
-                      color: const Color(0xFFF59E0B),
-                      selected: _filter == _ReviewFilter.pending,
-                      onTap: () => setState(() => _filter = _ReviewFilter.pending),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Accepted ($_countAccepted)',
-                      color: const Color(0xFF22C55E),
-                      selected: _filter == _ReviewFilter.accepted,
-                      onTap: () => setState(() => _filter = _ReviewFilter.accepted),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Rejected ($_countRejected)',
-                      color: const Color(0xFFEF4444),
-                      selected: _filter == _ReviewFilter.rejected,
-                      onTap: () => setState(() => _filter = _ReviewFilter.rejected),
-                    ),
-                  ]),
+                final filterBtn = FilterTriggerButton(
+                  hasActiveFilters: _filter != _ReviewFilter.all,
+                  onTap: () {
+                    _ReviewFilter draft = _filter;
+                    showFilterPanel(
+                      context,
+                      title: 'Filters',
+                      onReset: () => draft = _ReviewFilter.all,
+                      onApply: () => setState(() => _filter = draft),
+                      builder: (context, setPanelState) => FilterChipGroup<_ReviewFilter>(
+                        label: 'Status',
+                        value: draft == _ReviewFilter.all ? null : draft,
+                        options: const [_ReviewFilter.pending, _ReviewFilter.accepted, _ReviewFilter.rejected],
+                        labelOf: (f) => switch (f) {
+                          _ReviewFilter.all => 'All (${_items.length})',
+                          _ReviewFilter.pending => 'Pending ($_countPending)',
+                          _ReviewFilter.accepted => 'Accepted ($_countAccepted)',
+                          _ReviewFilter.rejected => 'Rejected ($_countRejected)',
+                        },
+                        onChanged: (v) => setPanelState(() => draft = v ?? _ReviewFilter.all),
+                      ),
+                    );
+                  },
                 );
                 return narrowRow
-                    ? Column(children: [search, const SizedBox(height: 10), chips])
-                    : Row(children: [Expanded(child: search), const SizedBox(width: 10), chips]);
+                    ? Column(children: [search, const SizedBox(height: 10), filterBtn])
+                    : Row(children: [Expanded(child: search), const SizedBox(width: 10), filterBtn]);
               }),
             ]),
           ),
@@ -745,41 +738,6 @@ class _ReviewStatsRow extends StatelessWidget {
         )).toList(),
       );
     });
-  }
-}
-
-// ── Status filter chip ───────────────────────────────────────────────────────
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-  const _FilterChip({
-    required this.label,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB)),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? Colors.white : const Color(0xFF6B7280))),
-      ),
-    );
   }
 }
 

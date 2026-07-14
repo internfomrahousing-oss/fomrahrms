@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
-import '../models/emergency_attendance_notifier.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/device_binding_service.dart';
@@ -13,12 +12,21 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 import 'employee_onboarding_page.dart' show OnboardingFormReadOnlyBody;
 import 'candidate_detail_page.dart' show CandidateDetailBody;
 import '../theme/app_theme.dart';
 
 enum _SortOrder { newestFirst, oldestFirst, alphabetical, joinOldNew, joinNewOld }
 enum _StatusFilter { all, onroll, probation, eligible, deactivated }
+
+const _sortLabels = {
+  _SortOrder.newestFirst:  'Recently Added',
+  _SortOrder.oldestFirst:  'Added First',
+  _SortOrder.alphabetical: 'A → Z',
+  _SortOrder.joinOldNew:   'Join Date ↑',
+  _SortOrder.joinNewOld:   'Join Date ↓',
+};
 
 class HrEmployeeRecordsPage extends StatefulWidget {
   const HrEmployeeRecordsPage({super.key});
@@ -266,11 +274,6 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
               deactivated: _countDeactivated,
             ),
 
-            if (UserSession.role == UserRole.hr ||
-                UserSession.role == UserRole.management) ...[
-              const SizedBox(height: 16),
-              const _EmergencyAttendanceBanner(),
-            ],
             const SizedBox(height: 20),
 
             // ── Search + sort ────────────────────────────────────────────
@@ -302,15 +305,50 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                       horizontal: 16, vertical: 10),
                 ),
               );
-              final sort = _SortDropdown(
-                value: _sort,
-                onChanged: (v) => setState(() { _sort = v; _applyFilter(); }),
+              final filterBtn = FilterTriggerButton(
+                hasActiveFilters: _statusFilter != _StatusFilter.all || _sort != _SortOrder.newestFirst,
+                onTap: () {
+                  _StatusFilter statusDraft = _statusFilter;
+                  _SortOrder sortDraft = _sort;
+                  showFilterPanel(
+                    context,
+                    title: 'Filters',
+                    onReset: () { statusDraft = _StatusFilter.all; sortDraft = _SortOrder.newestFirst; },
+                    onApply: () => setState(() {
+                      _statusFilter = statusDraft; _sort = sortDraft; _applyFilter();
+                    }),
+                    builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      FilterChipGroup<_StatusFilter>(
+                        label: 'Status',
+                        value: statusDraft == _StatusFilter.all ? null : statusDraft,
+                        options: const [_StatusFilter.onroll, _StatusFilter.probation,
+                            _StatusFilter.eligible, _StatusFilter.deactivated],
+                        labelOf: (s) => switch (s) {
+                          _StatusFilter.all => 'All (${_all.length})',
+                          _StatusFilter.onroll => 'On-Roll ($_countOnroll)',
+                          _StatusFilter.probation => 'Probation ($_countProbation)',
+                          _StatusFilter.eligible => 'EL Eligible ($_countEligible)',
+                          _StatusFilter.deactivated => 'Deactivated ($_countDeactivated)',
+                        },
+                        onChanged: (v) => setPanelState(() => statusDraft = v ?? _StatusFilter.all),
+                      ),
+                      FilterChipGroup<_SortOrder>(
+                        label: 'Sort',
+                        value: sortDraft == _SortOrder.newestFirst ? null : sortDraft,
+                        options: const [_SortOrder.oldestFirst, _SortOrder.alphabetical,
+                            _SortOrder.joinOldNew, _SortOrder.joinNewOld],
+                        labelOf: (s) => _sortLabels[s]!,
+                        onChanged: (v) => setPanelState(() => sortDraft = v ?? _SortOrder.newestFirst),
+                      ),
+                    ]),
+                  );
+                },
               );
               if (constraints.maxWidth < 560) {
                 return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Card(child: Padding(padding: const EdgeInsets.all(16), child: search)),
                   const SizedBox(height: 10),
-                  sort,
+                  filterBtn,
                 ]);
               }
               return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
@@ -318,56 +356,9 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                   child: Card(child: Padding(padding: const EdgeInsets.all(16), child: search)),
                 ),
                 const SizedBox(width: 12),
-                sort,
+                filterBtn,
               ]);
             }),
-            const SizedBox(height: 14),
-
-            // ── Status classification chips ─────────────────────────────
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                _FilterChip(
-                  label: 'All (${_all.length})',
-                  icon: Icons.groups_rounded,
-                  selected: _statusFilter == _StatusFilter.all,
-                  color: const Color(0xFF111827),
-                  onTap: () => setState(() { _statusFilter = _StatusFilter.all; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'On-Roll ($_countOnroll)',
-                  icon: Icons.verified_rounded,
-                  selected: _statusFilter == _StatusFilter.onroll,
-                  color: const Color(0xFF22C55E),
-                  onTap: () => setState(() { _statusFilter = _StatusFilter.onroll; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Probation ($_countProbation)',
-                  icon: Icons.timelapse_rounded,
-                  selected: _statusFilter == _StatusFilter.probation,
-                  color: Colors.orange.shade700,
-                  onTap: () => setState(() { _statusFilter = _StatusFilter.probation; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'EL Eligible ($_countEligible)',
-                  icon: Icons.event_available_rounded,
-                  selected: _statusFilter == _StatusFilter.eligible,
-                  color: AppTheme.primaryBlue,
-                  onTap: () => setState(() { _statusFilter = _StatusFilter.eligible; _applyFilter(); }),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Deactivated ($_countDeactivated)',
-                  icon: Icons.person_off_rounded,
-                  selected: _statusFilter == _StatusFilter.deactivated,
-                  color: Colors.red.shade600,
-                  onTap: () => setState(() { _statusFilter = _StatusFilter.deactivated; _applyFilter(); }),
-                ),
-              ]),
-            ),
             const SizedBox(height: 16),
 
             // ── List ─────────────────────────────────────────────────────
@@ -1389,43 +1380,6 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     return chip;
   }
 
-  Future<void> _setEmergencyAttendance(bool v) async {
-    setState(() => _saving = true);
-    _user.emergencyAttendanceEnabled = v;
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
-  }
-
-  Widget _emergencyAttendanceToggle() {
-    final on = _user.emergencyAttendanceEnabled;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(children: [
-        Icon(Icons.emergency_rounded, size: 16,
-            color: on ? Colors.red.shade600 : Colors.grey.shade400),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Emergency App Check-In/Out',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
-            Text(
-                on ? 'Enabled — can check in/out via the app' : 'Off — attendance tracked via biometric device',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          ]),
-        ),
-        Switch(
-          value: on,
-          onChanged: _saving ? null : _setEmergencyAttendance,
-          activeColor: Colors.red.shade600,
-        ),
-      ]),
-    );
-  }
-
   Future<void> _confirmEl() async {
     setState(() => _saving = true);
     _user.elEligibleAt = DateTime.now().toIso8601String();
@@ -1542,10 +1496,6 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             ]),
             const SizedBox(height: 10),
             _workLocationBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
-            if (_user.workLocation == 'Office' && canEdit) ...[
-              const SizedBox(height: 8),
-              _emergencyAttendanceToggle(),
-            ],
             const SizedBox(height: 4),
 
             // ── Compensation ─────────────────────────────────────────────
@@ -2113,9 +2063,6 @@ class _EditDialogState extends State<_EditDialog> {
       name:             name,
       email:            '$prefix$_domain',
       employeeId:       _empIdCtrl.text.trim(),
-      // No longer editable from this UI — preserve whatever's already on
-      // file (still used internally by the ESSL X990 biometric attendance sync).
-      biometricId:      widget.user?.biometricId ?? '',
       designation:      _designation ?? '',
       department:       _department ?? '',
       role:             _role,
@@ -2159,7 +2106,6 @@ class _EditDialogState extends State<_EditDialog> {
       workLocation:            widget.user?.workLocation ?? '',
       workLocationPending:     widget.user?.workLocationPending ?? '',
       workLocationRequestedAt: widget.user?.workLocationRequestedAt ?? '',
-      emergencyAttendanceEnabled: widget.user?.emergencyAttendanceEnabled ?? false,
       // Device Binding is managed from the Device Security section on the
       // profile view (Reset Device), never from this edit form.
       deviceId:               widget.user?.deviceId ?? '',
@@ -2503,70 +2449,6 @@ class _EditDialogState extends State<_EditDialog> {
   }
 }
 
-// ── Company-wide emergency attendance override ────────────────────────────────
-
-class _EmergencyAttendanceBanner extends StatefulWidget {
-  const _EmergencyAttendanceBanner();
-
-  @override
-  State<_EmergencyAttendanceBanner> createState() => _EmergencyAttendanceBannerState();
-}
-
-class _EmergencyAttendanceBannerState extends State<_EmergencyAttendanceBanner> {
-  bool _saving = false;
-
-  Future<void> _toggle(bool v) async {
-    setState(() => _saving = true);
-    await emergencyAttendanceNotifier.setAll(v);
-    if (mounted) setState(() => _saving = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: emergencyAttendanceNotifier,
-      builder: (context, _) {
-        final on = emergencyAttendanceNotifier.value;
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: on ? Colors.red.shade50 : Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: on ? Colors.red.shade300 : const Color(0xFFE5E7EB)),
-          ),
-          child: Row(children: [
-            Icon(Icons.emergency_rounded, size: 20,
-                color: on ? Colors.red.shade700 : Colors.grey.shade500),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Emergency: App Check-In/Out for All Employees',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                        color: on ? Colors.red.shade800 : const Color(0xFF111827))),
-                Text(
-                    on
-                        ? 'Active — every employee can check in/out via the app, regardless of work location'
-                        : 'Off — Office employees use the biometric device as usual',
-                    style: TextStyle(fontSize: 11.5,
-                        color: on ? Colors.red.shade700 : const Color(0xFF6B7280))),
-              ]),
-            ),
-            if (_saving)
-              const SizedBox(width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-            else
-              Switch(
-                value: on,
-                onChanged: _toggle,
-                activeColor: Colors.red.shade600,
-              ),
-          ]),
-        );
-      },
-    );
-  }
-}
-
 // ── Stat cards ─────────────────────────────────────────────────────────────────
 
 class _StatCardsRow extends StatelessWidget {
@@ -2701,106 +2583,6 @@ class _StatTile extends StatelessWidget {
                   style: TextStyle(fontSize: 11, color: subColor, fontWeight: FontWeight.w600)),
             ]),
           ),
-        ]),
-      ),
-    );
-  }
-}
-
-// ── Sort dropdown ───────────────────────────────────────────────────────────────
-
-class _SortDropdown extends StatelessWidget {
-  final _SortOrder value;
-  final ValueChanged<_SortOrder> onChanged;
-  const _SortDropdown({required this.value, required this.onChanged});
-
-  static const _labels = {
-    _SortOrder.newestFirst:  ('Recently Added', Icons.new_releases_rounded),
-    _SortOrder.oldestFirst:  ('Added First',    Icons.history_rounded),
-    _SortOrder.alphabetical: ('A → Z',          Icons.sort_by_alpha_rounded),
-    _SortOrder.joinOldNew:   ('Join Date ↑',    Icons.calendar_today_rounded),
-    _SortOrder.joinNewOld:   ('Join Date ↓',    Icons.calendar_month_rounded),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, icon) = _labels[value]!;
-    return PopupMenuButton<_SortOrder>(
-      initialValue: value,
-      onSelected: onChanged,
-      offset: const Offset(0, 40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (context) => _SortOrder.values.map((o) {
-        final (l, i) = _labels[o]!;
-        return PopupMenuItem(
-          value: o,
-          child: Row(children: [
-            Icon(i, size: 16, color: o == value ? AppTheme.primaryBlue : const Color(0xFF6B7280)),
-            const SizedBox(width: 10),
-            Text(l, style: TextStyle(
-                fontSize: 13,
-                fontWeight: o == value ? FontWeight.w700 : FontWeight.w500,
-                color: o == value ? AppTheme.primaryBlue : const Color(0xFF111827))),
-          ]),
-        );
-      }).toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.swap_vert_rounded, size: 16, color: const Color(0xFF6B7280)),
-          const SizedBox(width: 6),
-          Text('Sort: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
-        ]),
-      ),
-    );
-  }
-}
-
-// ── Sort chip ─────────────────────────────────────────────────────────────────
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color? color;
-  const _FilterChip({required this.label, required this.icon,
-      required this.selected, required this.onTap, this.color});
-
-  Color get _color => color ?? AppTheme.primaryBlue;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? _color : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? _color : Theme.of(context).colorScheme.outlineVariant,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 13,
-              color: selected ? Colors.white : const Color(0xFF6B7280)),
-          const SizedBox(width: 5),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? Colors.white : const Color(0xFF6B7280))),
         ]),
       ),
     );

@@ -38,12 +38,10 @@ class PushNotificationService {
       if (initialMessage != null) _handleTap(initialMessage);
 
       _initialized = true;
-    } catch (e, st) {
-      // TODO(push-notifications): once this is confirmed working, quiet
-      // this back down — Firebase not configured yet, or the permission/
-      // browser doesn't support push, shouldn't be fatal (the in-app 45s
-      // poll still covers notifications either way).
-      debugPrint('PushNotificationService.init failed: $e\n$st');
+    } catch (e) {
+      // Firebase not configured, or the permission/browser doesn't support
+      // push — not fatal, the in-app 45s poll still covers notifications.
+      if (kDebugMode) debugPrint('PushNotificationService.init failed: $e');
     }
   }
 

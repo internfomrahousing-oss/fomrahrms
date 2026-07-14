@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
@@ -7,6 +8,8 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
+import '../widgets/filter_popup_button.dart';
 import '../theme/app_theme.dart';
 
 enum _SortOrder { newestFirst, oldestFirst }
@@ -41,7 +44,6 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
   LeaveApprovalStatus? _filterStatus;
   String? _departmentFilter;
   _SortOrder _sort = _SortOrder.newestFirst;
-  bool _showFilterPanel = false;
   bool _loading = false;
 
   bool _holidayBannerDismissed = false;
@@ -125,10 +127,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
     return (_approvedCount / decided * 100).round();
   }
 
-  List<String> get _departments {
-    final set = _requests.map((r) => r.department).where((d) => d.isNotEmpty).toSet();
-    return set.toList()..sort();
-  }
+  List<String> get _departments => kDepartments;
 
   AppUser? _userFor(String name) {
     final n = name.trim().toLowerCase();
@@ -603,77 +602,70 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
                 ),
               ),
               const SizedBox(width: 8),
-              if (_departments.length > 1)
-                _FilterToggleButton(
-                  active: _showFilterPanel,
-                  hasSelection: _departmentFilter != null,
-                  onTap: () => setState(() => _showFilterPanel = !_showFilterPanel),
-                ),
+              FilterTriggerButton(
+                hasActiveFilters: _departmentFilter != null || _filterStatus != null
+                    || _sort != _SortOrder.newestFirst,
+                onTap: () {
+                  String? deptDraft = _departmentFilter;
+                  LeaveApprovalStatus? statusDraft = _filterStatus;
+                  _SortOrder sortDraft = _sort;
+                  showFilterPanel(
+                    context,
+                    title: 'Filters',
+                    onReset: () { deptDraft = null; statusDraft = null; sortDraft = _SortOrder.newestFirst; },
+                    onApply: () => setState(() {
+                      _departmentFilter = deptDraft; _filterStatus = statusDraft; _sort = sortDraft;
+                      _resetPage();
+                    }),
+                    builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      if (_departments.length > 1)
+                        FilterDropdownField<String>(
+                          label: 'Department',
+                          value: deptDraft,
+                          options: _departments,
+                          labelOf: (d) => d,
+                          allLabel: 'All Departments',
+                          onChanged: (v) => setPanelState(() => deptDraft = v),
+                        ),
+                      FilterChipGroup<LeaveApprovalStatus>(
+                        label: 'Status',
+                        value: statusDraft,
+                        options: LeaveApprovalStatus.values,
+                        labelOf: _sl,
+                        onChanged: (v) => setPanelState(() => statusDraft = v),
+                      ),
+                      FilterDropdownField<_SortOrder>(
+                        label: 'Sort',
+                        value: sortDraft == _SortOrder.newestFirst ? null : sortDraft,
+                        options: const [_SortOrder.oldestFirst],
+                        labelOf: (s) => 'Oldest First',
+                        allLabel: 'Newest First',
+                        onChanged: (v) => setPanelState(() => sortDraft = v ?? _SortOrder.newestFirst),
+                      ),
+                    ]),
+                  );
+                },
+              ),
             ]),
             const SizedBox(height: 12),
 
-            if (_showFilterPanel && _departments.length > 1) ...[
-              _DropdownField<String?>(
-                label: 'Department',
-                value: _departmentFilter,
-                icon: Icons.apartment_rounded,
-                display: (v) => v ?? 'All',
-                options: [null, ..._departments],
-                onChanged: (v) { setState(() => _departmentFilter = v); _resetPage(); },
+            // ── Search ────────────────────────────────────────────────
+            TextField(
+              onChanged: (v) { setState(() => _search = v); _resetPage(); },
+              decoration: InputDecoration(
+                hintText: 'Search employee or leave type...',
+                prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
+                suffixIcon: _search.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () { setState(() => _search = ''); _resetPage(); })
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
-              const SizedBox(height: 12),
-            ],
-
-            // ── Search + status + sort ─────────────────────────────────
-            LayoutBuilder(builder: (context, constraints) {
-              final search = TextField(
-                onChanged: (v) { setState(() => _search = v); _resetPage(); },
-                decoration: InputDecoration(
-                  hintText: 'Search employee or leave type...',
-                  prefixIcon: Icon(Icons.search_rounded, color: _blue, size: 20),
-                  suffixIcon: _search.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18),
-                          onPressed: () { setState(() => _search = ''); _resetPage(); })
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                ),
-              );
-              final statusDropdown = _DropdownField<LeaveApprovalStatus?>(
-                label: 'Status',
-                value: _filterStatus,
-                icon: Icons.filter_alt_rounded,
-                display: (s) => s == null ? 'All Status' : _sl(s),
-                options: const [null, ...LeaveApprovalStatus.values],
-                onChanged: (v) { setState(() => _filterStatus = v); _resetPage(); },
-              );
-              final sortDropdown = _DropdownField<_SortOrder>(
-                label: 'Sort',
-                value: _sort,
-                icon: Icons.swap_vert_rounded,
-                display: (s) => s == _SortOrder.newestFirst ? 'Newest First' : 'Oldest First',
-                options: _SortOrder.values,
-                onChanged: (v) => setState(() => _sort = v),
-              );
-
-              if (constraints.maxWidth < 760) {
-                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  search,
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 8, runSpacing: 8, children: [statusDropdown, sortDropdown]),
-                ]);
-              }
-              return Row(children: [
-                Expanded(child: search),
-                const SizedBox(width: 8),
-                statusDropdown,
-                const SizedBox(width: 8),
-                sortDropdown,
-              ]);
-            }),
+            ),
             const SizedBox(height: 14),
 
             if (_tabController.index == 0 && !_holidayBannerDismissed)
@@ -1001,109 +993,6 @@ class _PillTab extends StatelessWidget {
 
 // ── Filter toggle button ───────────────────────────────────────────────────
 
-class _FilterToggleButton extends StatelessWidget {
-  final bool active;
-  final bool hasSelection;
-  final VoidCallback onTap;
-  const _FilterToggleButton({required this.active, required this.hasSelection, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(clipBehavior: Clip.none, children: [
-      InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            color: active ? AppTheme.primaryBlue : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: active ? AppTheme.primaryBlue : const Color(0xFFDDDDDD)),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.filter_list_rounded, size: 16, color: active ? Colors.white : AppTheme.primaryBlue),
-            const SizedBox(width: 5),
-            Text('Filter',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                    color: active ? Colors.white : AppTheme.primaryBlue)),
-          ]),
-        ),
-      ),
-      if (hasSelection)
-        Positioned(
-          top: -3, right: -3,
-          child: Container(
-            width: 8, height: 8,
-            decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-          ),
-        ),
-    ]);
-  }
-}
-
-// ── Generic dropdown field ────────────────────────────────────────────────────
-
-class _DropdownField<T> extends StatelessWidget {
-  final String label;
-  final T value;
-  final IconData icon;
-  final String Function(T) display;
-  final List<T> options;
-  final ValueChanged<T> onChanged;
-
-  const _DropdownField({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.display,
-    required this.options,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      initialValue: value,
-      onSelected: onChanged,
-      offset: const Offset(0, 42),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (context) => options.map((o) {
-        final selected = o == value;
-        return PopupMenuItem<T>(
-          value: o,
-          child: Text(display(o),
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? AppTheme.primaryBlue : const Color(0xFF111827))),
-        );
-      }).toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFDDDDDD)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 15, color: const Color(0xFF6B7280)),
-          const SizedBox(width: 6),
-          Text('$label: ',
-              style: const TextStyle(fontSize: 12.5, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 110),
-            child: Text(display(value),
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
-        ]),
-      ),
-    );
-  }
-}
 
 // ── Pagination ───────────────────────────────────────────────────────────────
 
@@ -1170,13 +1059,13 @@ class _Pagination extends StatelessWidget {
           ),
         ]);
 
-        final rowsDropdown = _DropdownField<int>(
-          label: 'Rows per page',
+        final rowsDropdown = FilterPopupButton<int>(
           value: rowsPerPage,
-          icon: Icons.list_rounded,
-          display: (v) => '$v',
           options: const [10, 20, 50],
-          onChanged: onRowsPerPageChanged,
+          labelOf: (v) => '$v per page',
+          icon: Icons.list_rounded,
+          tooltip: 'Rows per page',
+          onChanged: (v) => onRowsPerPageChanged(v ?? rowsPerPage),
         );
 
         if (narrow) {

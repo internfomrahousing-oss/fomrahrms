@@ -126,4 +126,23 @@ class TaskStore {
     await prefs.setInt(_counterKey, counter);
     return 'TSK-${counter.toString().padLeft(3, '0')}';
   }
+
+  static bool _belongsTo(Task t, String employeeName) =>
+      t.assignedEmployee.trim() == employeeName ||
+      t.teamMembers.any((m) => m.trim() == employeeName);
+
+  static int _creationOrder(Task t) =>
+      int.tryParse(t.id.replaceFirst('TSK-', '')) ?? 0;
+
+  /// 1-based position of each of [employeeName]'s own tasks (as assignee or
+  /// team member) among just their tasks, ordered by creation (ascending
+  /// TSK-### id) — every employee's tasks are numbered #1, #2... on their
+  /// own, independent of the shared global id.
+  static Map<String, int> taskNumbersFor(String employeeName, List<Task> allTasks) {
+    final name = employeeName.trim();
+    if (name.isEmpty) return {};
+    final mine = allTasks.where((t) => _belongsTo(t, name)).toList()
+      ..sort((a, b) => _creationOrder(a).compareTo(_creationOrder(b)));
+    return {for (var i = 0; i < mine.length; i++) mine[i].id: i + 1};
+  }
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 import '../theme/app_theme.dart';
 
 class HrLeaveRecordsPage extends StatefulWidget {
@@ -245,24 +247,6 @@ static String _fmtD(double d) =>
 
   // ── Tab 1: Employee allocations ───────────────────────────────────────────
 
-  List<String> get _departmentOptions {
-    final set = <String>{};
-    for (final e in _employees) {
-      if (e.department.isNotEmpty) set.add(e.department);
-    }
-    final list = set.toList()..sort();
-    return ['All', ...list];
-  }
-
-  List<String> get _designationOptions {
-    final set = <String>{};
-    for (final e in _employees) {
-      if (e.designation.isNotEmpty) set.add(e.designation);
-    }
-    final list = set.toList()..sort();
-    return ['All', ...list];
-  }
-
   List<AppUser> get _filteredEmployees {
     final q = _search.trim().toLowerCase();
     return _employees.where((e) {
@@ -299,17 +283,6 @@ static String _fmtD(double d) =>
       sum += _elUsedSince(u.name, u.elLastAvailedAt);
     }
     return sum;
-  }
-
-  void _resetFilters() {
-    setState(() {
-      _search = '';
-      _searchController.clear();
-      _deptFilter = 'All';
-      _desigFilter = 'All';
-      _statusFilter = 'Active';
-      _page = 1;
-    });
   }
 
   Widget _buildAllocationsTab() {
@@ -458,63 +431,63 @@ static String _fmtD(double d) =>
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           );
-          final deptDropdown = _filterDropdown('Department', _deptFilter, _departmentOptions,
-              (v) => setState(() { _deptFilter = v!; _page = 1; }));
-          final desigDropdown = _filterDropdown('Designation', _desigFilter, _designationOptions,
-              (v) => setState(() { _desigFilter = v!; _page = 1; }));
-          final statusDropdown = _filterDropdown('Status', _statusFilter, const ['All', 'Active', 'Inactive'],
-              (v) => setState(() { _statusFilter = v!; _page = 1; }));
-          final resetBtn = OutlinedButton.icon(
-            onPressed: _resetFilters,
-            icon: const Icon(Icons.restart_alt_rounded, size: 16),
-            label: const Text('Reset'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
+          final filterBtn = FilterTriggerButton(
+            hasActiveFilters: _deptFilter != 'All' || _desigFilter != 'All' || _statusFilter != 'Active',
+            onTap: () {
+              String deptDraft = _deptFilter;
+              String desigDraft = _desigFilter;
+              String statusDraft = _statusFilter;
+              showFilterPanel(
+                context,
+                title: 'Filters',
+                onReset: () { deptDraft = 'All'; desigDraft = 'All'; statusDraft = 'Active'; },
+                onApply: () => setState(() {
+                  _deptFilter = deptDraft; _desigFilter = desigDraft; _statusFilter = statusDraft; _page = 1;
+                }),
+                builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  FilterDropdownField<String>(
+                    label: 'Department',
+                    value: deptDraft == 'All' ? null : deptDraft,
+                    options: kDepartments,
+                    labelOf: (d) => d,
+                    allLabel: 'All Departments',
+                    onChanged: (v) => setPanelState(() => deptDraft = v ?? 'All'),
+                  ),
+                  FilterDropdownField<String>(
+                    label: 'Designation',
+                    value: desigDraft == 'All' ? null : desigDraft,
+                    options: kDesignations,
+                    labelOf: (d) => d,
+                    allLabel: 'All Designations',
+                    onChanged: (v) => setPanelState(() => desigDraft = v ?? 'All'),
+                  ),
+                  FilterChipGroup<String>(
+                    label: 'Status',
+                    value: statusDraft == 'All' ? null : statusDraft,
+                    options: const ['Active', 'Inactive'],
+                    labelOf: (s) => s,
+                    onChanged: (v) => setPanelState(() => statusDraft = v ?? 'All'),
+                  ),
+                ]),
+              );
+            },
           );
 
           if (constraints.maxWidth < 760) {
             return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               search,
               const SizedBox(height: 10),
-              Wrap(spacing: 10, runSpacing: 10, children: [
-                SizedBox(width: (constraints.maxWidth - 10) / 2, child: deptDropdown),
-                SizedBox(width: (constraints.maxWidth - 10) / 2, child: desigDropdown),
-                SizedBox(width: (constraints.maxWidth - 10) / 2, child: statusDropdown),
-                resetBtn,
-              ]),
+              filterBtn,
             ]);
           }
 
           return Row(children: [
-            Expanded(flex: 3, child: search),
+            Expanded(child: search),
             const SizedBox(width: 10),
-            Expanded(flex: 2, child: deptDropdown),
-            const SizedBox(width: 10),
-            Expanded(flex: 2, child: desigDropdown),
-            const SizedBox(width: 10),
-            Expanded(flex: 2, child: statusDropdown),
-            const SizedBox(width: 10),
-            resetBtn,
+            filterBtn,
           ]);
         }),
       ),
-    );
-  }
-
-  Widget _filterDropdown(String label, String value, List<String> options, ValueChanged<String?> onChanged) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      ),
-      items: options
-          .map((o) => DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)))
-          .toList(),
-      onChanged: onChanged,
     );
   }
 

@@ -20,6 +20,8 @@ class _MyTasksPageState extends State<MyTasksPage> {
   bool _loading = true;
   // Private list — filtered to only THIS user's tasks, isolated from TaskStore
   List<Task> _tasks = [];
+  // task.id -> this employee's own 1-based task number (see TaskStore.taskNumbersFor)
+  Map<String, int> _numbers = {};
 
   static const _filters = [
     (null,                'All'),
@@ -59,6 +61,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
           : allTasks.where((t) =>
               t.assignedEmployee.trim() == name ||
               t.teamMembers.any((m) => m.trim() == name)).toList();
+      _numbers = TaskStore.taskNumbersFor(name, allTasks);
       _loading = false;
     });
   }
@@ -308,6 +311,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _MyTaskCard(
                     task: t,
+                    number: _numbers[t.id] ?? 0,
                     displayStatus: _effectiveStatus(t),
                     isGroupTask: isGroup,
                     onReceived: () => _onReceived(t),
@@ -326,12 +330,14 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
 class _MyTaskCard extends StatefulWidget {
   final Task task;
+  final int number;
   final TaskStatus displayStatus;
   final bool isGroupTask;
   final VoidCallback onReceived;
   final VoidCallback onDone;
   const _MyTaskCard({
     required this.task,
+    required this.number,
     required this.displayStatus,
     this.isGroupTask = false,
     required this.onReceived,
@@ -403,7 +409,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text(t.id,
+                    Text('Task #${widget.number}',
                         style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade500,

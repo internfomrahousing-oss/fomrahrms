@@ -11,6 +11,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/form_version_label.dart';
 import '../utils/open_url.dart';
+import '../widgets/filter_panel.dart';
 import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
@@ -100,16 +101,6 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   final _searchCtrl = TextEditingController();
 
   String _statusOf(Map<String, dynamic> r) => (r['status'] as String?) ?? 'pending';
-
-  List<String> get _departmentOptions {
-    final s = _all
-        .map((r) => (r['designation'] ?? '').toString().trim())
-        .where((v) => v.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    return ['All', ...s];
-  }
 
   List<String> get _managerOptions {
     final s = _all
@@ -344,7 +335,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             r.values.any((v) => v.toString().toLowerCase().contains(q)))
         .toList();
     if (_deptFilter != 'All') {
-      rows = rows.where((r) => (r['designation'] ?? '').toString().trim() == _deptFilter).toList();
+      rows = rows.where((r) => (r['department'] ?? '').toString().trim() == _deptFilter).toList();
     }
     if (_managerFilter != 'All') {
       rows = rows.where((r) => (r['assigned_manager'] ?? '').toString().trim() == _managerFilter).toList();
@@ -481,49 +472,62 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                         borderSide: BorderSide.none),
                   ),
                 );
-                final dropdowns = Row(mainAxisSize: MainAxisSize.min, children: [
-                  _OnboardDropdown(
-                    label: 'Department',
-                    value: _deptFilter,
-                    options: _departmentOptions,
-                    onChanged: (v) => setState(() { _deptFilter = v; _applyFilter(); }),
-                  ),
-                  const SizedBox(width: 8),
-                  _OnboardDropdown(
-                    label: 'Manager',
-                    value: _managerFilter,
-                    options: _managerOptions,
-                    onChanged: (v) => setState(() { _managerFilter = v; _applyFilter(); }),
-                  ),
-                  const SizedBox(width: 8),
-                  _OnboardDropdown(
-                    label: 'Sort',
-                    value: switch (_sort) {
-                      _OnboardSort.latest => 'Latest',
-                      _OnboardSort.oldest => 'Oldest',
-                      _OnboardSort.nameAz => 'Name A–Z',
-                    },
-                    options: const ['Latest', 'Oldest', 'Name A–Z'],
-                    onChanged: (v) => setState(() {
-                      _sort = switch (v) {
-                        'Oldest' => _OnboardSort.oldest,
-                        'Name A–Z' => _OnboardSort.nameAz,
-                        _ => _OnboardSort.latest,
-                      };
-                      _applyFilter();
-                    }),
-                  ),
-                ]);
+                final filterBtn = FilterTriggerButton(
+                  hasActiveFilters: _deptFilter != 'All' || _managerFilter != 'All' || _sort != _OnboardSort.latest,
+                  onTap: () {
+                    String deptDraft = _deptFilter;
+                    String managerDraft = _managerFilter;
+                    _OnboardSort sortDraft = _sort;
+                    showFilterPanel(
+                      context,
+                      title: 'Filters',
+                      onReset: () { deptDraft = 'All'; managerDraft = 'All'; sortDraft = _OnboardSort.latest; },
+                      onApply: () => setState(() {
+                        _deptFilter = deptDraft; _managerFilter = managerDraft; _sort = sortDraft;
+                        _applyFilter();
+                      }),
+                      builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        FilterDropdownField<String>(
+                          label: 'Department',
+                          value: deptDraft == 'All' ? null : deptDraft,
+                          options: kDepartments,
+                          labelOf: (d) => d,
+                          allLabel: 'All Departments',
+                          onChanged: (v) => setPanelState(() => deptDraft = v ?? 'All'),
+                        ),
+                        FilterDropdownField<String>(
+                          label: 'Manager',
+                          value: managerDraft == 'All' ? null : managerDraft,
+                          options: _managerOptions.where((m) => m != 'All').toList(),
+                          labelOf: (m) => m,
+                          allLabel: 'All Managers',
+                          onChanged: (v) => setPanelState(() => managerDraft = v ?? 'All'),
+                        ),
+                        FilterChipGroup<_OnboardSort>(
+                          label: 'Sort',
+                          value: sortDraft == _OnboardSort.latest ? null : sortDraft,
+                          options: const [_OnboardSort.oldest, _OnboardSort.nameAz],
+                          labelOf: (s) => switch (s) {
+                            _OnboardSort.latest => 'Latest',
+                            _OnboardSort.oldest => 'Oldest',
+                            _OnboardSort.nameAz => 'Name A–Z',
+                          },
+                          onChanged: (v) => setPanelState(() => sortDraft = v ?? _OnboardSort.latest),
+                        ),
+                      ]),
+                    );
+                  },
+                );
                 return narrow
                     ? Column(children: [
                         search,
                         const SizedBox(height: 10),
-                        SingleChildScrollView(scrollDirection: Axis.horizontal, child: dropdowns),
+                        filterBtn,
                       ])
                     : Row(children: [
                         Expanded(child: search),
                         const SizedBox(width: 10),
-                        dropdowns,
+                        filterBtn,
                       ]);
               }),
               const SizedBox(height: 10),
@@ -686,47 +690,6 @@ class _StatCard extends StatelessWidget {
           ]),
         ),
       ]),
-    );
-  }
-}
-
-// ── Filter dropdown (Department/Manager/Sort) ────────────────────────────────────
-class _OnboardDropdown extends StatelessWidget {
-  final String label;
-  final String value;
-  final List<String> options;
-  final ValueChanged<String> onChanged;
-  const _OnboardDropdown({
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isDense: true,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: _blue),
-          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
-          items: options
-              .map((o) => DropdownMenuItem(value: o, child: Text('$label: $o')))
-              .toList(),
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
-        ),
-      ),
     );
   }
 }

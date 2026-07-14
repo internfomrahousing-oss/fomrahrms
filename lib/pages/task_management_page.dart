@@ -74,6 +74,18 @@ class _TaskManagementPageState extends State<TaskManagementPage>
           _isMe(t.assignedEmployee) || t.teamMembers.any(_isMe))
       .length;
 
+  // employeeName -> (task.id -> that employee's own task number) — the same
+  // per-employee sequence shown on their My Tasks page, so the number an
+  // assigner sees here always matches what the employee sees on theirs.
+  Map<String, Map<String, int>> get _numbersByEmployee {
+    final people = <String>{};
+    for (final t in TaskStore.tasks) {
+      if (t.assignedEmployee.trim().isNotEmpty) people.add(t.assignedEmployee.trim());
+      people.addAll(t.teamMembers.map((m) => m.trim()).where((m) => m.isNotEmpty));
+    }
+    return {for (final p in people) p: TaskStore.taskNumbersFor(p, TaskStore.tasks)};
+  }
+
   List<String> get _assignees {
     final set = <String>{};
     for (final t in TaskStore.tasks) {
@@ -227,6 +239,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   filters: _filters,
                   currentFilter: _filter,
                   filtered: _filtered,
+                  numbersByEmployee: _numbersByEmployee,
                   totalCount: TaskStore.tasks.length,
                   pendingCount: _pendingCount,
                   completedCount: _completedCount,
@@ -271,6 +284,7 @@ class _TasksTab extends StatelessWidget {
   final List<(TaskStatus?, String)> filters;
   final TaskStatus? currentFilter;
   final List<Task> filtered;
+  final Map<String, Map<String, int>> numbersByEmployee;
   final int totalCount;
   final int pendingCount;
   final int completedCount;
@@ -294,6 +308,7 @@ class _TasksTab extends StatelessWidget {
     required this.filters,
     required this.currentFilter,
     required this.filtered,
+    required this.numbersByEmployee,
     required this.totalCount,
     required this.pendingCount,
     required this.completedCount,
@@ -481,6 +496,7 @@ class _TasksTab extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _TaskCard(
                     task: t,
+                    numbersByEmployee: numbersByEmployee,
                     onDelete: (UserSession.role == UserRole.hr ||
                             UserSession.role == UserRole.management)
                         ? () => onDelete(t)
@@ -782,8 +798,9 @@ Color taskStatusColor(TaskStatus s) => switch (s) {
 
 class _TaskCard extends StatefulWidget {
   final Task task;
+  final Map<String, Map<String, int>> numbersByEmployee;
   final VoidCallback? onDelete;
-  const _TaskCard({required this.task, this.onDelete});
+  const _TaskCard({required this.task, required this.numbersByEmployee, this.onDelete});
 
   @override
   State<_TaskCard> createState() => _TaskCardState();
@@ -791,6 +808,26 @@ class _TaskCard extends StatefulWidget {
 
 class _TaskCardState extends State<_TaskCard> {
   bool _expanded = false;
+
+  // "Task #N" for a single assignee, or "Name #N · Name #N" for a group
+  // task — always the same number that employee sees on their own My Tasks
+  // page, since both read from TaskStore.taskNumbersFor.
+  String _numberLabel(Task t) {
+    final people = <String>{
+      if (t.assignedEmployee.trim().isNotEmpty) t.assignedEmployee.trim(),
+      ...t.teamMembers.map((m) => m.trim()).where((m) => m.isNotEmpty),
+    };
+    if (people.isEmpty) return t.id;
+    if (people.length == 1) {
+      final n = widget.numbersByEmployee[people.first]?[t.id];
+      return n == null ? t.id : 'Task #$n';
+    }
+    final parts = people.map((name) {
+      final n = widget.numbersByEmployee[name]?[t.id];
+      return n == null ? name : '$name #$n';
+    }).toList();
+    return parts.join(' · ');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -821,7 +858,7 @@ class _TaskCardState extends State<_TaskCard> {
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(t.id,
+                                Text(_numberLabel(t),
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: Colors.grey.shade500,

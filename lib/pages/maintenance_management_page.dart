@@ -10,6 +10,7 @@ import '../services/user_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/month_picker.dart';
 import '../widgets/back_button.dart';
+import '../widgets/filter_panel.dart';
 
 class MaintenanceManagementPage extends StatefulWidget {
   // When true (HR's "My Space" entry), always show the personal
@@ -215,33 +216,45 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   }
 
   Widget _buildMonthFilterRow() {
-    return Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-      _PillDropdown(
-        icon: Icons.calendar_month_rounded,
-        label: _selectedMonth != null ? monthLabel(_selectedMonth!) : 'All Months',
-        active: _selectedMonth != null,
-        onTap: _pickMonth,
-        onClear: _selectedMonth != null ? () => setState(() => _selectedMonth = null) : null,
-      ),
-      _PillPopup(
-        icon: Icons.apartment_rounded,
-        label: _filterIssueFor ?? 'All Departments',
-        active: _filterIssueFor != null,
-        options: _issueForOptions,
-        allLabel: 'All Departments',
-        onSelected: (v) => setState(() => _filterIssueFor = v),
-      ),
-    ]);
+    return _PillDropdown(
+      icon: Icons.calendar_month_rounded,
+      label: _selectedMonth != null ? monthLabel(_selectedMonth!) : 'All Months',
+      active: _selectedMonth != null,
+      onTap: _pickMonth,
+      onClear: _selectedMonth != null ? () => setState(() => _selectedMonth = null) : null,
+    );
   }
 
   Widget _buildPriorityFilterButton() {
-    return _PillPopup(
-      icon: Icons.filter_list_rounded,
-      label: _filterPriority ?? 'Filter',
-      active: _filterPriority != null,
-      options: kMaintenancePriorities,
-      allLabel: 'All Priorities',
-      onSelected: (v) => setState(() => _filterPriority = v),
+    return FilterTriggerButton(
+      hasActiveFilters: _filterIssueFor != null || _filterPriority != null,
+      onTap: () {
+        String? issueForDraft = _filterIssueFor;
+        String? priorityDraft = _filterPriority;
+        showFilterPanel(
+          context,
+          title: 'Filters',
+          onReset: () { issueForDraft = null; priorityDraft = null; },
+          onApply: () => setState(() { _filterIssueFor = issueForDraft; _filterPriority = priorityDraft; }),
+          builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            FilterDropdownField<String>(
+              label: 'Department',
+              value: issueForDraft,
+              options: _issueForOptions,
+              labelOf: (o) => o,
+              allLabel: 'All Departments',
+              onChanged: (v) => setPanelState(() => issueForDraft = v),
+            ),
+            FilterChipGroup<String>(
+              label: 'Priority',
+              value: priorityDraft,
+              options: kMaintenancePriorities,
+              labelOf: (o) => o,
+              onChanged: (v) => setPanelState(() => priorityDraft = v),
+            ),
+          ]),
+        );
+      },
     );
   }
 
@@ -842,57 +855,6 @@ class _PillDropdown extends StatelessWidget {
             const SizedBox(width: 4),
             const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
           ],
-        ]),
-      ),
-    );
-  }
-}
-
-// ── Pill popup (fixed option list, e.g. department/priority) ──────────────────
-
-class _PillPopup extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final List<String> options;
-  final String allLabel;
-  final ValueChanged<String?> onSelected;
-  const _PillPopup({
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.options,
-    required this.allLabel,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    return PopupMenuButton<String?>(
-      tooltip: label,
-      onSelected: onSelected,
-      offset: const Offset(0, 40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (_) => [
-        PopupMenuItem<String?>(value: null, child: Text(allLabel)),
-        ...options.map((o) => PopupMenuItem<String?>(value: o, child: Text(o))),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: active ? primary : const Color(0xFFE5E7EB)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 15, color: active ? primary : const Color(0xFF6B7280)),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w600,
-              color: active ? primary : const Color(0xFF111827))),
-          const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF6B7280)),
         ]),
       ),
     );

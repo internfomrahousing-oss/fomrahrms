@@ -809,6 +809,15 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
         builder: (sbCtx, setDlg) => AlertDialog(
           title: const Text('Add Birthday'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Text(
+                'Birthdays are added automatically from the Date of Birth on '
+                'each employee\'s onboarding form. Only use this for employees '
+                'without one on file.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
             TextField(
               controller: nameCtrl,
               autofocus: true,
@@ -886,6 +895,7 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
                         DateTime.tryParse(item['birthday_date'] as String? ?? '') ??
                         DateTime.now();
                     final name = item['name'] as String? ?? '';
+                    final id = item['id'] as String?; // null = auto-derived from onboarding DOB, not deletable
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 5),
                       child: Row(children: [
@@ -910,10 +920,10 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
                             style: TextStyle(
                                 fontSize: 11,
                                 color: cs.onSurface.withValues(alpha: 0.5))),
-                        if (widget.canEdit) ...[
+                        if (widget.canEdit && id != null) ...[
                           const SizedBox(width: 6),
                           GestureDetector(
-                            onTap: () => _delete(item['id'] as String),
+                            onTap: () => _delete(id),
                             child: Icon(Icons.delete_outline_rounded,
                                 size: 16,
                                 color: _purple.withValues(alpha: 0.5)),
