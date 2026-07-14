@@ -18,6 +18,7 @@ class AppUser {
   String isReportingManagerRequestedAt; // ISO datetime the change was requested; empty = no pending request
   String mobile;
   String address;
+  String dateOfBirth;         // ISO date string; usually carried over from the onboarding form
   String dateOfJoining;       // ISO date string, set when management creates the user
   String onrollConfirmedAt;   // ISO datetime when Management approved on-roll; empty = probation
   String onrollRequestedAt;   // ISO datetime when employee requested on-roll confirmation; empty = no pending request
@@ -71,6 +72,7 @@ class AppUser {
     this.isReportingManagerRequestedAt = '',
     this.mobile = '',
     this.address = '',
+    this.dateOfBirth = '',
     this.dateOfJoining = '',
     this.onrollConfirmedAt = '',
     this.onrollRequestedAt = '',
@@ -221,6 +223,7 @@ class AppUser {
     'isReportingManagerRequestedAt': isReportingManagerRequestedAt,
     'mobile':                mobile,
     'address':               address,
+    'dateOfBirth':           dateOfBirth,
     'dateOfJoining':         dateOfJoining,
     'onrollConfirmedAt':     onrollConfirmedAt,
     'onrollRequestedAt':     onrollRequestedAt,
@@ -267,6 +270,7 @@ class AppUser {
     isReportingManagerRequestedAt: j['isReportingManagerRequestedAt'] as String? ?? '',
     mobile:               j['mobile']               as String? ?? '',
     address:              j['address']              as String? ?? '',
+    dateOfBirth:          j['dateOfBirth']          as String? ?? '',
     dateOfJoining:        j['dateOfJoining']        as String? ?? '',
     onrollConfirmedAt:    j['onrollConfirmedAt']    as String? ?? '',
     onrollRequestedAt:    j['onrollRequestedAt']    as String? ?? '',

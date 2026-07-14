@@ -1053,6 +1053,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         role:             'Employee',
         active:           true,
         reportingManager: manager,
+        dateOfBirth:      (d['date_of_birth'] as String?) ?? '',
         dateOfJoining:    (d['date_of_joining'] as String?) ?? '',
       );
       await UserStore.upsertOne(user);

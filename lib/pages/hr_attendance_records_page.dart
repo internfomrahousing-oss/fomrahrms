@@ -19,6 +19,26 @@ CheckInRowStatus _rowStatus(AttendanceRecord r, List<LeaveApplication> leaveApps
   return checkInStatusFor(r.checkInTime, date, r.employeeName, leaveApps);
 }
 
+/// Formats the gap between "HH:mm" check-in/check-out times as "Xh Ym".
+/// Returns null when either side is missing, malformed, or check-out
+/// precedes check-in.
+String? _workDuration(String checkInTime, String checkOutTime) {
+  if (checkInTime.isEmpty || checkOutTime.isEmpty) return null;
+  int? toMinutes(String t) {
+    final parts = t.split(':');
+    if (parts.length != 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return h * 60 + m;
+  }
+  final inMinutes = toMinutes(checkInTime);
+  final outMinutes = toMinutes(checkOutTime);
+  if (inMinutes == null || outMinutes == null || outMinutes < inMinutes) return null;
+  final total = outMinutes - inMinutes;
+  return '${total ~/ 60}h ${(total % 60).toString().padLeft(2, '0')}m';
+}
+
 class HrAttendanceRecordsPage extends StatefulWidget {
   final String routePrefix;
   const HrAttendanceRecordsPage({super.key, this.routePrefix = ''});
@@ -1052,6 +1072,8 @@ class _AttendanceTableState extends State<_AttendanceTable> {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Text('Check-Out Time',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
+          DataColumn(label: Text('Work Duration',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Text('Status',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: color))),
           DataColumn(label: Text('Details',
@@ -1129,6 +1151,9 @@ class _AttendanceTableState extends State<_AttendanceTable> {
                   ),
                 ],
               ]), onTap: () => widget.onRowTap(r)),
+              DataCell(Text(_workDuration(r.checkInTime, r.checkOutTime) ?? '—',
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
+                  onTap: () => widget.onRowTap(r)),
               DataCell(_statusChip(r, rowStatus), onTap: () => widget.onRowTap(r)),
               DataCell(Row(children: [
                 Text(statusText,

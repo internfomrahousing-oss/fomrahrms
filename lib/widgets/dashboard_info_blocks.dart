@@ -795,9 +795,15 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    final data =
-        await SupabaseService.fetchBirthdaysForMonth(DateTime.now().month);
-    if (mounted) setState(() { _items = data; _loading = false; });
+    final today = DateTime.now();
+    final data = await SupabaseService.fetchBirthdaysForMonth(today.month);
+    // Only upcoming birthdays for the rest of this month — ones that have
+    // already happened this month drop off the list on their own.
+    final upcoming = data.where((item) {
+      final d = DateTime.tryParse(item['birthday_date'] as String? ?? '');
+      return d != null && d.day >= today.day;
+    }).toList();
+    if (mounted) setState(() { _items = upcoming; _loading = false; });
   }
 
   Future<void> _showAdd() async {

@@ -1479,6 +1479,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             _InfoRow(Icons.email_rounded,           'Email',             _user.email),
             _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
             _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
+            _InfoRow(Icons.cake_rounded,            'Date of Birth',     _user.dateOfBirth),
             _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   _user.dateOfJoining),
             _InfoRow(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user.dateOfJoining)),
             _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
@@ -1972,6 +1973,7 @@ class _EditDialogState extends State<_EditDialog> {
   late String? _department;
   late final TextEditingController _mobileCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _dobCtrl;
   late final TextEditingController _joiningCtrl;
   late final TextEditingController _leaveCtrl;
   late final TextEditingController _grossPayCtrl;
@@ -1996,6 +1998,7 @@ class _EditDialogState extends State<_EditDialog> {
     _department  = (u?.department.isNotEmpty ?? false) ? u!.department : null;
     _mobileCtrl  = TextEditingController(text: u?.mobile ?? '');
     _addressCtrl = TextEditingController(text: u?.address ?? '');
+    _dobCtrl     = TextEditingController(text: u?.dateOfBirth ?? '');
     _joiningCtrl = TextEditingController(text: u?.dateOfJoining ?? '');
     _leaveCtrl   = TextEditingController(
         text: (u?.leaveAllocation ?? 21).toString());
@@ -2011,7 +2014,7 @@ class _EditDialogState extends State<_EditDialog> {
   void dispose() {
     for (final c in [
       _nameCtrl, _emailCtrl, _empIdCtrl,
-      _mobileCtrl, _addressCtrl, _joiningCtrl, _leaveCtrl, _grossPayCtrl,
+      _mobileCtrl, _addressCtrl, _dobCtrl, _joiningCtrl, _leaveCtrl, _grossPayCtrl,
     ]) {
       c.dispose();
     }
@@ -2078,6 +2081,7 @@ class _EditDialogState extends State<_EditDialog> {
       isReportingManagerRequestedAt: flagPendingAt,
       mobile:           _mobileCtrl.text.trim(),
       address:          _addressCtrl.text.trim(),
+      dateOfBirth:      _dobCtrl.text.trim(),
       dateOfJoining:    joiningVal.isNotEmpty
                             ? joiningVal
                             : (existingJoining.isNotEmpty
@@ -2273,6 +2277,39 @@ class _EditDialogState extends State<_EditDialog> {
                 keyboard: TextInputType.phone),
             _field(_addressCtrl, 'Address',                   Icons.location_on_rounded,
                 maxLines: 2),
+
+            // Date of birth — usually carried over from the onboarding form,
+            // but HR can set/correct it here too.
+            _field(
+              _dobCtrl, 'Date of Birth',
+              Icons.cake_rounded,
+              readOnly: true,
+              suffix: const Icon(Icons.arrow_drop_down_rounded,
+                  color: Color(0xFF6B7280)),
+              onTap: () async {
+                final today = DateTime.now();
+                DateTime initial = DateTime(today.year - 25, today.month, today.day);
+                if (_dobCtrl.text.isNotEmpty) {
+                  final p = _dobCtrl.text.split('/');
+                  if (p.length == 3) {
+                    try {
+                      initial = DateTime(
+                          int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
+                    } catch (_) {}
+                  }
+                }
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: initial,
+                  firstDate: DateTime(1950),
+                  lastDate: today,
+                );
+                if (picked != null) {
+                  _dobCtrl.text =
+                      '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+                }
+              },
+            ),
 
             // Date of joining
             _field(

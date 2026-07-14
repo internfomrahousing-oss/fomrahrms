@@ -530,6 +530,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             _Row(Icons.manage_accounts_rounded,  'Reporting Manager', _user?.reportingManager ?? ''),
                             _Row(Icons.calendar_today_rounded,   'Date of Joining',   _user?.dateOfJoining ?? ''),
                             _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
+                            _Row(Icons.cake_rounded,             'Date of Birth',     _user?.dateOfBirth ?? ''),
                             _Row(Icons.currency_rupee_rounded,   'Gross Pay',         _grossPayLabel(_user)),
                           ]),
                         ),

@@ -282,6 +282,7 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists reporting_manager_requested_at text default '';
   alter table app_users add column if not exists is_reporting_manager boolean default false;
   alter table app_users add column if not exists is_reporting_manager_pending boolean default false;
+  alter table app_users add column if not exists date_of_birth text default '';
   alter table app_users add column if not exists is_reporting_manager_requested_at text default '';
 
   -- Device Binding: one registered mobile device per employee, gates mobile
@@ -892,6 +893,7 @@ class SupabaseService {
         isReportingManagerRequestedAt: (row['is_reporting_manager_requested_at'] as String?) ?? '',
         mobile:               (row['mobile']                  as String?) ?? '',
         address:              (row['address']                 as String?) ?? '',
+        dateOfBirth:          (row['date_of_birth']           as String?) ?? '',
         dateOfJoining:        (row['date_of_joining']         as String?) ?? '',
         onrollConfirmedAt:    (row['onroll_confirmed_at']     as String?) ?? '',
         onrollRequestedAt:    (row['onroll_requested_at']     as String?) ?? '',
@@ -943,6 +945,7 @@ class SupabaseService {
       'is_reporting_manager_requested_at': u.isReportingManagerRequestedAt,
       'mobile':                   u.mobile,
       'address':                  u.address,
+      'date_of_birth':            u.dateOfBirth,
       'date_of_joining':          u.dateOfJoining,
       'onroll_confirmed_at':      u.onrollConfirmedAt,
       'onroll_requested_at':      u.onrollRequestedAt,
