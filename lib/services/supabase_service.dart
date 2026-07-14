@@ -286,6 +286,15 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists is_reporting_manager_pending boolean default false;
   alter table app_users add column if not exists is_reporting_manager_requested_at text default '';
 
+  -- Device Binding: one registered mobile device per employee, gates mobile
+  -- app login/check-in-out (see DeviceBindingService). device_id empty = no
+  -- device registered (never logged in from mobile, or HR reset it).
+  alter table app_users add column if not exists device_id text default '';
+  alter table app_users add column if not exists device_name text default '';
+  alter table app_users add column if not exists device_platform text default '';
+  alter table app_users add column if not exists device_registered_at text default '';
+  alter table app_users add column if not exists device_last_login text default '';
+
   -- One-time backfill: existing Manager-role users must keep RM-dropdown
   -- eligibility now that eligibility is flag-based, not role-based.
   update app_users set is_reporting_manager = true where role = 'Manager' and is_reporting_manager = false;
@@ -908,6 +917,11 @@ class SupabaseService {
         workLocationPending:     (row['work_location_pending']     as String?) ?? '',
         workLocationRequestedAt: (row['work_location_requested_at'] as String?) ?? '',
         emergencyAttendanceEnabled: (row['emergency_attendance_enabled'] as bool?) ?? false,
+        deviceId:             (row['device_id']               as String?) ?? '',
+        deviceName:           (row['device_name']             as String?) ?? '',
+        devicePlatform:       (row['device_platform']         as String?) ?? '',
+        deviceRegisteredAt:   (row['device_registered_at']    as String?) ?? '',
+        deviceLastLogin:      (row['device_last_login']       as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -956,6 +970,11 @@ class SupabaseService {
       'work_location_pending':    u.workLocationPending,
       'work_location_requested_at': u.workLocationRequestedAt,
       'emergency_attendance_enabled': u.emergencyAttendanceEnabled,
+      'device_id':                u.deviceId,
+      'device_name':              u.deviceName,
+      'device_platform':          u.devicePlatform,
+      'device_registered_at':     u.deviceRegisteredAt,
+      'device_last_login':        u.deviceLastLogin,
     });
   }
 

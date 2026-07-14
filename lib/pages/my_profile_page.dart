@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../models/candidate_store.dart';
 import '../models/payslip_store.dart';
 import '../models/user_session.dart';
+import '../services/device_binding_service.dart';
 import '../services/notification_service.dart';
 import '../services/payslip_pdf_service.dart';
 import '../services/supabase_service.dart';
@@ -526,7 +527,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(children: [
-                            _Row(Icons.fingerprint_rounded,      'Biometric ID',      _user?.biometricId ?? '', pill: true),
                             _Row(Icons.manage_accounts_rounded,  'Reporting Manager', _user?.reportingManager ?? ''),
                             _Row(Icons.calendar_today_rounded,   'Date of Joining',   _user?.dateOfJoining ?? ''),
                             _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
@@ -559,6 +559,11 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   ]);
                 }),
                 const SizedBox(height: 16),
+
+                if (_user != null) ...[
+                  _DeviceSecurityCard(user: _user!),
+                  const SizedBox(height: 16),
+                ],
 
                 // Forms section
                 Row(children: [
@@ -839,8 +844,7 @@ class _Row extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final bool pill;
-  const _Row(this.icon, this.label, this.value, {this.pill = false});
+  const _Row(this.icon, this.label, this.value);
 
   @override
   Widget build(BuildContext context) {
@@ -860,21 +864,104 @@ class _Row extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
             const SizedBox(height: 3),
-            if (pill && value.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentBlue.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(value,
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.accentBlue)),
-              )
-            else
-              Text(
-                value.isEmpty ? '—' : value,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
+            Text(
+              value.isEmpty ? '—' : value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Device Security (read-only) — mirrors the mobile app's Device Security
+// card; resetting a bound device is HR's action from Employee Records, not
+// self-service here (see spec: block message tells the employee to contact HR).
+class _DeviceSecurityCard extends StatelessWidget {
+  final AppUser user;
+  const _DeviceSecurityCard({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final bound = user.isDeviceBound;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.smartphone_rounded, size: 16, color: AppTheme.accentBlue),
+            const SizedBox(width: 8),
+            const Text('Device Security',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          ]),
+          const SizedBox(height: 14),
+          if (!bound) ...[
+            Text('No registered device',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey.shade600)),
+            const SizedBox(height: 10),
+            _StatusRow(bound: false),
+            const SizedBox(height: 10),
+            Text(
+              "The device will be registered automatically on the employee's next successful login.",
+              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+            ),
+          ] else ...[
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: Column(children: [
+                  _Row(Icons.phone_android_rounded, 'Current Device',
+                      user.deviceName.isEmpty ? 'Unknown device' : user.deviceName),
+                  _Row(Icons.memory_rounded, 'Platform', user.devicePlatform),
+                  _StatusRow(bound: true),
+                ]),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(children: [
+                  _Row(Icons.event_available_rounded, 'Registered On',
+                      DeviceBindingService.formatDate(user.deviceRegisteredAt)),
+                  _Row(Icons.login_rounded, 'Last Login',
+                      DeviceBindingService.formatDateTime(user.deviceLastLogin)),
+                ]),
+              ),
+            ]),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  final bool bound;
+  const _StatusRow({required this.bound});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = bound ? const Color(0xFF15803D) : const Color(0xFFB45309);
+    final label = bound ? 'Bound' : 'Not Registered';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: const Color(0xFF111827).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.verified_user_rounded, color: const Color(0xFF111827), size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Status', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            const SizedBox(height: 3),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.circle, size: 9, color: color),
+              const SizedBox(width: 6),
+              Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+            ]),
           ]),
         ),
       ]),

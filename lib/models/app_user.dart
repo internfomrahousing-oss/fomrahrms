@@ -47,6 +47,14 @@ class AppUser {
   // don't see app check-in/out. HR can flip this on per-employee for emergencies,
   // which restores app check-in/out for that employee until turned off again.
   bool emergencyAttendanceEnabled;
+  // Device Binding — restricts mobile app login/check-in-out to one phone per
+  // employee. deviceId is a locally-generated token (see DeviceBindingService),
+  // not a hardware id; empty = no device registered (or HR has reset it).
+  String deviceId;
+  String deviceName;           // e.g. "Samsung Galaxy S24"; best-effort, may be empty
+  String devicePlatform;       // 'Android' | 'iPhone' | ''
+  String deviceRegisteredAt;   // ISO datetime; empty = not registered
+  String deviceLastLogin;      // ISO datetime of the most recent login from the bound device
 
   AppUser({
     required this.name,
@@ -89,9 +97,15 @@ class AppUser {
     this.workLocationPending = '',
     this.workLocationRequestedAt = '',
     this.emergencyAttendanceEnabled = false,
+    this.deviceId = '',
+    this.deviceName = '',
+    this.devicePlatform = '',
+    this.deviceRegisteredAt = '',
+    this.deviceLastLogin = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
+  bool get isDeviceBound => deviceId.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
   bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
@@ -241,6 +255,11 @@ class AppUser {
     'workLocationPending':   workLocationPending,
     'workLocationRequestedAt': workLocationRequestedAt,
     'emergencyAttendanceEnabled': emergencyAttendanceEnabled,
+    'deviceId':              deviceId,
+    'deviceName':            deviceName,
+    'devicePlatform':        devicePlatform,
+    'deviceRegisteredAt':    deviceRegisteredAt,
+    'deviceLastLogin':       deviceLastLogin,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -284,5 +303,10 @@ class AppUser {
     workLocationPending:     j['workLocationPending']     as String? ?? '',
     workLocationRequestedAt: j['workLocationRequestedAt'] as String? ?? '',
     emergencyAttendanceEnabled: j['emergencyAttendanceEnabled'] as bool? ?? false,
+    deviceId:               j['deviceId']            as String? ?? '',
+    deviceName:             j['deviceName']          as String? ?? '',
+    devicePlatform:         j['devicePlatform']      as String? ?? '',
+    deviceRegisteredAt:     j['deviceRegisteredAt']  as String? ?? '',
+    deviceLastLogin:        j['deviceLastLogin']     as String? ?? '',
   );
 }
