@@ -13,6 +13,11 @@ class ShellTopBar extends StatelessWidget {
   final String homeRoute;
   final String notificationsRoute;
   final bool hideProfile;
+  // Hovering the toggle previews the sidebar open; moving off it (and off
+  // the sidebar itself) closes the preview again. onToggle (click) still
+  // works as before, independently — it pins the sidebar open/closed.
+  final VoidCallback? onSidebarHoverEnter;
+  final VoidCallback? onSidebarHoverExit;
 
   const ShellTopBar({
     super.key,
@@ -21,6 +26,8 @@ class ShellTopBar extends StatelessWidget {
     required this.homeRoute,
     required this.notificationsRoute,
     this.hideProfile = false,
+    this.onSidebarHoverEnter,
+    this.onSidebarHoverExit,
   });
 
   @override
@@ -48,22 +55,27 @@ class ShellTopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(children: [
         // Sidebar toggle
-        InkWell(
-          onTap: onToggle,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: toggleAccent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                  color: toggleAccent.withValues(alpha: 0.25),
-                  width: 0.8),
-            ),
-            child: Icon(
-              sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
-              size: 22,
-              color: toggleAccent,
+        MouseRegion(
+          key: const Key('sidebar-toggle'),
+          onEnter: (_) => onSidebarHoverEnter?.call(),
+          onExit: (_) => onSidebarHoverExit?.call(),
+          child: InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: toggleAccent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: toggleAccent.withValues(alpha: 0.25),
+                    width: 0.8),
+              ),
+              child: Icon(
+                sidebarOpen ? Icons.menu_open_rounded : Icons.menu_rounded,
+                size: 22,
+                color: toggleAccent,
+              ),
             ),
           ),
         ),

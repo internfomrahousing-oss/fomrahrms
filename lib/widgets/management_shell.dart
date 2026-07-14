@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/notification_store.dart';
@@ -81,14 +82,50 @@ class _WideLayout extends StatefulWidget {
 }
 
 class _WideLayoutState extends State<_WideLayout> {
-  bool _sidebarOpen = false;
+  // Click pins the sidebar open/closed (original behavior); hovering the
+  // hamburger or the sidebar itself previews it open and auto-closes on
+  // mouse-leave, independent of the pinned state.
+  bool _pinned = false;
+  bool _hovering = false;
+  Timer? _closeTimer;
+
+  bool get _sidebarOpen => _pinned || _hovering;
 
   @override
   void didUpdateWidget(_WideLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.location != widget.location && _sidebarOpen) {
-      setState(() => _sidebarOpen = false);
+      _closeTimer?.cancel();
+      setState(() { _pinned = false; _hovering = false; });
     }
+  }
+
+  @override
+  void dispose() {
+    _closeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onHoverEnter() {
+    _closeTimer?.cancel();
+    if (!_hovering) setState(() => _hovering = true);
+  }
+
+  void _onHoverExit() {
+    _closeTimer?.cancel();
+    _closeTimer = Timer(const Duration(milliseconds: 200), () {
+      if (mounted) setState(() => _hovering = false);
+    });
+  }
+
+  void _onToggleClick() {
+    _closeTimer?.cancel();
+    setState(() { _pinned = !_pinned; _hovering = false; });
+  }
+
+  void _closeAll() {
+    _closeTimer?.cancel();
+    setState(() { _pinned = false; _hovering = false; });
   }
 
   @override
@@ -98,7 +135,9 @@ class _WideLayoutState extends State<_WideLayout> {
         children: [
           ShellTopBar(
             sidebarOpen: _sidebarOpen,
-            onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
+            onToggle: _onToggleClick,
+            onSidebarHoverEnter: _onHoverEnter,
+            onSidebarHoverExit: _onHoverExit,
             homeRoute: '/management/dashboard',
             notificationsRoute: '/management/notifications',
             hideProfile: widget.location == '/management/dashboard',
@@ -118,7 +157,7 @@ class _WideLayoutState extends State<_WideLayout> {
                     opacity: _sidebarOpen ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 250),
                     child: GestureDetector(
-                      onTap: () => setState(() => _sidebarOpen = false),
+                      onTap: _closeAll,
                       child: Container(color: Colors.black54),
                     ),
                   ),
@@ -129,9 +168,14 @@ class _WideLayoutState extends State<_WideLayout> {
                   curve: _sidebarOpen ? Curves.easeOut : Curves.easeIn,
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      width: 260,
-                      child: _Sidebar(location: widget.location),
+                    child: MouseRegion(
+                      key: const Key('sidebar-panel'),
+                      onEnter: (_) => _onHoverEnter(),
+                      onExit: (_) => _onHoverExit(),
+                      child: SizedBox(
+                        width: 260,
+                        child: _Sidebar(location: widget.location),
+                      ),
                     ),
                   ),
                 ),
