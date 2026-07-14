@@ -6,6 +6,7 @@ import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
 import '../models/theme_notifier.dart';
+import 'breadcrumb_bar.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'quick_actions_bar.dart';
@@ -34,6 +35,11 @@ const _personalNavItems = [
   _NavItem('My Payslips',   Icons.account_balance_wallet_rounded,  '/manager/my-payslips'),
   _NavItem('Maintenance',   Icons.build_rounded,                   '/manager/maintenance-management'),
 ];
+
+List<BreadcrumbSection> get _breadcrumbSections =>
+    [..._hrNavItems, ..._personalNavItems]
+        .map((e) => (label: e.label, route: e.route))
+        .toList();
 
 class ManagerShell extends StatelessWidget {
   final Widget child;
@@ -81,6 +87,11 @@ class _WideLayoutState extends State<_WideLayout> {
             homeRoute: '/manager/dashboard',
             notificationsRoute: '/manager/notifications',
             hideProfile: widget.location == '/manager/dashboard',
+          ),
+          BreadcrumbBar(
+            location: widget.location,
+            homeRoute: '/manager/dashboard',
+            sections: _breadcrumbSections,
           ),
           Expanded(
             child: Stack(
@@ -159,7 +170,10 @@ class _NarrowLayout extends StatelessWidget {
         ],
       ),
       drawer: Drawer(child: _DrawerContent(location: location)),
-      body: QuickActionsBody(child: child),
+      body: Column(children: [
+        BreadcrumbBar(location: location, homeRoute: '/manager/dashboard', sections: _breadcrumbSections),
+        Expanded(child: QuickActionsBody(child: child)),
+      ]),
     );
   }
 }

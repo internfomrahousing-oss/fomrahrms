@@ -6,6 +6,7 @@ import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
 import '../models/theme_notifier.dart';
+import 'breadcrumb_bar.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
@@ -54,6 +55,9 @@ const _navItems = [
   _NavItem('Administration',         Icons.admin_panel_settings_rounded,   '/management/administration'),
 ];
 
+List<BreadcrumbSection> get _breadcrumbSections =>
+    _navItems.map((e) => (label: e.label, route: e.route)).toList();
+
 class ManagementShell extends StatelessWidget {
   final Widget child;
   final String location;
@@ -98,6 +102,11 @@ class _WideLayoutState extends State<_WideLayout> {
             homeRoute: '/management/dashboard',
             notificationsRoute: '/management/notifications',
             hideProfile: widget.location == '/management/dashboard',
+          ),
+          BreadcrumbBar(
+            location: widget.location,
+            homeRoute: '/management/dashboard',
+            sections: _breadcrumbSections,
           ),
           Expanded(
             child: Stack(
@@ -166,7 +175,10 @@ class _NarrowLayout extends StatelessWidget {
         ],
       ),
       drawer: Drawer(child: _DrawerContent(location: location)),
-      body: QuickActionsBody(child: child),
+      body: Column(children: [
+        BreadcrumbBar(location: location, homeRoute: '/management/dashboard', sections: _breadcrumbSections),
+        Expanded(child: QuickActionsBody(child: child)),
+      ]),
     );
   }
 }

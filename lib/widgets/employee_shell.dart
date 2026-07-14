@@ -6,6 +6,7 @@ import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
 import '../models/theme_notifier.dart';
+import 'breadcrumb_bar.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'quick_actions_bar.dart';
@@ -38,6 +39,9 @@ List<_NavItem> get _empNavItems => [
       ..._baseEmpNavItems,
       if (UserSession.isReportingManager) ..._myTeamNavItems,
     ];
+
+List<BreadcrumbSection> get _breadcrumbSections =>
+    _empNavItems.map((e) => (label: e.label, route: e.route)).toList();
 
 class EmployeeShell extends StatelessWidget {
   final Widget child;
@@ -83,6 +87,11 @@ class _WideLayoutState extends State<_WideLayout> {
             homeRoute: '/employee/dashboard',
             notificationsRoute: '/employee/notifications',
             hideProfile: widget.location == '/employee/dashboard',
+          ),
+          BreadcrumbBar(
+            location: widget.location,
+            homeRoute: '/employee/dashboard',
+            sections: _breadcrumbSections,
           ),
           Expanded(
             child: Stack(
@@ -158,7 +167,10 @@ class _NarrowLayout extends StatelessWidget {
         ],
       ),
       drawer: Drawer(child: _DrawerContent(location: location)),
-      body: QuickActionsBody(child: child),
+      body: Column(children: [
+        BreadcrumbBar(location: location, homeRoute: '/employee/dashboard', sections: _breadcrumbSections),
+        Expanded(child: QuickActionsBody(child: child)),
+      ]),
     );
   }
 }
