@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 Color get _blue => AppTheme.primaryBlue;
 const _green   = Color(0xFF008300);
 const _purple  = Color(0xFF2A78D6); // "Late Coming"
+const _red     = Color(0xFFE34948); // "Absent"
 const _yellow  = Color(0xFFEDA100); // "Holiday"
 const _magenta = Color(0xFFE87BA4); // "Leave Applied"
 const _teal    = Color(0xFF1BAF7A); // "Permission"
@@ -135,7 +136,22 @@ class _EmployeeAttendanceCalendarPageState
     return checkInStatusFor(r.checkInTime, date, widget.employeeName, _leaveApps);
   }
 
-  // Precedence: actual attendance > holiday > leave > permission > comp off.
+  // True when a day has no check-in, no approved leave/permission/comp-off,
+  // and isn't a holiday, but has already passed — i.e. no entry was ever
+  // made for it.
+  bool _isMissedDay(int day) {
+    final r = _attendance[day];
+    if (r != null && r.checkInTime.isNotEmpty) return false;
+    if (_leaveDays.contains(day)) return false;
+    if (_permissionDays.contains(day)) return false;
+    if (_compOffDays.contains(day)) return false;
+    if (_holidayDays.contains(day)) return false;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    return DateTime(_month.year, _month.month, day).isBefore(todayDate);
+  }
+
+  // Precedence: actual attendance > holiday > leave > permission > comp off > absent.
   Color? _statusColor(int day) {
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) {
@@ -145,6 +161,7 @@ class _EmployeeAttendanceCalendarPageState
     if (_leaveDays.contains(day)) return _magenta;
     if (_permissionDays.contains(day)) return _teal;
     if (_compOffDays.contains(day)) return _violet;
+    if (_isMissedDay(day)) return _red;
     return null;
   }
 
@@ -153,7 +170,8 @@ class _EmployeeAttendanceCalendarPageState
     final isLeave       = _leaveDays.contains(day);
     final isPermission  = _permissionDays.contains(day);
     final isCompOff     = _compOffDays.contains(day);
-    if (rec == null && !isLeave && !isPermission && !isCompOff) return;
+    final missed        = _isMissedDay(day);
+    if (rec == null && !isLeave && !isPermission && !isCompOff && !missed) return;
 
     setState(() => _selectedDay = _selectedDay == day ? null : day);
   }
@@ -167,6 +185,7 @@ class _EmployeeAttendanceCalendarPageState
     final isLeave      = _leaveDays.contains(day);
     final isPermission = _permissionDays.contains(day);
     final isCompOff    = _compOffDays.contains(day);
+    final missed       = _isMissedDay(day);
 
     final dayDate = DateTime(_month.year, _month.month, day);
     const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -179,6 +198,7 @@ class _EmployeeAttendanceCalendarPageState
       isLeave: isLeave,
       isPermission: isPermission,
       isCompOff: isCompOff,
+      isAbsent: missed,
       status: rec != null ? _status(day) : const CheckInRowStatus(CheckInStatus.none, 0),
       onClose: () => setState(() => _selectedDay = null),
     );
@@ -292,6 +312,7 @@ class _EmployeeAttendanceCalendarPageState
               _Legend(color: _magenta, label: 'Leave Applied'),
               _Legend(color: _teal,   label: 'Permission'),
               _Legend(color: _violet, label: 'Comp Off'),
+              _Legend(color: _red,    label: 'Absent'),
               _Legend(color: _yellow, label: 'Holiday'),
             ]),
             const SizedBox(height: 24),
@@ -433,6 +454,7 @@ class _DaySheet extends StatelessWidget {
   final bool isLeave;
   final bool isPermission;
   final bool isCompOff;
+  final bool isAbsent;
   final CheckInRowStatus status;
   final VoidCallback onClose;
 
@@ -442,6 +464,7 @@ class _DaySheet extends StatelessWidget {
     required this.isLeave,
     this.isPermission = false,
     this.isCompOff = false,
+    this.isAbsent = false,
     required this.status,
     required this.onClose,
   });
@@ -476,9 +499,12 @@ class _DaySheet extends StatelessWidget {
     } else if (isPermission) {
       statusLabel = 'Permission';
       statusColor = _teal;
-    } else {
+    } else if (isCompOff) {
       statusLabel = 'Comp Off';
       statusColor = _violet;
+    } else {
+      statusLabel = 'Absent';
+      statusColor = _red;
     }
 
     return Container(
@@ -553,8 +579,10 @@ class _DaySheet extends StatelessWidget {
           _noteRow(context, Icons.event_busy_rounded, _magenta, 'On approved leave'),
         ] else if (isPermission) ...[
           _noteRow(context, Icons.event_note_rounded, _teal, 'Approved permission — no attendance recorded'),
-        ] else ...[
+        ] else if (isCompOff) ...[
           _noteRow(context, Icons.swap_horiz_rounded, _violet, 'On approved Comp Off'),
+        ] else if (isAbsent) ...[
+          _noteRow(context, Icons.event_busy_rounded, _red, 'No attendance recorded'),
         ],
       ]),
     );
