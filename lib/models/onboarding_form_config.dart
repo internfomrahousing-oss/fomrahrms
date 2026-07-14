@@ -74,7 +74,7 @@ Human Resource Policy – 2026
 • Sales employees: Monday to Sunday; weekly off on Tuesday or Thursday (predefined by reporting manager – cannot be changed)
 
 1.2 Attendance Requirements
-• All office employees must record attendance using the biometric system from date of joining
+• All employees must record attendance using the FOMRA HRMS app from date of joining
 • Field employees mark attendance via WhatsApp location sharing; Land Acquisition employees must keep live location active during working hours
 • Failure to record attendance = treated as Absent = Loss of Pay (LOP)
 • Leaving premises during working hours requires prior Reporting Manager approval; failure results in LOP

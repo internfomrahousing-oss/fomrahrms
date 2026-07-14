@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
-import '../services/attendance_access.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
@@ -57,7 +56,6 @@ class AttendanceShortcutCard extends StatefulWidget {
 class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
   bool _loading = true;
   AttendanceRecord? _record;
-  bool _canCheckInOut = true;
   Timer? _ticker;
 
   @override
@@ -74,15 +72,10 @@ class _AttendanceShortcutCardState extends State<AttendanceShortcutCard> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await Future.wait([
-      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
-      AttendanceAccess.canCheckInOut(),
-    ]);
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
     if (!mounted) return;
-    final rec = results[0] as AttendanceRecord?;
     setState(() {
       _record = rec;
-      _canCheckInOut = results[1] as bool;
       _loading = false;
     });
     if (rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) {
@@ -140,7 +133,7 @@ Example:
   Other Employees: If a client or office meeting falls on their weekly off (Sunday), they can avail comp off for an alternative day with prior approval from their Reporting Manager / Head of Operations / MD.
 
 1.2 Attendance Requirements
-• All office employees must record attendance using the biometric system from their date of joining.
+• All employees must record attendance using the FOMRA HRMS app from their date of joining.
 • Field employees must mark attendance by sharing their current location in the designated WhatsApp group daily. Land Acquisition employees must keep their live location active at all times during working hours.
 • Failure to record or mark attendance will be treated as Absent, resulting in Loss of Pay (LOP).
 • Any employee leaving work premises during working hours must obtain prior approval from the Reporting Manager. Failure to do so will result in LOP. Repeated violations lead to formal warnings or termination.
@@ -456,28 +449,17 @@ Approved by: Sharad Fomra, CEO & MD
     }
 
     final tiles = <Widget>[
-      if (_loading || _canCheckInOut)
-        Tooltip(
-          message: statusText,
-          child: _QuickTileView(
-            icon: statusIcon,
-            color: statusColor,
-            label: tileLabel,
-            loading: _loading,
-            showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
-            onTap: _loading ? null : _openSheet,
-          ),
-        )
-      else
-        Tooltip(
-          message: 'Attendance is tracked automatically via the biometric device',
-          child: _QuickTileView(
-            icon: Icons.fingerprint_rounded,
-            color: accent,
-            label: 'Biometric',
-            onTap: null,
-          ),
+      Tooltip(
+        message: statusText,
+        child: _QuickTileView(
+          icon: statusIcon,
+          color: statusColor,
+          label: tileLabel,
+          loading: _loading,
+          showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
+          onTap: _loading ? null : _openSheet,
         ),
+      ),
       _QuickTileView(
         icon: Icons.policy_rounded,
         color: hrBlue,

@@ -32,7 +32,6 @@ class AppUser {
   String onrollManagementComment;
   String onrollManagementDecidedAt;
   String elEligibleAt;        // ISO datetime when HR confirmed EL eligibility; empty = not eligible
-  String biometricId;         // PIN programmed on biometric device (x990); empty = not enrolled
   String elAvailRequestedAt; // ISO datetime when employee requested EL avail; empty = no pending request
   String elLastAvailedAt;    // ISO datetime when HR confirmed EL avail; empty = never availed
   double grossPay;           // monthly gross pay (Rs); HR sets it once, then changes go through Management
@@ -40,13 +39,11 @@ class AppUser {
   String grossPayRequestedAt; // ISO datetime the change was requested; empty = no pending request
   // Work location: 'Office' | 'Onsite'; empty = not yet set. Once set, HR can only
   // request a change — Management approves/denies it (see workLocationPending).
+  // Purely an employment attribute now (dashboard breakdowns, records badges) —
+  // every employee checks in/out via the app regardless of this value.
   String workLocation;
   String workLocationPending;      // proposed new value awaiting Management approval; empty = none
   String workLocationRequestedAt;  // ISO datetime the change was requested
-  // Office employees are normally tracked via the ESSL X990 biometric device and
-  // don't see app check-in/out. HR can flip this on per-employee for emergencies,
-  // which restores app check-in/out for that employee until turned off again.
-  bool emergencyAttendanceEnabled;
   // Device Binding — restricts mobile app login/check-in-out to one phone per
   // employee. deviceId is a locally-generated token (see DeviceBindingService),
   // not a hardware id; empty = no device registered (or HR has reset it).
@@ -87,7 +84,6 @@ class AppUser {
     this.onrollManagementComment = '',
     this.onrollManagementDecidedAt = '',
     this.elEligibleAt = '',
-    this.biometricId = '',
     this.elAvailRequestedAt = '',
     this.elLastAvailedAt = '',
     this.grossPay = 0,
@@ -96,7 +92,6 @@ class AppUser {
     this.workLocation = '',
     this.workLocationPending = '',
     this.workLocationRequestedAt = '',
-    this.emergencyAttendanceEnabled = false,
     this.deviceId = '',
     this.deviceName = '',
     this.devicePlatform = '',
@@ -111,12 +106,6 @@ class AppUser {
   bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
   bool get hasPendingReportingManagerChange => reportingManagerRequestedAt.isNotEmpty;
   bool get hasPendingRmFlagChange => isReportingManagerRequestedAt.isNotEmpty;
-
-  /// Whether this employee should see app-based Check In / Check Out.
-  /// Office employees are tracked via the biometric device instead, unless
-  /// HR has granted emergency app access. Onsite (or not-yet-assigned)
-  /// employees always use the app.
-  bool get usesAppAttendance => workLocation != 'Office' || emergencyAttendanceEnabled;
 
   // On-roll 3-stage review helpers
   bool get onrollHrAccepted       => onrollHrStatus == 'accepted';
@@ -245,7 +234,6 @@ class AppUser {
     'onrollManagementComment':   onrollManagementComment,
     'onrollManagementDecidedAt': onrollManagementDecidedAt,
     'elEligibleAt':          elEligibleAt,
-    'biometricId':           biometricId,
     'elAvailRequestedAt':    elAvailRequestedAt,
     'elLastAvailedAt':       elLastAvailedAt,
     'grossPay':              grossPay,
@@ -254,7 +242,6 @@ class AppUser {
     'workLocation':          workLocation,
     'workLocationPending':   workLocationPending,
     'workLocationRequestedAt': workLocationRequestedAt,
-    'emergencyAttendanceEnabled': emergencyAttendanceEnabled,
     'deviceId':              deviceId,
     'deviceName':            deviceName,
     'devicePlatform':        devicePlatform,
@@ -293,7 +280,6 @@ class AppUser {
     onrollManagementComment:   j['onrollManagementComment']   as String? ?? '',
     onrollManagementDecidedAt: j['onrollManagementDecidedAt'] as String? ?? '',
     elEligibleAt:         j['elEligibleAt']         as String? ?? '',
-    biometricId:          j['biometricId']          as String? ?? '',
     elAvailRequestedAt:   j['elAvailRequestedAt']   as String? ?? '',
     elLastAvailedAt:      j['elLastAvailedAt']       as String? ?? '',
     grossPay:             (j['grossPay'] as num?)?.toDouble() ?? 0,
@@ -302,7 +288,6 @@ class AppUser {
     workLocation:            j['workLocation']            as String? ?? '',
     workLocationPending:     j['workLocationPending']     as String? ?? '',
     workLocationRequestedAt: j['workLocationRequestedAt'] as String? ?? '',
-    emergencyAttendanceEnabled: j['emergencyAttendanceEnabled'] as bool? ?? false,
     deviceId:               j['deviceId']            as String? ?? '',
     deviceName:             j['deviceName']          as String? ?? '',
     devicePlatform:         j['devicePlatform']      as String? ?? '',

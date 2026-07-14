@@ -100,7 +100,6 @@ import '../models/user_session.dart';
     id text primary key default 'global',
     color_theme text default 'midnightBlue'
   );
-  alter table app_settings add column if not exists emergency_attendance_all boolean default false;
   -- Empty banner_quote means "no Management override" — the app rotates
   -- through a built-in daily Mahatria Ra quote instead.
   alter table app_settings add column if not exists banner_quote text default '';
@@ -278,7 +277,6 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists work_location text default '';
   alter table app_users add column if not exists work_location_pending text default '';
   alter table app_users add column if not exists work_location_requested_at text default '';
-  alter table app_users add column if not exists emergency_attendance_enabled boolean default false;
   alter table app_users add column if not exists department text default '';
   alter table app_users add column if not exists reporting_manager_pending text default '';
   alter table app_users add column if not exists reporting_manager_requested_at text default '';
@@ -907,7 +905,6 @@ class SupabaseService {
         onrollManagementComment:   (row['onroll_management_comment']   as String?) ?? '',
         onrollManagementDecidedAt: (row['onroll_management_decided_at'] as String?) ?? '',
         elEligibleAt:         (row['el_eligible_at']          as String?) ?? '',
-        biometricId:          (row['biometric_id']            as String?) ?? '',
         elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
         elLastAvailedAt:      (row['el_last_availed_at']      as String?) ?? '',
         grossPay:             (row['gross_pay'] as num?)?.toDouble() ?? 0,
@@ -916,7 +913,6 @@ class SupabaseService {
         workLocation:            (row['work_location']             as String?) ?? '',
         workLocationPending:     (row['work_location_pending']     as String?) ?? '',
         workLocationRequestedAt: (row['work_location_requested_at'] as String?) ?? '',
-        emergencyAttendanceEnabled: (row['emergency_attendance_enabled'] as bool?) ?? false,
         deviceId:             (row['device_id']               as String?) ?? '',
         deviceName:           (row['device_name']             as String?) ?? '',
         devicePlatform:       (row['device_platform']         as String?) ?? '',
@@ -960,7 +956,6 @@ class SupabaseService {
       'onroll_management_comment':   u.onrollManagementComment,
       'onroll_management_decided_at': u.onrollManagementDecidedAt,
       'el_eligible_at':           u.elEligibleAt,
-      'biometric_id':             u.biometricId,
       'el_avail_requested_at':    u.elAvailRequestedAt,
       'el_last_availed_at':       u.elLastAvailedAt,
       'gross_pay':                u.grossPay,
@@ -969,7 +964,6 @@ class SupabaseService {
       'work_location':            u.workLocation,
       'work_location_pending':    u.workLocationPending,
       'work_location_requested_at': u.workLocationRequestedAt,
-      'emergency_attendance_enabled': u.emergencyAttendanceEnabled,
       'device_id':                u.deviceId,
       'device_name':              u.deviceName,
       'device_platform':          u.devicePlatform,
@@ -1938,30 +1932,6 @@ class SupabaseService {
       await _db?.from('app_settings').upsert({
         'id': 'global',
         'color_theme': themeKey,
-      });
-    } catch (_) {}
-  }
-
-  // ── App settings (global emergency attendance override) ─────────────────────
-
-  static Future<bool> fetchEmergencyAttendanceAll() async {
-    try {
-      final data = await _db
-          ?.from('app_settings')
-          .select('emergency_attendance_all')
-          .eq('id', 'global')
-          .maybeSingle();
-      return (data?['emergency_attendance_all'] as bool?) ?? false;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  static Future<void> setEmergencyAttendanceAll(bool enabled) async {
-    try {
-      await _db?.from('app_settings').upsert({
-        'id': 'global',
-        'emergency_attendance_all': enabled,
       });
     } catch (_) {}
   }

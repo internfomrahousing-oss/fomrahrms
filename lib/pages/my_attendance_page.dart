@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
-import '../services/attendance_access.dart';
 import '../services/supabase_service.dart';
 import '../utils/checkin_status.dart';
 import '../widgets/back_button.dart';
@@ -20,10 +19,6 @@ const _yellow  = Color(0xFFEDA100); // "Holiday"
 const _magenta = Color(0xFFE87BA4); // "Leave Applied"
 const _teal    = Color(0xFF1BAF7A); // "Permission"
 const _violet  = Color(0xFF4A3AA7); // "Comp Off"
-
-// Height of one calendar day row (5 top pad + 32 circle + 5 bottom pad),
-// used to position the day-detail dropdown without shifting the grid.
-const double _dayRowHeight = 42.0;
 
 class MyAttendancePage extends StatefulWidget {
   final String checkInRoute;
@@ -50,7 +45,6 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   Set<int> _compOffDays = {};
   Set<int> _holidayDays = {};
   List<LeaveApplication> _leaveApps = [];
-  bool _canCheckInOut = true;
   int? _selectedDay;
 
   @override
@@ -67,7 +61,6 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       SupabaseService.fetchTodayAttendance(UserSession.employeeId),
       SupabaseService.fetchAttendanceForMonth(UserSession.employeeId, _month.year, _month.month),
       SupabaseService.fetchHolidays(_month.year),
-      AttendanceAccess.canCheckInOut(),
       SupabaseService.fetchLeaveApplications(),
     ]);
     if (!mounted) return;
@@ -75,8 +68,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final today    = results[0] as AttendanceRecord?;
     final records  = results[1] as List<AttendanceRecord>;
     final holidays = results[2] as List<Map<String, dynamic>>;
-    _canCheckInOut = results[3] as bool;
-    final leaveApps = results[4] as List<LeaveApplication>;
+    final leaveApps = results[3] as List<LeaveApplication>;
 
     if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
       AttendanceStore.isCheckedIn = true;
@@ -224,23 +216,6 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   }
 
   Widget get _checkInOutAction {
-    if (!_canCheckInOut) {
-      return Tooltip(
-        message: 'Attendance is tracked automatically via the biometric device',
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.fingerprint_rounded, size: 16, color: Colors.grey.shade600),
-            const SizedBox(width: 6),
-            Text('Biometric', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-          ]),
-        ),
-      );
-    }
     return ElevatedButton.icon(
       onPressed: () => context.go(widget.checkInRoute),
       icon: const Icon(Icons.fingerprint_rounded, size: 16),
@@ -518,8 +493,9 @@ class _CalendarGrid extends StatelessWidget {
       rows.add(Row(children: cells.sublist(i, i + 7)));
     }
 
-    final stackChildren = <Widget>[Column(children: rows)];
-
+    // Spliced directly into the row list (rather than floated via
+    // Stack/Positioned) so its height pushes everything below it — the
+    // legend row, etc. — down instead of overlapping it.
     final day = selectedDay;
     if (day != null && selectedDayContent != null) {
       final dayIndex = offset + day - 1;
@@ -530,15 +506,22 @@ class _CalendarGrid extends StatelessWidget {
       final maxLeft   = (constraints.maxWidth - cardWidth).clamp(0.0, double.infinity);
       final left      = (colIndex * colWidth + colWidth / 2 - cardWidth / 2)
           .clamp(0.0, maxLeft);
-      stackChildren.add(Positioned(
-        top: (rowIndex + 1) * _dayRowHeight - 4,
-        left: left,
-        width: cardWidth,
-        child: selectedDayContent!,
+      rows.insert(rowIndex + 1, SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 8),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: left),
+              child: SizedBox(width: cardWidth, child: selectedDayContent!),
+            ),
+          ),
+        ),
       ));
     }
 
-    return Stack(clipBehavior: Clip.none, children: stackChildren);
+    return Column(children: rows);
   }
 }
 

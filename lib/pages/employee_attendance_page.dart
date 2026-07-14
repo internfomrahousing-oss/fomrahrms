@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
-import '../services/attendance_access.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
@@ -29,7 +28,6 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
   bool _loading = true;
   bool _submitting = false;
   AttendanceRecord? _record;
-  bool _canCheckInOut = true;
   Timer? _refreshTimer;
 
   final _checkInCtrl  = TextEditingController();
@@ -63,15 +61,10 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await Future.wait([
-      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
-      AttendanceAccess.canCheckInOut(),
-    ]);
+    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
     if (!mounted) return;
-    final rec = results[0] as AttendanceRecord?;
     setState(() {
       _record  = rec;
-      _canCheckInOut = results[1] as bool;
       _loading = false;
     });
     if (rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) {
@@ -315,19 +308,6 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               ),
             ),
           ]
-
-          // ── Office employee, no emergency access: biometric only ──
-          else if (!_canCheckInOut)
-            _StatusBanner(
-              icon: Icons.fingerprint_rounded,
-              color: Colors.blueGrey,
-              isDark: isDark,
-              child: Text(
-                  "Your attendance is tracked automatically via the biometric device. Contact HR if you need emergency app access.",
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade800)),
-            )
 
           // ── Not yet checked in ──
           else ...[

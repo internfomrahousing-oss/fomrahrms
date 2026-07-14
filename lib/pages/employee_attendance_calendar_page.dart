@@ -18,10 +18,6 @@ const _magenta = Color(0xFFE87BA4); // "Leave Applied"
 const _teal    = Color(0xFF1BAF7A); // "Permission"
 const _violet  = Color(0xFF4A3AA7); // "Comp Off"
 
-// Height of one calendar day row (5 top pad + 32 circle + 5 bottom pad),
-// used to position the day-detail dropdown without shifting the grid.
-const double _dayRowHeight = 42.0;
-
 class EmployeeAttendanceCalendarPage extends StatefulWidget {
   final String employeeId;
   final String employeeName;
@@ -398,8 +394,9 @@ class _CalendarGrid extends StatelessWidget {
       rows.add(Row(children: cells.sublist(i, i + 7)));
     }
 
-    final stackChildren = <Widget>[Column(children: rows)];
-
+    // Spliced directly into the row list (rather than floated via
+    // Stack/Positioned) so its height pushes everything below it — the
+    // legend row, etc. — down instead of overlapping it.
     final day = selectedDay;
     if (day != null && selectedDayContent != null) {
       final dayIndex = offset + day - 1;
@@ -410,15 +407,22 @@ class _CalendarGrid extends StatelessWidget {
       final maxLeft   = (constraints.maxWidth - cardWidth).clamp(0.0, double.infinity);
       final left      = (colIndex * colWidth + colWidth / 2 - cardWidth / 2)
           .clamp(0.0, maxLeft);
-      stackChildren.add(Positioned(
-        top: (rowIndex + 1) * _dayRowHeight - 4,
-        left: left,
-        width: cardWidth,
-        child: selectedDayContent!,
+      rows.insert(rowIndex + 1, SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 8),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: left),
+              child: SizedBox(width: cardWidth, child: selectedDayContent!),
+            ),
+          ),
+        ),
       ));
     }
 
-    return Stack(clipBehavior: Clip.none, children: stackChildren);
+    return Column(children: rows);
   }
 }
 
