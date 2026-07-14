@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
-import 'models/banner_quote_notifier.dart';
 import 'models/color_theme_notifier.dart';
 import 'models/notification_store.dart';
 import 'models/theme_notifier.dart';
@@ -52,7 +51,6 @@ void main() async {
     });
     SupabaseService.restoreCheckInState();
     colorThemeNotifier.loadInitial();
-    bannerQuoteNotifier.loadInitial();
     if (restored && UserSession.employeeId.isNotEmpty) {
       SupabaseService.fetchCurrentUserPhotoUrl(UserSession.employeeId).then((url) {
         if (url != null) UserSession.photoUrl = url;
