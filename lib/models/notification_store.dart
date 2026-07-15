@@ -62,9 +62,13 @@ class NotificationStore {
   /// by role broadcast, by "everyone" broadcast, or by team (their RM name
   /// matches the notification's target_reporting_manager — same matching
   /// rule as AppUser.reportingManager elsewhere, e.g. add_task_page.dart).
-  /// Excludes any category the user has muted.
+  /// Excludes any category the user has muted, or (finer-grained) any
+  /// individual notification type — [mutedCategories] holds both category
+  /// ids ("mute this whole bucket") and specific type strings ("mute just
+  /// this one kind within an otherwise-on category"), same Set either way.
   static bool isForCurrentUser(AppNotification n) {
     if (mutedCategories.contains(categoryFor(n.type).id)) return false;
+    if (mutedCategories.contains(n.type)) return false;
     final email = UserSession.email.trim().toLowerCase();
     if (n.targetEmail.isNotEmpty && n.targetEmail.trim().toLowerCase() == email) return true;
     if (n.targetRole == currentRoleLabel() || n.targetRole == 'ALL') return true;

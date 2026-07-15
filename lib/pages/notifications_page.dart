@@ -195,7 +195,10 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
       categoriesForRole(currentRoleLabel());
   bool _saving = false;
 
-  Future<void> _toggle(String categoryId, bool getNotified) async {
+  // [_muted] holds both category ids ("mute this whole bucket") and
+  // individual type strings ("mute just this one kind") — see
+  // NotificationStore.isForCurrentUser, which checks both the same way.
+  Future<void> _toggleCategory(String categoryId, bool getNotified) async {
     setState(() {
       if (getNotified) {
         _muted.remove(categoryId);
@@ -204,6 +207,22 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
       }
       _saving = true;
     });
+    await _persist();
+  }
+
+  Future<void> _toggleType(String type, bool getNotified) async {
+    setState(() {
+      if (getNotified) {
+        _muted.remove(type);
+      } else {
+        _muted.add(type);
+      }
+      _saving = true;
+    });
+    await _persist();
+  }
+
+  Future<void> _persist() async {
     NotificationStore.mutedCategories = _muted;
     NotificationStore.recomputeUnread();
     await SupabaseService.setMutedCategories(UserSession.email, _muted.toList());
@@ -214,11 +233,12 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,21 +267,91 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
               ],
             ),
             const SizedBox(height: 4),
-            Text('Choose which kinds of notifications you want to get.',
+            Text('Choose which kinds of notifications you want to get — tap a '
+                'row to fine-tune the individual kinds inside it.',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
-            const SizedBox(height: 12),
-            for (final c in _categories)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                secondary: Icon(c.icon, color: AppTheme.primaryBlue, size: 22),
-                title: Text(c.label, style: const TextStyle(fontSize: 14)),
-                value: !_muted.contains(c.id),
-                onChanged: (v) => _toggle(c.id, v),
-                activeColor: AppTheme.primaryBlue,
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 16),
+                children: [
+                  for (final c in _categories) _CategoryTile(
+                    category: c,
+                    muted: _muted,
+                    onToggleCategory: _toggleCategory,
+                    onToggleType: _toggleType,
+                  ),
+                ],
               ),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  final NotificationCategory category;
+  final Set<String> muted;
+  final void Function(String categoryId, bool getNotified) onToggleCategory;
+  final void Function(String type, bool getNotified) onToggleType;
+  const _CategoryTile({
+    required this.category,
+    required this.muted,
+    required this.onToggleCategory,
+    required this.onToggleType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final categoryMuted = muted.contains(category.id);
+    if (category.subTypes.length <= 1) {
+      // Nothing to fine-tune below a single-type category — just the plain
+      // master toggle, same as before.
+      return SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        secondary: Icon(category.icon, color: AppTheme.primaryBlue, size: 22),
+        title: Text(category.label, style: const TextStyle(fontSize: 14)),
+        value: !categoryMuted,
+        onChanged: (v) => onToggleCategory(category.id, v),
+        activeColor: AppTheme.primaryBlue,
+      );
+    }
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: EdgeInsets.zero,
+      leading: Icon(category.icon, color: AppTheme.primaryBlue, size: 22),
+      title: Row(children: [
+        Expanded(
+          child: Text(category.label, style: const TextStyle(fontSize: 14)),
+        ),
+        Switch(
+          value: !categoryMuted,
+          onChanged: (v) => onToggleCategory(category.id, v),
+          activeColor: AppTheme.primaryBlue,
+        ),
+      ]),
+      children: [
+        for (final st in category.subTypes)
+          Padding(
+            padding: const EdgeInsets.only(left: 36),
+            child: SwitchListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(st.label,
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: categoryMuted
+                          ? AppTheme.textSecondary.withValues(alpha: 0.5)
+                          : AppTheme.textSecondary)),
+              value: !categoryMuted && !muted.contains(st.type),
+              onChanged: categoryMuted ? null : (v) => onToggleType(st.type, v),
+              activeColor: AppTheme.primaryBlue,
+            ),
+          ),
+      ],
     );
   }
 }
