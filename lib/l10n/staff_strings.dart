@@ -64,6 +64,18 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
                               AppLanguage.hi: 'आपने इस महीने अपनी अधिकतम 2 अनुमतियों का उपयोग कर लिया है।',
                               AppLanguage.ta: 'இந்த மாதத்திற்கான உங்கள் அதிகபட்ச 2 அனுமதிகளை ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.'},
 
+  // ── History (leave/permission status) ───────────────────────────────
+  'history':                {AppLanguage.en: 'History',   AppLanguage.hi: 'इतिहास',        AppLanguage.ta: 'வரலாறு'},
+  'status_approved':        {AppLanguage.en: 'Approved',  AppLanguage.hi: 'स्वीकृत',       AppLanguage.ta: 'அங்கீகரிக்கப்பட்டது'},
+  'status_denied':          {AppLanguage.en: 'Denied',    AppLanguage.hi: 'अस्वीकृत',      AppLanguage.ta: 'நிராகரிக்கப்பட்டது'},
+  'status_pending':         {AppLanguage.en: 'Pending',   AppLanguage.hi: 'लंबित',         AppLanguage.ta: 'நிலுவையில்'},
+  'no_leave_history':       {AppLanguage.en: 'No leave requests yet',
+                              AppLanguage.hi: 'अभी तक कोई छुट्टी अनुरोध नहीं',
+                              AppLanguage.ta: 'இதுவரை விடுப்பு கோரிக்கைகள் இல்லை'},
+  'no_permission_history':  {AppLanguage.en: 'No permission requests yet',
+                              AppLanguage.hi: 'अभी तक कोई अनुमति अनुरोध नहीं',
+                              AppLanguage.ta: 'இதுவரை அனுமதி கோரிக்கைகள் இல்லை'},
+
   // ── Profile ──────────────────────────────────────────────────────────
   'employee_id':   {AppLanguage.en: 'Employee ID',   AppLanguage.hi: 'कर्मचारी आईडी',      AppLanguage.ta: 'பணியாளர் அடையாள எண்'},
   'department':    {AppLanguage.en: 'Department',    AppLanguage.hi: 'विभाग',              AppLanguage.ta: 'துறை'},

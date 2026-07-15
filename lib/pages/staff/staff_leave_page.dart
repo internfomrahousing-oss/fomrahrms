@@ -5,6 +5,7 @@ import '../../models/leave_store.dart';
 import '../../models/user_session.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
+import 'staff_history.dart';
 
 /// Staff Portal leave application: just a date and an Apply button — no
 /// leave type, reason, or half-day picker, per the simplified spec.
@@ -20,6 +21,33 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
   DateTime? _date;
   bool _submitting = false;
+  bool _loading = true;
+
+  String get _employeeName => UserSession.name.isEmpty ? 'Employee' : UserSession.name;
+
+  List<LeaveApplication> get _history {
+    final list = LeaveStore.applications
+        .where((a) => a.employeeName == _employeeName && a.leaveType == 'Leave')
+        .toList();
+    list.sort((a, b) => b.appliedOn.compareTo(a.appliedOn));
+    return list;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final apps = await SupabaseService.fetchLeaveApplications();
+    if (!mounted) return;
+    if (apps.isNotEmpty) {
+      LeaveStore.applications..clear()..addAll(apps);
+      LeaveStore.syncCounter();
+    }
+    setState(() => _loading = false);
+  }
 
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -47,7 +75,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
     final app = LeaveApplication(
       id:           LeaveStore.generateId(),
-      employeeName: UserSession.name.isEmpty ? 'Employee' : UserSession.name,
+      employeeName: _employeeName,
       department:   UserSession.department,
       leaveType:    'Leave',
       from:         _date!,
@@ -76,6 +104,9 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return ValueListenableBuilder<AppLanguage>(
       valueListenable: staffLanguageNotifier,
       builder: (context, _, __) => SingleChildScrollView(
@@ -135,6 +166,8 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
                   : Text(st('apply'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             ),
           ),
+          const SizedBox(height: 32),
+          StaffHistorySection(items: _history, emptyKey: 'no_leave_history'),
         ]),
       ),
     );

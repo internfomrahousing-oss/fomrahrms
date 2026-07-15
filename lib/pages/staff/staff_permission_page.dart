@@ -5,6 +5,7 @@ import '../../models/leave_store.dart';
 import '../../models/user_session.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
+import 'staff_history.dart';
 
 // Canonical English values — stored as-is in LeaveApplication.reason so HR's
 // (English-only) approval screens and LeaveStore.permMinutesFromReason keep
@@ -38,6 +39,14 @@ class _StaffPermissionPageState extends State<StaffPermissionPage> {
   String get _employeeName => UserSession.name.isEmpty ? 'Employee' : UserSession.name;
   int get _usedThisMonth => LeaveStore.permCountThisMonth(_employeeName);
   bool get _limitReached => _usedThisMonth >= 2;
+
+  List<LeaveApplication> get _history {
+    final list = LeaveStore.applications
+        .where((a) => a.employeeName == _employeeName && a.leaveType == 'Permission')
+        .toList();
+    list.sort((a, b) => b.appliedOn.compareTo(a.appliedOn));
+    return list;
+  }
 
   @override
   void initState() {
@@ -226,6 +235,12 @@ class _StaffPermissionPageState extends State<StaffPermissionPage> {
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                   : Text(st('apply'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             ),
+          ),
+          const SizedBox(height: 32),
+          StaffHistorySection(
+            items: _history,
+            emptyKey: 'no_permission_history',
+            subtitleOf: (a) => st(_durationKeys[a.reason] ?? a.reason),
           ),
         ]),
       ),
