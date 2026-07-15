@@ -8,6 +8,7 @@ class SessionStorage {
   static const _kEmail            = 'fomra_email';
   static const _kExpiry           = 'fomra_expiry';
   static const _kDesignation      = 'fomra_designation';
+  static const _kDepartment       = 'fomra_department';
   static const _kReportingManager = 'fomra_reporting_manager';
   static const _kIsReportingManager = 'fomra_is_reporting_manager';
 
@@ -19,6 +20,7 @@ class SessionStorage {
     await kvSetString(_kEmployeeId, UserSession.employeeId);
     await kvSetString(_kEmail, UserSession.email);
     await kvSetString(_kDesignation, UserSession.designation);
+    await kvSetString(_kDepartment, UserSession.department);
     await kvSetString(_kReportingManager, UserSession.reportingManager);
     await kvSetString(_kIsReportingManager, UserSession.isReportingManager ? '1' : '0');
     await kvSetString(_kExpiry,
@@ -47,6 +49,7 @@ class SessionStorage {
       UserSession.employeeId       = await kvGetString(_kEmployeeId) ?? '';
       UserSession.email            = await kvGetString(_kEmail) ?? '';
       UserSession.designation      = await kvGetString(_kDesignation) ?? '';
+      UserSession.department       = await kvGetString(_kDepartment) ?? '';
       UserSession.reportingManager = await kvGetString(_kReportingManager) ?? '';
       UserSession.isReportingManager = (await kvGetString(_kIsReportingManager)) == '1';
       // Photo URL is fetched from main() once Supabase has finished
@@ -65,6 +68,7 @@ class SessionStorage {
     await kvRemove(_kEmail);
     await kvRemove(_kExpiry);
     await kvRemove(_kDesignation);
+    await kvRemove(_kDepartment);
     await kvRemove(_kReportingManager);
     await kvRemove(_kIsReportingManager);
   }

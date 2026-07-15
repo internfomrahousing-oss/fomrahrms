@@ -104,4 +104,19 @@ class LeaveStore {
             a.managerStatus != LeaveApprovalStatus.denied)
         .fold<int>(0, (sum, a) => sum + permMinutesFromReason(a.reason));
   }
+
+  /// Count-based monthly cap used by the Staff Portal (max 2 permission
+  /// requests/month, regardless of duration) — distinct from the regular
+  /// employee portal's minute-based cap in [permUsedThisMonth].
+  static int permCountThisMonth(String employeeName) {
+    final now = DateTime.now();
+    return applications
+        .where((a) =>
+            a.leaveType == 'Permission' &&
+            a.employeeName == employeeName &&
+            a.from.year == now.year &&
+            a.from.month == now.month &&
+            a.managerStatus != LeaveApprovalStatus.denied)
+        .length;
+  }
 }

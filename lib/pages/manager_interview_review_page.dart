@@ -255,7 +255,10 @@ class _ManagerInterviewReviewPageState
     final id = row['id']?.toString() ?? '';
     if (id.isEmpty) return;
     try {
-      final fields = <String, dynamic>{'manager_status': status};
+      final fields = <String, dynamic>{
+        'manager_status':    status,
+        'manager_status_at': DateTime.now().toUtc().toIso8601String(),
+      };
       if (comment != null) fields['manager_comment'] = comment;
       await SupabaseService.updateCandidateStatus(id, fields);
       final candidateName = (row['name'] ?? '').toString();

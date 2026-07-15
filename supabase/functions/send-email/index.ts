@@ -25,7 +25,21 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Called directly from the browser (Flutter Web), so the browser's CORS
+// preflight (OPTIONS) must get an explicit allow response, and every actual
+// response needs these headers too — otherwise the fetch never completes
+// and the app just sees "Failed to fetch" with no server-side error at all.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     // html/attachments are optional additions for the recruitment email
     // pipeline (EmailService) — existing {to, subject, body} callers are
@@ -34,7 +48,7 @@ Deno.serve(async (req) => {
     if (!to || !subject || !(body || html)) {
       return new Response(JSON.stringify({ error: "to, subject, and body (or html) are required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -58,13 +72,13 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

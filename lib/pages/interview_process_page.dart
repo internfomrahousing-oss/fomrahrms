@@ -322,9 +322,9 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
     return [
       _StageInfo('Applied', _shortDate(row['submitted_at']), _StageState.completed),
-      _StageInfo('HR Review', '', hrState),
-      _StageInfo('Manager', '', managerState),
-      _StageInfo('Management', '', mgmtState),
+      _StageInfo('HR Review', _shortDate(row['hr_status_at']), hrState),
+      _StageInfo('Manager', _shortDate(row['manager_status_at']), managerState),
+      _StageInfo('Management', _shortDate(row['management_status_at']), mgmtState),
       _StageInfo('Offer Sent', _shortDate(row['pre_offer_sent_at']), offerState),
       _StageInfo('Offer Accepted', _shortDate(row['pre_offer_accepted_at']), acceptState),
       _StageInfo('Onboarding Sent', _shortDate(row['onboarding_link_sent_at']), onboardingState),
@@ -392,6 +392,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     try {
       await SupabaseService.updateCandidateStatus(id, {
         'hr_status':        'accepted',
+        'hr_status_at':     DateTime.now().toUtc().toIso8601String(),
         'assigned_manager': managerName,
       });
       NotificationService.candidateAssignedToManager(
@@ -451,8 +452,9 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     if (id.isEmpty) return;
     try {
       await SupabaseService.updateCandidateStatus(id, {
-        'hr_status':  'rejected',
-        'hr_comment': comment,
+        'hr_status':    'rejected',
+        'hr_status_at': DateTime.now().toUtc().toIso8601String(),
+        'hr_comment':   comment,
       });
       await _fetch();
     } catch (e) {

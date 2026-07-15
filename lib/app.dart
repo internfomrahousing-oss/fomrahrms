@@ -85,6 +85,12 @@ import 'pages/edit_maintenance_form_page.dart';
 import 'pages/form_approvals_page.dart';
 import 'pages/my_journey_page.dart';
 import 'pages/employee_attendance_calendar_page.dart';
+import 'widgets/staff_shell.dart';
+import 'pages/staff/staff_home_page.dart';
+import 'pages/staff/staff_leave_page.dart';
+import 'pages/staff/staff_permission_page.dart';
+import 'pages/staff/staff_profile_page.dart';
+import 'constants/org_lists.dart';
 
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
@@ -99,9 +105,10 @@ String? _guard(GoRouterState state) {
   if (!UserSession.loggedIn) return '/login';
 
   final role = UserSession.role;
+  final isStaff = UserSession.isStaffPortal;
   String home() => switch (role) {
         UserRole.hr => '/dashboard',
-        UserRole.employee => '/employee/dashboard',
+        UserRole.employee => isStaff ? '/staff/home' : '/employee/dashboard',
         UserRole.management => '/management/dashboard',
         UserRole.reportingManager => '/manager/dashboard',
       };
@@ -110,11 +117,14 @@ String? _guard(GoRouterState state) {
   if (path == '/' || path.isEmpty) return home();
 
   // Each role is confined to its own shell — no cross-role browsing.
+  // Housekeeping/Support Staff (role == employee, isStaff == true) get the
+  // simplified Staff Portal shell instead of the regular employee shell.
   if (path.startsWith('/management/') && role != UserRole.management) return home();
-  if (path.startsWith('/employee/') && role != UserRole.employee) return home();
+  if (path.startsWith('/staff/') && !isStaff) return home();
+  if (path.startsWith('/employee/') && (role != UserRole.employee || isStaff)) return home();
   if (path.startsWith('/manager/') && role != UserRole.reportingManager) return home();
   if (!path.startsWith('/employee/') && !path.startsWith('/manager/') &&
-      !path.startsWith('/management/') && !path.startsWith('/hr/') &&
+      !path.startsWith('/management/') && !path.startsWith('/hr/') && !path.startsWith('/staff/') &&
       role != UserRole.hr) {
     return home();
   }
@@ -227,6 +237,12 @@ final _router = GoRouter(
         GoRoute(path: '/leave/approvals',                 builder: (_, __) => const LeaveApprovalsPage()),
         GoRoute(path: '/leave/balance',                   builder: (_, __) => const LeaveBalancePage()),
         GoRoute(path: '/leave/employee-records',          builder: (_, __) => const HrLeaveRecordsPage()),
+        GoRoute(path: '/leave/staff-portal-approvals',    builder: (_, __) => const TeamLeaveApprovalsPage(
+          isManagement: true,
+          onlyDepartments: kStaffPortalDepartments,
+          title: 'Staff Portal Approvals',
+          subtitle: 'Leave & permission requests from Housekeeping / Support Staff',
+        )),
         GoRoute(path: '/task-management',                 builder: (_, state) =>
             TaskManagementPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/task-management/add',             builder: (_, __) => const AddTaskPage()),
@@ -474,6 +490,17 @@ final _router = GoRouter(
         GoRoute(path: '/management/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/management/my-maintenance',         builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/management/settings',               builder: (_, __) => const SettingsPage()),
+      ],
+    ),
+    // ── Staff Portal Shell (Housekeeping / Support Staff) ──────────────────
+    ShellRoute(
+      builder: (context, state, child) =>
+          StaffShell(child: child, location: state.uri.path),
+      routes: [
+        GoRoute(path: '/staff/home',       builder: (_, __) => const StaffHomePage()),
+        GoRoute(path: '/staff/leave',      builder: (_, __) => const StaffLeavePage()),
+        GoRoute(path: '/staff/permission', builder: (_, __) => const StaffPermissionPage()),
+        GoRoute(path: '/staff/profile',    builder: (_, __) => const StaffProfilePage()),
       ],
     ),
   ],

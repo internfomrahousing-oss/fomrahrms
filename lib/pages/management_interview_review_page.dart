@@ -334,7 +334,10 @@ class _ManagementInterviewReviewPageState
     final id = row['id']?.toString() ?? '';
     if (id.isEmpty) return;
     try {
-      final fields = <String, dynamic>{'management_status': status};
+      final fields = <String, dynamic>{
+        'management_status':    status,
+        'management_status_at': DateTime.now().toUtc().toIso8601String(),
+      };
       if (comment != null) fields['management_comment'] = comment;
       await SupabaseService.updateCandidateStatus(id, fields);
       NotificationService.interviewDecided(

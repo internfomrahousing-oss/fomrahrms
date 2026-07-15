@@ -1,196 +1,88 @@
-Implement the email workflow into my existing Recruitment process without changing any of the current workflow or existing functionality.
+Create a separate Staff Portal for Housekeeping and Support Staff. This portal must be completely different from the regular employee portal. Keep the UI extremely simple, mobile-first, with large buttons, minimal text and easy navigation.
 
-Current workflow already exists:
+Do not include Dashboard Analytics, Tasks, Notes, Issue Reporting, Payslips, Announcements, Attendance History, Calendar, Settings or Profile Editing.
 
-Interview Form Submitted
-→ HR Review
-→ Assigned to Manager
-→ Sent to Management
-→ Management Approves / Rejects
-→ Approved candidates return to HR.
+Features:
 
-The recruitment flow above should remain exactly the same.
+1. HOME
 
-After the approved candidate returns to HR, implement the following workflow.
+Display only one attendance button.
 
-STEP 1 - PRE-OFFER LETTER
+If not checked in:
+🟢 Check In
 
-Add a "Send Pre-Offer Letter" button in the HR portal.
+After Check In:
+Show "Checked In Successfully" with check-in time and replace the button with:
+🔴 Check Out
 
-When HR clicks this button:
+After Check Out:
+Show "Shift Completed Successfully" with check-out time.
 
-• Generate the Pre-Offer Letter PDF.
-• Send the Pre-Offer email to the candidate's personal email submitted in the Interview Form.
-• Save the email in Email Logs.
-• Update candidate status to "Pre-Offer Sent".
+Do not ask for notes during Check In or Check Out.
 
-The email should contain:
-- Welcome message.
-- Pre-Offer Letter PDF.
-- "Accept Offer" button.
+2. APPLY LEAVE
 
-The button should open a secure public page using a unique token.
+Fields:
+• Leave Date
+• Apply Button
 
-Example:
-https://mydomain.com/pre-offer/{token}
-
-The page should display the Pre-Offer Letter and an "I Accept the Offer" button.
-
-When the employee clicks "I Accept the Offer":
-
-• Update candidate status to "Pre-Offer Accepted".
-• Store Accepted Date & Time.
-• Prevent duplicate submissions.
-• If already accepted, display "Offer Already Accepted."
-• Immediately update the HR portal without requiring a refresh.
-
-Only after the offer has been accepted should the HR portal enable the "Send Onboarding Form" button.
-
-STEP 2 - ONBOARDING FORM
-
-When HR clicks "Send Onboarding Form":
-
-Send another email to the employee's personal email containing a secure onboarding form link.
-
-The onboarding form should collect:
-
-• Personal Details
-• Address
-• Aadhaar
-• PAN
-• Bank Details
-• Emergency Contact
-• Education
-• Experience
-• Required Documents
+No reason or description field.
 
 After submission:
+Show "Leave Request Submitted Successfully."
 
-• Save all details in Supabase.
-• Update candidate status to "Onboarding Completed".
-• Immediately reflect the status in the HR portal.
+The request should automatically appear in the HR portal for approval.
 
-STEP 3 - HR PROCESS
+3. APPLY PERMISSION
 
-Once onboarding has been completed, HR reviews the details.
+Fields:
+• Permission Date
+• Permission Duration
 
-HR should then assign:
+Use radio buttons instead of a dropdown.
 
+Options:
+○ 30 Minutes
+○ 1 Hour
+○ 1 Hour 30 Minutes
+○ 2 Hours
+
+Allow only one option to be selected.
+
+Rules:
+• Maximum 2 permission requests per calendar month.
+• Maximum duration per request is 2 hours.
+• If the employee has already used 2 permissions in the current month, disable the Apply button and display "You have already used your maximum 2 permissions for this month."
+
+After submission:
+Show "Permission Request Submitted Successfully."
+
+The request should automatically appear in the HR portal for HR approval.
+
+4. PROFILE
+
+Display only:
+• Employee Name
+• Employee ID
 • Department
-• Manager
 • Designation
-• Employee ID
-• User ID
+• Manager
+• Phone Number
+• Joining Date
 
-After completing these details, HR submits the profile to Management for final approval.
+No editing options.
 
-STEP 4 - MANAGEMENT APPROVAL
+5. LOGIN
 
-Management can:
+Employees log in once using their existing credentials. Keep the device logged in permanently unless HR resets the device or the employee logs out manually.
 
-• Approve
-• Reject
-• Send Back
+BOTTOM NAVIGATION
 
-When Management clicks Approve:
+• Home
+• Leave
+• Permission
+• Profile
 
-• Activate the employee account.
-• Create the employee profile.
-• Move the candidate into the Employee module.
-• Enable employee login.
+Maintain role-based access so only Housekeeping and Support Staff can access this simplified portal. All other employees should continue using the existing employee portal.
 
-Automatically send an Employee Activation Email to the employee's personal email.
-
-DO NOT send a temporary password by email.
-
-Instead:
-
-Generate a secure "Set Password" link that expires in 24 hours.
-
-The activation email should contain:
-
-• Welcome to Fomra Housing
-• Employee ID
-• User ID
-• "Set Your Password" button
-• Employee Portal Login URL
-
-When the employee clicks "Set Your Password":
-
-• Verify the secure token.
-• Allow the employee to create a password.
-• Activate the account after password creation.
-• Invalidate the token immediately after successful use.
-• If the token has expired, show "Password Setup Link Expired" with an option for HR to resend the activation email.
-
-EMAIL SYSTEM
-
-Create a reusable Email Service.
-
-Create reusable templates for:
-
-• Pre-Offer Email
-• Onboarding Email
-• Employee Activation Email
-
-Each template should support:
-
-• Recipient
-• Subject
-• HTML Body
-• Variables
-• Attachments
-• Status
-• Created Time
-• Sent Time
-• Error Message
-• Retry Count
-
-Create an Email Log module to store every email sent.
-
-Prepare the email service so Microsoft Outlook (jose@fomrahousing.in) can later be integrated using Microsoft Graph API without changing any business logic.
-
-The email sending should happen through a single reusable function.
-
-Example:
-
-sendEmail(templateName, recipient, data)
-
-The workflow should never directly send emails from individual pages.
-
-HR PORTAL
-
-Display the complete recruitment timeline:
-
-Interview Submitted
-→ HR Review
-→ Manager Assigned
-→ Management Review
-→ Approved
-→ Pre-Offer Sent
-→ Pre-Offer Accepted
-→ Onboarding Sent
-→ Onboarding Completed
-→ HR Verification
-→ Management Approval
-→ Employee Activated
-
-Show timestamps, current stage, email status and available actions.
-
-Only allow the next action when the previous step has been completed.
-
-Add a "Resend Email" option if any email fails.
-
-UI REQUIREMENTS
-
-Maintain the existing UI and functionality.
-
-Do not modify any existing recruitment flow.
-
-Add only the required email workflow.
-
-Follow the existing project architecture.
-
-Use reusable components, reusable services, strong TypeScript typing, proper validation, audit logs, loading states, confirmation dialogs, responsive UI and Supabase best practices.
-
-Implement this as production-ready code with clean architecture and future support for Microsoft Graph API integration.
+Do not modify the existing HRMS workflow or functionality. Reuse the existing authentication, database and APIs. Follow the current project architecture, use reusable components, strong TypeScript typing, responsive design and clean production-ready code.

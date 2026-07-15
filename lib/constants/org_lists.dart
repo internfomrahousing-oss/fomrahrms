@@ -10,7 +10,13 @@ const List<String> kDepartments = [
   'Accounts',
   'Sales',
   'Digital Marketing',
+  'Housekeeping',
+  'Support Staff',
 ];
+
+/// Departments routed to the simplified Staff Portal instead of the regular
+/// employee portal (see UserSession.isStaffPortal and lib/app.dart's guard).
+const List<String> kStaffPortalDepartments = ['Housekeeping', 'Support Staff'];
 
 const List<String> kDesignations = [
   'Manager',

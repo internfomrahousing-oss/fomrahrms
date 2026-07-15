@@ -19,10 +19,20 @@ class TeamLeaveApprovalsPage extends StatefulWidget {
   /// showAll: when true, shows every employee's leaves; when false, team only
   final bool isManagement;
   final bool showAll;
+  /// When set, ignores showAll/team-membership entirely and instead shows
+  /// only requests from employees whose AppUser.department is in this list
+  /// (e.g. the Staff Portal's HR approval queue for Housekeeping/Support
+  /// Staff, who have no reporting manager of their own).
+  final List<String>? onlyDepartments;
+  final String? title;
+  final String? subtitle;
   const TeamLeaveApprovalsPage({
     super.key,
     this.isManagement = false,
     this.showAll = false,
+    this.onlyDepartments,
+    this.title,
+    this.subtitle,
   });
 
   @override
@@ -53,6 +63,12 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
   int _rowsPerPage = 10;
 
   List<LeaveApplication> get _requests {
+    if (widget.onlyDepartments != null) {
+      if (!_teamLoaded) return const [];
+      return LeaveStore.applications
+          .where((a) => widget.onlyDepartments!.contains(_userFor(a.employeeName)?.department ?? ''))
+          .toList();
+    }
     if (_showAll) return LeaveStore.applications;
     if (!_teamLoaded) return LeaveStore.applications;
     if (!_isMgmt) {
@@ -515,10 +531,10 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
 
   @override
   Widget build(BuildContext context) {
-    final title = _showAll ? 'All Leave Approvals' : 'Team Leave Approvals';
-    final subtitle = _showAll
+    final title = widget.title ?? (_showAll ? 'All Leave Approvals' : 'Team Leave Approvals');
+    final subtitle = widget.subtitle ?? (_showAll
         ? 'View and edit all employee leave decisions'
-        : 'Review and approve leave requests from your team';
+        : 'Review and approve leave requests from your team');
 
     return Scaffold(
       backgroundColor: null,

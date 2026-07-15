@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../constants/org_lists.dart';
 
 enum UserRole { hr, employee, reportingManager, management }
 
@@ -9,8 +10,15 @@ class UserSession {
   static String   employeeId      = '';
   static String   email           = '';
   static String   designation     = '';
+  static String   department      = '';
   static String   reportingManager= '';
   static bool     isReportingManager = false;
+
+  /// Housekeeping/Support Staff employees use a separate, simplified
+  /// "Staff Portal" shell instead of the regular employee shell — same
+  /// UserRole.employee, just routed differently. See lib/app.dart's guard.
+  static bool get isStaffPortal =>
+      role == UserRole.employee && kStaffPortalDepartments.contains(department);
 
   // Backed by a ValueNotifier so widgets built before the background photo
   // fetch (e.g. after a page refresh) can still update once the URL arrives.
@@ -34,6 +42,7 @@ class UserSession {
     employeeId       = '';
     email            = '';
     designation      = '';
+    department       = '';
     reportingManager = '';
     isReportingManager = false;
     photoUrl         = '';

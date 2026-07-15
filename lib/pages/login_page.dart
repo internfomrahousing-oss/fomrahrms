@@ -103,6 +103,7 @@ class _LoginPageState extends State<LoginPage> {
           dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
           email: dynamicUser.email,
           designation: dynamicUser.designation,
+          department: dynamicUser.department,
           reportingManager: dynamicUser.reportingManager,
           isReportingManager: dynamicUser.isReportingManager);
       return;
@@ -185,6 +186,8 @@ class _LoginPageState extends State<LoginPage> {
     _completeLogin(AppUser.userRoleFor(user.role), user.name,
         user.employeeId.isNotEmpty ? user.employeeId : user.email,
         email: user.email,
+        designation: user.designation,
+        department: user.department,
         isReportingManager: user.isReportingManager);
   }
 
@@ -205,6 +208,7 @@ class _LoginPageState extends State<LoginPage> {
   void _completeLogin(UserRole role, String name, String employeeId, {
     String email = '',
     String designation = '',
+    String department = '',
     String reportingManager = '',
     bool isReportingManager = false,
   }) {
@@ -214,6 +218,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.employeeId       = employeeId;
     UserSession.email            = email;
     UserSession.designation      = designation;
+    UserSession.department       = department;
     UserSession.reportingManager = reportingManager;
     UserSession.isReportingManager = isReportingManager;
     SessionStorage.save();
@@ -237,7 +242,8 @@ class _LoginPageState extends State<LoginPage> {
     switch (role) {
       case UserRole.hr:               context.go('/dashboard');
       case UserRole.reportingManager: context.go('/manager/dashboard');
-      case UserRole.employee:         context.go('/employee/dashboard');
+      case UserRole.employee:
+        context.go(UserSession.isStaffPortal ? '/staff/home' : '/employee/dashboard');
       case UserRole.management:       context.go('/management/dashboard');
     }
   }
