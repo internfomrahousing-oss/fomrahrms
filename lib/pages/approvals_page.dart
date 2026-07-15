@@ -535,26 +535,24 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
             ),
           ),
         ]),
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  controller: _tabs,
-                  children: [
-                    _tabView(categories),
-                    _tabView(categories, pendingOnly: true),
-                    _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
-                    _tabView([_grossPayCategory]),
-                    _tabView([_onrollCategory]),
-                    _tabView([_workLocationCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
-                    _tabView([
-                      _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
-                      _policyCategory, _maintenanceFormCategory,
-                    ]),
-                  ],
-                ),
-        ),
-      ]),
+        _loading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : switch (_tabs.index) {
+                0 => _tabView(categories),
+                1 => _tabView(categories, pendingOnly: true),
+                2 => _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
+                3 => _tabView([_grossPayCategory]),
+                4 => _tabView([_onrollCategory]),
+                5 => _tabView([_workLocationCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
+                _ => _tabView([
+                    _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
+                    _policyCategory, _maintenanceFormCategory,
+                  ]),
+              },
+      ])),
     );
   }
 
