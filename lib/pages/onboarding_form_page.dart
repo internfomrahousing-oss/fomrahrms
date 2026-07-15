@@ -138,6 +138,17 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       final candidate = await SupabaseService.fetchCandidateByOnboardingToken(token);
       if (candidate == null || !mounted) return;
       _candidateApplicationId = candidate['id']?.toString();
+
+      // Block resubmission — a candidate revisiting (or resubmitting) the
+      // same link should see "already submitted", not create another row.
+      final alreadySubmitted = await SupabaseService
+          .hasOnboardingFormForCandidate(_candidateApplicationId ?? '');
+      if (!mounted) return;
+      if (alreadySubmitted) {
+        setState(() => _submitted = true);
+        return;
+      }
+
       setState(() {
         _name.text = (candidate['name'] as String?) ?? '';
         _phone.text = (candidate['mobile'] as String?) ?? '';
@@ -743,7 +754,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ));
       return;
     }
+    if (_saving) return; // guards a double-tap on the submit button
     setState(() => _saving = true);
+
+    // Last-second re-check (token-based flow only) — covers a second tab/
+    // window or a resubmit that raced past the page-load check.
+    if (_candidateApplicationId != null &&
+        await SupabaseService.hasOnboardingFormForCandidate(_candidateApplicationId!)) {
+      if (mounted) setState(() { _saving = false; _submitted = true; });
+      return;
+    }
 
     final ts = DateTime.now().millisecondsSinceEpoch.toString();
 

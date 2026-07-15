@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../l10n/staff_strings.dart';
 import '../../models/attendance_store.dart';
+import '../../models/language_notifier.dart';
 import '../../models/user_session.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
@@ -81,34 +83,37 @@ class _StaffHomePageState extends State<StaffHomePage> {
     final checkedIn  = _record != null && _record!.checkInTime.isNotEmpty;
     final checkedOut = checkedIn && _record!.checkOutTime.isNotEmpty;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          if (checkedOut)
-            _StatusCard(
-              icon: Icons.task_alt_rounded,
-              color: AppTheme.primaryBlue,
-              title: 'Shift Completed Successfully',
-              timeLabel: 'Checked out at',
-              time: _record!.checkOutTime,
-            )
-          else if (checkedIn)
-            _StatusCard(
-              icon: Icons.check_circle_rounded,
-              color: Colors.green.shade600,
-              title: 'Checked In Successfully',
-              timeLabel: 'Checked in at',
-              time: _record!.checkInTime,
-            ),
-          const SizedBox(height: 32),
-          if (!checkedOut)
-            _BigAttendanceButton(
-              checkedIn: checkedIn,
-              busy: _busy,
-              onTap: checkedIn ? _checkOut : _checkIn,
-            ),
-        ]),
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: staffLanguageNotifier,
+      builder: (context, _, __) => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (checkedOut)
+              _StatusCard(
+                icon: Icons.task_alt_rounded,
+                color: AppTheme.primaryBlue,
+                title: st('shift_completed'),
+                timeLabel: st('checked_out_at'),
+                time: _record!.checkOutTime,
+              )
+            else if (checkedIn)
+              _StatusCard(
+                icon: Icons.check_circle_rounded,
+                color: Colors.green.shade600,
+                title: st('checked_in_success'),
+                timeLabel: st('checked_in_at'),
+                time: _record!.checkInTime,
+              ),
+            const SizedBox(height: 32),
+            if (!checkedOut)
+              _BigAttendanceButton(
+                checkedIn: checkedIn,
+                busy: _busy,
+                onTap: checkedIn ? _checkOut : _checkIn,
+              ),
+          ]),
+        ),
       ),
     );
   }
@@ -181,7 +186,7 @@ class _BigAttendanceButton extends StatelessWidget {
             : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(checkedIn ? Icons.logout_rounded : Icons.login_rounded, size: 64),
                 const SizedBox(height: 12),
-                Text(checkedIn ? 'Check Out' : 'Check In',
+                Text(checkedIn ? st('check_out') : st('check_in'),
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               ]),
       ),

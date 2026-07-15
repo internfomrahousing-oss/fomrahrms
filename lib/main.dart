@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'models/color_theme_notifier.dart';
+import 'models/language_notifier.dart';
 import 'models/notification_store.dart';
 import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
@@ -21,7 +22,10 @@ void main() async {
   // since the router reads UserSession synchronously at first build.
   final restored = await SessionStorage.restore();
   // Load theme preference for the restored user so dark/light persists after refresh.
-  if (restored) themeNotifier.loadForUser(UserSession.employeeId);
+  if (restored) {
+    themeNotifier.loadForUser(UserSession.employeeId);
+    staffLanguageNotifier.loadForUser(UserSession.employeeId);
+  }
 
   // Start the app immediately so the splash screen clears.
   runApp(const FomraHrmsApp());

@@ -504,7 +504,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
 
     return Material(
       color: null,
-      child: Column(children: [
+      child: SingleChildScrollView(child: Column(children: [
         // ── Header ──────────────────────────────────────────────────
         Container(
           color: Colors.white,
@@ -562,10 +562,12 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
         ),
 
         // ── Body ────────────────────────────────────────────────────
-        Expanded(
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: _blue))
-              : SingleChildScrollView(
+        _loading
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: _blue)),
+              )
+            : Padding(
                   padding: EdgeInsets.all(pad),
                   child: Center(
                     child: ConstrainedBox(
@@ -679,8 +681,7 @@ class _EditOnboardingFormPageState extends State<EditOnboardingFormPage> {
                     ),
                   ),
                 ),
-        ),
-      ]),
+      ])),
     );
   }
 }

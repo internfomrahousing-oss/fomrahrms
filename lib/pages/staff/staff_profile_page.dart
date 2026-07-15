@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../l10n/staff_strings.dart';
 import '../../models/app_user.dart';
+import '../../models/language_notifier.dart';
 import '../../models/user_session.dart';
 import '../../services/user_store.dart';
 import '../../theme/app_theme.dart';
@@ -61,31 +63,34 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
     final phone       = u?.mobile ?? '';
     final joining     = u != null ? _fmtDate(u.dateOfJoining) : '—';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(children: [
-        CircleAvatar(
-          radius: 44,
-          backgroundColor: color.withValues(alpha: 0.12),
-          child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: staffLanguageNotifier,
+      builder: (context, _, __) => SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(children: [
+          CircleAvatar(
+            radius: 44,
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
-        Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-        if (designation.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(designation, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-        ],
-        const SizedBox(height: 28),
-        _InfoTile(icon: Icons.badge_rounded, label: 'Employee ID', value: employeeId.isEmpty ? '—' : employeeId),
-        _InfoTile(icon: Icons.apartment_rounded, label: 'Department', value: department.isEmpty ? '—' : department),
-        _InfoTile(icon: Icons.work_rounded, label: 'Designation', value: designation.isEmpty ? '—' : designation),
-        _InfoTile(icon: Icons.supervisor_account_rounded, label: 'Manager', value: manager.isEmpty ? '—' : manager),
-        _InfoTile(icon: Icons.phone_rounded, label: 'Phone Number', value: phone.isEmpty ? '—' : phone),
-        _InfoTile(icon: Icons.calendar_today_rounded, label: 'Joining Date', value: joining),
-      ]),
+          const SizedBox(height: 14),
+          Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          if (designation.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(designation, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+          ],
+          const SizedBox(height: 28),
+          _InfoTile(icon: Icons.badge_rounded, label: st('employee_id'), value: employeeId.isEmpty ? '—' : employeeId),
+          _InfoTile(icon: Icons.apartment_rounded, label: st('department'), value: department.isEmpty ? '—' : department),
+          _InfoTile(icon: Icons.work_rounded, label: st('designation'), value: designation.isEmpty ? '—' : designation),
+          _InfoTile(icon: Icons.supervisor_account_rounded, label: st('manager'), value: manager.isEmpty ? '—' : manager),
+          _InfoTile(icon: Icons.phone_rounded, label: st('phone_number'), value: phone.isEmpty ? '—' : phone),
+          _InfoTile(icon: Icons.calendar_today_rounded, label: st('joining_date'), value: joining),
+        ]),
+      ),
     );
   }
 }

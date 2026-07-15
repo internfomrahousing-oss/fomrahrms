@@ -286,7 +286,7 @@ class _ManagerInterviewReviewPageState
 
     return Material(
       color: null,
-      child: Column(children: [
+      child: SingleChildScrollView(child: Column(children: [
         // ── Header ────────────────────────────────────────────────────
         Container(
           color: Colors.white,
@@ -392,21 +392,27 @@ class _ManagerInterviewReviewPageState
           ),
 
         // ── Body ──────────────────────────────────────────────────────
-        Expanded(
-          child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: _blue))
-              : _error != null
-                  ? _ErrorView(error: _error!, onRetry: _fetch)
-                  : _items.isEmpty
-                      ? const _EmptyState()
-                      : _filteredItems.isEmpty
-                          ? const _EmptyFilterState()
-                          : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredItems.length,
-                          itemBuilder: (context, idx) {
-                            final row = _filteredItems[idx];
+        _loading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: _blue)),
+              )
+            : _error != null
+                ? _ErrorView(error: _error!, onRetry: _fetch)
+                : _items.isEmpty
+                    ? const _EmptyState()
+                    : _filteredItems.isEmpty
+                        ? const _EmptyFilterState()
+                        : Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: _filteredItems.map(_buildCandidateCard).toList()),
+                          ),
+      ])),
+    );
+  }
+
+  Widget _buildCandidateCard(Map<String, dynamic> row) {
                             final mStatus =
                                 (row['manager_status'] as String?) ??
                                     'pending';
@@ -568,11 +574,6 @@ class _ManagerInterviewReviewPageState
                                 ),
                               ),
                             );
-                          },
-                        ),
-        ),
-      ]),
-    );
   }
 }
 

@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import '../models/app_user.dart';
+import '../utils/token_util.dart';
 import 'supabase_service.dart';
 
 /// One reusable attachment shape for both the email log and the edge function.
@@ -78,6 +80,32 @@ class EmailService {
           : {'status': 'failed', 'error_message': error});
     }
     return error;
+  }
+
+  /// Generates a 24h "Set Your Password" token, locks the account
+  /// (active:false) until it's used, and emails the activation link —
+  /// shared by every place an account can be switched on for the first
+  /// time (Employee Onboarding's Management approval, and the Activate
+  /// User toggle in Administration → Users), so both stay in sync instead
+  /// of each having their own copy of this logic.
+  static Future<String?> sendEmployeeActivation(AppUser user) async {
+    final token = TokenUtil.generate();
+    await SupabaseService.setAppUserActivationToken(
+      user.email,
+      token: token,
+      expiresAt: TokenUtil.expiresInHours(24),
+    );
+    return sendEmail(
+      templateName: 'employee_activation',
+      recipient: user.email,
+      data: {
+        'name': user.name,
+        'employeeId': user.employeeId,
+        'userId': user.email,
+        'setPasswordLink': 'https://fomrahrms-zeta.vercel.app/#/set-password/$token',
+        'portalUrl': 'https://fomrahrms-zeta.vercel.app/#/login',
+      },
+    );
   }
 
   /// Re-sends a previously logged email using its stored template/data/attachments.

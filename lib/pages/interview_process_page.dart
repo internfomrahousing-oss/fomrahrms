@@ -986,6 +986,31 @@ Fomra Housing & Infrastructure Pvt Ltd''';
     _fetch();
   }
 
+  Widget _buildApplicationCard(Map<String, dynamic> row) {
+    final status = _compositeStatus(row);
+    final preOfferSent = row['pre_offer_sent'] == true;
+    final meta = _statusMeta(status, preOfferSent: preOfferSent);
+    return _ApplicationCard(
+      row: row,
+      dateStr: _cell(row, 'submitted_at'),
+      status: status,
+      statusBadge: _statusBadge(status, preOfferSent: preOfferSent),
+      borderColor: meta.fg,
+      statusLabel: meta.label,
+      stages: _buildStages(row),
+      onAccept: () => _showAcceptDialog(row),
+      onReject: () => _showRejectDialog(row),
+      onComment: () => _showCommentDialog(row),
+      onSendEmail: () => _showSendEmailDialog(context, row),
+      onSendOnboarding: () => _sendOnboardingForm(context, row),
+      onDelete: () => _deleteForHr(context, row),
+      onView: () {
+        CandidateStore.selected = row;
+        context.push('/candidate-detail');
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
@@ -993,7 +1018,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
 
     return Material(
       color: null,
-      child: Column(
+      child: SingleChildScrollView(child: Column(
         children: [
           // ── Header ──────────────────────────────────────────────────
           Container(
@@ -1260,46 +1285,22 @@ Fomra Housing & Infrastructure Pvt Ltd''';
           ),
 
           // ── Body ────────────────────────────────────────────────────
-          Expanded(
-            child: _loading
-                ? Center(
-                    child: CircularProgressIndicator(color: _blue))
-                : _error != null
-                    ? _ErrorView(error: _error!, onRetry: _fetch)
-                    : _filtered.isEmpty
-                        ? const _EmptyState()
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _filtered.length,
-                            itemBuilder: (context, idx) {
-                              final row = _filtered[idx];
-                              final status = _compositeStatus(row);
-                              final preOfferSent = row['pre_offer_sent'] == true;
-                              final meta = _statusMeta(status, preOfferSent: preOfferSent);
-                              return _ApplicationCard(
-                                row: row,
-                                dateStr: _cell(row, 'submitted_at'),
-                                status: status,
-                                statusBadge: _statusBadge(status, preOfferSent: preOfferSent),
-                                borderColor: meta.fg,
-                                statusLabel: meta.label,
-                                stages: _buildStages(row),
-                                onAccept: () => _showAcceptDialog(row),
-                                onReject: () => _showRejectDialog(row),
-                                onComment: () => _showCommentDialog(row),
-                                onSendEmail: () => _showSendEmailDialog(context, row),
-                                onSendOnboarding: () => _sendOnboardingForm(context, row),
-                                onDelete: () => _deleteForHr(context, row),
-                                onView: () {
-                                  CandidateStore.selected = row;
-                                  context.push('/candidate-detail');
-                                },
-                              );
-                            },
-                          ),
-          ),
+          _loading
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(child: CircularProgressIndicator(color: _blue)),
+                )
+              : _error != null
+                  ? _ErrorView(error: _error!, onRetry: _fetch)
+                  : _filtered.isEmpty
+                      ? const _EmptyState()
+                      : Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: _filtered.map((row) => _buildApplicationCard(row)).toList()),
+                        ),
         ],
-      ),
+      )),
     );
   }
 }

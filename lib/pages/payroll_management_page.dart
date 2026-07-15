@@ -152,7 +152,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
 
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         // ── Header ──────────────────────────────────────────────────────────
         Container(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -184,10 +184,12 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
         const Divider(height: 1),
 
         // ── Body ────────────────────────────────────────────────────────────
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
+        _loading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
@@ -473,8 +475,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                     )),
                   ]),
                 ),
-        ),
-      ]),
+      ])),
     );
   }
 

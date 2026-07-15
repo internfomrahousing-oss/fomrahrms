@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../l10n/staff_strings.dart';
+import '../../models/language_notifier.dart';
 import '../../models/leave_store.dart';
 import '../../models/user_session.dart';
 import '../../services/supabase_service.dart';
@@ -38,7 +40,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
   Future<void> _submit() async {
     if (_date == null) {
-      _snack('Please select a leave date.');
+      _snack(st('select_leave_date_err'));
       return;
     }
     setState(() => _submitting = true);
@@ -60,7 +62,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
     if (!mounted) return;
     setState(() { _submitting = false; _date = null; });
-    _snack('Leave Request Submitted Successfully.');
+    _snack(st('leave_submitted'));
   }
 
   void _snack(String msg) {
@@ -74,64 +76,67 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(children: [
-        const SizedBox(height: 8),
-        Icon(Icons.event_busy_rounded, size: 48, color: _color),
-        const SizedBox(height: 12),
-        const Text('Apply Leave',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 28),
-        GestureDetector(
-          onTap: _pickDate,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-            decoration: BoxDecoration(
-              color: _date != null ? _color.withValues(alpha: 0.06) : Colors.white,
-              border: Border.all(
-                  color: _date != null ? _color.withValues(alpha: 0.5) : const Color(0xFFE5E7EB),
-                  width: _date != null ? 1.5 : 1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(children: [
-              Icon(Icons.calendar_today_rounded, size: 24, color: _color),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Leave Date',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(_date != null ? _fmt(_date!) : 'Select date',
-                      style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: _date != null ? const Color(0xFF111827) : const Color(0xFF9CA3AF))),
-                ]),
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: staffLanguageNotifier,
+      builder: (context, _, __) => SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(children: [
+          const SizedBox(height: 8),
+          Icon(Icons.event_busy_rounded, size: 48, color: _color),
+          const SizedBox(height: 12),
+          Text(st('apply_leave'),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 28),
+          GestureDetector(
+            onTap: _pickDate,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+              decoration: BoxDecoration(
+                color: _date != null ? _color.withValues(alpha: 0.06) : Colors.white,
+                border: Border.all(
+                    color: _date != null ? _color.withValues(alpha: 0.5) : const Color(0xFFE5E7EB),
+                    width: _date != null ? 1.5 : 1),
+                borderRadius: BorderRadius.circular(14),
               ),
-            ]),
-          ),
-        ),
-        const SizedBox(height: 28),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _submitting ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _color,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                Icon(Icons.calendar_today_rounded, size: 24, color: _color),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(st('leave_date'),
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(_date != null ? _fmt(_date!) : st('select_date'),
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: _date != null ? const Color(0xFF111827) : const Color(0xFF9CA3AF))),
+                  ]),
+                ),
+              ]),
             ),
-            child: _submitting
-                ? const SizedBox(
-                    width: 22, height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                : const Text('Apply', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           ),
-        ),
-      ]),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _submitting ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _color,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _submitting
+                  ? const SizedBox(
+                      width: 22, height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  : Text(st('apply'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }

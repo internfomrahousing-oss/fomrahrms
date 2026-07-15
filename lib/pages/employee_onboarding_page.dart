@@ -10,7 +10,6 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../services/email_service.dart';
-import '../utils/token_util.dart';
 import '../utils/form_version_label.dart';
 import '../utils/open_url.dart';
 import '../widgets/filter_panel.dart';
@@ -241,35 +240,40 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 
   Widget _buildSubmissionsTab(double pad) {
     if (_filtered.isEmpty) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            _all.isEmpty ? 'No submissions yet' : 'No results found',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
-          ),
-          if (_all.isEmpty) ...[
-            const SizedBox(height: 8),
-            Text('Click "Joining Form" to open the form and share it',
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-          ],
-        ]),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              _all.isEmpty ? 'No submissions yet' : 'No results found',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+            ),
+            if (_all.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Click "Joining Form" to open the form and share it',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+            ],
+          ]),
+        ),
       );
     }
-    return ListView.separated(
+    return Padding(
       padding: EdgeInsets.all(pad),
-      itemCount: _filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) => _SubmissionCard(data: _filtered[i], onRefresh: _fetch),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (int i = 0; i < _filtered.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _SubmissionCard(data: _filtered[i], onRefresh: _fetch),
+        ],
+      ]),
     );
   }
 
   Widget _buildFormApprovalsTab(double pad) {
-    return CustomScrollView(slivers: [
-      SliverPadding(
-        padding: EdgeInsets.all(pad),
-        sliver: SliverList(delegate: SliverChildListDelegate([
+    return Padding(
+      padding: EdgeInsets.all(pad),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // Active form info banner
           Container(
             padding: const EdgeInsets.all(12),
@@ -322,9 +326,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                     onReject: () => _rejectVersion(v),
                   ),
                 )),
-        ])),
-      ),
-    ]);
+      ]),
+    );
   }
 
   int get _countReceived => _all.where((r) => _matchesSubFilter(r, _SubFilter.received)).length;
@@ -383,7 +386,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 
     return Material(
       color: null,
-      child: Column(children: [
+      child: SingleChildScrollView(child: Column(children: [
         // ── Header ────────────────────────────────────────────────────
         Container(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -599,14 +602,15 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
           ),
 
         // ── Body ──────────────────────────────────────────────────────
-        Expanded(
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: _blue))
-              : (_tab == 1 && UserSession.role == UserRole.management)
-                  ? _buildFormApprovalsTab(pad)
-                  : _buildSubmissionsTab(pad),
-        ),
-      ]),
+        _loading
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: _blue)),
+              )
+            : (_tab == 1 && UserSession.role == UserRole.management)
+                ? _buildFormApprovalsTab(pad)
+                : _buildSubmissionsTab(pad),
+      ])),
     );
   }
 }
@@ -1101,28 +1105,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     }
   }
 
-  // Generates a 24h "Set Your Password" token instead of emailing a
-  // temporary password, and blocks login (active:false) until it's used —
-  // see the added check in login_page.dart's _login().
-  Future<String?> _sendActivationEmail(AppUser user) async {
-    final token = TokenUtil.generate();
-    await SupabaseService.setAppUserActivationToken(
-      user.email,
-      token: token,
-      expiresAt: TokenUtil.expiresInHours(24),
-    );
-    return EmailService.sendEmail(
-      templateName: 'employee_activation',
-      recipient: user.email,
-      data: {
-        'name': user.name,
-        'employeeId': user.employeeId,
-        'userId': user.email,
-        'setPasswordLink': 'https://fomrahrms-zeta.vercel.app/#/set-password/$token',
-        'portalUrl': 'https://fomrahrms-zeta.vercel.app/#/login',
-      },
-    );
-  }
+  // Shared with the Activate User toggle in administration_page.dart — see
+  // EmailService.sendEmployeeActivation.
+  Future<String?> _sendActivationEmail(AppUser user) =>
+      EmailService.sendEmployeeActivation(user);
 
   Future<void> _resendActivationEmail(BuildContext context) async {
     final d = widget.data;

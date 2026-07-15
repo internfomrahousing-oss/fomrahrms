@@ -2392,6 +2392,19 @@ class SupabaseService {
     return data;
   }
 
+  /// Used to block duplicate onboarding submissions for the same candidate —
+  /// a token-based link can otherwise be resubmitted any number of times.
+  static Future<bool> hasOnboardingFormForCandidate(String candidateId) async {
+    if (candidateId.isEmpty) return false;
+    final data = await _db
+        ?.from('onboarding_forms')
+        .select('id')
+        .eq('candidate_application_id', candidateId)
+        .limit(1)
+        .maybeSingle();
+    return data != null;
+  }
+
   // ── Email Logs ───────────────────────────────────────────────────────
 
   static Future<String?> insertEmailLog(Map<String, dynamic> fields) async {

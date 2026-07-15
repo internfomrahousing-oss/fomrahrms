@@ -74,6 +74,7 @@ class _ManagementInterviewReviewPageState
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _fetchCandidates();
     _fetchFormVersions();
   }
@@ -523,7 +524,7 @@ class _ManagementInterviewReviewPageState
 
     return Material(
       color: null,
-      child: Column(children: [
+      child: SingleChildScrollView(child: Column(children: [
         // ── Header ──────────────────────────────────────────────────
         Container(
           color: Colors.white,
@@ -614,10 +615,7 @@ class _ManagementInterviewReviewPageState
         ),
 
         // ── Tab Body ─────────────────────────────────────────────────
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
+        if (_tabController.index == 0)
               // Tab 1: Candidate Reviews
               Column(children: [
                 if (_candidates.isNotEmpty)
@@ -677,38 +675,40 @@ class _ManagementInterviewReviewPageState
                       }),
                     ]),
                   ),
-                Expanded(
-                  child: _candidatesLoading
-                      ? Center(
-                          child: CircularProgressIndicator(color: _mgmtColor))
-                      : _candidatesError != null
-                          ? _ErrorView(
-                              error: _candidatesError!,
-                              onRetry: _fetchCandidates)
-                          : _candidates.isEmpty
-                              ? const _EmptyCandidates()
-                              : _filteredCandidates.isEmpty
-                                  ? const _EmptyFilterState()
-                                  : _CandidateList(
-                                      items: _filteredCandidates,
-                                      cellFn: _cell,
-                                      statusBadgeFn: _statusBadge,
-                                      onApprove: _showApproveDialog,
-                                      onReject: _showRejectDialog,
-                                      onComment: _showCommentDialog,
-                                      onDelete: _deleteRecord,
-                                      onView: (row) {
-                                        CandidateStore.selected = row;
-                                        context.push('/management/candidate-detail');
-                                      },
-                                    ),
-                ),
-              ]),
-
+                _candidatesLoading
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60),
+                        child: Center(child: CircularProgressIndicator(color: _mgmtColor)),
+                      )
+                    : _candidatesError != null
+                        ? _ErrorView(
+                            error: _candidatesError!,
+                            onRetry: _fetchCandidates)
+                        : _candidates.isEmpty
+                            ? const _EmptyCandidates()
+                            : _filteredCandidates.isEmpty
+                                ? const _EmptyFilterState()
+                                : _CandidateList(
+                                    items: _filteredCandidates,
+                                    cellFn: _cell,
+                                    statusBadgeFn: _statusBadge,
+                                    onApprove: _showApproveDialog,
+                                    onReject: _showRejectDialog,
+                                    onComment: _showCommentDialog,
+                                    onDelete: _deleteRecord,
+                                    onView: (row) {
+                                      CandidateStore.selected = row;
+                                      context.push('/management/candidate-detail');
+                                    },
+                                  ),
+              ])
+        else
               // Tab 2: Form Approvals
               _formLoading
-                  ? Center(
-                      child: CircularProgressIndicator(color: _mgmtColor))
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(child: CircularProgressIndicator(color: _mgmtColor)),
+                    )
                   : _formError != null
                       ? _ErrorView(
                           error: _formError!, onRetry: _fetchFormVersions)
@@ -720,10 +720,7 @@ class _ManagementInterviewReviewPageState
                               onApprove: _approveFormVersion,
                               onReject: _rejectFormVersion,
                             ),
-            ],
-          ),
-        ),
-      ]),
+      ])),
     );
   }
 }
@@ -753,11 +750,9 @@ class _CandidateList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      itemBuilder: (ctx, idx) {
-        final row = items[idx];
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items.map((row) {
         final mgmtStatus = (row['management_status'] as String?) ?? 'pending';
         final isPending = mgmtStatus == 'pending';
         final name = (row['name'] ?? '').toString().trim();
@@ -914,14 +909,14 @@ class _CandidateList extends StatelessWidget {
                     label: 'Delete',
                     icon: Icons.delete_forever_rounded,
                     color: Colors.red.shade700,
-                    onTap: () => onDelete(ctx, row),
+                    onTap: () => onDelete(context, row),
                   ),
                 ]),
               ],
             ),
           ),
         );
-      },
+      }).toList()),
     );
   }
 }
@@ -1006,11 +1001,9 @@ class _FormVersionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: versions.length,
-      itemBuilder: (ctx, idx) {
-        final v      = versions[idx];
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: versions.map((v) {
         final status = (v['status'] as String?) ?? 'pending';
         if (status == 'pending') {
           return Padding(
@@ -1025,7 +1018,7 @@ class _FormVersionList extends StatelessWidget {
         }
         // Approved / Rejected — compact history card
         return _AFHistoryCard(version: v);
-      },
+      }).toList()),
     );
   }
 }

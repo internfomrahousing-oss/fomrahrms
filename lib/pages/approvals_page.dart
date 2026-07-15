@@ -35,6 +35,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabs = TabController(length: 7, vsync: this);
+    _tabs.addListener(() => setState(() {}));
     _load();
   }
 
@@ -424,25 +425,21 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
 
   Widget _tabView(List<_CategoryInfo> categories, {bool pendingOnly = false}) {
     final visible = pendingOnly ? categories.where((c) => c.pending > 0).toList() : categories;
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        child: visible.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.symmetric(vertical: 60),
-                child: Center(
-                  child: Text('Nothing pending in this view',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
-                ),
-              )
-            : Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: visible.map((c) => SizedBox(width: 300, child: _CategorySummaryCard(info: c))).toList(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      child: visible.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 60),
+              child: Center(
+                child: Text('Nothing pending in this view',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
               ),
-      ),
+            )
+          : Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: visible.map((c) => SizedBox(width: 300, child: _CategorySummaryCard(info: c))).toList(),
+            ),
     );
   }
 
@@ -467,7 +464,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     final categories = _allCategories;
     return Scaffold(
       backgroundColor: null,
-      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      body: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           child: Row(children: [

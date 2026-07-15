@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
+import '../services/email_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -59,6 +60,7 @@ class _AdministrationPageState extends State<AdministrationPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 4, vsync: this);
+    _tabs.addListener(() => setState(() {}));
     _loadUsers();
   }
 
@@ -94,7 +96,7 @@ class _AdministrationPageState extends State<AdministrationPage>
 
     return Material(
       color: null,
-      child: Column(
+      child: SingleChildScrollView(child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header + tabs ────────────────────────────────────────────────
@@ -148,19 +150,14 @@ class _AdministrationPageState extends State<AdministrationPage>
           ),
 
           // ── Tab body ────────────────────────────────────────────────────
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [
-                _UsersTab(users: _users, roles: _roles, onUpsert: _upsertUser, onDelete: _deleteUser),
-                const _OnboardingTab(),
-                _RolesTab(roles: _roles, onChange: () => setState(() {})),
-                _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
-              ],
-            ),
-          ),
+          switch (_tabs.index) {
+            0 => _UsersTab(users: _users, roles: _roles, onUpsert: _upsertUser, onDelete: _deleteUser),
+            1 => const _OnboardingTab(),
+            2 => _RolesTab(roles: _roles, onChange: () => setState(() {})),
+            _ => _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
+          },
         ],
-      ),
+      )),
     );
   }
 }
@@ -188,9 +185,9 @@ class _UsersTab extends StatelessWidget {
     final narrow = MediaQuery.of(context).size.width < 700;
     final hPad = narrow ? 16.0 : 24.0;
 
-    return ListView(
+    return Padding(
       padding: EdgeInsets.all(hPad),
-      children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // ── Add user button ──────────────────────────────────────────────
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('All Users (${users.length})',
@@ -299,7 +296,22 @@ class _UsersTab extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: u.active ? 'Deactivate User' : 'Activate User',
-                  onPressed: () { u.active = !u.active; onUpsert(u); },
+                  onPressed: () async {
+                    // Activating a brand-new account (never logged in, no
+                    // password set yet) sends the secure Set Password link
+                    // instead of just flipping active on — same flow as
+                    // Employee Onboarding's Management approval (see
+                    // EmailService.sendEmployeeActivation). Re-activating an
+                    // existing employee who already has a password is just
+                    // a plain toggle, no email needed.
+                    if (!u.active && u.password.isEmpty) {
+                      await EmailService.sendEmployeeActivation(u);
+                      u.active = false; // stays locked until the token is used
+                    } else {
+                      u.active = !u.active;
+                    }
+                    onUpsert(u);
+                  },
                   icon: Icon(
                     u.active ? Icons.person_off_rounded : Icons.person_rounded,
                     size: 18,
@@ -307,6 +319,23 @@ class _UsersTab extends StatelessWidget {
                   ),
                   visualDensity: VisualDensity.compact,
                 ),
+                if (!u.active && u.password.isEmpty)
+                  IconButton(
+                    tooltip: 'Resend Activation Email',
+                    onPressed: () async {
+                      final error = await EmailService.sendEmployeeActivation(u);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(error == null
+                              ? 'Activation email resent to ${u.email}'
+                              : 'Failed to resend: $error'),
+                          backgroundColor: error == null ? Colors.green.shade700 : Colors.red.shade700,
+                        ));
+                      }
+                    },
+                    icon: Icon(Icons.forward_to_inbox_rounded, size: 18, color: _mgmtColor),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 IconButton(
                   tooltip: 'Delete User',
                   onPressed: () => _confirmDelete(context, u, onDelete),
@@ -317,7 +346,7 @@ class _UsersTab extends StatelessWidget {
             ]),
           ),
         )),
-      ],
+      ]),
     );
   }
 
@@ -875,18 +904,28 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         ]),
       ),
       if (_forms.isEmpty)
-        Expanded(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.how_to_reg_rounded, size: 56, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text('No HR-forwarded submissions yet', style: TextStyle(color: Colors.grey.shade500)),
-        ])))
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.how_to_reg_rounded, size: 56, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text('No HR-forwarded submissions yet', style: TextStyle(color: Colors.grey.shade500)),
+          ])),
+        )
       else
-        Expanded(child: ListView.separated(
+        Padding(
                 padding: EdgeInsets.all(narrow ? 16 : 24),
-                itemCount: _forms.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) {
-                  final f = _forms[i];
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  for (int i = 0; i < _forms.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    _buildFormCard(context, _forms[i]),
+                  ],
+                ]),
+        ),
+    ]);
+  }
+
+  Widget _buildFormCard(BuildContext context, Map<String, dynamic> f) {
                   final status = (f['status'] as String?) ?? '';
                   final id = f['id'].toString();
                   Color statusColor;
@@ -1013,9 +1052,6 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                       ]),
                     ),
                   );
-                },
-              )),
-    ]);
   }
 }
 
@@ -1068,9 +1104,9 @@ class _RolesTab extends StatelessWidget {
     final narrow = MediaQuery.of(context).size.width < 700;
     final hPad = narrow ? 16.0 : 24.0;
 
-    return ListView(
+    return Padding(
       padding: EdgeInsets.all(hPad),
-      children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('System Roles',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const SizedBox(height: 4),
@@ -1112,7 +1148,7 @@ class _RolesTab extends StatelessWidget {
             ),
           );
         }),
-      ],
+      ]),
     );
   }
 
@@ -1171,9 +1207,9 @@ class _AccessTab extends StatelessWidget {
     final hPad = narrow ? 16.0 : 24.0;
     final keys = access.keys.toList();
 
-    return ListView(
+    return Padding(
       padding: EdgeInsets.all(hPad),
-      children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Control Access',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
         const SizedBox(height: 4),
@@ -1237,7 +1273,7 @@ class _AccessTab extends StatelessWidget {
             ),
           ]),
         ),
-      ],
+      ]),
     );
   }
 }
