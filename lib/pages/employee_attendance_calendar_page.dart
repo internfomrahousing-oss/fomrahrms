@@ -4,8 +4,23 @@ import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
 import '../models/attendance_store.dart';
 import '../utils/checkin_status.dart';
+import '../utils/csv_export.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
+
+String _fmtSlash(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+// One resolved day within a custom summary/export range — status mirrors
+// the calendar's color precedence (attendance > holiday > leave >
+// permission > comp off > absent), with '—' for days not yet reached.
+class _RangeDay {
+  final DateTime date;
+  final String status;
+  final String checkIn;
+  final String checkOut;
+  const _RangeDay(this.date, this.status, this.checkIn, this.checkOut);
+}
 
 // Fixed status colors — not theme-driven. Chosen as a set (not just
 // pairwise) so every status stays distinguishable, including for
@@ -46,12 +61,26 @@ class _EmployeeAttendanceCalendarPageState
   List<LeaveApplication> _leaveApps = [];
   int? _selectedDay;
 
+  // ── Summary / export range (independent of the calendar month above —
+  // lets HR pull a custom cycle like "25th to 26th") ─────────────────────
+  late DateTime _rangeFrom;
+  late DateTime _rangeTo;
+  bool _rangeLoading = false;
+  List<_RangeDay> _rangeRows = [];
+
+  int get _presentCount => _rangeRows.where((r) => r.status == 'Present').length;
+  int get _lateCount    => _rangeRows.where((r) => r.status == 'Late Coming').length;
+  int get _absentCount  => _rangeRows.where((r) => r.status == 'Absent').length;
+
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _month = DateTime(now.year, now.month);
+    _rangeFrom = DateTime(now.year, now.month, 1);
+    _rangeTo   = DateTime(now.year, now.month + 1, 0);
     _load();
+    _loadSummary();
   }
 
   Future<void> _load() async {
@@ -129,6 +158,139 @@ class _EmployeeAttendanceCalendarPageState
     try { return int.parse(date.split('/').first); } catch (_) { return null; }
   }
 
+  // Distinct (year, month) pairs spanned by [from]..[to], inclusive.
+  static List<(int, int)> _monthsInRange(DateTime from, DateTime to) {
+    final out = <(int, int)>[];
+    var cur = DateTime(from.year, from.month);
+    final end = DateTime(to.year, to.month);
+    while (!cur.isAfter(end)) {
+      out.add((cur.year, cur.month));
+      cur = DateTime(cur.year, cur.month + 1);
+    }
+    return out;
+  }
+
+  Future<void> _loadSummary() async {
+    setState(() => _rangeLoading = true);
+    final months = _monthsInRange(_rangeFrom, _rangeTo);
+    final years  = months.map((m) => m.$1).toSet();
+    final results = await Future.wait([
+      Future.wait(months.map(
+          (m) => SupabaseService.fetchAttendanceForMonth(widget.employeeId, m.$1, m.$2))),
+      Future.wait(years.map(SupabaseService.fetchHolidays)),
+      SupabaseService.fetchLeaveApplications(),
+    ]);
+    if (!mounted) return;
+
+    final byDate = <String, AttendanceRecord>{
+      for (final list in results[0] as List<List<AttendanceRecord>>)
+        for (final r in list) r.date: r,
+    };
+
+    final holidayDateStrs = <String>{};
+    for (final list in results[1] as List<List<Map<String, dynamic>>>) {
+      for (final h in list) {
+        final d = DateTime.tryParse(h['holiday_date'] as String? ?? '');
+        if (d != null && !d.isBefore(_rangeFrom) && !d.isAfter(_rangeTo)) {
+          holidayDateStrs.add(_fmtSlash(d));
+        }
+      }
+    }
+    for (var d = _rangeFrom; !d.isAfter(_rangeTo); d = d.add(const Duration(days: 1))) {
+      if (d.weekday == DateTime.sunday) holidayDateStrs.add(_fmtSlash(d));
+    }
+
+    final leaveApps = results[2] as List<LeaveApplication>;
+    final leaveDates = <String>{}, permissionDates = <String>{}, compOffDates = <String>{};
+    for (final app in leaveApps) {
+      if (app.employeeName != widget.employeeName) continue;
+      if (app.managerStatus != LeaveApprovalStatus.approved) continue;
+      final target = switch (app.leaveType) {
+        'Permission' => permissionDates,
+        'Comp Off'   => compOffDates,
+        _            => leaveDates,
+      };
+      var d = app.from;
+      while (!d.isAfter(app.to)) {
+        if (!d.isBefore(_rangeFrom) && !d.isAfter(_rangeTo)) {
+          final ds = _fmtSlash(d);
+          if (d.weekday != DateTime.saturday && d.weekday != DateTime.sunday &&
+              !holidayDateStrs.contains(ds)) {
+            target.add(ds);
+          }
+        }
+        d = d.add(const Duration(days: 1));
+      }
+    }
+
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final rows = <_RangeDay>[];
+    for (var d = _rangeFrom; !d.isAfter(_rangeTo); d = d.add(const Duration(days: 1))) {
+      final ds = _fmtSlash(d);
+      final rec = byDate[ds];
+      if (rec != null && rec.checkInTime.isNotEmpty) {
+        final st = checkInStatusFor(rec.checkInTime, d, widget.employeeName, leaveApps);
+        rows.add(_RangeDay(
+            d, st.status == CheckInStatus.late ? 'Late Coming' : 'Present',
+            rec.checkInTime, rec.checkOutTime));
+      } else if (holidayDateStrs.contains(ds)) {
+        rows.add(_RangeDay(d, 'Holiday', '', ''));
+      } else if (leaveDates.contains(ds)) {
+        rows.add(_RangeDay(d, 'Leave Applied', '', ''));
+      } else if (permissionDates.contains(ds)) {
+        rows.add(_RangeDay(d, 'Permission', '', ''));
+      } else if (compOffDates.contains(ds)) {
+        rows.add(_RangeDay(d, 'Comp Off', '', ''));
+      } else if (d.isBefore(todayDate)) {
+        rows.add(_RangeDay(d, 'Absent', '', ''));
+      } else {
+        rows.add(_RangeDay(d, '—', '', ''));
+      }
+    }
+
+    setState(() {
+      _rangeRows    = rows;
+      _rangeLoading = false;
+    });
+  }
+
+  Future<void> _pickRangeFrom() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _rangeFrom,
+      firstDate: DateTime(2020),
+      lastDate: _rangeTo,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _rangeFrom = picked);
+    _loadSummary();
+  }
+
+  Future<void> _pickRangeTo() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _rangeTo,
+      firstDate: _rangeFrom,
+      lastDate: DateTime.now(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _rangeTo = picked);
+    _loadSummary();
+  }
+
+  Future<void> _exportRangeCsv() async {
+    final buffer = StringBuffer('Date,Status,Check-In,Check-Out\n');
+    for (final r in _rangeRows) {
+      buffer.writeln('"${_fmtSlash(r.date)}","${r.status}","${r.checkIn}","${r.checkOut}"');
+    }
+    await exportCsv(
+      'attendance_${widget.employeeName.replaceAll(RegExp(r'[^\w]'), '_')}'
+      '_${_fmtSlash(_rangeFrom).replaceAll('/', '-')}_${_fmtSlash(_rangeTo).replaceAll('/', '-')}.csv',
+      buffer.toString(),
+    );
+  }
+
   CheckInRowStatus _status(int day) {
     final r = _attendance[day];
     if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
@@ -204,6 +366,63 @@ class _EmployeeAttendanceCalendarPageState
     );
   }
 
+  Widget _buildSummaryCard(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(
+              child: Text('Summary & Export',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700)),
+            ),
+            OutlinedButton.icon(
+              onPressed: _rangeLoading || _rangeRows.isEmpty ? null : _exportRangeCsv,
+              icon: const Icon(Icons.download_rounded, size: 16),
+              label: const Text('Export CSV'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _blue,
+                side: BorderSide(color: _blue.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Wrap(spacing: 12, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            _RangeDateChip(label: 'From', date: _rangeFrom, onTap: _pickRangeFrom),
+            _RangeDateChip(label: 'To', date: _rangeTo, onTap: _pickRangeTo),
+          ]),
+          const SizedBox(height: 16),
+          if (_rangeLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final tiles = [
+                _SummaryStatTile(label: 'Present', count: _presentCount, color: _green),
+                _SummaryStatTile(label: 'Late Coming', count: _lateCount, color: _purple),
+                _SummaryStatTile(label: 'Absent', count: _absentCount, color: _red),
+              ];
+              if (constraints.maxWidth > 420) {
+                return Row(children: [
+                  for (var i = 0; i < tiles.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 12),
+                    Expanded(child: tiles[i]),
+                  ],
+                ]);
+              }
+              return Wrap(spacing: 12, runSpacing: 12,
+                  children: [for (final t in tiles) SizedBox(width: 140, child: t)]);
+            }),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs  = Theme.of(context).colorScheme;
@@ -243,6 +462,10 @@ class _EmployeeAttendanceCalendarPageState
               ),
             ]),
             const SizedBox(height: 24),
+
+            // ── Summary + date-range export card ─────────────────────────────
+            _buildSummaryCard(context),
+            const SizedBox(height: 16),
 
             // ── Calendar card ──────────────────────────────────────────────
             Card(
@@ -649,6 +872,65 @@ class _WDay extends StatelessWidget {
         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45))),
   );
+}
+
+class _RangeDateChip extends StatelessWidget {
+  final String label;
+  final DateTime date;
+  final VoidCallback onTap;
+  const _RangeDateChip({required this.label, required this.date, required this.onTap});
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.calendar_today_rounded, size: 14, color: _blue),
+          const SizedBox(width: 8),
+          Text('$label: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Text(_fmt(date),
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _SummaryStatTile extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  const _SummaryStatTile({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('$count',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
+        const SizedBox(height: 2),
+        Text(label,
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                color: color.withValues(alpha: 0.85))),
+      ]),
+    );
+  }
 }
 
 class _Legend extends StatelessWidget {
