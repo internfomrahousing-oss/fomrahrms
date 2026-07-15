@@ -629,6 +629,25 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
   }
 
+  Future<void> _resendActivation(BuildContext context, Map<String, dynamic> form) async {
+    final email = (form['assigned_email'] as String?) ?? '';
+    if (email.isEmpty) return;
+    final user = AppUser(
+      name:        (form['name']            as String?) ?? '',
+      email:       email,
+      employeeId:  (form['assigned_emp_id'] as String?) ?? '',
+      designation: (form['designation']     as String?) ?? '',
+      role:        'Employee',
+    );
+    final error = await EmailService.sendEmployeeActivation(user);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error == null ? 'Activation email resent to $email' : 'Failed to resend: $error'),
+        backgroundColor: error == null ? Colors.green.shade700 : Colors.red.shade700,
+      ));
+    }
+  }
+
   Future<void> _approve(BuildContext context, Map<String, dynamic> form) async {
     final email   = (form['assigned_email']   as String?) ?? '';
     final empId   = (form['assigned_emp_id']  as String?) ?? '';
@@ -658,11 +677,15 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           .from('onboarding_forms')
           .update({'status': 'access_granted'})
           .eq('id', form['id'].toString());
+      final emailError = await EmailService.sendEmployeeActivation(user);
       await _load();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Account created for ${user.name} (${user.email})'),
-          backgroundColor: Colors.green.shade700,
+          content: Text(emailError == null
+              ? 'Account created for ${user.name} (${user.email}) — activation email sent'
+              : 'Account created for ${user.name}, but activation email failed: $emailError'),
+          backgroundColor: emailError == null ? Colors.green.shade700 : Colors.orange.shade700,
+          duration: Duration(seconds: emailError == null ? 4 : 8),
         ));
       }
     } catch (e) {
@@ -1047,6 +1070,18 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                             const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF2563EB)),
                             const SizedBox(width: 4),
                             const Text('Account active', style: TextStyle(fontSize: 12, color: Color(0xFF2563EB))),
+                            const SizedBox(width: 10),
+                            TextButton.icon(
+                              onPressed: () => _resendActivation(context, f),
+                              icon: const Icon(Icons.forward_to_inbox_rounded, size: 14),
+                              label: const Text('Resend Activation Email', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: _mgmtColor,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
                           ],
                         ]),
                       ]),
