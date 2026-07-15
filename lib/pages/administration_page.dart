@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/user_store.dart';
+import '../services/supabase_service.dart';
 import '../services/email_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -305,7 +306,11 @@ class _UsersTab extends StatelessWidget {
                     // existing employee who already has a password is just
                     // a plain toggle, no email needed.
                     if (!u.active && u.password.isEmpty) {
-                      await EmailService.sendEmployeeActivation(u);
+                      final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
+                        name: u.name,
+                        mobile: u.mobile,
+                      );
+                      await EmailService.sendEmployeeActivation(u, personalEmail: personalEmail);
                       u.active = false; // stays locked until the token is used
                     } else {
                       u.active = !u.active;
@@ -323,11 +328,15 @@ class _UsersTab extends StatelessWidget {
                   IconButton(
                     tooltip: 'Resend Activation Email',
                     onPressed: () async {
-                      final error = await EmailService.sendEmployeeActivation(u);
+                      final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
+                        name: u.name,
+                        mobile: u.mobile,
+                      );
+                      final error = await EmailService.sendEmployeeActivation(u, personalEmail: personalEmail);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(error == null
-                              ? 'Activation email resent to ${u.email}'
+                              ? 'Activation email resent to ${personalEmail ?? u.email}'
                               : 'Failed to resend: $error'),
                           backgroundColor: error == null ? Colors.green.shade700 : Colors.red.shade700,
                         ));
@@ -639,7 +648,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
       designation: (form['designation']     as String?) ?? '',
       role:        'Employee',
     );
-    final error = await EmailService.sendEmployeeActivation(user);
+    final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
+      candidateApplicationId: form['candidate_application_id'] as String?,
+      name: (form['name'] as String?) ?? '',
+      mobile: (form['phone_number'] as String?) ?? '',
+    );
+    final error = await EmailService.sendEmployeeActivation(user, personalEmail: personalEmail);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(error == null ? 'Activation email resent to $email' : 'Failed to resend: $error'),
@@ -677,7 +691,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           .from('onboarding_forms')
           .update({'status': 'access_granted'})
           .eq('id', form['id'].toString());
-      final emailError = await EmailService.sendEmployeeActivation(user);
+      final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
+        candidateApplicationId: form['candidate_application_id'] as String?,
+        name: (form['name'] as String?) ?? '',
+        mobile: (form['phone_number'] as String?) ?? '',
+      );
+      final emailError = await EmailService.sendEmployeeActivation(user, personalEmail: personalEmail);
       await _load();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

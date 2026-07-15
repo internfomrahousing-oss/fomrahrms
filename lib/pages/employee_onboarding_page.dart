@@ -1084,7 +1084,12 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           .from('onboarding_forms')
           .update({'status': 'access_granted'})
           .eq('id', d['id'].toString());
-      await _sendActivationEmail(user);
+      final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
+        candidateApplicationId: d['candidate_application_id'] as String?,
+        name: (d['name'] as String?) ?? '',
+        mobile: (d['phone_number'] as String?) ?? '',
+      );
+      await _sendActivationEmail(user, personalEmail: personalEmail);
       NotificationService.employeeActivated(name: user.name);
       widget.onRefresh();
       if (context.mounted) {
@@ -1107,8 +1112,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
 
   // Shared with the Activate User toggle in administration_page.dart — see
   // EmailService.sendEmployeeActivation.
-  Future<String?> _sendActivationEmail(AppUser user) =>
-      EmailService.sendEmployeeActivation(user);
+  Future<String?> _sendActivationEmail(AppUser user, {String? personalEmail}) =>
+      EmailService.sendEmployeeActivation(user, personalEmail: personalEmail);
 
   Future<void> _resendActivationEmail(BuildContext context) async {
     final d = widget.data;
@@ -1124,7 +1129,12 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         designation: (d['assigned_designation'] as String?) ?? '',
         role: 'Employee',
       ));
-      final error = await _sendActivationEmail(user);
+      final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
+        candidateApplicationId: d['candidate_application_id'] as String?,
+        name: (d['name'] as String?) ?? '',
+        mobile: (d['phone_number'] as String?) ?? '',
+      );
+      final error = await _sendActivationEmail(user, personalEmail: personalEmail);
       setState(() => _acting = false);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

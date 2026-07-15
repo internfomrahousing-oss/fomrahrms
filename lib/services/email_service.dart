@@ -85,10 +85,18 @@ class EmailService {
   /// Generates a 24h "Set Your Password" token, locks the account
   /// (active:false) until it's used, and emails the activation link —
   /// shared by every place an account can be switched on for the first
-  /// time (Employee Onboarding's Management approval, and the Activate
-  /// User toggle in Administration → Users), so both stay in sync instead
-  /// of each having their own copy of this logic.
-  static Future<String?> sendEmployeeActivation(AppUser user) async {
+  /// time (Employee Onboarding's Approve, Administration's Onboarding-tab
+  /// Approve, and the Activate User toggle in Administration → Users), so
+  /// all three stay in sync instead of each having their own copy.
+  ///
+  /// [personalEmail] is where the mail actually needs to go — a brand-new
+  /// employee's @fomrahousing.in address (user.email) is just a login
+  /// username at this point, not a provisioned mailbox, so sending there
+  /// looks successful (SMTP accepts it) but nothing ever arrives. Falls
+  /// back to user.email only if no personal email could be resolved, so
+  /// something is still attempted rather than silently skipped.
+  static Future<String?> sendEmployeeActivation(AppUser user, {String? personalEmail}) async {
+    final recipient = (personalEmail != null && personalEmail.isNotEmpty) ? personalEmail : user.email;
     final token = TokenUtil.generate();
     await SupabaseService.setAppUserActivationToken(
       user.email,
@@ -97,7 +105,7 @@ class EmailService {
     );
     return sendEmail(
       templateName: 'employee_activation',
-      recipient: user.email,
+      recipient: recipient,
       data: {
         'name': user.name,
         'employeeId': user.employeeId,

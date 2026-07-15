@@ -2392,6 +2392,41 @@ class SupabaseService {
     return data;
   }
 
+  /// The personal email a new employee's activation link must go to — their
+  /// freshly-assigned @fomrahousing.in address is just a login username at
+  /// this point and almost certainly isn't a provisioned mailbox yet, so
+  /// sending there looks successful (SMTP accepts it) but nothing arrives.
+  /// Prefers the real FK; falls back to the same fuzzy name/mobile match
+  /// used elsewhere for older, token-less onboarding submissions.
+  static Future<String?> fetchCandidatePersonalEmail({
+    String? candidateApplicationId,
+    required String name,
+    required String mobile,
+  }) async {
+    try {
+      if (candidateApplicationId != null && candidateApplicationId.isNotEmpty) {
+        final row = await _db
+            ?.from('candidate_applications')
+            .select('email')
+            .eq('id', candidateApplicationId)
+            .maybeSingle();
+        final email = (row?['email'] as String?)?.trim();
+        if (email != null && email.isNotEmpty) return email;
+      }
+      if (name.isEmpty) return null;
+      final results = await _db
+          ?.from('candidate_applications')
+          .select('email')
+          .or('name.ilike.%$name%${mobile.isNotEmpty ? ",mobile.eq.$mobile" : ""}')
+          .limit(1);
+      if (results != null && results.isNotEmpty) {
+        final email = (results.first['email'] as String?)?.trim();
+        if (email != null && email.isNotEmpty) return email;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Used to block duplicate onboarding submissions for the same candidate —
   /// a token-based link can otherwise be resubmitted any number of times.
   static Future<bool> hasOnboardingFormForCandidate(String candidateId) async {
