@@ -99,6 +99,17 @@ class _CheckOutPageState extends State<CheckOutPage> {
   }
 
   Future<void> _onCheckOut() async {
+    if (_isEarlyCheckOut(_timeController.text, _permissionMinutes) &&
+        _noteController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please add a reason for checking out early.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     final now = DateTime.now();
     final date =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
@@ -221,7 +232,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           controller: _noteController,
                           maxLines: 2,
                           decoration: InputDecoration(
-                            labelText: 'Reason for early check-out (optional)',
+                            labelText: 'Reason for early check-out (required)',
                             hintText: 'e.g. left early for client meeting',
                             prefixIcon: Icon(Icons.edit_note_rounded, color: _color, size: 20),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),

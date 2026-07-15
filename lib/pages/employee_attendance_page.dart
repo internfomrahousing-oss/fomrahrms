@@ -2,14 +2,40 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
+import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/checkin_status.dart';
 import '../utils/location_consent.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
+
+// Note box only needs to appear once check-in slips past the grace time.
+bool _isLateCheckIn(String hhmm) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return false;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return false;
+  return (h * 60 + m) > (9 * 60 + 30);
+}
+
+const int _normalCheckOutMinutes = 18 * 60 + 30;
+
+// Note box only needs to appear for an early check-out (before the cutoff).
+// An approved same-day Permission pushes the cutoff earlier by its minutes —
+// same convention as check_out_page.dart.
+bool _isEarlyCheckOut(String hhmm, int permissionMinutes) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return false;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return false;
+  return (h * 60 + m) < (_normalCheckOutMinutes - permissionMinutes);
+}
 
 class EmployeeAttendancePage extends StatefulWidget {
   // prefix kept for router compatibility; not used internally
@@ -28,6 +54,10 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
   bool _loading = true;
   bool _submitting = false;
   AttendanceRecord? _record;
+  // Minutes granted by a same-day approved Permission — extends the late
+  // check-in cutoff and pulls the early check-out cutoff earlier by the
+  // same amount; 0 if none. See checkin_status.dart's approvedPermissionMinutesFor.
+  int _permissionMinutes = 0;
   Timer? _refreshTimer;
 
   final _checkInCtrl  = TextEditingController();
@@ -61,10 +91,17 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
+    final results = await Future.wait([
+      SupabaseService.fetchTodayAttendance(UserSession.employeeId),
+      SupabaseService.fetchLeaveApplications(),
+    ]);
     if (!mounted) return;
+    final rec = results[0] as AttendanceRecord?;
+    final leaves = results[1] as List<LeaveApplication>;
     setState(() {
       _record  = rec;
+      _permissionMinutes =
+          approvedPermissionMinutesFor(leaves, UserSession.name, DateTime.now());
       _loading = false;
     });
     if (rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty) {
@@ -79,6 +116,17 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
   Future<void> _checkIn() async {
     await ensureLocationConsent(context);
     if (!mounted) return;
+
+    final needsNote = _isLateCheckIn(_checkInCtrl.text) && _permissionMinutes == 0;
+    if (needsNote && _checkInNoteCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please add a reason for checking in late.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
 
     setState(() => _submitting = true);
     final now  = DateTime.now();
@@ -132,6 +180,17 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
   }
 
   Future<void> _checkOut() async {
+    final needsNote = _isEarlyCheckOut(_checkOutCtrl.text, _permissionMinutes);
+    if (needsNote && _checkOutNoteCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please add a reason for checking out early.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     setState(() => _submitting = true);
     final now  = DateTime.now();
     final date = _fmtDate(now);
@@ -286,16 +345,32 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
             ],
 
             const SizedBox(height: 16),
-            _TimeField(
-              controller: _checkOutCtrl,
-              label:   'Check-Out Time',
-              icon:    Icons.logout_rounded,
-              color:   _teal,
-              cs:      cs,
-              onRefresh: () => _fillTime(_checkOutCtrl),
+            ListenableBuilder(
+              listenable: _checkOutCtrl,
+              builder: (context, _) {
+                final showNote = _isEarlyCheckOut(_checkOutCtrl.text, _permissionMinutes);
+                return Column(children: [
+                  _TimeField(
+                    controller: _checkOutCtrl,
+                    label:   'Check-Out Time',
+                    icon:    Icons.logout_rounded,
+                    color:   _teal,
+                    cs:      cs,
+                    onRefresh: () => _fillTime(_checkOutCtrl),
+                  ),
+                  if (showNote) ...[
+                    const SizedBox(height: 12),
+                    _NoteField(
+                      controller: _checkOutNoteCtrl,
+                      color: _teal,
+                      cs: cs,
+                      label: 'Reason for early check-out (required)',
+                      hint: 'e.g. left early for client meeting',
+                    ),
+                  ],
+                ]);
+              },
             ),
-            const SizedBox(height: 12),
-            _NoteField(controller: _checkOutNoteCtrl, color: _teal, cs: cs),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
@@ -328,16 +403,33 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
                       color: isDark ? Colors.orange.shade300 : Colors.orange.shade800)),
             ),
             const SizedBox(height: 16),
-            _TimeField(
-              controller: _checkInCtrl,
-              label:    'Check-In Time',
-              icon:     Icons.login_rounded,
-              color:    _blue,
-              cs:       cs,
-              onRefresh: () => _fillTime(_checkInCtrl),
+            ListenableBuilder(
+              listenable: _checkInCtrl,
+              builder: (context, _) {
+                final showNote =
+                    _isLateCheckIn(_checkInCtrl.text) && _permissionMinutes == 0;
+                return Column(children: [
+                  _TimeField(
+                    controller: _checkInCtrl,
+                    label:    'Check-In Time',
+                    icon:     Icons.login_rounded,
+                    color:    _blue,
+                    cs:       cs,
+                    onRefresh: () => _fillTime(_checkInCtrl),
+                  ),
+                  if (showNote) ...[
+                    const SizedBox(height: 12),
+                    _NoteField(
+                      controller: _checkInNoteCtrl,
+                      color: _blue,
+                      cs: cs,
+                      label: 'Reason for late check-in (required)',
+                      hint: 'e.g. traffic delay, doctor appointment',
+                    ),
+                  ],
+                ]);
+              },
             ),
-            const SizedBox(height: 12),
-            _NoteField(controller: _checkInNoteCtrl, color: _blue, cs: cs),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
@@ -448,7 +540,15 @@ class _NoteField extends StatelessWidget {
   final TextEditingController controller;
   final Color color;
   final ColorScheme cs;
-  const _NoteField({required this.controller, required this.color, required this.cs});
+  final String label;
+  final String hint;
+  const _NoteField({
+    required this.controller,
+    required this.color,
+    required this.cs,
+    required this.label,
+    required this.hint,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -459,8 +559,8 @@ class _NoteField extends StatelessWidget {
           controller: controller,
           maxLines: 2,
           decoration: InputDecoration(
-            labelText: 'Note (optional)',
-            hintText: 'e.g. working from client site',
+            labelText: label,
+            hintText: hint,
             prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             enabledBorder: OutlineInputBorder(

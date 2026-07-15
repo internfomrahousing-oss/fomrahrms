@@ -6,10 +6,37 @@ import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/checkin_status.dart';
 import '../utils/location_consent.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart' show InfoCard;
 import 'hover_lift.dart';
+
+// Note is compulsory once check-in slips past the grace time (and isn't
+// covered by a same-day approved Permission) — same 09:30 cutoff as
+// check_in_page.dart.
+bool _isLateCheckIn(String hhmm) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return false;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return false;
+  return (h * 60 + m) > (9 * 60 + 30);
+}
+
+const int _normalCheckOutMinutes = 18 * 60 + 30;
+
+// Note is compulsory for an early check-out — an approved same-day
+// Permission pushes the cutoff earlier by its minutes, same as
+// check_out_page.dart.
+bool _isEarlyCheckOut(String hhmm, int permissionMinutes) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return false;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return false;
+  return (h * 60 + m) < (_normalCheckOutMinutes - permissionMinutes);
+}
 
 /// One extra static tile shown in the unified Quick Access grid, alongside
 /// the built-in Check In/Out and HR Policy tiles.
@@ -891,11 +918,24 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
   late final TextEditingController _timeCtrl;
   final _noteCtrl = TextEditingController();
   bool _submitting = false;
+  // Minutes granted by a same-day approved Permission; 0 if none. See
+  // checkin_status.dart's approvedPermissionMinutesFor.
+  int _permissionMinutes = 0;
 
   @override
   void initState() {
     super.initState();
     _timeCtrl = TextEditingController(text: _nowTime());
+    _loadPermission();
+  }
+
+  Future<void> _loadPermission() async {
+    final leaves = await SupabaseService.fetchLeaveApplications();
+    if (!mounted) return;
+    setState(() {
+      _permissionMinutes =
+          approvedPermissionMinutesFor(leaves, UserSession.name, DateTime.now());
+    });
   }
 
   @override
@@ -916,6 +956,17 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
   Future<void> _checkIn() async {
     await ensureLocationConsent(context);
     if (!mounted) return;
+
+    if (_isLateCheckIn(_timeCtrl.text) && _permissionMinutes == 0 &&
+        _noteCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please add a reason for checking in late.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
 
     setState(() => _submitting = true);
     final now = DateTime.now();
@@ -969,6 +1020,17 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
   }
 
   Future<void> _checkOut() async {
+    if (_isEarlyCheckOut(_timeCtrl.text, _permissionMinutes) &&
+        _noteCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please add a reason for checking out early.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     setState(() => _submitting = true);
     final now = DateTime.now();
 
@@ -1091,58 +1153,74 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
 
         // Time field (hide when done)
         if (!isDone) ...[
-          TextField(
-            controller: _timeCtrl,
-            keyboardType: TextInputType.datetime,
-            decoration: InputDecoration(
-              labelText: isCheckedIn ? 'Check-Out Time' : 'Check-In Time',
-              prefixIcon: Icon(
-                isCheckedIn ? Icons.logout_rounded : Icons.login_rounded,
-                color: isCheckedIn ? _teal : accent,
-                size: 20,
-              ),
-              suffixIcon: IconButton(
-                tooltip: 'Use current time',
-                icon: Icon(Icons.schedule_rounded,
-                    color: isCheckedIn ? _teal : accent),
-                onPressed: () => setState(() => _timeCtrl.text = _nowTime()),
-              ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: cs.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                    color: isCheckedIn ? _teal : accent, width: 2),
-              ),
-              filled: true,
-              fillColor: cs.surface,
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _noteCtrl,
-            maxLines: 2,
-            decoration: InputDecoration(
-              labelText: 'Note (optional)',
-              hintText: isCheckedIn ? 'e.g. left early for client meeting' : 'e.g. working from client site',
-              prefixIcon: Icon(Icons.edit_note_rounded,
-                  color: isCheckedIn ? _teal : accent, size: 20),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: cs.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                    color: isCheckedIn ? _teal : accent, width: 2),
-              ),
-              filled: true,
-              fillColor: cs.surface,
-            ),
+          ListenableBuilder(
+            listenable: _timeCtrl,
+            builder: (context, _) {
+              final showNote = isCheckedIn
+                  ? _isEarlyCheckOut(_timeCtrl.text, _permissionMinutes)
+                  : (_isLateCheckIn(_timeCtrl.text) && _permissionMinutes == 0);
+              return Column(children: [
+                TextField(
+                  controller: _timeCtrl,
+                  keyboardType: TextInputType.datetime,
+                  decoration: InputDecoration(
+                    labelText: isCheckedIn ? 'Check-Out Time' : 'Check-In Time',
+                    prefixIcon: Icon(
+                      isCheckedIn ? Icons.logout_rounded : Icons.login_rounded,
+                      color: isCheckedIn ? _teal : accent,
+                      size: 20,
+                    ),
+                    suffixIcon: IconButton(
+                      tooltip: 'Use current time',
+                      icon: Icon(Icons.schedule_rounded,
+                          color: isCheckedIn ? _teal : accent),
+                      onPressed: () => setState(() => _timeCtrl.text = _nowTime()),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          color: isCheckedIn ? _teal : accent, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: cs.surface,
+                  ),
+                ),
+                if (showNote) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _noteCtrl,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: isCheckedIn
+                          ? 'Reason for early check-out (required)'
+                          : 'Reason for late check-in (required)',
+                      hintText: isCheckedIn
+                          ? 'e.g. left early for client meeting'
+                          : 'e.g. traffic delay, doctor appointment',
+                      prefixIcon: Icon(Icons.edit_note_rounded,
+                          color: isCheckedIn ? _teal : accent, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: cs.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                            color: isCheckedIn ? _teal : accent, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: cs.surface,
+                    ),
+                  ),
+                ],
+              ]);
+            },
           ),
           const SizedBox(height: 16),
 

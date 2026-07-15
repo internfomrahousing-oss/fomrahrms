@@ -108,6 +108,17 @@ class _CheckInPageState extends State<CheckInPage> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
+    if (!_onPermission && _isLateCheckIn(_timeController.text) &&
+        _noteController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please add a reason for checking in late.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     final now = DateTime.now();
     final date =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
@@ -414,7 +425,7 @@ class _CheckInForm extends StatelessWidget {
                     controller: noteController,
                     maxLines: 2,
                     decoration: InputDecoration(
-                      labelText: 'Reason for late check-in (optional)',
+                      labelText: 'Reason for late check-in (required)',
                       hintText: 'e.g. traffic delay, doctor appointment',
                       prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
