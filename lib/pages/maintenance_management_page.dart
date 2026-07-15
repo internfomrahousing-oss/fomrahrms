@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
@@ -8,9 +9,25 @@ import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../theme/app_theme.dart';
+import '../utils/image_compress.dart';
 import '../utils/month_picker.dart';
+import '../utils/open_url.dart';
+import '../utils/pdf_compress.dart';
 import '../widgets/back_button.dart';
 import '../widgets/filter_panel.dart';
+
+const int _kMaxAttachmentBytes = 500 * 1024;
+
+const _mimeByExt = {
+  'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+  'gif': 'image/gif', 'webp': 'image/webp', 'heic': 'image/heic',
+  'pdf': 'application/pdf',
+};
+
+String _mimeFromFileName(String name) {
+  final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+  return _mimeByExt[ext] ?? 'application/octet-stream';
+}
 
 class MaintenanceManagementPage extends StatefulWidget {
   // When true (HR's "My Space" entry), always show the personal
@@ -33,6 +50,13 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   int _hrTabIndex = 0;
   int _mgmtTabIndex = 0;
   final _descController = TextEditingController();
+
+  // Attachment (optional) — uploaded immediately on selection, capped at
+  // 500 KB. Images over the cap are auto-compressed; other files (PDFs) are
+  // best-effort compressed and rejected if still too large.
+  String? _attachmentUrl;
+  String? _attachmentName;
+  bool _uploadingAttachment = false;
 
   List<String> _issueForOptions = List<String>.from(MaintenanceFormConfig.defaultIssueForOptions);
   List<String> _issueTypes      = List<String>.from(MaintenanceFormConfig.defaultIssueTypes);
@@ -81,6 +105,66 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     } catch (_) {}
   }
 
+  Future<void> _pickAttachment() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
+    final file = result.files.first;
+    final rawBytes = file.bytes;
+    if (rawBytes == null) {
+      _showAttachmentError('Could not read file.');
+      return;
+    }
+
+    setState(() => _uploadingAttachment = true);
+    try {
+      var bytes = rawBytes;
+      var mime = _mimeFromFileName(file.name);
+      if (bytes.length > _kMaxAttachmentBytes) {
+        if (mime.startsWith('image/')) {
+          final compressed = await compressImage(bytes, mime);
+          if (compressed != null) { bytes = compressed; mime = 'image/jpeg'; }
+        } else if (mime == 'application/pdf') {
+          final compressed = await compressPdf(bytes);
+          if (compressed != null && compressed.length < bytes.length) bytes = compressed;
+        }
+        if (bytes.length > _kMaxAttachmentBytes) {
+          throw 'File is still ${(bytes.length / 1024).round()} KB after compression — '
+              'please attach a file under 500 KB.';
+        }
+      }
+      final safeName = file.name.replaceAll(RegExp(r'[^\w.\-]'), '_');
+      final url = await SupabaseService.uploadFile(bytes, safeName, mime);
+      if (!mounted) return;
+      setState(() {
+        _attachmentUrl = url;
+        _attachmentName = file.name;
+      });
+    } catch (e) {
+      if (mounted) _showAttachmentError('$e');
+    } finally {
+      if (mounted) setState(() => _uploadingAttachment = false);
+    }
+  }
+
+  void _showAttachmentError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: Colors.red.shade700,
+      duration: const Duration(seconds: 6),
+    ));
+  }
+
+  void _removeAttachment() {
+    setState(() {
+      _attachmentUrl = null;
+      _attachmentName = null;
+    });
+  }
+
   Future<void> _submitTicket() async {
     final issueFor  = _selectedIssueFor;
     final issueType = _selectedIssueType;
@@ -103,6 +187,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       description:    desc,
       priority:       _selectedPriority,
       createdAt:      DateTime.now(),
+      attachmentUrl:  _attachmentUrl,
+      attachmentName: _attachmentName,
     );
     setState(() {
       MaintenanceStore.tickets.insert(0, ticket);
@@ -110,6 +196,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       _selectedIssueType = null;
       _selectedPriority = 'Medium';
       _descController.clear();
+      _attachmentUrl = null;
+      _attachmentName = null;
     });
     final error = await SupabaseService.saveMaintenanceTicket(ticket);
     if (!mounted) return;
@@ -559,6 +647,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
             ),
           ),
           const SizedBox(height: 16),
+          _buildAttachmentPicker(context),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -570,6 +660,58 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
         ]),
       ),
     );
+  }
+
+  Widget _buildAttachmentPicker(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Attachment (optional, max 500 KB)',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(children: [
+          Icon(Icons.attach_file_rounded, color: AppTheme.primaryBlue, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _uploadingAttachment
+                  ? 'Uploading…'
+                  : (_attachmentName ?? 'No file selected (image or PDF)'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600,
+                  color: _attachmentName != null
+                      ? const Color(0xFF111827)
+                      : const Color(0xFF9CA3AF)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (_attachmentName != null && !_uploadingAttachment)
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 18),
+              tooltip: 'Remove',
+              onPressed: _removeAttachment,
+            ),
+          OutlinedButton(
+            onPressed: _uploadingAttachment ? null : _pickAttachment,
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: _uploadingAttachment
+                ? const SizedBox(
+                    width: 16, height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(_attachmentName != null ? 'Replace' : 'Upload'),
+          ),
+        ]),
+      ),
+    ]);
   }
 
   Widget _buildMyReportedIssuesList(BuildContext context) {
@@ -976,6 +1118,18 @@ class _TicketCard extends StatelessWidget {
         ]),
         Text('#${ticket.id}',
             style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55), fontWeight: FontWeight.w500)),
+        if (ticket.attachmentUrl != null && ticket.attachmentUrl!.isNotEmpty)
+          InkWell(
+            onTap: () => viewAttachment(ticket.attachmentUrl!),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.attach_file_rounded, size: 13, color: AppTheme.primaryBlue),
+              const SizedBox(width: 2),
+              Text('View Attachment',
+                  style: TextStyle(
+                      fontSize: 11, color: AppTheme.primaryBlue,
+                      fontWeight: FontWeight.w600, decoration: TextDecoration.underline)),
+            ]),
+          ),
       ]),
     ]);
 

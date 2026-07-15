@@ -30,6 +30,8 @@ class MaintenanceTicket {
   String? resolutionNote;
   DateTime? resolvedAt;
   final DateTime createdAt;
+  final String? attachmentUrl;
+  final String? attachmentName;
 
   MaintenanceTicket({
     required this.id,
@@ -45,6 +47,8 @@ class MaintenanceTicket {
     this.resolutionNote,
     this.resolvedAt,
     required this.createdAt,
+    this.attachmentUrl,
+    this.attachmentName,
   });
 }
 

@@ -636,6 +636,8 @@ class SupabaseService {
         'resolution_note':      ticket.resolutionNote,
         'resolved_at':          ticket.resolvedAt?.toIso8601String(),
         'created_at':           ticket.createdAt.toIso8601String(),
+        'attachment_url':       ticket.attachmentUrl,
+        'attachment_name':      ticket.attachmentName,
       });
       return null;
     } catch (e) {
@@ -714,6 +716,8 @@ class SupabaseService {
               ? DateTime.parse(row['resolved_at'] as String)
               : null,
           createdAt:          DateTime.parse(row['created_at'] as String),
+          attachmentUrl:      row['attachment_url'] as String?,
+          attachmentName:     row['attachment_name'] as String?,
         );
       }).toList();
     } catch (_) {
