@@ -2341,17 +2341,26 @@ class SupabaseService {
 
   // ── Pre-Offer PDF upload (same RESUME bucket every other upload uses) ──
 
-  // Stored under custom_uploads/ (not a new pre-offer-letters/ folder) since
-  // the RESUME bucket's storage policy is scoped by top-level folder name —
-  // custom_uploads/ already has a working policy (see uploadFile above),
-  // and every call here goes through the anon key regardless of HR being
-  // logged in, since this app has no real Supabase Auth session.
+  // upsert:true was the actual cause of the 403 — Postgres RLS requires an
+  // UPDATE policy for any ON CONFLICT DO UPDATE statement even when the row
+  // doesn't exist yet, and the RESUME bucket only has INSERT/SELECT
+  // policies for anon (no UPDATE), so upsert always failed regardless of
+  // folder path. A plain insert satisfies the existing INSERT policy; a
+  // resend for the same candidate hits "Duplicate" (409) instead, which we
+  // treat as success since the object (and its PDF) is already there.
   static Future<String> uploadPreOfferPdf(String candidateId, Uint8List bytes) async {
     final path = 'custom_uploads/pre-offer-letter-$candidateId.pdf';
-    await _db!.storage.from('RESUME').uploadBinary(
-      path, bytes,
-      fileOptions: const FileOptions(contentType: 'application/pdf', upsert: true),
-    );
+    try {
+      await _db!.storage.from('RESUME').uploadBinary(
+        path, bytes,
+        fileOptions: const FileOptions(contentType: 'application/pdf'),
+      );
+    } on StorageException catch (e) {
+      final isDuplicate = e.statusCode == '409' ||
+          e.error?.toLowerCase() == 'duplicate' ||
+          e.message.toLowerCase().contains('already exists');
+      if (!isDuplicate) rethrow;
+    }
     return _db!.storage.from('RESUME').getPublicUrl(path);
   }
 
