@@ -307,18 +307,9 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categoryMuted = muted.contains(category.id);
-    if (category.subTypes.length <= 1) {
-      // Nothing to fine-tune below a single-type category — just the plain
-      // master toggle, same as before.
-      return SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        secondary: Icon(category.icon, color: AppTheme.primaryBlue, size: 22),
-        title: Text(category.label, style: const TextStyle(fontSize: 14)),
-        value: !categoryMuted,
-        onChanged: (v) => onToggleCategory(category.id, v),
-        activeColor: AppTheme.primaryBlue,
-      );
-    }
+    // Always render as a dropdown — even single-subtype categories — so the
+    // master switch lands at the same x position on every row instead of
+    // jumping right when there's no chevron to make room for.
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       childrenPadding: EdgeInsets.zero,
