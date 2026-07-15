@@ -48,17 +48,18 @@ class _MilestoneConfettiState extends State<MilestoneConfetti> {
 
     if (message == null) {
       try {
-        final eom = await SupabaseService.fetchEmployeeOfMonth();
-        final eomName = (eom?['employee_name'] as String?)?.trim().toLowerCase() ?? '';
-        final announced = DateTime.tryParse((eom?['announced_date'] as String?) ?? '');
+        final winners = await SupabaseService.fetchEmployeesOfMonth();
         final today = DateTime.now();
-        final isAnnouncedToday = announced != null &&
-            announced.year == today.year &&
-            announced.month == today.month &&
-            announced.day == today.day;
-        if (eomName == name.toLowerCase() && isAnnouncedToday) {
-          message = 'You\'re the Employee of the Month, $name! \u{1F3C6}';
-        }
+        final iAmWinner = winners.any((eom) {
+          final eomName = (eom['employee_name'] as String?)?.trim().toLowerCase() ?? '';
+          final announced = DateTime.tryParse((eom['announced_date'] as String?) ?? '');
+          final isAnnouncedToday = announced != null &&
+              announced.year == today.year &&
+              announced.month == today.month &&
+              announced.day == today.day;
+          return eomName == name.toLowerCase() && isAnnouncedToday;
+        });
+        if (iAmWinner) message = 'You\'re the Employee of the Month, $name! \u{1F3C6}';
       } catch (_) {}
     }
 

@@ -1017,7 +1017,20 @@ class SupabaseService {
     } catch (_) {}
   }
 
-  static Future<void> updateTaskStatus(String id, TaskStatus status) async {
+  // [note] is the reason given for completing a task after it went Delayed
+  // (see MyTasksPage._onDone) — written to the completion_note column.
+  // Falls back to a plain status update if that column doesn't exist yet
+  // on this database, so completing a task never silently fails outright.
+  static Future<void> updateTaskStatus(String id, TaskStatus status, {String? note}) async {
+    if (note != null && note.isNotEmpty) {
+      try {
+        await _db?.from('tasks').update({
+          'status': status.name,
+          'completion_note': note,
+        }).eq('id', id);
+        return;
+      } catch (_) {}
+    }
     try {
       await _db?.from('tasks').update({'status': status.name}).eq('id', id);
     } catch (_) {}
@@ -1032,14 +1045,24 @@ class SupabaseService {
     } catch (_) {}
   }
 
-  // Updates one team member's status; if allCompleted, also flips overall status.
+  // Updates one team member's status; if allCompleted, also flips overall
+  // status. [note] is that member's reason for completing late (see
+  // MyTasksPage._onGroupDone) — same completion_note column and fallback
+  // as updateTaskStatus, since there's no per-member notes column.
   static Future<void> updateTeamMemberStatus(
-      String taskId, Map<String, String> statuses, bool allCompleted) async {
+      String taskId, Map<String, String> statuses, bool allCompleted, {String? note}) async {
+    final update = <String, dynamic>{
+      'team_member_statuses': jsonEncode(statuses),
+    };
+    if (allCompleted) update['status'] = TaskStatus.completed.name;
+    if (note != null && note.isNotEmpty) {
+      try {
+        await _db?.from('tasks')
+            .update({...update, 'completion_note': note}).eq('id', taskId);
+        return;
+      } catch (_) {}
+    }
     try {
-      final update = <String, dynamic>{
-        'team_member_statuses': jsonEncode(statuses),
-      };
-      if (allCompleted) update['status'] = TaskStatus.completed.name;
       await _db?.from('tasks').update(update).eq('id', taskId);
     } catch (_) {}
   }
@@ -1952,43 +1975,58 @@ class SupabaseService {
   }
 
   // ── Employee of the Month ──────────────────────────────────────────────────
+  // Multiple employees can share a single month's announcement — every row
+  // for the most recently announced month_year is a co-winner, not just one.
 
-  static Future<Map<String, dynamic>?> fetchEmployeeOfMonth() async {
+  static Future<List<Map<String, dynamic>>> fetchEmployeesOfMonth() async {
     try {
-      final data = await _db
+      final all = await _db
           ?.from('employee_of_month')
           .select()
-          .order('month_year', ascending: false)
-          .limit(1)
-          .maybeSingle();
-      return data;
+          .order('month_year', ascending: false);
+      if (all == null || all.isEmpty) return [];
+      final latestMonth = all.first['month_year'] as String?;
+      return List<Map<String, dynamic>>.from(
+          all.where((r) => r['month_year'] == latestMonth));
     } catch (_) {
-      return null;
+      return [];
     }
   }
 
-  static Future<String?> upsertEmployeeOfMonth(
-      String name, String reason, String monthYear) async {
+  /// Reconciles [monthYear]'s winners to exactly [names]: adds any new
+  /// names (or updates their reason if already present), and removes any
+  /// existing winner for that month who isn't in [names] anymore — so the
+  /// dialog's checkbox selection is the single source of truth per save.
+  static Future<String?> saveEmployeesOfMonth(
+      List<String> names, String reason, String monthYear) async {
     try {
       final today = DateTime.now().toIso8601String().split('T').first;
       final existing = await _db
-          ?.from('employee_of_month')
-          .select('id')
-          .eq('month_year', monthYear)
-          .maybeSingle();
-      if (existing != null) {
-        await _db?.from('employee_of_month').update({
-          'employee_name': name,
-          'reason': reason,
-          'announced_date': today,
-        }).eq('month_year', monthYear);
-      } else {
-        await _db?.from('employee_of_month').insert({
-          'employee_name': name,
-          'reason': reason,
-          'month_year': monthYear,
-          'announced_date': today,
-        });
+              ?.from('employee_of_month')
+              .select('id, employee_name')
+              .eq('month_year', monthYear) ??
+          [];
+
+      final toRemove = existing.where((r) => !names.contains(r['employee_name']));
+      for (final r in toRemove) {
+        await _db?.from('employee_of_month').delete().eq('id', r['id']);
+      }
+
+      for (final name in names) {
+        final match = existing.where((r) => r['employee_name'] == name);
+        if (match.isNotEmpty) {
+          await _db?.from('employee_of_month').update({
+            'reason': reason,
+            'announced_date': today,
+          }).eq('id', match.first['id']);
+        } else {
+          await _db?.from('employee_of_month').insert({
+            'employee_name': name,
+            'reason': reason,
+            'month_year': monthYear,
+            'announced_date': today,
+          });
+        }
       }
       return null;
     } catch (e) {

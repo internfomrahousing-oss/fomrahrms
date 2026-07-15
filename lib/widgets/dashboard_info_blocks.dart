@@ -625,7 +625,7 @@ class _EmployeeOfMonthBlock extends StatefulWidget {
 }
 
 class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
-  Map<String, dynamic>? _data;
+  List<Map<String, dynamic>> _data = [];
   bool _loading = true;
 
   static const _orange = Color(0xFFFB8C00);
@@ -634,7 +634,7 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    final data = await SupabaseService.fetchEmployeeOfMonth();
+    final data = await SupabaseService.fetchEmployeesOfMonth();
     if (mounted) setState(() { _data = data; _loading = false; });
   }
 
@@ -652,49 +652,69 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
         .toList()
       ..sort();
 
-    final currentName = _data?['employee_name'] as String? ?? '';
-    String? selectedName = names.contains(currentName) ? currentName : null;
+    final currentNames = _data
+        .map((d) => d['employee_name'] as String? ?? '')
+        .where(names.contains)
+        .toSet();
+    final selected = <String>{...currentNames};
+    // Reason is shared across everyone selected in this save — prefill from
+    // whichever existing winner's reason, since it's a single field now.
     final reasonCtrl = TextEditingController(
-        text: _data?['reason'] as String? ?? '');
+        text: _data.isNotEmpty ? (_data.first['reason'] as String? ?? '') : '');
 
     await showDialog(
       context: context,
       builder: (dlgCtx) => StatefulBuilder(
         builder: (sbCtx, setDlg) => AlertDialog(
           title: const Text('Employee of the Month'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            DropdownButtonFormField<String>(
-              value: selectedName,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                  labelText: 'Employee Name',
-                  border: OutlineInputBorder()),
-              items: names
-                  .map((n) => DropdownMenuItem(value: n, child: Text(n)))
-                  .toList(),
-              onChanged: (v) => setDlg(() => selectedName = v),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                  labelText: 'Reason / Achievement',
-                  border: OutlineInputBorder()),
-            ),
-          ]),
+          content: SizedBox(
+            width: 360,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Select one or more employees',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              const SizedBox(height: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 260),
+                child: Scrollbar(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: names.map((n) => CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Text(n),
+                          value: selected.contains(n),
+                          onChanged: (v) => setDlg(() {
+                            if (v == true) {
+                              selected.add(n);
+                            } else {
+                              selected.remove(n);
+                            }
+                          }),
+                        )).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                    labelText: 'Reason / Achievement',
+                    border: OutlineInputBorder()),
+              ),
+            ]),
+          ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dlgCtx),
                 child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                final name = selectedName ?? '';
                 final reason = reasonCtrl.text.trim();
-                if (name.isEmpty) return;
                 Navigator.pop(dlgCtx);
-                final err = await SupabaseService.upsertEmployeeOfMonth(
-                    name, reason, monthYear);
+                final err = await SupabaseService.saveEmployeesOfMonth(
+                    selected.toList(), reason, monthYear);
                 if (!mounted) return;
                 if (err == null) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -715,9 +735,8 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
 
   @override
   Widget build(BuildContext context) {
-    final name   = _data?['employee_name'] as String?;
-    final reason = _data?['reason'] as String?;
-    final my     = _data?['month_year'] as String?;
+    final winners = _data;
+    final my = winners.isNotEmpty ? winners.first['month_year'] as String? : null;
 
     String? monthLabel;
     if (my != null) {
@@ -740,7 +759,7 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
       onRefresh: _load,
       child: _loading
           ? const _Loader()
-          : name == null
+          : winners.isEmpty
               ? _Empty('Not announced yet')
               : SizedBox(
                   width: double.infinity,
@@ -756,19 +775,22 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: _orange)),
-                      const SizedBox(height: 4),
-                      Text(name,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6B7280))),
-                      if (reason != null && reason.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(reason,
+                      const SizedBox(height: 8),
+                      for (final w in winners) ...[
+                        Text(w['employee_name'] as String? ?? '',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF607D8B))),
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF6B7280))),
+                        if (((w['reason'] as String?) ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(w['reason'] as String,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF607D8B))),
+                        ],
+                        if (w != winners.last) const SizedBox(height: 10),
                       ],
                     ],
                   ),
