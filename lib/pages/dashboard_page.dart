@@ -110,7 +110,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                       const MyTasksBlock(viewAllRoute: '/hr/my-tasks'),
-                      const TaskAnalyticsBlock(),
+                      const TaskAnalyticsBlock(viewAllRoute: '/hr/my-tasks'),
                     ]),
                     const SizedBox(height: 16),
                     _MySpaceRow(children: const [

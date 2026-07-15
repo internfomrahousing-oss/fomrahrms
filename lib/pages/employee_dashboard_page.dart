@@ -61,7 +61,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                       ],
                     ),
                     const MyTasksBlock(viewAllRoute: '/employee/tasks', modern: true),
-                    const TaskAnalyticsBlock(modern: true),
+                    const TaskAnalyticsBlock(modern: true, viewAllRoute: '/employee/tasks'),
                   ]),
                   const SizedBox(height: 16),
                   _MySpaceRow(children: const [

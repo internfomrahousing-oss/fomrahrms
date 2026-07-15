@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/employee_store.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
@@ -17,7 +18,19 @@ class TaskAnalyticsBlock extends StatefulWidget {
   // Employee/Manager dashboards opt into an added "Completion Rate"
   // footer; HR keeps the original donut-only card (modern defaults false).
   final bool modern;
-  const TaskAnalyticsBlock({super.key, this.showTeam = false, this.showIcon = true, this.modern = false});
+  // Tapping a legend row (Pending/Completed/Delayed/...) jumps to this
+  // route pre-filtered to that status — null keeps the legend static.
+  final String? viewAllRoute;
+  // Same, for the "Team Tasks" donut when [showTeam] is true.
+  final String? teamViewAllRoute;
+  const TaskAnalyticsBlock({
+    super.key,
+    this.showTeam = false,
+    this.showIcon = true,
+    this.modern = false,
+    this.viewAllRoute,
+    this.teamViewAllRoute,
+  });
 
   @override
   State<TaskAnalyticsBlock> createState() => _TaskAnalyticsBlockState();
@@ -91,15 +104,33 @@ class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     !widget.showTeam
-                        ? _StatusDonut(label: 'Status Breakdown', counts: _mine)
+                        ? _StatusDonut(
+                            label: 'Status Breakdown',
+                            counts: _mine,
+                            onTapStatus: widget.viewAllRoute == null
+                                ? null
+                                : (s) => context.push('${widget.viewAllRoute}?status=${s.name}'),
+                          )
                         // Stacked rather than width-adaptive: this card only ever
                         // sits in a narrow My Space row slot, and LayoutBuilder
                         // can't be used here anyway (it can't report intrinsic
                         // dimensions, which the row's IntrinsicHeight needs).
                         : Column(children: [
-                            _StatusDonut(label: 'My Tasks', counts: _mine),
+                            _StatusDonut(
+                              label: 'My Tasks',
+                              counts: _mine,
+                              onTapStatus: widget.viewAllRoute == null
+                                  ? null
+                                  : (s) => context.push('${widget.viewAllRoute}?status=${s.name}'),
+                            ),
                             const SizedBox(height: 20),
-                            _StatusDonut(label: 'Team Tasks', counts: _team),
+                            _StatusDonut(
+                              label: 'Team Tasks',
+                              counts: _team,
+                              onTapStatus: widget.teamViewAllRoute == null
+                                  ? null
+                                  : (s) => context.push('${widget.teamViewAllRoute}?status=${s.name}'),
+                            ),
                           ]),
                     if (widget.modern) ...[
                       const SizedBox(height: 16),
@@ -201,7 +232,10 @@ class _SparklinePainter extends CustomPainter {
 class _StatusDonut extends StatelessWidget {
   final String label;
   final Map<TaskStatus, int> counts;
-  const _StatusDonut({required this.label, required this.counts});
+  // Tapping a legend row jumps to the pre-filtered task list for that
+  // status — null renders the legend as plain (non-interactive) text.
+  final void Function(TaskStatus status)? onTapStatus;
+  const _StatusDonut({required this.label, required this.counts, this.onTapStatus});
 
   @override
   Widget build(BuildContext context) {
@@ -254,27 +288,35 @@ class _StatusDonut extends StatelessWidget {
                       children: [
                         for (final s in TaskStatus.values)
                           if ((counts[s] ?? 0) > 0)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(children: [
-                                Container(
-                                  width: 8, height: 8,
-                                  decoration: BoxDecoration(
-                                      color: taskStatusColor(s), shape: BoxShape.circle),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(taskStatusLabel(s),
+                            InkWell(
+                              onTap: onTapStatus == null ? null : () => onTapStatus!(s),
+                              borderRadius: BorderRadius.circular(4),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(children: [
+                                  Container(
+                                    width: 8, height: 8,
+                                    decoration: BoxDecoration(
+                                        color: taskStatusColor(s), shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(taskStatusLabel(s),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            decoration: onTapStatus == null
+                                                ? TextDecoration.none
+                                                : TextDecoration.underline,
+                                            decorationColor: cs.onSurface.withValues(alpha: 0.3),
+                                            color: cs.onSurface.withValues(alpha: 0.75))),
+                                  ),
+                                  Text('${counts[s]}',
                                       style: TextStyle(
                                           fontSize: 11,
-                                          color: cs.onSurface.withValues(alpha: 0.75))),
-                                ),
-                                Text('${counts[s]}',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: taskStatusColor(s))),
-                              ]),
+                                          fontWeight: FontWeight.w700,
+                                          color: taskStatusColor(s))),
+                                ]),
+                              ),
                             ),
                       ],
                     ),

@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'models/color_theme_notifier.dart';
 import 'models/user_session.dart';
 import 'models/theme_notifier.dart';
+import 'models/task_store.dart';
 import 'pages/settings_page.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/employee_shell.dart';
@@ -208,7 +209,8 @@ final _router = GoRouter(
         GoRoute(path: '/leave/approvals',                 builder: (_, __) => const LeaveApprovalsPage()),
         GoRoute(path: '/leave/balance',                   builder: (_, __) => const LeaveBalancePage()),
         GoRoute(path: '/leave/employee-records',          builder: (_, __) => const HrLeaveRecordsPage()),
-        GoRoute(path: '/task-management',                 builder: (_, __) => const TaskManagementPage()),
+        GoRoute(path: '/task-management',                 builder: (_, state) =>
+            TaskManagementPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/task-management/add',             builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/performance-management',          builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/performance-management/employee', builder: (_, state) {
@@ -246,7 +248,8 @@ final _router = GoRouter(
         GoRoute(path: '/hr/attendance/check-in-out', builder: (_, __) => const EmployeeAttendancePage(prefix: '')),
         GoRoute(path: '/hr/my-leave',               builder: (_, __) => const EmployeeLeavePage(prefix: '')),
         GoRoute(path: '/hr/attendance-leaves',       builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/hr/attendance/check-in-out', leavePrefix: '')),
-        GoRoute(path: '/hr/my-tasks',               builder: (_, __) => const MyTasksPage()),
+        GoRoute(path: '/hr/my-tasks',               builder: (_, state) =>
+            MyTasksPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/hr/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/hr/my-kra',                 builder: (_, __) => const MyKraPage()),
         GoRoute(path: '/hr/my-profile',             builder: (_, __) => const MyProfilePage()),
@@ -279,7 +282,8 @@ final _router = GoRouter(
         GoRoute(path: '/employee/leave/approvals',         builder: (_, __) => const MyLeaveApprovalsPage()),
         GoRoute(path: '/employee/leave/balance',           builder: (_, __) => const MyLeaveBalancePage()),
         GoRoute(path: '/employee/leave',                   builder: (_, __) => const ApplyLeavePage()),
-        GoRoute(path: '/employee/tasks',                    builder: (_, __) => const MyTasksPage()),
+        GoRoute(path: '/employee/tasks',                    builder: (_, state) =>
+            MyTasksPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/employee/tasks/add',                builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/employee/payslips',                 builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/employee/kra',                      builder: (_, __) => const MyKraPage()),
@@ -324,7 +328,8 @@ final _router = GoRouter(
         GoRoute(path: '/manager/attendance/check-out',    builder: (_, __) => const CheckOutPage()),
         GoRoute(path: '/manager/attendance/gps-tracking', builder: (_, __) => const GpsTrackingPage()),
         GoRoute(path: '/manager/attendance/late-coming',  builder: (_, __) => const LateComingPage()),
-        GoRoute(path: '/manager/task-management',         builder: (_, __) => const TaskManagementPage()),
+        GoRoute(path: '/manager/task-management',         builder: (_, state) =>
+            TaskManagementPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/manager/task-management/add',     builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/manager/performance-management',  builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/manager/performance-management/employee', builder: (_, state) {
@@ -353,7 +358,8 @@ final _router = GoRouter(
         GoRoute(path: '/manager/attendance-leaves',              builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/manager/attendance/check-in-out', leavePrefix: '/manager')),
         GoRoute(path: '/manager/attendance/check-in-out',        builder: (_, __) => const EmployeeAttendancePage(prefix: '/manager')),
         GoRoute(path: '/manager/my-leave',                builder: (_, __) => const EmployeeLeavePage(prefix: '/manager')),
-        GoRoute(path: '/manager/my-tasks',                builder: (_, __) => const MyTasksPage()),
+        GoRoute(path: '/manager/my-tasks',                builder: (_, state) =>
+            MyTasksPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/manager/my-tasks/add',            builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/manager/my-payslips',             builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/manager/my-kra',                  builder: (_, __) => const MyKraPage()),
@@ -401,7 +407,8 @@ final _router = GoRouter(
           return EmployeeKraPage(employee: extra['employee'] as AppUser);
         }),
         GoRoute(path: '/management/kra-approvals',            builder: (_, __) => const KraApprovalsPage()),
-        GoRoute(path: '/management/task-management',        builder: (_, __) => const TaskManagementPage()),
+        GoRoute(path: '/management/task-management',        builder: (_, state) =>
+            TaskManagementPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/management/task-management/add',    builder: (_, __) => const AddTaskPage()),
         GoRoute(path: '/management/performance-management', builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/management/performance-management/employee', builder: (_, state) {
@@ -442,7 +449,8 @@ final _router = GoRouter(
         GoRoute(path: '/management/attendance/check-in-out',     builder: (_, __) => const EmployeeAttendancePage()),
         GoRoute(path: '/management/my-leave',               builder: (_, __) => const EmployeeLeavePage()),
         GoRoute(path: '/management/attendance-leaves',       builder: (_, __) => const MyAttendanceAndLeavePage(checkInRoute: '/management/attendance/check-in-out')),
-        GoRoute(path: '/management/my-tasks',               builder: (_, __) => const MyTasksPage()),
+        GoRoute(path: '/management/my-tasks',               builder: (_, state) =>
+            MyTasksPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),
         GoRoute(path: '/management/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/management/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/management/my-maintenance',         builder: (_, __) => const MaintenanceManagementPage()),

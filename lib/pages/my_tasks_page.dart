@@ -9,7 +9,10 @@ import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
 class MyTasksPage extends StatefulWidget {
-  const MyTasksPage({super.key});
+  // Pre-selects a status filter chip — set when arriving from the Task
+  // Analytics legend (e.g. tapping "Delayed" jumps here already filtered).
+  final TaskStatus? initialStatus;
+  const MyTasksPage({super.key, this.initialStatus});
 
   @override
   State<MyTasksPage> createState() => _MyTasksPageState();
@@ -35,6 +38,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
   @override
   void initState() {
     super.initState();
+    _filter = widget.initialStatus;
     _load();
   }
 

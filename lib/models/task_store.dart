@@ -4,6 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum TaskStatus { assigned, pending, inProgress, completed, delayed }
 enum TaskPriority { low, medium, high, critical }
 
+/// Round-trips a [TaskStatus] through a route's `?status=` query param —
+/// used to deep-link from the Task Analytics legend into a pre-filtered
+/// task list. Unknown/missing values fall back to "no filter" rather than
+/// throwing, since this only ever comes from a URL we generated ourselves.
+TaskStatus? taskStatusFromName(String? name) {
+  for (final s in TaskStatus.values) {
+    if (s.name == name) return s;
+  }
+  return null;
+}
+
 class Task {
   final String id;
   String name;

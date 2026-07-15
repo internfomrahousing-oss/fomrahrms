@@ -13,7 +13,10 @@ import 'salary_hike_engine_page.dart';
 enum _TaskSort { dueDate, priority, recentlyAdded, alphabetical }
 
 class TaskManagementPage extends StatefulWidget {
-  const TaskManagementPage({super.key});
+  // Pre-selects a status filter chip — set when arriving from the Task
+  // Analytics legend (e.g. tapping "Delayed" jumps here already filtered).
+  final TaskStatus? initialStatus;
+  const TaskManagementPage({super.key, this.initialStatus});
 
   @override
   State<TaskManagementPage> createState() => _TaskManagementPageState();
@@ -43,6 +46,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() => setState(() {}));
+    _filter = widget.initialStatus;
     _load();
   }
 

@@ -1123,19 +1123,23 @@ class _ModernTasksSummary extends StatelessWidget {
   final String viewAllRoute;
   const _ModernTasksSummary({required this.tasks, required this.viewAllRoute});
 
-  // Tasks already sorted by due date ascending (see _load) — keep any that
-  // are overdue or due within the next 3 days, same cutoff _urgency uses
-  // for its amber "Due in Nd" label.
-  static bool _isDueSoon(Task t) {
+  static const _rowHeight = 28.0;
+  static const _maxVisibleRows = 3;
+
+  // Only the tasks that actually need attention right now — already
+  // overdue, or due tomorrow. Tasks due today/later are left to "View all"
+  // instead of cluttering this list.
+  static bool _isUrgent(Task t) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
-    return day.difference(today).inDays <= 3;
+    final diff = day.difference(today).inDays;
+    return diff < 0 || diff == 1;
   }
 
   @override
   Widget build(BuildContext context) {
-    final dueSoon = tasks.where(_isDueSoon).toList();
+    final urgent = tasks.where(_isUrgent).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Pending',
           style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
@@ -1146,29 +1150,23 @@ class _ModernTasksSummary extends StatelessWidget {
       const Text('Due Soon',
           style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
       const SizedBox(height: 6),
-      if (dueSoon.isEmpty)
-        const Text('Nothing due in the next few days',
+      if (urgent.isEmpty)
+        const Text('Nothing overdue or due tomorrow',
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))
+      else if (urgent.length <= _maxVisibleRows)
+        for (final t in urgent) _TaskUrgencyRow(task: t, height: _rowHeight)
       else
-        for (final t in dueSoon)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(children: [
-              Expanded(
-                child: Text(t.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-              ),
-              const SizedBox(width: 8),
-              Builder(builder: (_) {
-                final (label, color) = _MyTasksBlockState._urgency(t.dueDate, AppTheme.textSecondary);
-                return Text(label,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color));
-              }),
-            ]),
+        // More than fit — cap the card at 3 rows tall and let the rest
+        // scroll inside it instead of growing the card indefinitely.
+        SizedBox(
+          height: _rowHeight * _maxVisibleRows,
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            itemExtent: _rowHeight,
+            itemCount: urgent.length,
+            itemBuilder: (_, i) => _TaskUrgencyRow(task: urgent[i], height: _rowHeight),
           ),
+        ),
       const SizedBox(height: 8),
       InkWell(
         onTap: () => context.push(viewAllRoute),
@@ -1180,6 +1178,31 @@ class _ModernTasksSummary extends StatelessWidget {
         ]),
       ),
     ]);
+  }
+}
+
+class _TaskUrgencyRow extends StatelessWidget {
+  final Task task;
+  final double height;
+  const _TaskUrgencyRow({required this.task, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = _MyTasksBlockState._urgency(task.dueDate, AppTheme.textSecondary);
+    return SizedBox(
+      height: height,
+      child: Row(children: [
+        Expanded(
+          child: Text(task.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+        ),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+      ]),
+    );
   }
 }
 
