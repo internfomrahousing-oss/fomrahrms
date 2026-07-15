@@ -633,6 +633,7 @@ class SupabaseService {
         'status':               ticket.status.name,
         'sent_to_management':   ticket.sentToManagement,
         'management_reviewed':  ticket.managementReviewed,
+        'send_to_management_note': ticket.sendToManagementNote,
         'resolution_note':      ticket.resolutionNote,
         'resolved_at':          ticket.resolvedAt?.toIso8601String(),
         'created_at':           ticket.createdAt.toIso8601String(),
@@ -645,10 +646,18 @@ class SupabaseService {
     }
   }
 
-  static Future<void> updateTicketSentToManagement(String id, bool sent) async {
+  // Sending (or re-sending) to Management always resets management_reviewed
+  // to false, so the ticket lands back in Management's "awaiting review"
+  // queue rather than being mistaken for one they've already sent back.
+  static Future<void> updateTicketSentToManagement(String id, bool sent, {String? note}) async {
     try {
+      final payload = <String, dynamic>{'sent_to_management': sent};
+      if (sent) {
+        payload['management_reviewed'] = false;
+        payload['send_to_management_note'] = note;
+      }
       await _db?.from('maintenance_tickets')
-          .update({'sent_to_management': sent})
+          .update(payload)
           .eq('id', id);
     } catch (_) {}
   }
@@ -711,6 +720,7 @@ class SupabaseService {
           status:             status,
           sentToManagement:   (row['sent_to_management'] as bool?) ?? false,
           managementReviewed: (row['management_reviewed'] as bool?) ?? false,
+          sendToManagementNote: row['send_to_management_note'] as String?,
           resolutionNote:     row['resolution_note'] as String?,
           resolvedAt:         row['resolved_at'] != null
               ? DateTime.parse(row['resolved_at'] as String)

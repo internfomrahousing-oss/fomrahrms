@@ -27,6 +27,7 @@ class MaintenanceTicket {
   MaintenanceStatus status;
   bool sentToManagement;
   bool managementReviewed;
+  String? sendToManagementNote;
   String? resolutionNote;
   DateTime? resolvedAt;
   final DateTime createdAt;
@@ -44,6 +45,7 @@ class MaintenanceTicket {
     this.status = MaintenanceStatus.open,
     this.sentToManagement = false,
     this.managementReviewed = false,
+    this.sendToManagementNote,
     this.resolutionNote,
     this.resolvedAt,
     required this.createdAt,

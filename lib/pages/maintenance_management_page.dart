@@ -276,8 +276,20 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   }
 
   Future<void> _sendToManagement(MaintenanceTicket t) async {
-    setState(() => t.sentToManagement = true);
-    await SupabaseService.updateTicketSentToManagement(t.id, true);
+    final note = await showDialog<String>(
+      context: context,
+      builder: (_) => const _SendToManagementDialog(),
+    );
+    if (note == null || !mounted) return;
+    setState(() {
+      t.sentToManagement = true;
+      t.managementReviewed = false;
+      t.sendToManagementNote = note;
+    });
+    await SupabaseService.updateTicketSentToManagement(t.id, true, note: note);
+    NotificationService.maintenanceEscalated(
+      issueType: t.issueType, reportedBy: t.reportedBy, note: note,
+    );
   }
 
   bool _isResolved(MaintenanceTicket t) =>
@@ -363,9 +375,11 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
   Widget _buildHrPage(BuildContext context) {
     final tickets  = MaintenanceStore.tickets.where(_matchesFilters).toList();
-    final pending  = tickets.where((t) => !_isResolved(t) && !t.sentToManagement).toList();
+    // Awaiting Management's first look — once they've reviewed it (sent it
+    // back), it drops out of here and rejoins Pending for HR to close.
+    final sentMgmt = tickets.where((t) => t.sentToManagement && !t.managementReviewed && !_isResolved(t)).toList();
+    final pending  = tickets.where((t) => !_isResolved(t) && !sentMgmt.contains(t)).toList();
     final resolved = tickets.where(_isResolved).toList();
-    final sentMgmt = tickets.where((t) => t.sentToManagement && !_isResolved(t)).toList();
 
     return Scaffold(
       backgroundColor: null,
@@ -420,20 +434,12 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
               emptyMessage: 'No resolved issues yet.',
               actionsBuilder: (_) => [],
             ),
-            // Sent to Management tab
+            // Sent to Management tab — awaiting their first look; once
+            // reviewed a ticket drops out of this list and rejoins Pending.
             _TicketList(
               tickets: sentMgmt,
               emptyMessage: 'No issues sent to management.',
-              actionsBuilder: (t) => t.managementReviewed
-                  ? [
-                      _ActionBtn(
-                        label: 'Close Ticket',
-                        icon: Icons.check_circle_rounded,
-                        color: Colors.green.shade700,
-                        onTap: () => _resolveTicket(t),
-                      ),
-                    ]
-                  : [],
+              actionsBuilder: (_) => [],
             ),
             // Report an Issue tab
             SingleChildScrollView(
@@ -492,8 +498,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
               emptyMessage: 'No issues sent by HR yet.',
               actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed) ? [] : [
                 _ActionBtn(
-                  label: 'Resolved',
-                  icon: Icons.check_circle_rounded,
+                  label: 'Send Back to HR',
+                  icon: Icons.reply_rounded,
                   color: Colors.green.shade700,
                   onTap: () => _managementResolve(t),
                 ),
@@ -504,8 +510,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
               emptyMessage: 'No issues reported yet.',
               actionsBuilder: (t) => (_isResolved(t) || t.managementReviewed || !t.sentToManagement) ? [] : [
                 _ActionBtn(
-                  label: 'Resolved',
-                  icon: Icons.check_circle_rounded,
+                  label: 'Send Back to HR',
+                  icon: Icons.reply_rounded,
                   color: Colors.green.shade700,
                   onTap: () => _managementResolve(t),
                 ),
@@ -1141,7 +1147,7 @@ class _TicketCard extends StatelessWidget {
       ],
       if (ticket.managementReviewed && ticket.status != MaintenanceStatus.resolved && ticket.status != MaintenanceStatus.closed) ...[
         const SizedBox(height: 6),
-        _chip('Awaiting HR Closure', const Color(0xFFB45309)),
+        _chip('Sent Back by Management', const Color(0xFFB45309)),
       ],
     ]);
 
@@ -1154,6 +1160,25 @@ class _TicketCard extends StatelessWidget {
         Text(ticket.priority, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: prColor)),
       ]),
     ]);
+
+    final escalationBox = (ticket.sendToManagementNote != null && ticket.sendToManagementNote!.isNotEmpty)
+        ? Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Note to Management', style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.7))),
+              const SizedBox(height: 4),
+              Text(ticket.sendToManagementNote!,
+                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.85))),
+            ]),
+          )
+        : const SizedBox.shrink();
 
     final resolutionBox = (ticket.resolutionNote != null && ticket.resolutionNote!.isNotEmpty)
         ? Container(
@@ -1211,6 +1236,7 @@ class _TicketCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(children: [priorityBlock, const Spacer(), statusChips]),
               ],
+              escalationBox,
               resolutionBox,
               if (actions.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -1232,6 +1258,66 @@ class _TicketCard extends StatelessWidget {
     final hour12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
     final ampm = d.hour >= 12 ? 'PM' : 'AM';
     return '${_fmt(d)} ${hour12.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} $ampm';
+  }
+}
+
+// ── Send-to-Management dialog: captures why it's being escalated ──────────────
+
+class _SendToManagementDialog extends StatefulWidget {
+  const _SendToManagementDialog();
+
+  @override
+  State<_SendToManagementDialog> createState() => _SendToManagementDialogState();
+}
+
+class _SendToManagementDialogState extends State<_SendToManagementDialog> {
+  final _noteController = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final note = _noteController.text.trim();
+    if (note.isEmpty) {
+      setState(() => _error = 'Please add a note for Management.');
+      return;
+    }
+    Navigator.pop(context, note);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text('Send to Management'),
+      content: SizedBox(
+        width: 400,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Why is this being sent to Management?',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _noteController,
+            maxLines: 3,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Describe what needs their attention…',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
+              errorText: _error,
+            ),
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(onPressed: _submit, child: const Text('Send')),
+      ],
+    );
   }
 }
 

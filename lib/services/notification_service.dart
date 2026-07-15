@@ -362,6 +362,18 @@ class NotificationService {
     }
   }
 
+  static Future<void> maintenanceEscalated({
+    required String issueType,
+    required String reportedBy,
+    required String note,
+  }) => _create(
+        type: 'maintenance_escalated',
+        title: 'Maintenance issue sent for review',
+        body: '$reportedBy · $issueType — $note',
+        route: '/management/maintenance-management',
+        targetRole: 'Management',
+      );
+
   static Future<void> maintenanceStatusChanged({
     required String reporterEmail,
     required String issueType,
@@ -649,7 +661,7 @@ class NotificationService {
     required String reportedBy,
   }) => _create(
         type: 'maintenance_addressed',
-        title: 'Escalated maintenance issue addressed',
+        title: 'Issue sent back by Management',
         body: '$issueType · reported by $reportedBy',
         route: '/maintenance-management',
         targetRole: 'HR',

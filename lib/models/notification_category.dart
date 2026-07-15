@@ -57,7 +57,8 @@ const List<NotificationCategory> notificationCategories = [
       Icons.build_rounded, ['maintenance_'], [
     (type: 'maintenance_submitted', label: 'New Maintenance Issue', roles: ['HR', 'Management']),
     (type: 'maintenance_status_changed', label: 'Maintenance Status Changed', roles: null),
-    (type: 'maintenance_addressed', label: 'Escalated Issue Addressed', roles: ['HR']),
+    (type: 'maintenance_escalated', label: 'Issue Sent for Review', roles: ['Management']),
+    (type: 'maintenance_addressed', label: 'Sent Back by Management', roles: ['HR']),
   ]),
   NotificationCategory('candidate', 'Recruitment',
       Icons.record_voice_over_rounded, ['candidate_'], [
