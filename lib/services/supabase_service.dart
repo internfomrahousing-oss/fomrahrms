@@ -497,6 +497,53 @@ import '../models/user_session.dart';
   -- alter table kra_documents add column if not exists decided_by text default '';
   -- alter table kra_documents add column if not exists decided_at timestamptz;
   -- alter table kra_documents add column if not exists review_note text default '';
+
+  -- ── Post-approval recruitment email workflow ──────────────────────────
+  -- Pre-Offer Letter (PDF + secure accept token) → Onboarding Form (secure
+  -- token link) → HR field assignment (already existed) → Management
+  -- approval → token-based account activation (no password emailed).
+
+  alter table candidate_applications add column if not exists pre_offer_token text default '';
+  alter table candidate_applications add column if not exists pre_offer_token_created_at text default '';
+  alter table candidate_applications add column if not exists pre_offer_accepted boolean default false;
+  alter table candidate_applications add column if not exists pre_offer_accepted_at text default '';
+  alter table candidate_applications add column if not exists onboarding_token text default '';
+  alter table candidate_applications add column if not exists onboarding_link_sent boolean default false;
+  alter table candidate_applications add column if not exists onboarding_link_sent_at text default '';
+  alter table candidate_applications add column if not exists onboarding_completed boolean default false;
+  alter table candidate_applications add column if not exists onboarding_completed_at text default '';
+
+  -- Nullable FK: token-based onboarding submissions set this; older
+  -- anonymous submissions stay null and keep resolving via the existing
+  -- fuzzy name/mobile match in employee_onboarding_page.dart.
+  alter table onboarding_forms add column if not exists candidate_application_id uuid references candidate_applications(id);
+
+  -- 24h expiring token for the "Set Your Password" activation link.
+  alter table app_users add column if not exists activation_token text default '';
+  alter table app_users add column if not exists activation_token_expires_at text default '';
+
+  create table if not exists email_logs (
+    id uuid default gen_random_uuid() primary key,
+    template_name text not null,
+    recipient text not null,
+    subject text default '',
+    html_body text default '',
+    variables jsonb default '{}',
+    attachments jsonb default '[]',
+    status text default 'pending', -- 'pending' | 'sent' | 'failed'
+    created_at timestamptz default now(),
+    sent_at timestamptz,
+    error_message text default '',
+    retry_count integer default 0,
+    related_candidate_id uuid,
+    related_onboarding_id uuid
+  );
+  alter table email_logs disable row level security;
+  create index if not exists idx_email_logs_recipient on email_logs(recipient);
+  create index if not exists idx_email_logs_status on email_logs(status);
+
+  -- Lets the HR portal reflect offer acceptance live without a manual refresh.
+  alter publication supabase_realtime add table candidate_applications;
 */
 
 class SupabaseService {
@@ -2262,16 +2309,23 @@ class SupabaseService {
   /// the message directly (e.g. in a SnackBar) rather than throwing, since
   /// a failed send is an expected, user-facing outcome (bad address, SMTP
   /// hiccup), not a bug.
+  ///
+  /// [html] and [attachments] are optional additions used by EmailService —
+  /// existing plain-text callers are unaffected.
   static Future<String?> sendEmail({
     required String to,
     required String subject,
     required String body,
+    String? html,
+    List<Map<String, dynamic>>? attachments,
   }) async {
     try {
       final res = await _db?.functions.invoke('send-email', body: {
         'to': to,
         'subject': subject,
         'body': body,
+        if (html != null) 'html': html,
+        if (attachments != null && attachments.isNotEmpty) 'attachments': attachments,
       });
       if (res == null) return 'Not connected';
       if (res.status != 200) {
@@ -2283,6 +2337,106 @@ class SupabaseService {
     } catch (e) {
       return e.toString();
     }
+  }
+
+  // ── Pre-Offer PDF upload (same RESUME bucket every other upload uses) ──
+
+  static Future<String> uploadPreOfferPdf(String candidateId, Uint8List bytes) async {
+    final path = 'pre-offer-letters/$candidateId.pdf';
+    await _db!.storage.from('RESUME').uploadBinary(
+      path, bytes,
+      fileOptions: const FileOptions(contentType: 'application/pdf', upsert: true),
+    );
+    return _db!.storage.from('RESUME').getPublicUrl(path);
+  }
+
+  /// Deterministic public URL for a candidate's Pre-Offer Letter PDF — no
+  /// extra DB column needed since the storage path is derived from the id.
+  static String preOfferPdfUrl(String candidateId) =>
+      _db!.storage.from('RESUME').getPublicUrl('pre-offer-letters/$candidateId.pdf');
+
+  // ── Candidate token lookups (public pre-offer / onboarding-form pages) ──
+
+  static Future<Map<String, dynamic>?> fetchCandidateByPreOfferToken(String token) async {
+    if (token.isEmpty) return null;
+    final data = await _db
+        ?.from('candidate_applications')
+        .select()
+        .eq('pre_offer_token', token)
+        .maybeSingle();
+    return data;
+  }
+
+  static Future<Map<String, dynamic>?> fetchCandidateByOnboardingToken(String token) async {
+    if (token.isEmpty) return null;
+    final data = await _db
+        ?.from('candidate_applications')
+        .select()
+        .eq('onboarding_token', token)
+        .maybeSingle();
+    return data;
+  }
+
+  // ── Email Logs ───────────────────────────────────────────────────────
+
+  static Future<String?> insertEmailLog(Map<String, dynamic> fields) async {
+    final data = await _db
+        ?.from('email_logs')
+        .insert(fields)
+        .select('id')
+        .maybeSingle();
+    return data?['id'] as String?;
+  }
+
+  static Future<void> updateEmailLog(String id, Map<String, dynamic> fields) async {
+    await _db?.from('email_logs').update(fields).eq('id', id);
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchEmailLogs() async {
+    final data = await _db
+        ?.from('email_logs')
+        .select()
+        .order('created_at', ascending: false);
+    if (data == null) return [];
+    return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  static Future<Map<String, dynamic>?> fetchEmailLog(String id) async {
+    final data = await _db?.from('email_logs').select().eq('id', id).maybeSingle();
+    return data;
+  }
+
+  // ── Account activation tokens (Set Your Password flow) ─────────────────
+
+  static Future<void> setAppUserActivationToken(
+    String email, {
+    required String token,
+    required String expiresAt,
+  }) async {
+    await _db?.from('app_users').update({
+      'activation_token': token,
+      'activation_token_expires_at': expiresAt,
+      'active': false,
+    }).eq('email', email);
+  }
+
+  static Future<Map<String, dynamic>?> fetchAppUserByActivationToken(String token) async {
+    if (token.isEmpty) return null;
+    final data = await _db
+        ?.from('app_users')
+        .select()
+        .eq('activation_token', token)
+        .maybeSingle();
+    return data;
+  }
+
+  static Future<void> completeAccountActivation(String email, {required String password}) async {
+    await _db?.from('app_users').update({
+      'password': password,
+      'active': true,
+      'activation_token': '',
+      'activation_token_expires_at': '',
+    }).eq('email', email);
   }
 
   // ── Notification preferences (muted categories) ─────────────────────────

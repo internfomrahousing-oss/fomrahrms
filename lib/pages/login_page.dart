@@ -76,8 +76,21 @@ class _LoginPageState extends State<LoginPage> {
     // 1. Check dynamic users created by Management
     final dynamicUser = await UserStore.findByEmail(email);
     if (dynamicUser != null) {
-      // First login — no password set yet, prompt user to create one
+      // First login — no password set yet, prompt user to create one.
+      // Accounts created by the recruitment pipeline start active:false and
+      // are only unlocked by the emailed Set-Password token
+      // (/set-password/{token}) — see employee_onboarding_page.dart's
+      // _approveManagement. Every other account defaults active:true, so
+      // this doesn't change behavior for existing or manually-added users.
       if (dynamicUser.password.isEmpty) {
+        if (!dynamicUser.active) {
+          setState(() {
+            _loading = false;
+            _error = "Your account isn't activated yet — check your email for the "
+                'activation link, or ask HR to resend it.';
+          });
+          return;
+        }
         setState(() { _loading = false; _pendingUser = dynamicUser; });
         return;
       }

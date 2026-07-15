@@ -9,6 +9,8 @@ import '../models/user_session.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
+import '../services/email_service.dart';
+import '../utils/token_util.dart';
 import '../utils/form_version_label.dart';
 import '../utils/open_url.dart';
 import '../widgets/filter_panel.dart';
@@ -39,6 +41,7 @@ Color _statusColor(String s) {
   if (s == 'mgmt_approved')  return const Color(0xFF22C55E);
   if (s == 'mgmt_denied')    return const Color(0xFFB91C1C);
   if (s == 'access_granted') return const Color(0xFF2563EB);
+  if (s == 'sent_back')      return const Color(0xFFF59E0B);
   return const Color(0xFFF59E0B);
 }
 String _statusLabel(String s) {
@@ -47,6 +50,7 @@ String _statusLabel(String s) {
   if (s == 'mgmt_approved')  return 'Mgmt Approved';
   if (s == 'mgmt_denied')    return 'Mgmt Denied';
   if (s == 'access_granted') return 'Active';
+  if (s == 'sent_back')      return 'Sent Back by Management';
   return 'Pending';
 }
 
@@ -71,7 +75,7 @@ bool _matchesSubFilter(Map<String, dynamic> row, _SubFilter f) {
     case _SubFilter.all:
       return true;
     case _SubFilter.received:
-      return status == 'pending';
+      return status == 'pending' || status == 'sent_back';
     case _SubFilter.sentToManagement:
       return status == 'hr_approved';
     case _SubFilter.approvedActive:
@@ -815,14 +819,29 @@ class _SubmissionCardState extends State<_SubmissionCard> {
 
   Future<void> _fetchLinkedInterview() async {
     if (_linkedInterview != null) return;
-    final d    = widget.data;
-    final name  = ((d['name'] as String?) ?? '').trim();
-    final phone = ((d['phone_number'] as String?) ?? '').trim();
-    if (name.isEmpty) return;
+    final d = widget.data;
+    const cols = 'name, post_applied, hr_status, manager_status, management_status, department, designation';
     try {
+      // Prefer the real FK set by token-based onboarding submissions.
+      final candidateId = (d['candidate_application_id'] as String?)?.trim() ?? '';
+      if (candidateId.isNotEmpty) {
+        final row = await Supabase.instance.client
+            .from('candidate_applications')
+            .select(cols)
+            .eq('id', candidateId)
+            .maybeSingle();
+        if (row != null && mounted) {
+          setState(() => _linkedInterview = Map<String, dynamic>.from(row));
+          return;
+        }
+      }
+      // Fallback: fuzzy match for older, token-less anonymous submissions.
+      final name  = ((d['name'] as String?) ?? '').trim();
+      final phone = ((d['phone_number'] as String?) ?? '').trim();
+      if (name.isEmpty) return;
       final results = await Supabase.instance.client
           .from('candidate_applications')
-          .select('name, post_applied, hr_status, manager_status, management_status, department, designation')
+          .select(cols)
           .or('name.ilike.%$name%${phone.isNotEmpty ? ",mobile.eq.$phone" : ""}')
           .limit(1);
       if (results.isNotEmpty && mounted) {
@@ -1061,10 +1080,12 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           .from('onboarding_forms')
           .update({'status': 'access_granted'})
           .eq('id', d['id'].toString());
+      await _sendActivationEmail(user);
+      NotificationService.employeeActivated(name: user.name);
       widget.onRefresh();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Account created for ${user.name} (${user.email})'),
+          content: Text('Account created for ${user.name} (${user.email}) — activation email sent'),
           backgroundColor: Colors.green.shade700,
         ));
       }
@@ -1080,6 +1101,60 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     }
   }
 
+  // Generates a 24h "Set Your Password" token instead of emailing a
+  // temporary password, and blocks login (active:false) until it's used —
+  // see the added check in login_page.dart's _login().
+  Future<String?> _sendActivationEmail(AppUser user) async {
+    final token = TokenUtil.generate();
+    await SupabaseService.setAppUserActivationToken(
+      user.email,
+      token: token,
+      expiresAt: TokenUtil.expiresInHours(24),
+    );
+    return EmailService.sendEmail(
+      templateName: 'employee_activation',
+      recipient: user.email,
+      data: {
+        'name': user.name,
+        'employeeId': user.employeeId,
+        'userId': user.email,
+        'setPasswordLink': 'https://fomrahrms-zeta.vercel.app/#/set-password/$token',
+        'portalUrl': 'https://fomrahrms-zeta.vercel.app/#/login',
+      },
+    );
+  }
+
+  Future<void> _resendActivationEmail(BuildContext context) async {
+    final d = widget.data;
+    final email = (d['assigned_email'] as String?) ?? '';
+    if (email.isEmpty) return;
+    setState(() => _acting = true);
+    try {
+      final users = await _loadAllUsers();
+      final user = users.firstWhere((u) => u.email == email, orElse: () => AppUser(
+        name: (d['name'] as String?) ?? '',
+        email: email,
+        employeeId: (d['assigned_emp_id'] as String?) ?? '',
+        designation: (d['assigned_designation'] as String?) ?? '',
+        role: 'Employee',
+      ));
+      final error = await _sendActivationEmail(user);
+      setState(() => _acting = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(error == null ? 'Activation email resent to $email' : 'Failed to resend: $error'),
+          backgroundColor: error == null ? Colors.green.shade700 : Colors.red.shade700,
+        ));
+      }
+    } catch (e) {
+      setState(() => _acting = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'), backgroundColor: Colors.red.shade700));
+      }
+    }
+  }
+
   Future<void> _denyManagement() async {
     setState(() => _acting = true);
     try {
@@ -1087,6 +1162,23 @@ class _SubmissionCardState extends State<_SubmissionCard> {
           .from('onboarding_forms')
           .update({'status': 'mgmt_denied'})
           .eq('id', widget.data['id'].toString());
+      widget.onRefresh();
+    } catch (_) {
+      setState(() => _acting = false);
+    }
+  }
+
+  // Returns the submission to HR's queue instead of denying it outright —
+  // HR corrects the assigned Department/Manager/Designation/Employee ID and
+  // resubmits; the onboarding form data itself is untouched.
+  Future<void> _sendBack() async {
+    setState(() => _acting = true);
+    try {
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({'status': 'sent_back'})
+          .eq('id', widget.data['id'].toString());
+      NotificationService.onboardingFormSentBack(name: (widget.data['name'] as String?) ?? '');
       widget.onRefresh();
     } catch (_) {
       setState(() => _acting = false);
@@ -1106,7 +1198,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         ? '${submittedAt.day.toString().padLeft(2,'0')}/${submittedAt.month.toString().padLeft(2,'0')}/${submittedAt.year}'
         : '—';
     final status = (d['status'] as String?) ?? 'pending';
-    final isPending = status == 'pending';
+    final isPending = status == 'pending' || status == 'sent_back';
 
     return Card(
       elevation: 0,
@@ -1304,10 +1396,23 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                     Text('Manager: ${d['assigned_manager'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
                   ]),
                 ),
-                // Management: final approve/deny — creates the employee account.
+                // Management: final approve/deny/send-back — approving creates the employee account.
                 if (UserSession.role == UserRole.management) ...[
                   const SizedBox(height: 12),
                   Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.undo_rounded, size: 16),
+                        label: const Text('Send Back'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFF59E0B),
+                          side: const BorderSide(color: Color(0xFFF59E0B)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: _acting ? null : _sendBack,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.close_rounded, size: 16),
@@ -1320,7 +1425,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                         onPressed: _acting ? null : _denyManagement,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.check_rounded, size: 16),
@@ -1335,6 +1440,20 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                       ),
                     ),
                   ]),
+                ],
+                // HR: resend the activation email if it failed, or the employee lost it.
+                if (status == 'access_granted') ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.forward_to_inbox_rounded, size: 16),
+                    label: const Text('Resend Activation Email'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _blue,
+                      side: BorderSide(color: _blue),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _acting ? null : () => _resendActivationEmail(context),
+                  ),
                 ],
               ],
             ]),

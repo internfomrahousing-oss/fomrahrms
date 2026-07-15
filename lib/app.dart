@@ -42,6 +42,9 @@ import 'pages/interview_process_page.dart';
 import 'pages/candidate_application_form_page.dart';
 import 'pages/employee_onboarding_page.dart';
 import 'pages/onboarding_form_page.dart';
+import 'pages/pre_offer_accept_page.dart';
+import 'pages/set_password_page.dart';
+import 'pages/email_logs_page.dart';
 import 'pages/lead_management_hub_page.dart';
 import 'pages/lead_management_page.dart';
 import 'pages/maintenance_management_page.dart';
@@ -89,6 +92,9 @@ String? _guard(GoRouterState state) {
   if (path == '/candidate-application') return null; // public form
   if (path == '/candidate-detail') return null;       // accessed from within shells
   if (path == '/onboarding-form') return null;        // public joining form
+  if (path.startsWith('/onboarding-form/')) return null; // tokenized joining form
+  if (path.startsWith('/pre-offer/')) return null;       // public offer-accept page
+  if (path.startsWith('/set-password/')) return null;    // public account activation
 
   if (!UserSession.loggedIn) return '/login';
 
@@ -144,6 +150,18 @@ final _router = GoRouter(
       ),
     ),
     GoRoute(path: '/onboarding-form', builder: (_, __) => const OnboardingFormPage()),
+    GoRoute(
+      path: '/onboarding-form/:token',
+      builder: (_, state) => OnboardingFormPage(token: state.pathParameters['token']),
+    ),
+    GoRoute(
+      path: '/pre-offer/:token',
+      builder: (_, state) => PreOfferAcceptPage(token: state.pathParameters['token']!),
+    ),
+    GoRoute(
+      path: '/set-password/:token',
+      builder: (_, state) => SetPasswordPage(token: state.pathParameters['token']!),
+    ),
 
     // ── HR Shell ───────────────────────────────────────────────────────────
     ShellRoute(
@@ -227,6 +245,7 @@ final _router = GoRouter(
         GoRoute(path: '/salary-hike-engine',              builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/payroll-management',              builder: (_, __) => const PayrollManagementPage()),
         GoRoute(path: '/interview-process',               builder: (_, __) => const InterviewProcessPage()),
+        GoRoute(path: '/email-logs',                      builder: (_, __) => const EmailLogsPage()),
         GoRoute(path: '/edit-form',                       builder: (_, __) => const EditFormPage()),
         GoRoute(path: '/edit-leave-form',                 builder: (_, __) => const EditLeaveFormPage()),
         GoRoute(path: '/edit-onboarding-form',            builder: (_, __) => const EditOnboardingFormPage()),

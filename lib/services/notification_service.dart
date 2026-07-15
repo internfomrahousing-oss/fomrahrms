@@ -444,6 +444,48 @@ class NotificationService {
     );
   }
 
+  // ── Post-approval recruitment email workflow ────────────────────────────
+
+  static Future<void> preOfferSent({required String candidateName}) => _create(
+        type: 'pre_offer_sent',
+        title: 'Pre-Offer Letter sent',
+        body: candidateName,
+        route: '/interview-process',
+        targetRole: 'HR',
+      );
+
+  static Future<void> preOfferAccepted({required String candidateName}) => _create(
+        type: 'pre_offer_accepted',
+        title: 'Candidate accepted the offer',
+        body: candidateName,
+        route: '/interview-process',
+        targetRole: 'HR',
+      );
+
+  static Future<void> onboardingLinkSent({required String candidateName}) => _create(
+        type: 'onboarding_link_sent',
+        title: 'Onboarding form link sent',
+        body: candidateName,
+        route: '/interview-process',
+        targetRole: 'HR',
+      );
+
+  static Future<void> onboardingFormSentBack({required String name}) => _create(
+        type: 'onboarding_form_sent_back',
+        title: 'Onboarding submission sent back by Management',
+        body: name,
+        route: '/employee-onboarding',
+        targetRole: 'HR',
+      );
+
+  static Future<void> employeeActivated({required String name}) => _create(
+        type: 'employee_activated',
+        title: 'Employee account activated',
+        body: name,
+        route: '/employee-onboarding',
+        targetRole: 'HR',
+      );
+
   // ── Form-edit approvals (leave / onboarding / maintenance / interview) ─
 
   static Future<void> formEditSubmitted({required String formName}) => _create(

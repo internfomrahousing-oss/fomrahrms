@@ -27,19 +27,33 @@ const transporter = nodemailer.createTransport({
 
 Deno.serve(async (req) => {
   try {
-    const { to, subject, body } = await req.json();
-    if (!to || !subject || !body) {
-      return new Response(JSON.stringify({ error: "to, subject, and body are required" }), {
+    // html/attachments are optional additions for the recruitment email
+    // pipeline (EmailService) — existing {to, subject, body} callers are
+    // unaffected.
+    const { to, subject, body, html, attachments } = await req.json();
+    if (!to || !subject || !(body || html)) {
+      return new Response(JSON.stringify({ error: "to, subject, and body (or html) are required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    const mailAttachments = Array.isArray(attachments)
+      ? attachments.map((a: { filename: string; contentBase64: string; contentType?: string }) => ({
+          filename: a.filename,
+          content: a.contentBase64,
+          encoding: "base64",
+          contentType: a.contentType,
+        }))
+      : undefined;
 
     await transporter.sendMail({
       from: `"Fomra Housing & Infrastructure" <${Deno.env.get("SMTP_USER")}>`,
       to,
       subject,
       text: body,
+      html: html || undefined,
+      attachments: mailAttachments,
     });
 
     return new Response(JSON.stringify({ ok: true }), {

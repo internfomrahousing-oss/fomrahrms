@@ -19,7 +19,13 @@ class _AttachFile {
 }
 
 class OnboardingFormPage extends StatefulWidget {
-  const OnboardingFormPage({super.key});
+  // When reached via /onboarding-form/{token} (the link HR sends after an
+  // offer is accepted), this resolves to the candidate row so the
+  // submission can be linked back by a real FK instead of the fuzzy
+  // name/mobile match employee_onboarding_page.dart falls back to for
+  // older, token-less submissions.
+  final String? token;
+  const OnboardingFormPage({super.key, this.token});
 
   @override
   State<OnboardingFormPage> createState() => _OnboardingFormPageState();
@@ -103,6 +109,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   ];
   final List<List<_AttachFile>> _attachments = List.generate(6, (_) => []);
 
+  // Resolved from widget.token, if present — see _resolveCandidateToken().
+  String? _candidateApplicationId;
+
   // ── Config (loaded from Supabase) ─────────────────────────────────────────
   List<Map<String, dynamic>> _configSections = [];
   final _customTextControllers = <String, TextEditingController>{};
@@ -119,6 +128,22 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     _addEducationRow();
     _addExperienceRow();
     _loadConfig();
+    _resolveCandidateToken();
+  }
+
+  Future<void> _resolveCandidateToken() async {
+    final token = widget.token;
+    if (token == null || token.isEmpty) return;
+    try {
+      final candidate = await SupabaseService.fetchCandidateByOnboardingToken(token);
+      if (candidate == null || !mounted) return;
+      _candidateApplicationId = candidate['id']?.toString();
+      setState(() {
+        _name.text = (candidate['name'] as String?) ?? '';
+        _phone.text = (candidate['mobile'] as String?) ?? '';
+        _designation.text = (candidate['designation'] as String?) ?? '';
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadConfig() async {
@@ -815,7 +840,17 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         'phone_number': payload['phone_number'],
         'designation': payload['designation'],
         'form_data':   payload,
+        if (_candidateApplicationId != null) 'candidate_application_id': _candidateApplicationId,
       });
+      final candidateId = _candidateApplicationId;
+      if (candidateId != null) {
+        // Reflects "Onboarding Completed" live in the HR portal via the
+        // realtime subscription in interview_process_page.dart.
+        await SupabaseService.updateCandidateStatus(candidateId, {
+          'onboarding_completed': true,
+          'onboarding_completed_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
       NotificationService.onboardingFormSubmitted(
         name: (payload['name'] ?? '').toString(),
       );

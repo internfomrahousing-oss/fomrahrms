@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
 import '../services/user_store.dart';
+import '../services/email_service.dart';
+import '../services/pre_offer_pdf_service.dart';
 import '../models/candidate_store.dart';
 import '../models/form_config.dart';
 import '../constants/org_lists.dart';
+import '../utils/token_util.dart';
 import '../widgets/filter_panel.dart';
 import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
@@ -74,12 +78,29 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     }
   }
 
+  RealtimeChannel? _candidateChannel;
+
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
     _fetch();
     _loadActiveFormLink();
+    _subscribeToCandidateChanges();
+  }
+
+  // Reflects offer-acceptance (and any other change) in the HR portal live,
+  // without requiring a manual refresh — see /pre-offer/{token} accept page.
+  void _subscribeToCandidateChanges() {
+    _candidateChannel = Supabase.instance.client
+        .channel('candidate_applications_changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'candidate_applications',
+          callback: (_) => _fetch(),
+        )
+        .subscribe();
   }
 
   Future<void> _loadActiveFormLink() async {
@@ -95,6 +116,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    if (_candidateChannel != null) Supabase.instance.client.removeChannel(_candidateChannel!);
     super.dispose();
   }
 
@@ -269,6 +291,8 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     final managerStatus = (row['manager_status'] ?? 'pending').toString();
     final mgmtStatus    = (row['management_status'] ?? 'pending').toString();
     final preOfferSent  = row['pre_offer_sent'] == true;
+    final preOfferAccepted = row['pre_offer_accepted'] == true;
+    final onboardingLinkSent = row['onboarding_link_sent'] == true;
 
     _StageState of(String status, bool reached) {
       if (status == 'accepted') return _StageState.completed;
@@ -285,6 +309,16 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
     final offerState = !approved
         ? _StageState.pending
         : (preOfferSent ? _StageState.completed : _StageState.current);
+    final acceptState = !preOfferSent
+        ? _StageState.pending
+        : (preOfferAccepted ? _StageState.completed : _StageState.current);
+    final onboardingState = !preOfferAccepted
+        ? _StageState.pending
+        : (onboardingLinkSent ? _StageState.completed : _StageState.current);
+    final onboardingCompleted = row['onboarding_completed'] == true;
+    final onboardingCompletedState = !onboardingLinkSent
+        ? _StageState.pending
+        : (onboardingCompleted ? _StageState.completed : _StageState.current);
 
     return [
       _StageInfo('Applied', _shortDate(row['submitted_at']), _StageState.completed),
@@ -292,7 +326,9 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
       _StageInfo('Manager', '', managerState),
       _StageInfo('Management', '', mgmtState),
       _StageInfo('Offer Sent', _shortDate(row['pre_offer_sent_at']), offerState),
-      _StageInfo('Onboarding', '', _StageState.pending),
+      _StageInfo('Offer Accepted', _shortDate(row['pre_offer_accepted_at']), acceptState),
+      _StageInfo('Onboarding Sent', _shortDate(row['onboarding_link_sent_at']), onboardingState),
+      _StageInfo('Onboarding Done', _shortDate(row['onboarding_completed_at']), onboardingCompletedState),
     ];
   }
 
@@ -613,7 +649,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 child: Icon(Icons.mail_outline_rounded, color: AppTheme.accentBlue, size: 18),
               ),
               const SizedBox(width: 10),
-              Text('Send Offer Letter',
+              Text('Send Pre-Offer Letter',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
             ]),
             content: SizedBox(
@@ -822,7 +858,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.send_rounded, size: 15),
-                label: Text(sending ? 'Sending…' : 'Send Offer Letter'),
+                label: Text(sending ? 'Sending…' : 'Send Pre-Offer Letter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentBlue,
                   foregroundColor: Colors.white,
@@ -830,33 +866,61 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                 ),
                 onPressed: email.isEmpty || sending ? null : () async {
                   setDlgState(() => sending = true);
-                  final error = await SupabaseService.sendEmail(
-                    to: email,
-                    subject: subject,
-                    body: letterCtrl.text,
-                  );
-                  if (error != null) {
+                  final id = (row['id'] ?? '').toString();
+                  if (id.isEmpty) {
+                    setDlgState(() => sending = false);
+                    return;
+                  }
+                  try {
+                    final token = TokenUtil.generate();
+                    final pdfBytes = await PreOfferPdfService.build(
+                      candidateName: name,
+                      letterBody: letterCtrl.text,
+                    );
+                    await SupabaseService.uploadPreOfferPdf(id, pdfBytes);
+                    final acceptLink = 'https://fomrahrms-zeta.vercel.app/#/pre-offer/$token';
+                    final error = await EmailService.sendEmail(
+                      templateName: 'pre_offer',
+                      recipient: email,
+                      data: {
+                        'name': name,
+                        'designation': selectedDesignation ?? '',
+                        'department': selectedPosition ?? '',
+                        'acceptLink': acceptLink,
+                      },
+                      attachments: [
+                        EmailAttachment(filename: 'Pre-Offer-Letter.pdf', bytes: pdfBytes),
+                      ],
+                      relatedCandidateId: id,
+                    );
+                    if (error != null) {
+                      setDlgState(() => sending = false);
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text('Failed to send: $error')),
+                        );
+                      }
+                      return;
+                    }
+                    letterCtrl.dispose();
+                    Navigator.pop(ctx);
+                    await SupabaseService.updateCandidateStatus(id, {
+                      'pre_offer_sent': true,
+                      'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
+                      'pre_offer_token': token,
+                      'pre_offer_token_created_at': DateTime.now().toUtc().toIso8601String(),
+                      'department': selectedPosition ?? '',
+                      'designation': selectedDesignation ?? '',
+                    });
+                    NotificationService.preOfferSent(candidateName: name);
+                    _fetch();
+                  } catch (e) {
                     setDlgState(() => sending = false);
                     if (ctx.mounted) {
                       ScaffoldMessenger.of(ctx).showSnackBar(
-                        SnackBar(content: Text('Failed to send: $error')),
+                        SnackBar(content: Text('Failed to send: $e')),
                       );
                     }
-                    return;
-                  }
-                  letterCtrl.dispose();
-                  Navigator.pop(ctx);
-                  final id = (row['id'] ?? '').toString();
-                  if (id.isNotEmpty) {
-                    try {
-                      await SupabaseService.updateCandidateStatus(id, {
-                        'pre_offer_sent': true,
-                        'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
-                        'department': selectedPosition ?? '',
-                        'designation': selectedDesignation ?? '',
-                      });
-                    } catch (_) {}
-                    _fetch();
                   }
                 },
               ),
@@ -865,6 +929,59 @@ Fomra Housing & Infrastructure Pvt Ltd''';
         },
       ),
     );
+  }
+
+  Future<void> _sendOnboardingForm(BuildContext context, Map<String, dynamic> row) async {
+    final id = (row['id'] ?? '').toString();
+    final name = (row['name'] ?? '').toString().trim();
+    final email = (row['email'] ?? '').toString().trim();
+    if (id.isEmpty || email.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text('Send Onboarding Form', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _blue)),
+        content: Text(
+          'This will email $name a secure link to fill in their onboarding / joining form.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentBlue, foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final token = TokenUtil.generate();
+    final formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form/$token';
+    final error = await EmailService.sendEmail(
+      templateName: 'onboarding_invite',
+      recipient: email,
+      data: {'name': name, 'formLink': formLink},
+      relatedCandidateId: id,
+    );
+    if (!context.mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send: $error'), backgroundColor: Colors.red));
+      return;
+    }
+    await SupabaseService.updateCandidateStatus(id, {
+      'onboarding_token': token,
+      'onboarding_link_sent': true,
+      'onboarding_link_sent_at': DateTime.now().toUtc().toIso8601String(),
+    });
+    NotificationService.onboardingLinkSent(candidateName: name);
+    _fetch();
   }
 
   @override
@@ -889,6 +1006,17 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                   title: 'Interview Process',
                   subtitle: '${_all.length} application${_all.length == 1 ? '' : 's'} received',
                   actions: [
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/email-logs'),
+                      icon: const Icon(Icons.mark_email_read_outlined, size: 15),
+                      label: const Text('Email Logs', style: TextStyle(fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _blue,
+                        side: BorderSide(color: _blue),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
                     OutlinedButton.icon(
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: _activeFormLink));
@@ -1158,6 +1286,7 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                                 onReject: () => _showRejectDialog(row),
                                 onComment: () => _showCommentDialog(row),
                                 onSendEmail: () => _showSendEmailDialog(context, row),
+                                onSendOnboarding: () => _sendOnboardingForm(context, row),
                                 onDelete: () => _deleteForHr(context, row),
                                 onView: () {
                                   CandidateStore.selected = row;
@@ -1254,6 +1383,7 @@ class _ApplicationCard extends StatelessWidget {
   final VoidCallback onComment;
   final VoidCallback onView;
   final VoidCallback? onSendEmail;
+  final VoidCallback? onSendOnboarding;
   final VoidCallback? onDelete;
 
   const _ApplicationCard({
@@ -1269,6 +1399,7 @@ class _ApplicationCard extends StatelessWidget {
     required this.onComment,
     required this.onView,
     this.onSendEmail,
+    this.onSendOnboarding,
     this.onDelete,
   });
 
@@ -1375,6 +1506,19 @@ class _ApplicationCard extends StatelessWidget {
         onTap: isApproved && onSendEmail != null ? onSendEmail! : () => _quickEmail(email),
       ),
       const SizedBox(width: 6),
+      if (isApproved) ...[
+        _ActionButton(
+          label: (row['onboarding_link_sent'] == true) ? 'Onboarding Sent' : 'Onboarding',
+          icon: Icons.assignment_turned_in_outlined,
+          color: row['pre_offer_accepted'] == true ? const Color(0xFF22C55E) : Colors.grey.shade400,
+          onTap: row['pre_offer_accepted'] == true
+              ? (onSendOnboarding ?? () {})
+              : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Waiting for the candidate to accept the pre-offer first.'),
+                  )),
+        ),
+        const SizedBox(width: 6),
+      ],
       _ActionButton(
         label: 'Comment',
         icon: Icons.comment_outlined,
