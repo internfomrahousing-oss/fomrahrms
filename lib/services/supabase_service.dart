@@ -2341,8 +2341,13 @@ class SupabaseService {
 
   // ── Pre-Offer PDF upload (same RESUME bucket every other upload uses) ──
 
+  // Stored under custom_uploads/ (not a new pre-offer-letters/ folder) since
+  // the RESUME bucket's storage policy is scoped by top-level folder name —
+  // custom_uploads/ already has a working policy (see uploadFile above),
+  // and every call here goes through the anon key regardless of HR being
+  // logged in, since this app has no real Supabase Auth session.
   static Future<String> uploadPreOfferPdf(String candidateId, Uint8List bytes) async {
-    final path = 'pre-offer-letters/$candidateId.pdf';
+    final path = 'custom_uploads/pre-offer-letter-$candidateId.pdf';
     await _db!.storage.from('RESUME').uploadBinary(
       path, bytes,
       fileOptions: const FileOptions(contentType: 'application/pdf', upsert: true),
@@ -2352,8 +2357,9 @@ class SupabaseService {
 
   /// Deterministic public URL for a candidate's Pre-Offer Letter PDF — no
   /// extra DB column needed since the storage path is derived from the id.
-  static String preOfferPdfUrl(String candidateId) =>
-      _db!.storage.from('RESUME').getPublicUrl('pre-offer-letters/$candidateId.pdf');
+  static String preOfferPdfUrl(String candidateId) => _db!.storage
+      .from('RESUME')
+      .getPublicUrl('custom_uploads/pre-offer-letter-$candidateId.pdf');
 
   // ── Candidate token lookups (public pre-offer / onboarding-form pages) ──
 
