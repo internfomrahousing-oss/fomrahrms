@@ -97,7 +97,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                     _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
                     const SizedBox(height: 16),
-                    _MySpaceRow(children: [
+                    MySpaceRow(children: [
                       AttendanceShortcutCard(
                         attendanceRoute: '/hr/my-attendance',
                         accentColor: AppTheme.accentBlue,

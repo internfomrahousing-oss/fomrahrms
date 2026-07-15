@@ -40,7 +40,7 @@ class ManagerDashboardPage extends StatelessWidget {
                     label: 'My Space',
                   ),
                   const SizedBox(height: 16),
-                  _MySpaceRow(children: [
+                  MySpaceRow(children: [
                     AttendanceShortcutCard(
                       attendanceRoute: '/manager/my-attendance',
                       accentColor: AppTheme.accentBlue,
@@ -54,10 +54,8 @@ class ManagerDashboardPage extends StatelessWidget {
                     ),
                     const MyTasksBlock(viewAllRoute: '/manager/my-tasks', modern: true),
                     const TaskAnalyticsBlock(
-                      showTeam: true,
                       modern: true,
                       viewAllRoute: '/manager/my-tasks',
-                      teamViewAllRoute: '/manager/task-management',
                     ),
                   ]),
                   const SizedBox(height: 16),

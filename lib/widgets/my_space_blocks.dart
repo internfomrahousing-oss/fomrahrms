@@ -13,6 +13,42 @@ import 'dashboard_info_blocks.dart' show InfoCard;
 const _months = ['January', 'February', 'March', 'April', 'May', 'June',
                   'July', 'August', 'September', 'October', 'November', 'December'];
 
+// ── My Space row (shared across HR/Employee/Manager dashboards) ───────────────
+
+// Each card in the dashboard's top "My Space" row (Quick Access / My Tasks /
+// Task Analytics) sizes to its own content instead of being clamped to a
+// fixed height — a card no longer needs its own internal scroll region to
+// fit, so the page's single outer scroll view is the only thing that
+// scrolls (nothing inside a card traps the scroll gesture).
+class MySpaceRow extends StatelessWidget {
+  final List<Widget> children;
+  const MySpaceRow({super.key, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 900;
+      if (wide) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(width: 16),
+              Expanded(child: children[i]),
+            ],
+          ],
+        );
+      }
+      return Column(children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: 16),
+          children[i],
+        ],
+      ]);
+    });
+  }
+}
+
 // ── My Leave ──────────────────────────────────────────────────────────────────
 
 class MyLeaveBlock extends StatefulWidget {

@@ -62,9 +62,10 @@ class AttendanceShortcutCard extends StatefulWidget {
   final String title;
   final List<QuickTile> extraTiles;
   // Fixed tile-grid column count. When set, skips the width-driven
-  // LayoutBuilder below — needed when this card sits inside an
-  // IntrinsicHeight row (e.g. the dashboard's My Space row), since
-  // LayoutBuilder can't report intrinsic dimensions and asserts there.
+  // LayoutBuilder below — every My Space row call site passes this
+  // explicitly, since the row itself already decides wide-vs-narrow
+  // layout and each card doesn't need to re-derive its own column count
+  // from the (possibly still-settling) width it's been given.
   final int? columns;
 
   const AttendanceShortcutCard({
@@ -519,6 +520,9 @@ Approved by: Sharad Fomra, CEO & MD
       icon: Icons.apps_rounded,
       title: widget.title,
       accentColor: AppTheme.primaryBlue,
+      // Sizes to its own content — the enclosing MySpaceRow no longer
+      // clamps every card to a fixed height, so nothing here needs to
+      // scroll internally; the dashboard's outer scroll view handles it.
       child: widget.columns != null
           ? buildGrid(widget.columns!)
           : LayoutBuilder(builder: (context, constraints) {

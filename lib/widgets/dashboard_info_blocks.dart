@@ -1037,6 +1037,9 @@ class _MyTasksBlockState extends State<MyTasksBlock> {
       title: 'My Tasks',
       showIcon: widget.showIcon,
       onRefresh: _load,
+      // Sizes to its own content — the enclosing MySpaceRow no longer
+      // clamps every card to a fixed height, so nothing here needs to
+      // scroll internally; the dashboard's outer scroll view handles it.
       child: _loading
           ? const _Loader()
           : _tasks.isEmpty

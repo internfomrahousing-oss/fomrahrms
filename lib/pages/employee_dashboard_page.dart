@@ -48,7 +48,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
                 children: [
                   _SectionLabel(icon: Icons.person_rounded, label: 'My Space'),
                   const SizedBox(height: 16),
-                  _MySpaceRow(children: [
+                  MySpaceRow(children: [
                     AttendanceShortcutCard(
                       attendanceRoute: '/employee/attendance-management',
                       accentColor: AppTheme.primaryBlue,

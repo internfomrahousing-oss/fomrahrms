@@ -345,7 +345,9 @@ class _TasksTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stat cards
+          // Stat cards — the four with a matching status double as section
+          // tabs: tap one to filter the list to it, tap again (or the total)
+          // to go back to All.
           _StatCardsRow(
             total: totalCount,
             pending: pendingCount,
@@ -353,6 +355,8 @@ class _TasksTab extends StatelessWidget {
             delayed: delayedCount,
             assignedToMe: assignedToMeCount,
             pct: _pct,
+            currentFilter: currentFilter,
+            onFilterChanged: onFilterChanged,
           ),
           const SizedBox(height: 20),
 
@@ -526,6 +530,10 @@ class _StatCardsRow extends StatelessWidget {
   final int delayed;
   final int assignedToMe;
   final String Function(int) pct;
+  // The four with a status behind them (Total = "All") double as section
+  // tabs — tapping one filters the list below to it.
+  final TaskStatus? currentFilter;
+  final ValueChanged<TaskStatus?> onFilterChanged;
 
   const _StatCardsRow({
     required this.total,
@@ -534,6 +542,8 @@ class _StatCardsRow extends StatelessWidget {
     required this.delayed,
     required this.assignedToMe,
     required this.pct,
+    required this.currentFilter,
+    required this.onFilterChanged,
   });
 
   @override
@@ -546,6 +556,8 @@ class _StatCardsRow extends StatelessWidget {
         value: '$total',
         sublabel: 'All tasks',
         subColor: Colors.grey.shade500,
+        selected: currentFilter == null,
+        onTap: () => onFilterChanged(null),
       ),
       _StatTile(
         icon: Icons.hourglass_top_rounded,
@@ -554,6 +566,8 @@ class _StatCardsRow extends StatelessWidget {
         value: '$pending',
         sublabel: '${pct(pending)} of total',
         subColor: AppTheme.warning,
+        selected: currentFilter == TaskStatus.pending,
+        onTap: () => onFilterChanged(TaskStatus.pending),
       ),
       _StatTile(
         icon: Icons.check_circle_rounded,
@@ -562,6 +576,8 @@ class _StatCardsRow extends StatelessWidget {
         value: '$completed',
         sublabel: '${pct(completed)} of total',
         subColor: AppTheme.success,
+        selected: currentFilter == TaskStatus.completed,
+        onTap: () => onFilterChanged(TaskStatus.completed),
       ),
       _StatTile(
         icon: Icons.error_rounded,
@@ -570,6 +586,8 @@ class _StatCardsRow extends StatelessWidget {
         value: '$delayed',
         sublabel: '${pct(delayed)} of total',
         subColor: AppTheme.error,
+        selected: currentFilter == TaskStatus.delayed,
+        onTap: () => onFilterChanged(TaskStatus.delayed),
       ),
       _StatTile(
         icon: Icons.person_rounded,
@@ -609,6 +627,9 @@ class _StatTile extends StatelessWidget {
   final String value;
   final String sublabel;
   final Color subColor;
+  // Non-null makes this tile act as a section tab.
+  final VoidCallback? onTap;
+  final bool selected;
   const _StatTile({
     required this.icon,
     required this.iconColor,
@@ -616,48 +637,59 @@ class _StatTile extends StatelessWidget {
     required this.value,
     required this.sublabel,
     required this.subColor,
+    this.onTap,
+    this.selected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+      color: selected ? iconColor.withValues(alpha: 0.06) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: selected ? iconColor : Colors.transparent, width: 1.5),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 19),
             ),
-            child: Icon(icon, color: iconColor, size: 19),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827))),
-              const SizedBox(height: 1),
-              Text(sublabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 11, color: subColor, fontWeight: FontWeight.w600)),
-            ]),
-          ),
-        ]),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827))),
+                const SizedBox(height: 1),
+                Text(sublabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11, color: subColor, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ]),
+        ),
       ),
     );
   }

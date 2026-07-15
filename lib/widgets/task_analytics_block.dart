@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/employee_store.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
@@ -9,11 +8,8 @@ import '../services/task_transitions.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart';
 
-/// Donut-chart breakdown of task status counts. Shows the current user's
-/// own tasks, and — for managers — a second donut for their team's tasks
-/// (tasks assigned to employees who report to them).
+/// Donut-chart breakdown of the current user's own task status counts.
 class TaskAnalyticsBlock extends StatefulWidget {
-  final bool showTeam;
   final bool showIcon;
   // Employee/Manager dashboards opt into an added "Completion Rate"
   // footer; HR keeps the original donut-only card (modern defaults false).
@@ -21,15 +17,11 @@ class TaskAnalyticsBlock extends StatefulWidget {
   // Tapping a legend row (Pending/Completed/Delayed/...) jumps to this
   // route pre-filtered to that status — null keeps the legend static.
   final String? viewAllRoute;
-  // Same, for the "Team Tasks" donut when [showTeam] is true.
-  final String? teamViewAllRoute;
   const TaskAnalyticsBlock({
     super.key,
-    this.showTeam = false,
     this.showIcon = true,
     this.modern = false,
     this.viewAllRoute,
-    this.teamViewAllRoute,
   });
 
   @override
@@ -38,7 +30,6 @@ class TaskAnalyticsBlock extends StatefulWidget {
 
 class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
   Map<TaskStatus, int> _mine = {};
-  Map<TaskStatus, int> _team = {};
   bool _loading = true;
 
   @override
@@ -57,34 +48,23 @@ class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
       if (isMine) mine[t.status] = (mine[t.status] ?? 0) + 1;
     }
 
-    final team = <TaskStatus, int>{};
-    if (widget.showTeam) {
-      final teamNames = EmployeeStore.employees
-          .where((e) => e.manager.trim() == name)
-          .map((e) => e.name.trim())
-          .toSet();
-      for (final t in all) {
-        final inTeam = teamNames.contains(t.assignedEmployee.trim()) ||
-            t.teamMembers.any((m) => teamNames.contains(m.trim()));
-        if (inTeam) team[t.status] = (team[t.status] ?? 0) + 1;
-      }
-    }
-
     if (!mounted) return;
-    setState(() { _mine = mine; _team = team; _loading = false; });
+    setState(() { _mine = mine; _loading = false; });
   }
 
   @override
   Widget build(BuildContext context) {
     final totalMine = _mine.values.fold(0, (a, b) => a + b);
-    final totalTeam = _team.values.fold(0, (a, b) => a + b);
-    final hasAny = totalMine > 0 || totalTeam > 0;
+    final hasAny = totalMine > 0;
 
     return InfoCard(
       icon: Icons.pie_chart_rounded,
       title: 'Task Analytics',
       showIcon: widget.showIcon,
       onRefresh: _load,
+      // Sizes to its own content — the enclosing MySpaceRow no longer
+      // clamps every card to a fixed height, so nothing here needs to
+      // scroll internally; the dashboard's outer scroll view handles it.
       child: _loading
           ? const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
@@ -103,35 +83,13 @@ class _TaskAnalyticsBlockState extends State<TaskAnalyticsBlock> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    !widget.showTeam
-                        ? _StatusDonut(
-                            label: 'Status Breakdown',
-                            counts: _mine,
-                            onTapStatus: widget.viewAllRoute == null
-                                ? null
-                                : (s) => context.push('${widget.viewAllRoute}?status=${s.name}'),
-                          )
-                        // Stacked rather than width-adaptive: this card only ever
-                        // sits in a narrow My Space row slot, and LayoutBuilder
-                        // can't be used here anyway (it can't report intrinsic
-                        // dimensions, which the row's IntrinsicHeight needs).
-                        : Column(children: [
-                            _StatusDonut(
-                              label: 'My Tasks',
-                              counts: _mine,
-                              onTapStatus: widget.viewAllRoute == null
-                                  ? null
-                                  : (s) => context.push('${widget.viewAllRoute}?status=${s.name}'),
-                            ),
-                            const SizedBox(height: 20),
-                            _StatusDonut(
-                              label: 'Team Tasks',
-                              counts: _team,
-                              onTapStatus: widget.teamViewAllRoute == null
-                                  ? null
-                                  : (s) => context.push('${widget.teamViewAllRoute}?status=${s.name}'),
-                            ),
-                          ]),
+                    _StatusDonut(
+                      label: 'Status Breakdown',
+                      counts: _mine,
+                      onTapStatus: widget.viewAllRoute == null
+                          ? null
+                          : (s) => context.push('${widget.viewAllRoute}?status=${s.name}'),
+                    ),
                     if (widget.modern) ...[
                       const SizedBox(height: 16),
                       const Divider(height: 1),
