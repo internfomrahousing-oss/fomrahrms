@@ -103,10 +103,15 @@ class _MyTasksPageState extends State<MyTasksPage> {
     );
   }
 
-  // Employee clicks "Mark as Done" → completed (irreversible)
-  void _onDone(Task t) {
-    setState(() => t.status = TaskStatus.completed);
-    SupabaseService.updateTaskStatus(t.id, TaskStatus.completed);
+  // Employee clicks "Mark as Done" → completed (irreversible). [note] is
+  // the mandatory reason when this task was already Delayed — see
+  // _MyTaskCard's confirm-done flow, which is what enforces that.
+  void _onDone(Task t, String note) {
+    setState(() {
+      t.status = TaskStatus.completed;
+      if (note.isNotEmpty) t.completionNote = note;
+    });
+    SupabaseService.updateTaskStatus(t.id, TaskStatus.completed, note: note);
     // Fire-and-forget: let this employee's reporting manager know.
     if (UserSession.reportingManager.isNotEmpty) {
       NotificationService.taskCompleted(
@@ -120,7 +125,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
   }
 
   // Group task done: mark member complete; flip overall if all done
-  void _onGroupDone(Task t) {
+  void _onGroupDone(Task t, String note) {
     final name = UserSession.name.trim();
     final updated = Map<String, String>.from(t.teamMemberStatuses);
     updated[name] = TaskStatus.completed.name;
@@ -129,8 +134,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
     setState(() {
       t.teamMemberStatuses = updated;
       if (allCompleted) t.status = TaskStatus.completed;
+      if (note.isNotEmpty) t.completionNote = note;
     });
-    SupabaseService.updateTeamMemberStatus(t.id, updated, allCompleted);
+    SupabaseService.updateTeamMemberStatus(t.id, updated, allCompleted, note: note);
     // Only notify once the whole group task is done, and only fire-and-forget.
     if (allCompleted && UserSession.reportingManager.isNotEmpty) {
       NotificationService.taskCompleted(
@@ -319,7 +325,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     displayStatus: _effectiveStatus(t),
                     isGroupTask: isGroup,
                     onReceived: () => _onReceived(t),
-                    onDone: isGroup ? () => _onGroupDone(t) : () => _onDone(t),
+                    onDone: isGroup
+                        ? (note) => _onGroupDone(t, note)
+                        : (note) => _onDone(t, note),
                   ),
                 );
               }),
@@ -338,7 +346,9 @@ class _MyTaskCard extends StatefulWidget {
   final TaskStatus displayStatus;
   final bool isGroupTask;
   final VoidCallback onReceived;
-  final VoidCallback onDone;
+  // Called with the completion reason — empty string when the task wasn't
+  // Delayed (no reason required in that case).
+  final void Function(String note) onDone;
   const _MyTaskCard({
     required this.task,
     required this.number,
@@ -386,6 +396,57 @@ class _MyTaskCardState extends State<_MyTaskCard> {
         TaskStatus.completed  => 'Completed',
         TaskStatus.delayed    => 'Delayed',
       };
+
+  // Delayed tasks require a reason before they can be marked done; anything
+  // else completes immediately with no reason needed.
+  Future<void> _confirmDone(TaskStatus effectiveStatus) async {
+    if (effectiveStatus != TaskStatus.delayed) {
+      widget.onDone('');
+      return;
+    }
+
+    final ctrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        title: const Text('Reason for delay'),
+        content: Form(
+          key: formKey,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text(
+              'This task is overdue. Please explain why before marking it done.',
+              style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: ctrl,
+              autofocus: true,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                  labelText: 'Reason', border: OutlineInputBorder()),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'A reason is required' : null,
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dlgCtx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(dlgCtx, true);
+            },
+            child: const Text('Mark as Done'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) widget.onDone(ctrl.text.trim());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -535,7 +596,7 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                     ds == TaskStatus.pending ||
                     ds == TaskStatus.delayed)
                   ElevatedButton.icon(
-                    onPressed: widget.onDone,
+                    onPressed: () => _confirmDone(ds),
                     icon: const Icon(Icons.task_alt_rounded, size: 16),
                     label: const Text('Mark as Done',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),

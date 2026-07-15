@@ -32,6 +32,9 @@ class Task {
   String attachment;
   DateTime? receivedAt;
   bool isSelfAssigned;
+  // Reason given for completing a task after it was already marked
+  // Delayed — required at the UI layer, see MyTasksPage._onDone.
+  String completionNote;
 
   Task({
     required this.id,
@@ -49,6 +52,7 @@ class Task {
     this.attachment = '',
     this.receivedAt,
     this.isSelfAssigned = false,
+    this.completionNote = '',
   }) : teamMemberStatuses = teamMemberStatuses ?? {};
 
   Map<String, dynamic> toJson() => {
@@ -67,6 +71,11 @@ class Task {
     'attachment':            attachment,
     'received_at':           receivedAt?.toIso8601String(),
     'is_self_assigned':      isSelfAssigned,
+    // Deliberately excluded here — always empty at creation time, and kept
+    // out of the general upsert so a missing completion_note column (on a
+    // database that hasn't picked up that migration yet) can't break task
+    // creation. Only SupabaseService.updateTaskStatus's completion path
+    // writes it, with its own fallback if the column isn't there.
   };
 
   factory Task.fromJson(Map<String, dynamic> j) {
@@ -111,6 +120,7 @@ class Task {
           ? DateTime.tryParse(j['received_at'] as String)
           : null,
       isSelfAssigned:       (j['is_self_assigned'] as bool?) ?? false,
+      completionNote:       (j['completion_note'] as String?) ?? '',
     );
   }
 }
