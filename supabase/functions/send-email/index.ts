@@ -9,14 +9,15 @@
 //   SMTP_PASSWORD — that mailbox's login password (Netcore Cloudmail doesn't
 //     use separate app passwords the way Google/Zoho do).
 //
-// Host/port confirmed against this domain's actual MX/DNS setup: Netcore
-// Cloudmail exposes SMTP at mail.<yourdomain> (here, mail.fomrahousing.in),
-// port 465 (SSL) — see https://netcoresupport.freshdesk.com/support/solutions/articles/26000034883
+// Host is Netcore Cloudmail's shared SMTP relay (smtp3.netcore.co.in, taken
+// directly from the account's Cloudmail control panel) rather than a
+// per-domain mail.<yourdomain> host — the previous mail.fomrahousing.in
+// guess was reachable and spoke SMTP, but 535-rejected every login.
 
 import nodemailer from "npm:nodemailer@6";
 
 const transporter = nodemailer.createTransport({
-  host: "mail.fomrahousing.in",
+  host: "smtp3.netcore.co.in",
   port: 465,
   secure: true,
   auth: {
