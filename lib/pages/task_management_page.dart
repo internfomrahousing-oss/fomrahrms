@@ -148,7 +148,8 @@ class _TaskManagementPageState extends State<TaskManagementPage>
 
     return Scaffold(
       backgroundColor: null,
-      body: Column(
+      body: SingleChildScrollView(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
@@ -234,12 +235,13 @@ class _TaskManagementPageState extends State<TaskManagementPage>
             ],
           ),
 
-          // Tab content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _TasksTab(
+          // Tab content — the whole page (header, tab bar, and this) scrolls
+          // as one via the SingleChildScrollView above, so this just shows
+          // whichever tab is selected rather than a bounded-height
+          // TabBarView (which would need its own Expanded and reintroduce
+          // an internal scroll region per tab).
+          switch (_tabController.index) {
+            0 => _TasksTab(
                   loading: _loading,
                   filters: _filters,
                   currentFilter: _filter,
@@ -265,18 +267,17 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   onSortChanged: (v) => setState(() => _sort = v),
                   onDelete: _onDelete,
                 ),
-                const SingleChildScrollView(
+            1 => const Padding(
                   padding: EdgeInsets.all(24),
                   child: PerformanceManagementBody(),
                 ),
-                const SingleChildScrollView(
+            _ => const Padding(
                   padding: EdgeInsets.all(24),
                   child: SalaryHikeEngineBody(),
                 ),
-              ],
-            ),
-          ),
+          },
         ],
+        ),
       ),
     );
   }
@@ -338,9 +339,14 @@ class _TasksTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 60),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -15,11 +15,13 @@ const _months = ['January', 'February', 'March', 'April', 'May', 'June',
 
 // ── My Space row (shared across HR/Employee/Manager dashboards) ───────────────
 
-// Each card in the dashboard's top "My Space" row (Quick Access / My Tasks /
-// Task Analytics) sizes to its own content instead of being clamped to a
-// fixed height — a card no longer needs its own internal scroll region to
-// fit, so the page's single outer scroll view is the only thing that
-// scrolls (nothing inside a card traps the scroll gesture).
+// Every card in the dashboard's top "My Space" row (Quick Access / My Tasks /
+// Task Analytics) sizes to its own content — none of them scroll internally
+// or overflow — but on a wide screen they're stretched to match the row's
+// tallest card (via IntrinsicHeight) so the row still reads as one even
+// strip instead of a ragged bottom edge. None of the three cards contain a
+// ListView/CustomScrollView/LayoutBuilder anymore, so this is safe — those
+// are the widgets that can't report an intrinsic height.
 class MySpaceRow extends StatelessWidget {
   final List<Widget> children;
   const MySpaceRow({super.key, required this.children});
@@ -29,14 +31,16 @@ class MySpaceRow extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth > 900;
       if (wide) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (int i = 0; i < children.length; i++) ...[
-              if (i > 0) const SizedBox(width: 16),
-              Expanded(child: children[i]),
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                Expanded(child: children[i]),
+              ],
             ],
-          ],
+          ),
         );
       }
       return Column(children: [

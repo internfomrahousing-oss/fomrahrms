@@ -60,6 +60,7 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 4, vsync: this);
+    _tabs.addListener(() => setState(() {}));
     final now = DateTime.now();
     _selectedMonth = DateTime(now.year, now.month);
     _reload();
@@ -160,7 +161,8 @@ static String _fmtD(double d) =>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: null,
-      body: Column(
+      body: SingleChildScrollView(
+        child: Column(
         children: [
           // Header
           Container(
@@ -227,20 +229,23 @@ static String _fmtD(double d) =>
             ),
           ),
 
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : TabBarView(
-                    controller: _tabs,
-                    children: [
-                      _buildAllocationsTab(),
-                      _buildApplicationsTab(typeFilter: 'leave'),
-                      _buildApplicationsTab(typeFilter: 'Permission'),
-                      _buildApplicationsTab(typeFilter: 'Comp Off'),
-                    ],
-                  ),
-          ),
+          // The whole page (header, tab bar, and this) scrolls as one via
+          // the SingleChildScrollView above, so this just shows whichever
+          // tab is selected rather than a bounded-height TabBarView.
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 60),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            switch (_tabs.index) {
+              0 => _buildAllocationsTab(),
+              1 => _buildApplicationsTab(typeFilter: 'leave'),
+              2 => _buildApplicationsTab(typeFilter: 'Permission'),
+              _ => _buildApplicationsTab(typeFilter: 'Comp Off'),
+            },
         ],
+        ),
       ),
     );
   }
@@ -287,15 +292,18 @@ static String _fmtD(double d) =>
 
   Widget _buildAllocationsTab() {
     if (_employees.isEmpty) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.group_off_rounded, size: 56, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text('No employees found', style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
-          const SizedBox(height: 4),
-          Text('Add employees via Administration first.',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-        ]),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.group_off_rounded, size: 56, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text('No employees found', style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text('Add employees via Administration first.',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+          ]),
+        ),
       );
     }
 
@@ -307,9 +315,9 @@ static String _fmtD(double d) =>
         ? <AppUser>[]
         : filtered.sublist(start, (start + _pageSize).clamp(0, filtered.length));
 
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.all(20),
-      children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _buildStatsRow(),
         const SizedBox(height: 16),
         _buildFilterBar(),
@@ -336,7 +344,7 @@ static String _fmtD(double d) =>
           const SizedBox(height: 8),
           _buildPaginationFooter(filtered.length, pageCount, page),
         ],
-      ],
+      ]),
     );
   }
 
@@ -706,9 +714,9 @@ static String _fmtD(double d) =>
     final approved = apps.where((a) => a.managerStatus == LeaveApprovalStatus.approved).length;
     final denied   = apps.where((a) => a.managerStatus == LeaveApprovalStatus.denied).length;
 
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.all(20),
-      children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // Month navigator
         Center(
           child: Container(
@@ -810,7 +818,7 @@ static String _fmtD(double d) =>
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _AppCard(app: app, fmt: _fmt),
               )),
-      ],
+      ]),
     );
   }
 }
