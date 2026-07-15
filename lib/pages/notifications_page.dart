@@ -235,8 +235,8 @@ class _PreferencesDropdown extends StatefulWidget {
 
 class _PreferencesDropdownState extends State<_PreferencesDropdown> {
   late Set<String> _muted = {...NotificationStore.mutedCategories};
-  late final List<NotificationCategory> _categories =
-      categoriesForRole(currentRoleLabel());
+  late final String _roleLabel = currentRoleLabel();
+  late final List<NotificationCategory> _categories = categoriesForRole(_roleLabel);
   bool _saving = false;
 
   // [_muted] holds both category ids ("mute this whole bucket") and
@@ -326,6 +326,7 @@ class _PreferencesDropdownState extends State<_PreferencesDropdown> {
                   children: [
                     for (final c in _categories) _CategoryTile(
                       category: c,
+                      roleLabel: _roleLabel,
                       muted: _muted,
                       onToggleCategory: _toggleCategory,
                       onToggleType: _toggleType,
@@ -343,11 +344,13 @@ class _PreferencesDropdownState extends State<_PreferencesDropdown> {
 
 class _CategoryTile extends StatelessWidget {
   final NotificationCategory category;
+  final String roleLabel;
   final Set<String> muted;
   final void Function(String categoryId, bool getNotified) onToggleCategory;
   final void Function(String type, bool getNotified) onToggleType;
   const _CategoryTile({
     required this.category,
+    required this.roleLabel,
     required this.muted,
     required this.onToggleCategory,
     required this.onToggleType,
@@ -356,6 +359,10 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categoryMuted = muted.contains(category.id);
+    // Only the sub-types this role can actually be sent — e.g. Management
+    // never gets personal check-in/out notices, so there's no point in
+    // showing a toggle for them.
+    final subTypes = subTypesForRole(category, roleLabel);
     // Always render as a dropdown — even single-subtype categories — so the
     // master switch lands at the same x position on every row instead of
     // jumping right when there's no chevron to make room for.
@@ -374,7 +381,7 @@ class _CategoryTile extends StatelessWidget {
         ),
       ]),
       children: [
-        for (final st in category.subTypes)
+        for (final st in subTypes)
           Padding(
             padding: const EdgeInsets.only(left: 36),
             child: SwitchListTile(
