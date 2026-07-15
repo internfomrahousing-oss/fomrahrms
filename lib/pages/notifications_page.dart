@@ -26,10 +26,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
   // narrowable by the category chips below.
   bool _showAll = false;
 
+  // Anchors the preferences dropdown to the tune button at the top-left so
+  // it opens as a small anchored card instead of a full bottom sheet.
+  final LayerLink _prefsLink = LayerLink();
+  OverlayEntry? _prefsOverlay;
+
   @override
   void initState() {
     super.initState();
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    _prefsOverlay?.remove();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -49,13 +60,40 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (n.route.isNotEmpty) context.go(n.route);
   }
 
-  Future<void> _openPreferences() async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _PreferencesSheet(),
+  void _togglePreferences() {
+    if (_prefsOverlay != null) {
+      _closePreferences();
+    } else {
+      _openPreferences();
+    }
+  }
+
+  void _openPreferences() {
+    final overlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _closePreferences,
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _prefsLink,
+            showWhenUnlinked: false,
+            offset: const Offset(0, 44),
+            child: _PreferencesDropdown(onClose: _closePreferences),
+          ),
+        ],
+      ),
     );
+    Overlay.of(context).insert(overlay);
+    _prefsOverlay = overlay;
+  }
+
+  void _closePreferences() {
+    _prefsOverlay?.remove();
+    _prefsOverlay = null;
     if (mounted) setState(() {}); // muted categories may have changed
   }
 
@@ -83,6 +121,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
               children: [
                 const NavBackButton(),
                 const SizedBox(width: 8),
+                CompositedTransformTarget(
+                  link: _prefsLink,
+                  child: IconButton(
+                    onPressed: _togglePreferences,
+                    icon: const Icon(Icons.tune_rounded),
+                    tooltip: 'Notification preferences',
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Container(
                   width: 48,
                   height: 48,
@@ -107,11 +154,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     icon: const Icon(Icons.done_all_rounded, size: 18),
                     label: const Text('Mark all read'),
                   ),
-                IconButton(
-                  onPressed: _openPreferences,
-                  icon: const Icon(Icons.tune_rounded),
-                  tooltip: 'Notification preferences',
-                ),
                 IconButton(
                   onPressed: _refresh,
                   icon: const Icon(Icons.refresh_rounded),
@@ -179,17 +221,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 }
 
-/// Bottom sheet where the user picks which categories of notification they
-/// want to receive at all — distinct from the page's view filter, which
-/// only changes what's shown right now.
-class _PreferencesSheet extends StatefulWidget {
-  const _PreferencesSheet();
+/// Dropdown card, anchored below the tune button at the page's top-left,
+/// where the user picks which categories of notification they want to
+/// receive at all — distinct from the page's view filter, which only
+/// changes what's shown right now.
+class _PreferencesDropdown extends StatefulWidget {
+  final VoidCallback onClose;
+  const _PreferencesDropdown({required this.onClose});
 
   @override
-  State<_PreferencesSheet> createState() => _PreferencesSheetState();
+  State<_PreferencesDropdown> createState() => _PreferencesDropdownState();
 }
 
-class _PreferencesSheetState extends State<_PreferencesSheet> {
+class _PreferencesDropdownState extends State<_PreferencesDropdown> {
   late Set<String> _muted = {...NotificationStore.mutedCategories};
   late final List<NotificationCategory> _categories =
       categoriesForRole(currentRoleLabel());
@@ -231,61 +275,66 @@ class _PreferencesSheetState extends State<_PreferencesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.borderSubtle,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Notification preferences',
-                      style: Theme.of(context).textTheme.titleMedium),
-                ),
-                if (_saving)
-                  const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text('Choose which kinds of notifications you want to get — tap a '
-                'row to fine-tune the individual kinds inside it.',
-                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
-            const SizedBox(height: 8),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.only(bottom: 16),
+    final screenSize = MediaQuery.of(context).size;
+    final width = (screenSize.width - 32).clamp(0, 340).toDouble();
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        elevation: 8,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          width: width,
+          constraints: BoxConstraints(maxHeight: screenSize.height * 0.65),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  for (final c in _categories) _CategoryTile(
-                    category: c,
-                    muted: _muted,
-                    onToggleCategory: _toggleCategory,
-                    onToggleType: _toggleType,
+                  Expanded(
+                    child: Text('Notification preferences',
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  if (_saving)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: widget.onClose,
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text('Choose which kinds of notifications you want to get — tap a '
+                  'row to fine-tune the individual kinds inside it.',
+                  style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: 8),
+                  children: [
+                    for (final c in _categories) _CategoryTile(
+                      category: c,
+                      muted: _muted,
+                      onToggleCategory: _toggleCategory,
+                      onToggleType: _toggleType,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
