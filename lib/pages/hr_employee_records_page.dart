@@ -167,10 +167,23 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
     });
   }
 
+  // Staff Portal users (Housekeeping/Support Staff) are entirely HR-owned —
+  // unlike the general employee roster, HR can delete them directly here
+  // with no Management approval. General employee deletion stays
+  // Management-only via the Administration page.
+  Future<void> _deleteUser(AppUser user) async {
+    await UserStore.deleteOne(user.email);
+    if (!mounted) return;
+    setState(() {
+      _all.removeWhere((u) => u.email == user.email);
+      _applyFilter();
+    });
+  }
+
   void _openProfile(AppUser user) {
     showDialog(
       context: context,
-      builder: (_) => _ProfileDialog(user: user, allUsers: _all, onSave: _saveUser),
+      builder: (_) => _ProfileDialog(user: user, allUsers: _all, onSave: _saveUser, onDelete: _deleteUser),
     );
   }
 
@@ -569,8 +582,9 @@ class _ProfileDialog extends StatefulWidget {
   final AppUser user;
   final List<AppUser> allUsers;
   final Future<void> Function(AppUser) onSave;
+  final Future<void> Function(AppUser)? onDelete;
   const _ProfileDialog(
-      {required this.user, required this.allUsers, required this.onSave});
+      {required this.user, required this.allUsers, required this.onSave, this.onDelete});
 
   @override
   State<_ProfileDialog> createState() => _ProfileDialogState();
@@ -1779,11 +1793,68 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                   ),
                 ),
               ),
+              // Staff Portal users (Housekeeping/Support Staff) are HR-owned
+              // end to end — HR can delete them here with no Management
+              // approval, unlike the rest of the workforce.
+              if (widget.onDelete != null && kStaffPortalDepartments.contains(_user.department)) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _saving ? null : () => _confirmDelete(context),
+                    icon: const Icon(Icons.delete_rounded, size: 16),
+                    label: const Text('Delete Staff Portal User'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB91C1C),
+                      side: const BorderSide(color: Color(0xFFB91C1C)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ]),
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete User',
+            style: TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.bold)),
+        content: RichText(
+          text: TextSpan(
+            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            children: [
+              const TextSpan(text: 'Are you sure you want to permanently delete '),
+              TextSpan(text: _user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const TextSpan(text: '? This action cannot be undone.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFB91C1C), foregroundColor: Colors.white),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _saving = true);
+    await widget.onDelete?.call(_user);
+    if (context.mounted) Navigator.pop(context);
   }
 }
 
@@ -2021,10 +2092,26 @@ class _EditDialogState extends State<_EditDialog> {
     super.dispose();
   }
 
+  bool get _isNew => widget.user == null;
+
   Future<void> _save() async {
     final name   = _nameCtrl.text.trim();
     final prefix = _emailCtrl.text.trim();
     if (name.isEmpty || prefix.isEmpty) return;
+
+    // HR's quick "Add Employee" only creates Staff Portal (Housekeeping /
+    // Support Staff) accounts now — everyone else goes through the
+    // Interview & Onboarding pipeline instead. Role is forced to Employee
+    // for these (see the hidden Role dropdown below).
+    if (_isNew && !kStaffPortalDepartments.contains(_department)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please select Housekeeping or Support Staff as the department.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
 
     setState(() => _saving = true);
 
@@ -2250,15 +2337,42 @@ class _EditDialogState extends State<_EditDialog> {
               ),
             ),
 
+            if (isNew) ...[
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: Colors.orange.shade800),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Add Employee only creates Housekeeping / Support Staff accounts. '
+                      'Other new hires go through Interview & Onboarding.',
+                      style: TextStyle(fontSize: 11.5, color: Colors.orange.shade900),
+                    ),
+                  ),
+                ]),
+              ),
+            ],
             _field(_empIdCtrl,   'Employee ID',               Icons.badge_rounded),
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: DropdownButtonFormField<String>(
-                value: _department != null && kDepartments.contains(_department) ? _department : null,
+                value: _department != null &&
+                        (isNew ? kStaffPortalDepartments : kDepartments).contains(_department)
+                    ? _department
+                    : null,
                 decoration: _dropDeco(context, 'Department', Icons.account_tree_rounded),
                 hint: _department != null ? Text(_department!) : null,
-                items: kDepartments.map((dep) =>
-                    DropdownMenuItem(value: dep, child: Text(dep))).toList(),
+                items: (isNew ? kStaffPortalDepartments : kDepartments)
+                    .map((dep) => DropdownMenuItem(value: dep, child: Text(dep)))
+                    .toList(),
                 onChanged: (v) => setState(() => _department = v),
               ),
             ),
@@ -2353,21 +2467,24 @@ class _EditDialogState extends State<_EditDialog> {
                   Icons.account_balance_wallet_rounded,
                   keyboard: TextInputType.number),
 
-            // Role dropdown
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: DropdownButtonFormField<String>(
-                value: _role,
-                decoration: _dropDeco(context, 'Role', Icons.shield_rounded),
-                items: ['Employee', 'Manager', 'HR', 'Management']
-                    .map((r) =>
-                        DropdownMenuItem(value: r, child: Text(r)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _role = v);
-                },
+            // Role dropdown — hidden when adding a new employee: Staff
+            // Portal accounts created here are always role 'Employee'
+            // (already the default). Still editable for existing records.
+            if (!isNew)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: DropdownButtonFormField<String>(
+                  value: _role,
+                  decoration: _dropDeco(context, 'Role', Icons.shield_rounded),
+                  items: ['Employee', 'Manager', 'HR', 'Management']
+                      .map((r) =>
+                          DropdownMenuItem(value: r, child: Text(r)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _role = v);
+                  },
+                ),
               ),
-            ),
 
             // Reporting manager (Employee / Manager / HR roles)
             if (['Employee', 'Manager', 'HR'].contains(_role) &&
