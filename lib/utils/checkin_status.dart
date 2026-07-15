@@ -3,6 +3,13 @@ import '../models/leave_store.dart';
 /// Shared late-check-in threshold: 09:30 AM.
 const int lateCutoffMinutes = 9 * 60 + 30;
 
+/// End of the forgivable grace window for late arrivals: 09:41 AM. A late
+/// check-in between [lateCutoffMinutes] (exclusive) and this (inclusive) is
+/// "grace late" — the first few each month are excused, see
+/// [PayslipCalc.lateGraceExcuses]/[PayslipCalc.lateDeduction]. Anything after
+/// this is never excused, no matter how many grace passes remain.
+const int lateGraceEndMinutes = 9 * 60 + 41;
+
 enum CheckInStatus { none, onTime, permission, late }
 
 class CheckInRowStatus {
@@ -26,19 +33,22 @@ int approvedPermissionMinutesFor(
   return 0;
 }
 
+int? _minutesOf(String time) {
+  final parts = time.split(':');
+  if (parts.length != 2) return null;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return null;
+  return h * 60 + m;
+}
+
 /// Determines whether [checkInTime] (a "HH:mm" string) on [date] for
 /// [employeeName] is on time, late-but-covered-by-approved-permission, or
 /// genuinely late, checking [leaveApps] for a same-day approved Permission.
 CheckInRowStatus checkInStatusFor(String checkInTime, DateTime date, String employeeName,
     List<LeaveApplication> leaveApps) {
-  if (checkInTime.isEmpty) return const CheckInRowStatus(CheckInStatus.none, 0);
-  final parts = checkInTime.split(':');
-  if (parts.length != 2) return const CheckInRowStatus(CheckInStatus.none, 0);
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return const CheckInRowStatus(CheckInStatus.none, 0);
-
-  final minutes = h * 60 + m;
+  final minutes = _minutesOf(checkInTime);
+  if (minutes == null) return const CheckInRowStatus(CheckInStatus.none, 0);
   if (minutes <= lateCutoffMinutes) return const CheckInRowStatus(CheckInStatus.onTime, 0);
 
   final permMinutes = approvedPermissionMinutesFor(leaveApps, employeeName, date);
@@ -46,6 +56,24 @@ CheckInRowStatus checkInStatusFor(String checkInTime, DateTime date, String empl
     return CheckInRowStatus(CheckInStatus.permission, permMinutes);
   }
   return const CheckInRowStatus(CheckInStatus.late, 0);
+}
+
+/// True when a genuinely-late [checkInTime] ("HH:mm") still falls within the
+/// forgivable grace window (09:31–09:41 inclusive) — only meaningful for
+/// records where [checkInStatusFor] already returned [CheckInStatus.late].
+bool isGraceLate(String checkInTime) {
+  final minutes = _minutesOf(checkInTime);
+  if (minutes == null) return false;
+  return minutes > lateCutoffMinutes && minutes <= lateGraceEndMinutes;
+}
+
+/// True when a late [checkInTime] ("HH:mm") is past the grace window
+/// (after 09:41) — always incurs the compulsory half-day deduction, no
+/// matter how many grace excuses the employee has left that month.
+bool isSevereLate(String checkInTime) {
+  final minutes = _minutesOf(checkInTime);
+  if (minutes == null) return false;
+  return minutes > lateGraceEndMinutes;
 }
 
 /// Parses a "dd/MM/yyyy" date string (the format used by [AttendanceRecord.date]).

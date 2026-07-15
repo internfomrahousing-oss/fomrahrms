@@ -112,11 +112,18 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ));
-    } else if (UserSession.email.isNotEmpty) {
-      NotificationService.checkInRecorded(
-        employeeEmail: UserSession.email,
-        time: _checkInCtrl.text,
-        employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+    } else {
+      if (UserSession.email.isNotEmpty) {
+        NotificationService.checkInRecorded(
+          employeeEmail: UserSession.email,
+          time: _checkInCtrl.text,
+          employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
+        );
+      }
+      NotificationService.notifyIfLateCheckIn(
+        employeeName: empName,
+        checkInTime: _checkInCtrl.text,
+        date: now,
       );
     }
 

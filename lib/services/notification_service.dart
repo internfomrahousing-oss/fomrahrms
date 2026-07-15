@@ -2,6 +2,7 @@ import '../models/app_user.dart';
 import '../models/notification_store.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
+import '../utils/checkin_status.dart';
 import '../utils/tenure.dart';
 import 'supabase_service.dart';
 import 'user_store.dart';
@@ -679,6 +680,33 @@ class NotificationService {
         route: '$employeeRoutePrefix/attendance-leaves',
         targetEmail: employeeEmail,
       );
+
+  /// HR-wide alert fired alongside [checkInRecorded] whenever a check-in
+  /// comes back late — including one that exceeds an already-approved
+  /// Permission window, which reads distinctly in the title. Silently does
+  /// nothing for on-time or fully permission-covered check-ins.
+  static Future<void> notifyIfLateCheckIn({
+    required String employeeName,
+    required String checkInTime,
+    required DateTime date,
+  }) async {
+    final leaves = await SupabaseService.fetchLeaveApplications();
+    final status = checkInStatusFor(checkInTime, date, employeeName, leaves);
+    if (status.status != CheckInStatus.late) return;
+
+    final hadApprovedPermissionToday =
+        approvedPermissionMinutesFor(leaves, employeeName, date) > 0;
+
+    await _create(
+      type: 'attendance_checkin_late',
+      title: hadApprovedPermissionToday
+          ? '$employeeName exceeded their approved permission'
+          : '$employeeName checked in late',
+      body: 'Checked in at $checkInTime',
+      route: '/attendance-management',
+      targetRole: 'HR',
+    );
+  }
 
   // ── Task reminders (self, not user-triggered) ───────────────────────
 

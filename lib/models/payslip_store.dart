@@ -289,16 +289,20 @@ class PayslipCalc {
   static double oneDaySalary({required double grossPay, required int daysInMonth}) =>
       daysInMonth <= 0 ? 0 : grossPay / daysInMonth;
 
-  /// First [graceDays] late arrivals in a month are excused; only late days
-  /// beyond that are charged, at half a day's pay each.
-  static const int lateGraceDays = 3;
+  /// Late arrivals within the grace window (09:31–09:41, see
+  /// [isGraceLate] in checkin_status.dart) are excused this many times a
+  /// month; beyond that, and every arrival after 09:41 ([isSevereLate])
+  /// with no exceptions, costs half a day's pay each.
+  static const int lateGraceExcuses = 3;
 
   static double lateDeduction({
     required double grossPay,
     required int daysInMonth,
-    required int lateDays,
+    required int graceLateDays,
+    required int severeLateDays,
   }) {
-    final chargeable = lateDays - lateGraceDays;
+    final chargeableGrace = (graceLateDays - lateGraceExcuses).clamp(0, graceLateDays);
+    final chargeable = chargeableGrace + severeLateDays;
     if (chargeable <= 0) return 0;
     return oneDaySalary(grossPay: grossPay, daysInMonth: daysInMonth) * 0.5 * chargeable;
   }

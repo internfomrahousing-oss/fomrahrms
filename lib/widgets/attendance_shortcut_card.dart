@@ -953,6 +953,11 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
         time: _timeCtrl.text,
         employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
       );
+      NotificationService.notifyIfLateCheckIn(
+        employeeName: empName,
+        checkInTime: _timeCtrl.text,
+        date: now,
+      );
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Checked in at ${_timeCtrl.text}'),

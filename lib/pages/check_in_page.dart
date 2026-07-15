@@ -148,6 +148,11 @@ class _CheckInPageState extends State<CheckInPage> {
           employeeRoutePrefix: NotificationService.routePrefixForRole(UserSession.role),
         );
       }
+      NotificationService.notifyIfLateCheckIn(
+        employeeName: empName,
+        checkInTime: _timeController.text,
+        date: now,
+      );
       // Re-fetch to get the saved record
       final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
       if (mounted) setState(() => _record = rec);

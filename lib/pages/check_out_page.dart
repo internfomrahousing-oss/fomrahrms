@@ -8,19 +8,26 @@ import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
+const int _normalCheckOutMinutes = 18 * 60 + 30;
+
 // Note box only needs to appear for an early check-out (before the cutoff).
-bool _isEarlyCheckOut(String hhmm) {
+// An approved same-day Permission pushes the cutoff earlier by its minutes —
+// e.g. a 1-hour permission allows checking out at 5:30 PM instead of 6:30 PM,
+// the same way permission extends the late-check-in cutoff (see
+// checkInStatusFor in checkin_status.dart).
+bool _isEarlyCheckOut(String hhmm, int permissionMinutes) {
   final parts = hhmm.split(':');
   if (parts.length != 2) return false;
   final h = int.tryParse(parts[0]);
   final m = int.tryParse(parts[1]);
   if (h == null || m == null) return false;
-  return (h * 60 + m) < (18 * 60 + 30);
+  return (h * 60 + m) < (_normalCheckOutMinutes - permissionMinutes);
 }
 
-// An approved Permission application already covering today explains the
-// early departure, so the note box shouldn't nag for one on top of it.
-bool _onApprovedPermissionToday(List<LeaveApplication> apps) {
+// Minutes granted by an approved 'Permission' leave application covering
+// today; 0 if none. Same pool of minutes checkInStatusFor uses for a late
+// check-in — here it's spent on an early check-out instead.
+int _approvedPermissionMinutesToday(List<LeaveApplication> apps) {
   final today = DateTime.now();
   final me = UserSession.name.trim().toLowerCase();
   bool coversToday(LeaveApplication a) {
@@ -30,11 +37,13 @@ bool _onApprovedPermissionToday(List<LeaveApplication> apps) {
     return !d.isBefore(f) && !d.isAfter(t);
   }
 
-  return apps.any((a) =>
-      a.employeeName.trim().toLowerCase() == me &&
-      a.leaveType == 'Permission' &&
-      a.managerStatus == LeaveApprovalStatus.approved &&
-      coversToday(a));
+  for (final a in apps) {
+    if (a.employeeName.trim().toLowerCase() != me) continue;
+    if (a.leaveType != 'Permission') continue;
+    if (a.managerStatus != LeaveApprovalStatus.approved) continue;
+    if (coversToday(a)) return LeaveStore.permMinutesFromReason(a.reason);
+  }
+  return 0;
 }
 
 class CheckOutPage extends StatefulWidget {
@@ -49,7 +58,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
   bool _loading = true;
   AttendanceRecord? _record;
-  bool _onPermission = false;
+  int _permissionMinutes = 0;
 
   final _timeController = TextEditingController();
   final _noteController = TextEditingController();
@@ -84,7 +93,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
     final apps = results[1] as List<LeaveApplication>;
     setState(() {
       _record = rec;
-      _onPermission = _onApprovedPermissionToday(apps);
+      _permissionMinutes = _approvedPermissionMinutesToday(apps);
       _loading = false;
     });
   }
@@ -180,7 +189,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 child: ListenableBuilder(
                   listenable: _timeController,
                   builder: (context, _) {
-                    final showNote = !_onPermission && _isEarlyCheckOut(_timeController.text);
+                    final showNote = _isEarlyCheckOut(_timeController.text, _permissionMinutes);
                     return Column(children: [
                       TextField(
                         controller: _timeController,

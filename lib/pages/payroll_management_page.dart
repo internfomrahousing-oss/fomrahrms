@@ -986,7 +986,8 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
   int _workingDays = 0;
   int _daysInMonth = 0; // fixed calendar days; basis for one-day salary
   int _lopDays = 0;
-  int _lateDays = 0;
+  int _graceLateDays = 0;
+  int _severeLateDays = 0;
   bool _daysWorkedManual = false;
   late final TextEditingController _workingDaysCtrl;
   late final TextEditingController _lopDaysCtrl;
@@ -1052,13 +1053,22 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
     final attendance = results[0] as List<AttendanceRecord>;
     final leaves = results[1] as List<LeaveApplication>;
 
-    // Late days: check-in after 9:30 AM, excluding days covered by an approved permission
-    var lateDays = 0;
+    // Late days: check-in after 9:30 AM, excluding days covered by an approved
+    // permission. Split into the forgivable 09:31–09:41 grace window (a few
+    // free passes a month) vs. genuinely severe (09:42+, always deducted) —
+    // see PayslipCalc.lateDeduction.
+    var graceLateDays = 0;
+    var severeLateDays = 0;
     for (final r in attendance) {
       final date = parseSlashDate(r.date);
       if (date == null) continue;
       final status = checkInStatusFor(r.checkInTime, date, widget.user.name, leaves);
-      if (status.status == CheckInStatus.late) lateDays++;
+      if (status.status != CheckInStatus.late) continue;
+      if (isSevereLate(r.checkInTime)) {
+        severeLateDays++;
+      } else if (isGraceLate(r.checkInTime)) {
+        graceLateDays++;
+      }
     }
 
     // LOP days: approved 'LOP or Others' leave for this employee in this month
@@ -1105,7 +1115,8 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
       _workingDays = daysInMonth;
       _daysInMonth = daysInMonth;
       _lopDays = lopDays;
-      _lateDays = lateDays;
+      _graceLateDays = graceLateDays;
+      _severeLateDays = severeLateDays;
       _workingDaysCtrl.text = '$daysInMonth';
       _lopDaysCtrl.text = '$lopDays';
       _daysWorkedCtrl.text = '$daysWorkedDefault';
@@ -1139,7 +1150,8 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
   double get _professionalTax => _professionalTaxOverride ?? PayslipCalc.professionalTax;
   double get _tds => _tdsOverride ?? PayslipCalc.tds(_grossPay);
   double get _lateDeduction => _lateDeductionOverride ?? PayslipCalc.lateDeduction(
-      grossPay: _grossPay, daysInMonth: _daysInMonth, lateDays: _lateDays);
+      grossPay: _grossPay, daysInMonth: _daysInMonth,
+      graceLateDays: _graceLateDays, severeLateDays: _severeLateDays);
   double get _excessLeaveDays => _clExcess + _mlExcess + (_deductElExcess ? _elExcess : 0);
   double get _excessLeaveDeduction => _excessLeaveDeductionOverride ?? PayslipCalc.excessLeaveDeduction(
       grossPay: _grossPay, daysInMonth: _daysInMonth, excessDays: _excessLeaveDays);
@@ -1448,10 +1460,12 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                   onChanged: (v) => setState(() => _tdsOverride = v),
                 ),
                 _EditableAmount(
-                  label:
-                      'Late Deductions ($_lateDays late day${_lateDays == 1 ? '' : 's'}, ${PayslipCalc.lateGraceDays} excused)',
+                  label: 'Late Deductions ($_graceLateDays grace-window late'
+                      '${_graceLateDays == 1 ? '' : 's'} (${PayslipCalc.lateGraceExcuses} excused), '
+                      '$_severeLateDays after 09:41)',
                   autoValue: PayslipCalc.lateDeduction(
-                      grossPay: _grossPay, daysInMonth: _daysInMonth, lateDays: _lateDays),
+                      grossPay: _grossPay, daysInMonth: _daysInMonth,
+                      graceLateDays: _graceLateDays, severeLateDays: _severeLateDays),
                   overrideValue: _lateDeductionOverride,
                   onChanged: (v) => setState(() => _lateDeductionOverride = v),
                 ),
