@@ -40,7 +40,7 @@ create or replace function verify_app_user_password(p_email text, p_password tex
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select exists (
     select 1 from app_users
@@ -54,7 +54,7 @@ create or replace function set_app_user_password(p_email text, p_password text)
 returns void
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   update app_users
      set password_hash = crypt(p_password, gen_salt('bf')),

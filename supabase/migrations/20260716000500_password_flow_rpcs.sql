@@ -23,7 +23,7 @@
 
 create or replace function complete_account_activation(p_token text, p_password text)
 returns text -- the activated email, or null if the token is invalid/expired
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_email text;
 begin
@@ -46,7 +46,7 @@ $$;
 
 create or replace function complete_password_reset(p_token text, p_password text)
 returns text -- the reset email, or null if the token is invalid/expired
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_email text;
 begin
@@ -71,7 +71,7 @@ $$;
 -- and the login-token-gated flows are for).
 create or replace function set_password_if_unset(p_email text, p_password text)
 returns boolean
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   update app_users
      set password_hash = crypt(p_password, gen_salt('bf')),
