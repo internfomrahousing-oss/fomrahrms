@@ -229,8 +229,14 @@ class _EmployeeKraPageState extends State<EmployeeKraPage> {
                       doc: d,
                       canManage: _canManage,
                       dateLabel: _fmt(d.uploadedAt),
-                      onView: () => viewAttachment(d.fileUrl),
-                      onDownload: () => downloadUrl(d.fileUrl),
+                      onView: () async {
+                        final url = await SupabaseService.resolveAttachmentUrl(d.fileUrl, bucket: 'RESUME');
+                        if (url != null) viewAttachment(url);
+                      },
+                      onDownload: () async {
+                        final url = await SupabaseService.resolveAttachmentUrl(d.fileUrl, bucket: 'RESUME');
+                        if (url != null) downloadUrl(url);
+                      },
                       onDelete: () => _delete(d),
                     ),
                   )),

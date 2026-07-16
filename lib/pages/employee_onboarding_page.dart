@@ -2037,11 +2037,23 @@ Widget _attachmentsSection(dynamic data) {
           ])),
           if (url.isNotEmpty) ...[
             TextButton(
-              onPressed: () => viewAttachment(url),
+              onPressed: () async {
+                // Manually re-uploaded photos live in the RESUME bucket
+                // (profile_photos/); every other onboarding document lives
+                // in the 'onboarding attachments' bucket — see
+                // SupabaseService.fetchCurrentUserPhotoUrl for the same rule.
+                final bucket = url.startsWith('profile_photos/') ? 'RESUME' : 'onboarding attachments';
+                final signed = await SupabaseService.resolveAttachmentUrl(url, bucket: bucket);
+                if (signed != null) viewAttachment(signed);
+              },
               child: const Text('View', style: TextStyle(fontSize: 12)),
             ),
             IconButton(
-              onPressed: () => downloadUrl(url),
+              onPressed: () async {
+                final bucket = url.startsWith('profile_photos/') ? 'RESUME' : 'onboarding attachments';
+                final signed = await SupabaseService.resolveAttachmentUrl(url, bucket: bucket);
+                if (signed != null) downloadUrl(signed);
+              },
               icon: const Icon(Icons.download_rounded, size: 16),
               tooltip: 'Download',
               color: _blue,

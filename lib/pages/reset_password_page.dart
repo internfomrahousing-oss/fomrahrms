@@ -69,11 +69,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     }
     setState(() { _saving = true; _error = null; });
     try {
-      await SupabaseService.completePasswordReset(
-        (u['email'] as String?) ?? '',
+      final email = await SupabaseService.completePasswordReset(
+        widget.token,
         password: _newPassCtrl.text,
       );
-      if (mounted) setState(() { _saving = false; _done = true; });
+      if (!mounted) return;
+      if (email == null) {
+        setState(() { _saving = false; _error = 'This link is no longer valid. Please request a new password reset.'; });
+        return;
+      }
+      setState(() { _saving = false; _done = true; });
     } catch (e) {
       if (mounted) setState(() { _saving = false; _error = e.toString(); });
     }

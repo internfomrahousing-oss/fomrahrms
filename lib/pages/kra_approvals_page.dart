@@ -180,8 +180,14 @@ class _KraApprovalsPageState extends State<KraApprovalsPage> {
                       child: _PendingCard(
                         doc: d,
                         dateLabel: _fmt(d.uploadedAt),
-                        onView: () => viewAttachment(d.fileUrl),
-                        onDownload: () => downloadUrl(d.fileUrl),
+                        onView: () async {
+                          final url = await SupabaseService.resolveAttachmentUrl(d.fileUrl, bucket: 'RESUME');
+                          if (url != null) viewAttachment(url);
+                        },
+                        onDownload: () async {
+                          final url = await SupabaseService.resolveAttachmentUrl(d.fileUrl, bucket: 'RESUME');
+                          if (url != null) downloadUrl(url);
+                        },
                         onApprove: () => _decide(d, true),
                         onReject: () => _decide(d, false),
                       ),

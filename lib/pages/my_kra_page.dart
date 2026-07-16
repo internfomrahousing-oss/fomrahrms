@@ -109,8 +109,14 @@ class _MyKraPageState extends State<MyKraPage> {
                     child: _DocCard(
                       doc: d,
                       dateLabel: _fmt(d.uploadedAt),
-                      onView: () => viewAttachment(d.fileUrl),
-                      onDownload: () => downloadUrl(d.fileUrl),
+                      onView: () async {
+                        final url = await SupabaseService.resolveAttachmentUrl(d.fileUrl, bucket: 'RESUME');
+                        if (url != null) viewAttachment(url);
+                      },
+                      onDownload: () async {
+                        final url = await SupabaseService.resolveAttachmentUrl(d.fileUrl, bucket: 'RESUME');
+                        if (url != null) downloadUrl(url);
+                      },
                     ),
                   )),
           ],

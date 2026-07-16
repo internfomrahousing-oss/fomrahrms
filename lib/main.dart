@@ -11,6 +11,7 @@ import 'services/notification_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/supabase_service.dart';
 import 'services/session_storage.dart';
+import 'utils/secure_local_storage.dart';
 import 'utils/url_strategy.dart';
 import 'widgets/notification_popup_overlay.dart';
 
@@ -39,6 +40,10 @@ void main() async {
           '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqa2lqbm1ydGtrdWtkYm9hanh1'
           'Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTE0NDMsImV4cCI6MjA5NzY4'
           'NzQ0M30.6I2swrTQDDT0phQvRqDkLFFo_BxtmxD3NE9R8lDbDeI',
+      // Keystore/keychain-backed on native instead of plain SharedPreferences
+      // — the session holds a real refresh token now that login mints a
+      // genuine Supabase Auth session (see lib/utils/secure_local_storage.dart).
+      authOptions: FlutterAuthClientOptions(localStorage: platformLocalStorage()),
     );
     // Chained via .then() rather than awaited outright — daily-reminder
     // checks below read the global TaskStore/UserStore that loadAll()

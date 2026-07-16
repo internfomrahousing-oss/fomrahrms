@@ -214,11 +214,16 @@ class AppUser {
   }
 
   static UserRole userRoleFor(String role) {
-    switch (role) {
-      case 'HR':         return UserRole.hr;
-      case 'Manager':    return UserRole.reportingManager;
-      case 'Management': return UserRole.management;
-      default:           return UserRole.employee;
+    final normalized = role.trim().toLowerCase();
+    switch (normalized) {
+      case 'hr':
+        return UserRole.hr;
+      case 'manager':
+        return UserRole.reportingManager;
+      case 'management':
+        return UserRole.management;
+      default:
+        return UserRole.employee;
     }
   }
 

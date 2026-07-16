@@ -633,6 +633,7 @@ class SupabaseService {
           .update({'leave_bucket': app.leaveBucket})
           .eq('id', app.id);
     } catch (_) {}
+    logAuditEvent('leave_application_saved', targetType: 'leave_applications', targetId: app.id);
   }
 
   static Future<void> updateLeaveManagerStatus(
@@ -644,6 +645,8 @@ class SupabaseService {
         'decided_by':        decidedBy,
         'rejection_comment': rejectionComment,
       }).eq('id', id);
+      logAuditEvent('leave_manager_decision', targetType: 'leave_applications', targetId: id,
+          details: {'status': status.name});
     } catch (_) {}
   }
 
@@ -658,6 +661,8 @@ class SupabaseService {
         'management_decided_by':        decidedBy,
         'management_rejection_comment': rejectionComment,
       }).eq('id', id);
+      logAuditEvent('leave_management_decision', targetType: 'leave_applications', targetId: id,
+          details: {'status': status.name});
     } catch (_) {}
   }
 
@@ -915,6 +920,51 @@ class SupabaseService {
   }
 
   // ── Resume Upload ─────────────────────────────────────────────────────
+  //
+  // The RESUME and 'onboarding attachments' buckets went private in
+  // supabase/migrations/20260716000200_document_buckets.sql — getPublicUrl
+  // no longer works on them (the bucket rejects unsigned/anon reads).
+  // Uploads now return the bare storage path instead of a URL; callers must
+  // resolve it to a short-lived signed URL immediately before displaying or
+  // opening it, via [resolveAttachmentUrl] — never store the signed URL
+  // itself, since it expires.
+
+  /// Resolves a stored attachment reference — either a bare storage path
+  /// (new uploads) or a legacy public URL (rows written before the bucket
+  /// went private, in which case the bucket/path are parsed back out of the
+  /// URL itself, so no DB backfill is needed) — into a fresh signed URL.
+  /// [bucket] is required for bare paths; ignored (and inferred instead)
+  /// for legacy URLs.
+  static Future<String?> resolveAttachmentUrl(
+    String stored, {
+    String? bucket,
+    int expiresIn = 3600,
+  }) async {
+    final db = _db;
+    if (db == null || stored.isEmpty) return null;
+    var resolvedBucket = bucket ?? '';
+    var path = stored;
+    const marker = '/object/public/';
+    final idx = stored.indexOf(marker);
+    if (idx != -1) {
+      final rest = stored.substring(idx + marker.length); // '<bucket>/<path...>'
+      final slash = rest.indexOf('/');
+      if (slash != -1) {
+        resolvedBucket = Uri.decodeComponent(rest.substring(0, slash));
+        path = Uri.decodeComponent(rest.substring(slash + 1));
+      }
+    } else if (stored.startsWith('http')) {
+      // Not a recognized public-URL shape (e.g. already a signed URL) —
+      // nothing left to do but hand it back as-is.
+      return stored;
+    }
+    if (resolvedBucket.isEmpty) return null;
+    try {
+      return await db.storage.from(resolvedBucket).createSignedUrl(path, expiresIn);
+    } catch (_) {
+      return null;
+    }
+  }
 
   // Throws on failure so callers can surface the error to the user.
   static Future<String> uploadResume(
@@ -926,7 +976,7 @@ class SupabaseService {
       fileOptions: FileOptions(
           contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
     );
-    return _db!.storage.from('RESUME').getPublicUrl(path);
+    return path;
   }
 
   // Custom field file uploads (PDF / image) — stored in the RESUME bucket under custom_uploads/.
@@ -940,7 +990,7 @@ class SupabaseService {
       fileOptions: FileOptions(
           contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
     );
-    return _db!.storage.from('RESUME').getPublicUrl(path);
+    return path;
   }
 
   // ── Attendance Selfies ────────────────────────────────────────────────
@@ -1292,7 +1342,7 @@ class SupabaseService {
       fileOptions: FileOptions(
           contentType: mimeType.isNotEmpty ? mimeType : 'application/octet-stream'),
     );
-    return _db!.storage.from('RESUME').getPublicUrl(path);
+    return path;
   }
 
   static Future<void> saveKraDocument(KraDocument doc) async {
@@ -1713,6 +1763,7 @@ class SupabaseService {
         'check_in_note':         note,
         'check_in_selfie_path':  selfiePath,
       });
+      logAuditEvent('attendance_check_in', targetType: 'attendance_records', targetId: employeeId);
       return null;
     } catch (e) {
       return e.toString();
@@ -1792,6 +1843,7 @@ class SupabaseService {
             'check_out_selfie_path': selfiePath,
           })
           .eq('id', _attendanceId(employeeId, date));
+      logAuditEvent('attendance_check_out', targetType: 'attendance_records', targetId: employeeId);
     } catch (_) {}
   }
 
@@ -2499,35 +2551,37 @@ class SupabaseService {
           e.message.toLowerCase().contains('already exists');
       if (!isDuplicate) rethrow;
     }
-    return _db!.storage.from('RESUME').getPublicUrl(path);
+    return path;
   }
 
-  /// Deterministic public URL for a candidate's Pre-Offer Letter PDF — no
+  /// Short-lived signed URL for a candidate's Pre-Offer Letter PDF — no
   /// extra DB column needed since the storage path is derived from the id.
-  static String preOfferPdfUrl(String candidateId) => _db!.storage
-      .from('RESUME')
-      .getPublicUrl('custom_uploads/pre-offer-letter-$candidateId.pdf');
+  /// Was a synchronous getPublicUrl(); now async since it's signed on demand.
+  static Future<String?> preOfferPdfUrl(String candidateId) => resolveAttachmentUrl(
+        'custom_uploads/pre-offer-letter-$candidateId.pdf',
+        bucket: 'RESUME',
+      );
 
   // ── Candidate token lookups (public pre-offer / onboarding-form pages) ──
 
+  // Routed through SECURITY DEFINER RPCs rather than a plain anon
+  // .select().eq(token) — see the "Token-gated lookups" section of
+  // supabase/migrations/20260716000100_rls_policies.sql for why a raw
+  // anon select can't safely stay once RLS is enabled (it would let
+  // anyone list every row with a token set, not just the one they know).
+
   static Future<Map<String, dynamic>?> fetchCandidateByPreOfferToken(String token) async {
     if (token.isEmpty) return null;
-    final data = await _db
-        ?.from('candidate_applications')
-        .select()
-        .eq('pre_offer_token', token)
-        .maybeSingle();
-    return data;
+    final data = await _db?.rpc('candidate_application_by_pre_offer_token', params: {'p_token': token});
+    if (data is List && data.isNotEmpty) return Map<String, dynamic>.from(data.first as Map);
+    return null;
   }
 
   static Future<Map<String, dynamic>?> fetchCandidateByOnboardingToken(String token) async {
     if (token.isEmpty) return null;
-    final data = await _db
-        ?.from('candidate_applications')
-        .select()
-        .eq('onboarding_token', token)
-        .maybeSingle();
-    return data;
+    final data = await _db?.rpc('candidate_application_by_onboarding_token', params: {'p_token': token});
+    if (data is List && data.isNotEmpty) return Map<String, dynamic>.from(data.first as Map);
+    return null;
   }
 
   /// The personal email a new employee's activation link must go to — their
@@ -2569,13 +2623,8 @@ class SupabaseService {
   /// a token-based link can otherwise be resubmitted any number of times.
   static Future<bool> hasOnboardingFormForCandidate(String candidateId) async {
     if (candidateId.isEmpty) return false;
-    final data = await _db
-        ?.from('onboarding_forms')
-        .select('id')
-        .eq('candidate_application_id', candidateId)
-        .limit(1)
-        .maybeSingle();
-    return data != null;
+    final data = await _db?.rpc('has_onboarding_form_for_candidate', params: {'p_candidate_id': candidateId});
+    return data == true;
   }
 
   // ── Email Logs ───────────────────────────────────────────────────────
@@ -2623,24 +2672,21 @@ class SupabaseService {
 
   static Future<Map<String, dynamic>?> fetchAppUserByActivationToken(String token) async {
     if (token.isEmpty) return null;
-    final data = await _db
-        ?.from('app_users')
-        .select('email, name, activation_token_expires_at')
-        .eq('activation_token', token)
-        .maybeSingle();
-    return data;
+    final data = await _db?.rpc('app_user_by_activation_token', params: {'p_token': token});
+    if (data is List && data.isNotEmpty) return Map<String, dynamic>.from(data.first as Map);
+    return null;
   }
 
-  static Future<void> completeAccountActivation(String email, {required String password}) async {
-    // Hashes server-side via the service_role-only RPC — see
-    // supabase/migrations/20260716000000_auth_foundation.sql — rather than
-    // writing the plaintext password column directly.
-    await _db?.rpc('set_app_user_password', params: {'p_email': email, 'p_password': password});
-    await _db?.from('app_users').update({
-      'active': true,
-      'activation_token': '',
-      'activation_token_expires_at': '',
-    }).eq('email', email);
+  /// Verifies [token] and hashes+sets the password server-side via
+  /// complete_account_activation() — see
+  /// supabase/migrations/20260716000500_password_flow_rpcs.sql — since this
+  /// is called from an anonymous public page (/set-password/{token}),
+  /// unlike the service_role-only set_app_user_password RPC. Returns the
+  /// activated email on success, or null if the token was invalid/expired.
+  static Future<String?> completeAccountActivation(String token, {required String password}) async {
+    final email = await _db?.rpc('complete_account_activation',
+        params: {'p_token': token, 'p_password': password}) as String?;
+    if (email == null) return null;
     // Advances the linked onboarding submission to "Password Created" — only
     // fires from activation_sent so it can't rewind a further-along row.
     try {
@@ -2653,6 +2699,8 @@ class SupabaseService {
           .eq('assigned_email', email)
           .eq('status', 'activation_sent');
     } catch (_) {}
+    logAuditEvent('account_activated', targetType: 'app_users', targetId: email);
+    return email;
   }
 
   // Advances the linked onboarding submission to "Account Active" the first
@@ -2689,30 +2737,65 @@ class SupabaseService {
 
   static Future<Map<String, dynamic>?> fetchAppUserByResetToken(String token) async {
     if (token.isEmpty) return null;
-    final data = await _db
-        ?.from('app_users')
-        .select('email, name, reset_password_token_expires_at')
-        .eq('reset_password_token', token)
-        .maybeSingle();
-    return data;
+    final data = await _db?.rpc('app_user_by_reset_token', params: {'p_token': token});
+    if (data is List && data.isNotEmpty) return Map<String, dynamic>.from(data.first as Map);
+    return null;
   }
 
-  static Future<void> completePasswordReset(String email, {required String password}) async {
-    await _db?.rpc('set_app_user_password', params: {'p_email': email, 'p_password': password});
-    await _db?.from('app_users').update({
-      'reset_password_token': '',
-      'reset_password_token_expires_at': '',
-    }).eq('email', email);
+  /// Verifies [token] and hashes+sets the password server-side via
+  /// complete_password_reset() — see
+  /// supabase/migrations/20260716000500_password_flow_rpcs.sql. Returns the
+  /// reset email on success, or null if the token was invalid/expired.
+  static Future<String?> completePasswordReset(String token, {required String password}) async {
+    final email = await _db?.rpc('complete_password_reset',
+        params: {'p_token': token, 'p_password': password}) as String?;
+    if (email != null) {
+      logAuditEvent('password_reset', targetType: 'app_users', targetId: email);
+    }
+    return email;
   }
 
   // ── Server-side login (Edge Function) ───────────────────────────────────
   // See supabase/functions/login/index.ts. Replaces fetching the whole
   // app_users table and comparing passwords client-side.
 
+  // ── Audit log ────────────────────────────────────────────────────────
+  // See AuditLogService for the callable wrapper — this is the raw RPC call.
+  //
+  // Swallows its own errors — callers throughout this file call this
+  // without awaiting it (fire-and-forget), so if it threw, that would
+  // surface as an unhandled async exception with no relation to whatever
+  // real operation the caller was actually reporting success/failure for
+  // (e.g. a failed audit write must never make saveCheckIn() look like the
+  // check-in itself failed). This also means a real check-in/leave-save/
+  // activation/etc. still succeeds even before the audit_log migration
+  // (20260716000400_audit_log.sql) has been applied.
+  static Future<void> logAuditEvent(
+    String action, {
+    String targetType = '',
+    String targetId = '',
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await _db?.rpc('log_audit_event', params: {
+        'p_action': action,
+        'p_target_type': targetType,
+        'p_target_id': targetId,
+        'p_details': details ?? {},
+      });
+    } catch (_) {}
+  }
+
+  /// Only succeeds if [email] genuinely has no password yet — via
+  /// set_password_if_unset(), see
+  /// supabase/migrations/20260716000500_password_flow_rpcs.sql. Called from
+  /// an anonymous context (the user isn't signed in yet), so — unlike
+  /// set_app_user_password — this can't be used to overwrite an existing
+  /// password.
   static Future<bool> setInitialUserPassword(String email, String password) async {
     try {
-      await _db?.rpc('set_app_user_password', params: {'p_email': email, 'p_password': password});
-      return true;
+      final ok = await _db?.rpc('set_password_if_unset', params: {'p_email': email, 'p_password': password});
+      return ok == true;
     } catch (_) {
       return false;
     }
@@ -2740,9 +2823,12 @@ class SupabaseService {
       if (res.status == 403 && data is Map && data['error'] == 'not_activated') {
         return const LoginResult(notActivated: true);
       }
+      if (data is Map && data['error'] is String) {
+        return LoginResult(error: data['error'] as String);
+      }
       return const LoginResult(error: 'Invalid email or password.');
-    } catch (_) {
-      return const LoginResult(error: 'Invalid email or password.');
+    } catch (e) {
+      return LoginResult(error: e.toString());
     }
   }
 
@@ -2872,10 +2958,16 @@ class SupabaseService {
       ];
       for (final item in attachments) {
         final docType = (item['doc_type'] ?? '').toString().toLowerCase();
-        final url = (item['url'] ?? '').toString();
-        if (url.isNotEmpty &&
+        final stored = (item['url'] ?? '').toString();
+        if (stored.isNotEmpty &&
             (docType.contains('photo') || docType.contains('passport'))) {
-          return url;
+          // Manual re-uploads (updateCurrentUserPhoto) live in the RESUME
+          // bucket under profile_photos/; the original onboarding passport
+          // photo lives in the 'onboarding attachments' bucket instead —
+          // resolveAttachmentUrl auto-detects the bucket for legacy public
+          // URLs, but a bare path needs it named explicitly.
+          final bucket = stored.startsWith('profile_photos/') ? 'RESUME' : 'onboarding attachments';
+          return await resolveAttachmentUrl(stored, bucket: bucket, expiresIn: 86400);
         }
       }
       return null;
@@ -2886,7 +2978,8 @@ class SupabaseService {
 
   // Uploads a new profile photo and stores it as the current user's attachment
   // on their latest onboarding form (the same place fetchCurrentUserPhotoUrl
-  // reads from). Returns the new public URL, or null on failure.
+  // reads from). Stores the bare storage path (not a URL, now that the
+  // bucket is private) and returns a signed URL for immediate display.
   static Future<String?> updateCurrentUserPhoto(
       String employeeId, Uint8List bytes, String fileName, String mimeType) async {
     final db = _db;
@@ -2894,14 +2987,12 @@ class SupabaseService {
     final safe = fileName.replaceAll(RegExp(r'[^\w.\-]'), '_');
     final path =
         'profile_photos/${employeeId}_${DateTime.now().millisecondsSinceEpoch}_$safe';
-    final String url;
     try {
       await db.storage.from('RESUME').uploadBinary(
         path, bytes,
         fileOptions: FileOptions(
             contentType: mimeType.isNotEmpty ? mimeType : 'image/jpeg'),
       );
-      url = db.storage.from('RESUME').getPublicUrl(path);
     } catch (_) {
       return null;
     }
@@ -2924,14 +3015,14 @@ class SupabaseService {
           return docType.contains('photo') || docType.contains('passport');
         });
         attachments.insert(
-            0, {'doc_type': 'photo_upload', 'url': url, 'file_name': fileName});
+            0, {'doc_type': 'photo_upload', 'url': path, 'file_name': fileName});
         await db
             .from('onboarding_forms')
             .update({'attachments': attachments}).eq('id', row['id']);
       }
     } catch (_) {}
 
-    return url;
+    return resolveAttachmentUrl(path, bucket: 'RESUME', expiresIn: 86400);
   }
 
   // Removes the current user's manually-uploaded profile photo from their

@@ -108,7 +108,7 @@ class _PreOfferAcceptPageState extends State<PreOfferAcceptPage> {
     final designation = (c['designation'] as String?) ?? '';
     final department = (c['department'] as String?) ?? '';
     final accepted = c['pre_offer_accepted'] == true;
-    final pdfUrl = SupabaseService.preOfferPdfUrl(c['id'].toString());
+    final candidateId = c['id'].toString();
 
     return Column(children: [
       _card(
@@ -134,7 +134,10 @@ class _PreOfferAcceptPageState extends State<PreOfferAcceptPage> {
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () => openUrl(pdfUrl),
+            onPressed: () async {
+              final url = await SupabaseService.preOfferPdfUrl(candidateId);
+              if (url != null) openUrl(url);
+            },
             icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
             label: const Text('View Pre-Offer Letter (PDF)'),
             style: OutlinedButton.styleFrom(

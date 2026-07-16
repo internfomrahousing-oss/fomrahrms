@@ -229,7 +229,7 @@ class _LoginPageState extends State<LoginPage> {
                 )
               : Column(mainAxisSize: MainAxisSize.min, children: [
                   Text(
-                    'Enter your login email or company mail — we\'ll send a reset link to your company mail on file.',
+                    'Enter your login email, company mail, or employee ID — we\'ll send a reset link to your company mail on file.',
                     style: GoogleFonts.inter(fontSize: 13, color: _textMuted),
                   ),
                   const SizedBox(height: 16),
@@ -237,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
                     controller: emailCtrl,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Login Email or Company Mail',
+                      labelText: 'Login Email, Company Mail or Employee ID',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),

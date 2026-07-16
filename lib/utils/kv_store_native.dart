@@ -1,16 +1,9 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-Future<String?> kvGetString(String key) async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString(key);
-}
+const _storage = FlutterSecureStorage();
 
-Future<void> kvSetString(String key, String value) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(key, value);
-}
+Future<String?> kvGetString(String key) => _storage.read(key: key);
 
-Future<void> kvRemove(String key) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove(key);
-}
+Future<void> kvSetString(String key, String value) => _storage.write(key: key, value: value);
+
+Future<void> kvRemove(String key) => _storage.delete(key: key);

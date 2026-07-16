@@ -362,15 +362,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     }
   }
 
-  // Returns the public URL, or rethrows so callers can surface the error.
+  // Returns the bare storage path (the bucket is private — see
+  // supabase/migrations/20260716000200_document_buckets.sql), or rethrows
+  // so callers can surface the error. Reviewers resolve this to a signed
+  // URL on demand via SupabaseService.resolveAttachmentUrl.
   Future<String> _uploadSingleFile(_AttachFile file, String path) async {
     await Supabase.instance.client.storage
         .from('onboarding attachments')
         .uploadBinary(path, file.bytes,
             fileOptions: FileOptions(contentType: file.mime));
-    return Supabase.instance.client.storage
-        .from('onboarding attachments')
-        .getPublicUrl(path);
+    return path;
   }
 
   Future<List<Map<String, dynamic>>> _uploadAttachments(String ts) async {

@@ -67,11 +67,16 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
     }
     setState(() { _saving = true; _error = null; });
     try {
-      await SupabaseService.completeAccountActivation(
-        (u['email'] as String?) ?? '',
+      final email = await SupabaseService.completeAccountActivation(
+        widget.token,
         password: _newPassCtrl.text,
       );
-      if (mounted) setState(() { _saving = false; _done = true; });
+      if (!mounted) return;
+      if (email == null) {
+        setState(() { _saving = false; _error = 'This link is no longer valid. Please ask HR to resend your activation email.'; });
+        return;
+      }
+      setState(() { _saving = false; _done = true; });
     } catch (e) {
       if (mounted) setState(() { _saving = false; _error = e.toString(); });
     }

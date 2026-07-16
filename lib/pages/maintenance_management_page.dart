@@ -1124,7 +1124,11 @@ class _TicketCard extends StatelessWidget {
             style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55), fontWeight: FontWeight.w500)),
         if (ticket.attachmentUrl != null && ticket.attachmentUrl!.isNotEmpty)
           InkWell(
-            onTap: () => viewAttachment(ticket.attachmentUrl!),
+            onTap: () async {
+              final url = await SupabaseService.resolveAttachmentUrl(
+                  ticket.attachmentUrl!, bucket: 'RESUME');
+              if (url != null) viewAttachment(url);
+            },
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.attach_file_rounded, size: 13, color: AppTheme.primaryBlue),
               const SizedBox(width: 2),

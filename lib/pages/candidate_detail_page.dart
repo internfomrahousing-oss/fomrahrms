@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/candidate_store.dart';
+import '../services/supabase_service.dart';
 import '../utils/open_url.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -54,7 +55,11 @@ class CandidateDetailPage extends StatelessWidget {
             // Resume: view (opens inline, no download) + download
             if (_val(d, 'resume_url').isNotEmpty) ...[
               OutlinedButton.icon(
-                onPressed: () => viewAttachment(_val(d, 'resume_url')),
+                onPressed: () async {
+                  final url = await SupabaseService.resolveAttachmentUrl(
+                      _val(d, 'resume_url'), bucket: 'RESUME');
+                  if (url != null) viewAttachment(url);
+                },
                 icon: const Icon(Icons.visibility_outlined, size: 16),
                 label: const Text('View Resume', style: TextStyle(fontSize: 13)),
                 style: OutlinedButton.styleFrom(
@@ -66,7 +71,11 @@ class CandidateDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               IconButton(
-                onPressed: () => downloadUrl(_val(d, 'resume_url')),
+                onPressed: () async {
+                  final url = await SupabaseService.resolveAttachmentUrl(
+                      _val(d, 'resume_url'), bucket: 'RESUME');
+                  if (url != null) downloadUrl(url);
+                },
                 icon: const Icon(Icons.download_rounded, size: 20),
                 tooltip: 'Download Resume',
                 style: IconButton.styleFrom(

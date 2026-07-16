@@ -1,12 +1,26 @@
-// Fired by the `notifications_push_trigger` Postgres trigger (see the SQL
-// block in lib/services/supabase_service.dart) on every INSERT into
+// Fired by the `notifications_push_trigger` Postgres trigger (see
+// supabase/migrations/20260716000300_edge_function_hardening.sql, which
+// replaces the version of this trigger originally embedded as a SQL
+// comment in lib/services/supabase_service.dart) on every INSERT into
 // `notifications`. Resolves who the row is addressed to, drops anyone who
 // muted that category, and pushes to their registered devices via FCM.
+//
+// Security-audit hardening: this used to accept any request carrying the
+// public anon key as "Authorization: Bearer <anon key>" — since that key
+// ships inside the Flutter app bundle, it isn't actually a secret, so
+// anyone could call this function directly with an arbitrary target_role/
+// target_email/target_reporting_manager and spam pushes to anyone. The
+// trigger now sends a real shared secret (stored in Supabase Vault, never
+// in the repo) as `x-push-secret`, and this function rejects any request
+// that doesn't present it.
 //
 // Required secrets (set with `supabase secrets set`):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — from Project Settings > API
 //   FCM_SERVICE_ACCOUNT — full JSON contents of the Firebase service-account
 //     key (Project Settings > Service Accounts > Generate new private key)
+//   PUSH_TRIGGER_SECRET — shared secret the notify_push() trigger must
+//     present; same value stored in Vault as 'push_trigger_secret' (see the
+//     migration for the one-time setup SQL).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import admin from "npm:firebase-admin@12";
@@ -50,6 +64,12 @@ function categoryFor(type: string): string {
 
 Deno.serve(async (req) => {
   try {
+    const expectedSecret = Deno.env.get("PUSH_TRIGGER_SECRET");
+    const providedSecret = req.headers.get("x-push-secret");
+    if (!expectedSecret || providedSecret !== expectedSecret) {
+      return new Response("unauthorized", { status: 401 });
+    }
+
     const { record } = await req.json();
     if (!record) return new Response("no record", { status: 400 });
 

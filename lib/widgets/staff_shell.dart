@@ -5,6 +5,7 @@ import '../models/language_notifier.dart';
 import '../models/notification_store.dart';
 import '../models/theme_notifier.dart';
 import '../models/user_session.dart';
+import '../services/audit_log_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
@@ -43,6 +44,7 @@ class StaffShell extends StatelessWidget {
   }
 
   void _logout(BuildContext context) {
+    AuditLogService.log('logout');
     themeNotifier.reset();
     staffLanguageNotifier.reset();
     NotificationStore.reset();
