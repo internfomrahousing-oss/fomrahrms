@@ -595,7 +595,7 @@ Fomra Housing & Infrastructure Pvt Ltd,
 Old No. F76, Chintamani, 1st Floor,
 Agathiyar Nagar Extension, 2nd Street,
 Anna Nagar East,
-Chennai, Tamil Nadu – 600102
+Chennai, Tamil Nadu - 600102
 
 If you are unable to report on the specified date, kindly inform us in advance by email.
 Please note that this pre-employment offer is subject to successful verification of the information and documents provided by you. You are required to submit Xerox copies of the following documents at the time of joining:
@@ -608,7 +608,7 @@ Required Documents
 3. Last 3 Months' Salary Slips from previous employment(s) (if applicable)
 4. Bank Account Details
 5. Proof of Identity (Aadhar Card, PAN Card)
-6. Passport Size Photographs – 2 copies
+6. Passport Size Photographs - 2 copies
 
 This offer is valid for 3 days from the date of this email. Please confirm your acceptance within 2 days of receiving this communication. If we do not receive your confirmation within the stipulated time, the offer will be considered withdrawn and the position may be offered to another candidate.
 
@@ -876,6 +876,19 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     );
                     await SupabaseService.uploadPreOfferPdf(id, pdfBytes);
                     final acceptLink = 'https://fomrahrms-zeta.vercel.app/#/pre-offer/$token';
+                    // Persist the token BEFORE emailing the link that contains it — otherwise
+                    // a candidate can receive a working-looking email whose token never made
+                    // it into the database (e.g. a session/RLS hiccup), leaving them with a
+                    // permanently "Invalid or Expired Link". verify:true makes a silently
+                    // no-op'd write throw instead of failing quietly.
+                    await SupabaseService.updateCandidateStatus(id, {
+                      'pre_offer_sent': true,
+                      'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
+                      'pre_offer_token': token,
+                      'pre_offer_token_created_at': DateTime.now().toUtc().toIso8601String(),
+                      'department': selectedPosition ?? '',
+                      'designation': selectedDesignation ?? '',
+                    }, verify: true);
                     final error = await EmailService.sendEmail(
                       templateName: 'pre_offer',
                       recipient: email,
@@ -901,14 +914,6 @@ Fomra Housing & Infrastructure Pvt Ltd''';
                     }
                     letterCtrl.dispose();
                     Navigator.pop(ctx);
-                    await SupabaseService.updateCandidateStatus(id, {
-                      'pre_offer_sent': true,
-                      'pre_offer_sent_at': DateTime.now().toUtc().toIso8601String(),
-                      'pre_offer_token': token,
-                      'pre_offer_token_created_at': DateTime.now().toUtc().toIso8601String(),
-                      'department': selectedPosition ?? '',
-                      'designation': selectedDesignation ?? '',
-                    });
                     NotificationService.preOfferSent(candidateName: name);
                     _fetch();
                   } catch (e) {
@@ -960,6 +965,22 @@ Fomra Housing & Infrastructure Pvt Ltd''';
 
     final token = TokenUtil.generate();
     final formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form/$token';
+    // Same ordering fix as the pre-offer send: persist the token before
+    // emailing the link so a blocked/no-op write can't leave the candidate
+    // holding a dead link.
+    try {
+      await SupabaseService.updateCandidateStatus(id, {
+        'onboarding_token': token,
+        'onboarding_link_sent': true,
+        'onboarding_link_sent_at': DateTime.now().toUtc().toIso8601String(),
+      }, verify: true);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to prepare link: $e'), backgroundColor: Colors.red));
+      }
+      return;
+    }
     final error = await EmailService.sendEmail(
       templateName: 'onboarding_invite',
       recipient: email,
@@ -972,11 +993,6 @@ Fomra Housing & Infrastructure Pvt Ltd''';
         SnackBar(content: Text('Failed to send: $error'), backgroundColor: Colors.red));
       return;
     }
-    await SupabaseService.updateCandidateStatus(id, {
-      'onboarding_token': token,
-      'onboarding_link_sent': true,
-      'onboarding_link_sent_at': DateTime.now().toUtc().toIso8601String(),
-    });
     NotificationService.onboardingLinkSent(candidateName: name);
     _fetch();
   }

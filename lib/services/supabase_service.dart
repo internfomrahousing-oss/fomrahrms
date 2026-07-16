@@ -1058,10 +1058,21 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(data as List);
   }
 
+  // verify: when true, confirms the row was actually updated (RLS silently
+  // no-ops a blocked update instead of throwing) and throws if not — used
+  // before emailing a candidate a token, so a broken write can't produce a
+  // link that was sent but never actually saved.
   static Future<void> updateCandidateStatus(
-      String id, Map<String, dynamic> fields) async {
+      String id, Map<String, dynamic> fields, {bool verify = false}) async {
     final db = _db;
     if (db == null) return;
+    if (verify) {
+      final rows = await db.from('candidate_applications').update(fields).eq('id', id).select();
+      if (rows.isEmpty) {
+        throw Exception('Update was not applied — you may not have permission, or the candidate record no longer exists.');
+      }
+      return;
+    }
     await db.from('candidate_applications').update(fields).eq('id', id);
   }
 
