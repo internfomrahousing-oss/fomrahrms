@@ -557,8 +557,6 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
     const positions = kDepartments;
 
-    const formLink = 'https://fomrahrms-zeta.vercel.app/#/onboarding-form';
-
     final appliedRaw = (row['post_applied'] ?? '').toString().trim();
     String? selectedPosition = positions.firstWhere(
       (d) => d.toLowerCase() == appliedRaw.toLowerCase(),
@@ -611,9 +609,6 @@ Required Documents
 4. Bank Account Details
 5. Proof of Identity (Aadhar Card, PAN Card)
 6. Passport Size Photographs – 2 copies
-
-Kindly complete your onboarding form at the link below before joining:
-$formLink
 
 This offer is valid for 3 days from the date of this email. Please confirm your acceptance within 2 days of receiving this communication. If we do not receive your confirmation within the stipulated time, the offer will be considered withdrawn and the position may be offered to another candidate.
 
