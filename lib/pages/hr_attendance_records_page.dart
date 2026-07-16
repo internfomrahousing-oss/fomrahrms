@@ -9,6 +9,7 @@ import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
 import '../utils/csv_export.dart';
 import '../widgets/back_button.dart';
+import '../widgets/employee_list_dialog.dart';
 import '../widgets/filter_panel.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
@@ -414,6 +415,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                       .toList();
               return _AttendanceSummaryCard(
                 records: summaryRecords,
+                allUsers: summaryUsers,
                 totalUsers: summaryUsers.length,
                 leaveApps: _leaveApps,
                 selectedDate: _selectedDate,
@@ -457,6 +459,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
 class _AttendanceSummaryCard extends StatelessWidget {
   final List<AttendanceRecord> records;
   final List<LeaveApplication> leaveApps;
+  final List<AppUser> allUsers;
   final int totalUsers;
   final DateTime selectedDate;
   final bool isToday;
@@ -474,6 +477,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
 
   const _AttendanceSummaryCard({
     required this.records,
+    required this.allUsers,
     required this.totalUsers,
     required this.leaveApps,
     required this.selectedDate,
@@ -519,14 +523,44 @@ class _AttendanceSummaryCard extends StatelessWidget {
       .toSet()
       .length;
 
+  // employeeName -> AppUser lookup, for designation subtitles in the tap-through dialogs.
+  AppUser? _userFor(String name) {
+    final n = name.trim().toLowerCase();
+    for (final u in allUsers) {
+      if (u.name.trim().toLowerCase() == n) return u;
+    }
+    return null;
+  }
+
+  EmployeeListItem _item(String name, {String? extra}) {
+    final u = _userFor(name);
+    final parts = [if (u?.designation.isNotEmpty ?? false) u!.designation, if (extra != null && extra.isNotEmpty) extra];
+    return EmployeeListItem(name: name, subtitle: parts.join(' • '));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final present = records.where((r) => r.checkInTime.isNotEmpty).length;
+    final presentRecords = records.where((r) => r.checkInTime.isNotEmpty).toList();
+    final present = presentRecords.length;
     final absent  = (totalUsers - present).clamp(0, totalUsers);
-    final statuses = records.map((r) => _rowStatus(r, leaveApps)).toList();
-    final lateArrivals = statuses.where((s) => s.status == CheckInStatus.late).length;
-    final onPermission = statuses.where((s) => s.status == CheckInStatus.permission).length;
+    final presentNames = presentRecords.map((r) => r.employeeName.trim().toLowerCase()).toSet();
+    final absentUsers = allUsers.where((u) => !presentNames.contains(u.name.trim().toLowerCase())).toList();
+    final lateRecords = records.where((r) => _rowStatus(r, leaveApps).status == CheckInStatus.late).toList();
+    final permissionRecords = records.where((r) => _rowStatus(r, leaveApps).status == CheckInStatus.permission).toList();
+    final lateArrivals = lateRecords.length;
+    final onPermission = permissionRecords.length;
     final compOff = _compOffCount(selectedDate);
+    final compOffApps = leaveApps.where((a) =>
+        a.leaveType == 'Comp Off' &&
+        a.managerStatus == LeaveApprovalStatus.approved &&
+        _covers(a, selectedDate) &&
+        (summaryUserNames == null || summaryUserNames!.contains(a.employeeName.toLowerCase())));
+    final compOffNamesSeen = <String>{};
+    final compOffItems = <EmployeeListItem>[];
+    for (final a in compOffApps) {
+      final key = a.employeeName.trim().toLowerCase();
+      if (compOffNamesSeen.add(key)) compOffItems.add(_item(a.employeeName));
+    }
 
     // 7-day trend (oldest→newest, ending on selectedDate) for the sparklines
     // and the "vs yesterday" delta badges.
@@ -553,21 +587,46 @@ class _AttendanceSummaryCard extends StatelessWidget {
     final stats = [
       _StatSpec('Present', present, pct(present), deltaPct((d) => d.present),
           Icons.check_circle_rounded, _green,
-          trendDayData.map((d) => d.present.toDouble()).toList()),
+          trendDayData.map((d) => d.present.toDouble()).toList(),
+          onTap: () => showEmployeeListDialog(context,
+              title: 'Present Today', icon: Icons.check_circle_rounded, color: _green,
+              items: presentRecords.map((r) => _item(r.employeeName, extra: r.checkInTime)).toList(),
+              emptyLabel: 'No one has checked in yet')),
       _StatSpec('Absent', absent, pct(absent), -deltaPct((d) => d.present),
           Icons.cancel_rounded, _red,
-          trendDayData.map((d) => (totalUsers - d.present).clamp(0, totalUsers).toDouble()).toList()),
+          trendDayData.map((d) => (totalUsers - d.present).clamp(0, totalUsers).toDouble()).toList(),
+          onTap: () => showEmployeeListDialog(context,
+              title: 'Absent Today', icon: Icons.cancel_rounded, color: _red,
+              items: absentUsers.map((u) => _item(u.name)).toList(),
+              emptyLabel: 'Everyone has checked in')),
       _StatSpec('Late Arrivals', lateArrivals, pct(lateArrivals), deltaPct((d) => d.late),
           Icons.schedule_rounded, _orange,
-          trendDayData.map((d) => d.late.toDouble()).toList()),
+          trendDayData.map((d) => d.late.toDouble()).toList(),
+          onTap: () => showEmployeeListDialog(context,
+              title: 'Late Arrivals', icon: Icons.schedule_rounded, color: _orange,
+              items: lateRecords.map((r) => _item(r.employeeName, extra: r.checkInTime)).toList(),
+              emptyLabel: 'No late arrivals')),
       _StatSpec('On Permission', onPermission, pct(onPermission), deltaPct((d) => d.permission),
           Icons.event_note_rounded, _purple,
-          trendDayData.map((d) => d.permission.toDouble()).toList()),
+          trendDayData.map((d) => d.permission.toDouble()).toList(),
+          onTap: () => showEmployeeListDialog(context,
+              title: 'On Permission', icon: Icons.event_note_rounded, color: _purple,
+              items: permissionRecords.map((r) => _item(r.employeeName,
+                  extra: 'Permission (${permLabel(_rowStatus(r, leaveApps).permMinutes)})')).toList(),
+              emptyLabel: 'No one is on permission today')),
       _StatSpec('Comp Off', compOff, pct(compOff), deltaPct((d) => d.compOff),
           Icons.swap_horiz_rounded, _gray,
-          trendDayData.map((d) => d.compOff.toDouble()).toList()),
+          trendDayData.map((d) => d.compOff.toDouble()).toList(),
+          onTap: () => showEmployeeListDialog(context,
+              title: 'Comp Off', icon: Icons.swap_horiz_rounded, color: _gray,
+              items: compOffItems,
+              emptyLabel: 'No one is on comp off today')),
       _StatSpec('On Duty', 0, 0, 0, Icons.work_rounded, _teal,
-          List.filled(trendDayData.length, 0.0)),
+          List.filled(trendDayData.length, 0.0),
+          onTap: () => showEmployeeListDialog(context,
+              title: 'On Duty', icon: Icons.work_rounded, color: _teal,
+              items: const [],
+              emptyLabel: 'No one is marked on duty')),
     ];
 
     return Card(
@@ -621,8 +680,9 @@ class _StatSpec {
   final IconData icon;
   final Color color;
   final List<double> trend;
+  final VoidCallback? onTap;
   const _StatSpec(this.label, this.value, this.pctOfTotal, this.deltaPct,
-      this.icon, this.color, this.trend);
+      this.icon, this.color, this.trend, {this.onTap});
 }
 
 // ── Header: title, live date badge, department filter, refresh ────────────────
@@ -776,7 +836,9 @@ class _StatCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
+      child: InkWell(
+        onTap: spec.onTap,
+        child: IntrinsicHeight(
         child: Row(children: [
           Container(width: 4, color: color),
           Expanded(
@@ -830,6 +892,7 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ]),
+        ),
       ),
     );
   }

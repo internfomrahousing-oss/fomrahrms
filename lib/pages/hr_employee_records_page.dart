@@ -12,6 +12,7 @@ import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
+import '../widgets/employee_list_dialog.dart';
 import '../widgets/filter_panel.dart';
 import 'employee_onboarding_page.dart' show OnboardingFormReadOnlyBody;
 import 'candidate_detail_page.dart' show CandidateDetailBody;
@@ -51,7 +52,7 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   int get _countEligible    => _all.where((u) => u.isElEligible).length;
   int get _countDeactivated => _all.where((u) => !u.active).length;
 
-  int get _countOnLeaveToday {
+  List<AppUser> get _onLeaveTodayUsers {
     final today = DateTime.now();
     final d = DateTime(today.year, today.month, today.day);
     final onLeaveNames = _leaveApps
@@ -61,8 +62,10 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
             !d.isAfter(DateTime(a.to.year, a.to.month, a.to.day)))
         .map((a) => a.employeeName.toLowerCase())
         .toSet();
-    return _all.where((u) => onLeaveNames.contains(u.name.toLowerCase())).length;
+    return _all.where((u) => onLeaveNames.contains(u.name.toLowerCase())).toList();
   }
+
+  int get _countOnLeaveToday => _onLeaveTodayUsers.length;
 
   @override
   void initState() {
@@ -285,6 +288,8 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
               probation: _countProbation,
               onLeave: _countOnLeaveToday,
               deactivated: _countDeactivated,
+              allUsers: _all,
+              onLeaveUsers: _onLeaveTodayUsers,
             ),
 
             const SizedBox(height: 20),
@@ -465,6 +470,9 @@ class _UserCard extends StatelessWidget {
     Wrap(spacing: 6, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
       if (user.employeeId.isNotEmpty) _IdChip(user.employeeId),
       _RoleChip(user.role, _roleColor(user.role)),
+      if (user.businessUnit.isNotEmpty)
+        _Badge(user.businessUnit, Colors.purple.shade50,
+            Colors.purple.shade200, Colors.purple.shade700),
       if (user.isElEligible) _Badge('EL Eligible', AppTheme.primaryBlue.withValues(alpha: 0.08),
           AppTheme.primaryBlue.withValues(alpha: 0.3), AppTheme.primaryBlue),
       if (showWorkLocationBadge && user.workLocation.isNotEmpty)
@@ -898,6 +906,147 @@ class _ProfileDialogState extends State<_ProfileDialog> {
           onPressed: _saving ? null : _setGrossPayDirect,
           icon: const Icon(Icons.edit_rounded, size: 16),
           label: const Text('Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    return chip;
+  }
+
+  Future<void> _requestBusinessUnitChange() async {
+    final target = _user.businessUnit == 'FOMRA Developers' ? 'FOMRA Housing' : 'FOMRA Developers';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Request Company Change',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text(
+            'Send a request to Management to change ${_user.name}\'s company from ${_user.businessUnit} to $target?',
+            style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: const Text('Send Request'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _saving = true);
+    _user.businessUnitPending = target;
+    _user.businessUnitRequestedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _decideBusinessUnit(bool approve) async {
+    setState(() => _saving = true);
+    if (approve) _user.businessUnit = _user.businessUnitPending;
+    _user.businessUnitPending = '';
+    _user.businessUnitRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _businessUnitBlock({required bool isHr, required bool isManagement}) {
+    if (_user.businessUnit.isEmpty) {
+      return Text('Not set',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic));
+    }
+
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purple.shade200),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.corporate_fare_rounded, size: 15, color: Colors.purple.shade700),
+        const SizedBox(width: 8),
+        Text(_user.businessUnit,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.purple.shade700)),
+      ]),
+    );
+
+    if (_user.hasPendingBusinessUnitChange) {
+      final pendingChip = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(children: [
+          Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.orange.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                'Change requested → ${_user.businessUnitPending} (awaiting Management approval)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800)),
+          ),
+        ]),
+      );
+      if (isManagement) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          chip,
+          const SizedBox(height: 8),
+          pendingChip,
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _decideBusinessUnit(false),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Deny'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : () => _decideBusinessUnit(true),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Approve'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]),
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [chip, const SizedBox(height: 8), pendingChip]);
+    }
+
+    // Set, no pending request.
+    if (isHr) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _requestBusinessUnitChange,
+          icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+          label: const Text('Request Change'),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppTheme.primaryBlue,
             side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
@@ -1513,6 +1662,21 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             _workLocationBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
             const SizedBox(height: 4),
 
+            // ── Company ───────────────────────────────────────────────────
+            const SizedBox(height: 14),
+            const Divider(),
+            const SizedBox(height: 10),
+            Row(children: [
+              const Icon(Icons.corporate_fare_rounded, size: 14, color: Color(0xFF6B7280)),
+              const SizedBox(width: 6),
+              const Text('Company',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                      color: Color(0xFF6B7280))),
+            ]),
+            const SizedBox(height: 10),
+            _businessUnitBlock(isHr: isHr, isManagement: isManagement),
+            const SizedBox(height: 4),
+
             // ── Compensation ─────────────────────────────────────────────
             if (canEdit) ...[
               const SizedBox(height: 14),
@@ -2042,6 +2206,8 @@ class _EditDialogState extends State<_EditDialog> {
   late final TextEditingController _empIdCtrl;
   late String? _designation;
   late String? _department;
+  late String? _businessUnit;
+  static const _businessUnits = ['FOMRA Developers', 'FOMRA Housing'];
   late final TextEditingController _mobileCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _dobCtrl;
@@ -2067,6 +2233,7 @@ class _EditDialogState extends State<_EditDialog> {
     _empIdCtrl   = TextEditingController(text: u?.employeeId ?? '');
     _designation = (u?.designation.isNotEmpty ?? false) ? u!.designation : null;
     _department  = (u?.department.isNotEmpty ?? false) ? u!.department : null;
+    _businessUnit = (u?.businessUnit.isNotEmpty ?? false) ? u!.businessUnit : null;
     _mobileCtrl  = TextEditingController(text: u?.mobile ?? '');
     _addressCtrl = TextEditingController(text: u?.address ?? '');
     _dobCtrl     = TextEditingController(text: u?.dateOfBirth ?? '');
@@ -2155,6 +2322,7 @@ class _EditDialogState extends State<_EditDialog> {
       employeeId:       _empIdCtrl.text.trim(),
       designation:      _designation ?? '',
       department:       _department ?? '',
+      businessUnit:     _businessUnit ?? '',
       role:             _role,
       active:           _active,
       password:         widget.user?.password ?? '',
@@ -2197,6 +2365,8 @@ class _EditDialogState extends State<_EditDialog> {
       workLocation:            widget.user?.workLocation ?? '',
       workLocationPending:     widget.user?.workLocationPending ?? '',
       workLocationRequestedAt: widget.user?.workLocationRequestedAt ?? '',
+      businessUnitPending:     widget.user?.businessUnitPending ?? '',
+      businessUnitRequestedAt: widget.user?.businessUnitRequestedAt ?? '',
       // Device Binding is managed from the Device Security section on the
       // profile view (Reset Device), never from this edit form.
       deviceId:               widget.user?.deviceId ?? '',
@@ -2376,6 +2546,20 @@ class _EditDialogState extends State<_EditDialog> {
                 onChanged: (v) => setState(() => _department = v),
               ),
             ),
+            // Only offered here for the initial entry; once set, further
+            // changes must go through the Request Change flow on the
+            // profile page (Management approval), same as Work Location.
+            if ((widget.user?.businessUnit ?? '').isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: DropdownButtonFormField<String>(
+                  value: _businessUnit != null && _businessUnits.contains(_businessUnit) ? _businessUnit : null,
+                  hint: const Text('Select company'),
+                  decoration: _dropDeco(context, 'Company', Icons.corporate_fare_rounded),
+                  items: _businessUnits.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                  onChanged: (v) => setState(() => _businessUnit = v),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: DropdownButtonFormField<String>(
@@ -2611,16 +2795,24 @@ class _StatCardsRow extends StatelessWidget {
   final int probation;
   final int onLeave;
   final int deactivated;
+  final List<AppUser> allUsers;
+  final List<AppUser> onLeaveUsers;
   const _StatCardsRow({
     required this.total,
     required this.active,
     required this.probation,
     required this.onLeave,
     required this.deactivated,
+    required this.allUsers,
+    required this.onLeaveUsers,
   });
 
   String _pct(int count) =>
       total == 0 ? '0%' : '${(count / total * 100).toStringAsFixed(1)}%';
+
+  List<EmployeeListItem> _items(List<AppUser> users) => users
+      .map((u) => EmployeeListItem(name: u.name, subtitle: u.designation))
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -2632,6 +2824,9 @@ class _StatCardsRow extends StatelessWidget {
         value: '$total',
         sublabel: 'All registered',
         subColor: Colors.grey.shade500,
+        onTap: () => showEmployeeListDialog(context,
+            title: 'Total Employees', icon: Icons.groups_rounded, color: AppTheme.primaryBlue,
+            items: _items(allUsers)),
       ),
       _StatTile(
         icon: Icons.person_rounded,
@@ -2640,6 +2835,10 @@ class _StatCardsRow extends StatelessWidget {
         value: '$active',
         sublabel: '${_pct(active)} of total',
         subColor: const Color(0xFF22C55E),
+        onTap: () => showEmployeeListDialog(context,
+            title: 'Active Employees', icon: Icons.person_rounded, color: const Color(0xFF22C55E),
+            items: _items(allUsers.where((u) => u.active).toList()),
+            emptyLabel: 'No active employees'),
       ),
       _StatTile(
         icon: Icons.access_time_filled_rounded,
@@ -2648,6 +2847,10 @@ class _StatCardsRow extends StatelessWidget {
         value: '$probation',
         sublabel: '${_pct(probation)} of total',
         subColor: Colors.orange.shade700,
+        onTap: () => showEmployeeListDialog(context,
+            title: 'On Probation', icon: Icons.access_time_filled_rounded, color: Colors.orange.shade700,
+            items: _items(allUsers.where((u) => !u.isOnroll).toList()),
+            emptyLabel: 'No one is on probation'),
       ),
       _StatTile(
         icon: Icons.event_busy_rounded,
@@ -2656,6 +2859,10 @@ class _StatCardsRow extends StatelessWidget {
         value: '$onLeave',
         sublabel: '${_pct(onLeave)} of total',
         subColor: Colors.purple.shade600,
+        onTap: () => showEmployeeListDialog(context,
+            title: 'On Leave', icon: Icons.event_busy_rounded, color: Colors.purple.shade600,
+            items: _items(onLeaveUsers),
+            emptyLabel: 'No one is on leave today'),
       ),
       _StatTile(
         icon: Icons.person_off_rounded,
@@ -2664,6 +2871,10 @@ class _StatCardsRow extends StatelessWidget {
         value: '$deactivated',
         sublabel: '${_pct(deactivated)} of total',
         subColor: Colors.grey.shade500,
+        onTap: () => showEmployeeListDialog(context,
+            title: 'Deactivated', icon: Icons.person_off_rounded, color: Colors.grey.shade500,
+            items: _items(allUsers.where((u) => !u.active).toList()),
+            emptyLabel: 'No deactivated employees'),
       ),
     ];
 
@@ -2695,6 +2906,7 @@ class _StatTile extends StatelessWidget {
   final String value;
   final String sublabel;
   final Color subColor;
+  final VoidCallback? onTap;
   const _StatTile({
     required this.icon,
     required this.iconColor,
@@ -2702,12 +2914,16 @@ class _StatTile extends StatelessWidget {
     required this.value,
     required this.sublabel,
     required this.subColor,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
@@ -2738,6 +2954,7 @@ class _StatTile extends StatelessWidget {
             ]),
           ),
         ]),
+        ),
       ),
     );
   }
