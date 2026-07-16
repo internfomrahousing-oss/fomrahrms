@@ -98,14 +98,18 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   }
 
   // HR/Management see everyone; anyone flagged as a reporting manager (any
-  // role) sees only the employees assigned to them.
+  // role) sees only the employees assigned to them. Housekeeping/Support
+  // Staff (Staff Portal accounts) are managed from Staff Portal Approvals
+  // instead, so they're excluded from this list entirely.
   List<AppUser> _baseList(List<AppUser> users) {
+    final withoutStaffPortal =
+        users.where((u) => !kStaffPortalDepartments.contains(u.department)).toList();
     final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
-    if (isHrOrMgmt) return users;
+    if (isHrOrMgmt) return withoutStaffPortal;
     if (!UserSession.isReportingManager) return const [];
     final me = UserSession.name.trim().toLowerCase();
     if (me.isEmpty) return const [];
-    return users
+    return withoutStaffPortal
         .where((u) => u.reportingManager.trim().toLowerCase() == me)
         .toList();
   }
@@ -200,14 +204,14 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   void _openProfile(AppUser user) {
     showDialog(
       context: context,
-      builder: (_) => _ProfileDialog(user: user, allUsers: _all, onSave: _saveUser, onDelete: _deleteUser),
+      builder: (_) => EmployeeProfileDialog(user: user, allUsers: _all, onSave: _saveUser, onDelete: _deleteUser),
     );
   }
 
   void _openCreate() {
     showDialog(
       context: context,
-      builder: (_) => _EditDialog(user: null, allUsers: _all, onSave: _saveUser),
+      builder: (_) => EmployeeEditDialog(user: null, allUsers: _all, onSave: _saveUser),
     );
   }
 
@@ -643,19 +647,19 @@ class _UserCard extends StatelessWidget {
 
 // ── Profile detail dialog ─────────────────────────────────────────────────────
 
-class _ProfileDialog extends StatefulWidget {
+class EmployeeProfileDialog extends StatefulWidget {
   final AppUser user;
   final List<AppUser> allUsers;
   final Future<void> Function(AppUser) onSave;
   final Future<void> Function(AppUser)? onDelete;
-  const _ProfileDialog(
+  const EmployeeProfileDialog(
       {required this.user, required this.allUsers, required this.onSave, this.onDelete});
 
   @override
-  State<_ProfileDialog> createState() => _ProfileDialogState();
+  State<EmployeeProfileDialog> createState() => EmployeeProfileDialogState();
 }
 
-class _ProfileDialogState extends State<_ProfileDialog> {
+class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
   static const _undoWindow = Duration(minutes: 10);
   late AppUser _user;
   Timer? _onrollTimer;
@@ -820,8 +824,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.grossPay = v;
     _user.grossPayPending = 0;
     _user.grossPayRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _requestGrossPayChange() async {
@@ -831,8 +846,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     setState(() => _saving = true);
     _user.grossPayPending = v;
     _user.grossPayRequestedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _decideGrossPay(bool approve) async {
@@ -840,8 +866,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     if (approve) _user.grossPay = _user.grossPayPending;
     _user.grossPayPending = 0;
     _user.grossPayRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _grossPayBlock({required bool isHr, required bool isManagement}) {
@@ -1029,8 +1066,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.permissionMinutesQuota = v;
     _user.permissionMinutesQuotaPending = 0;
     _user.permissionMinutesQuotaRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _requestPermissionQuotaChange() async {
@@ -1040,8 +1088,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     setState(() => _saving = true);
     _user.permissionMinutesQuotaPending = v;
     _user.permissionMinutesQuotaRequestedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _decidePermissionQuota(bool approve) async {
@@ -1049,8 +1108,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     if (approve) _user.permissionMinutesQuota = _user.permissionMinutesQuotaPending;
     _user.permissionMinutesQuotaPending = 0;
     _user.permissionMinutesQuotaRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _permissionQuotaBlock({required bool isHr, required bool isManagement}) {
@@ -1170,8 +1240,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
   Future<void> _setBusinessUnit(String unit) async {
     setState(() => _saving = true);
     _user.businessUnit = unit;
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _requestBusinessUnitChange() async {
@@ -1200,8 +1281,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     setState(() => _saving = true);
     _user.businessUnitPending = target;
     _user.businessUnitRequestedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _decideBusinessUnit(bool approve) async {
@@ -1209,8 +1301,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     if (approve) _user.businessUnit = _user.businessUnitPending;
     _user.businessUnitPending = '';
     _user.businessUnitRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _businessUnitBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
@@ -1391,8 +1494,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
   Future<void> _setWeeklyOffDirect(String day) async {
     setState(() => _saving = true);
     _user.weeklyOffDay = day == 'Sunday' ? '' : day;
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _requestWeeklyOffChange() async {
@@ -1423,8 +1537,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     setState(() => _saving = true);
     _user.weeklyOffDayPending = picked;
     _user.weeklyOffDayRequestedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _decideWeeklyOff(bool approve) async {
@@ -1434,8 +1559,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     }
     _user.weeklyOffDayPending = '';
     _user.weeklyOffDayRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   // Management resolves pending requests via Approve/Deny above; this is
@@ -1449,8 +1585,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.weeklyOffDay = picked == 'Sunday' ? '' : picked;
     _user.weeklyOffDayPending = '';
     _user.weeklyOffDayRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _weeklyOffBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
@@ -1608,14 +1755,25 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.onrollHrStatus = accept ? 'accepted' : 'denied';
     _user.onrollHrComment = comment;
     _user.onrollHrDecidedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    NotificationService.onrollStageDecided(
-      employeeEmail: _user.email, stage: 'HR', accepted: accept,
-    );
-    if (accept && _user.onrollAwaitingManagement) {
-      NotificationService.onrollReachedManagement(employeeName: _user.name);
+    try {
+      await widget.onSave(_user);
+      NotificationService.onrollStageDecided(
+        employeeEmail: _user.email, stage: 'HR', accepted: accept,
+      );
+      if (accept && _user.onrollAwaitingManagement) {
+        NotificationService.onrollReachedManagement(employeeName: _user.name);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) { setState(() => _saving = false); _startTimers(); }
     }
-    if (mounted) { setState(() => _saving = false); _startTimers(); }
   }
 
   Future<void> _decideManager(bool accept, {String comment = ''}) async {
@@ -1623,14 +1781,25 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.onrollManagerStatus = accept ? 'accepted' : 'denied';
     _user.onrollManagerComment = comment;
     _user.onrollManagerDecidedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    NotificationService.onrollStageDecided(
-      employeeEmail: _user.email, stage: 'Manager', accepted: accept,
-    );
-    if (accept && _user.onrollAwaitingManagement) {
-      NotificationService.onrollReachedManagement(employeeName: _user.name);
+    try {
+      await widget.onSave(_user);
+      NotificationService.onrollStageDecided(
+        employeeEmail: _user.email, stage: 'Manager', accepted: accept,
+      );
+      if (accept && _user.onrollAwaitingManagement) {
+        NotificationService.onrollReachedManagement(employeeName: _user.name);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) { setState(() => _saving = false); _startTimers(); }
     }
-    if (mounted) { setState(() => _saving = false); _startTimers(); }
   }
 
   Future<void> _undoOnrollStage(String stage) async {
@@ -1645,8 +1814,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
       _user.onrollManagerComment = '';
       _user.onrollManagerDecidedAt = '';
     }
-    await widget.onSave(_user);
-    if (mounted) { setState(() => _saving = false); _startTimers(); }
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) { setState(() => _saving = false); _startTimers(); }
+    }
   }
 
   Future<void> _undoFinalOnroll() async {
@@ -1658,8 +1838,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.onrollManagementComment = '';
     _user.onrollManagementDecidedAt = '';
     _user.elEligibleAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   String _resubmitDate(String deniedAtIso) {
@@ -1790,8 +1981,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
   Future<void> _setWorkLocation(String loc) async {
     setState(() => _saving = true);
     _user.workLocation = loc;
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _requestWorkLocationChange() async {
@@ -1820,8 +2022,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     setState(() => _saving = true);
     _user.workLocationPending = target;
     _user.workLocationRequestedAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _decideWorkLocation(bool approve) async {
@@ -1829,8 +2042,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     if (approve) _user.workLocation = _user.workLocationPending;
     _user.workLocationPending = '';
     _user.workLocationRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _changeWorkLocationDirect() async {
@@ -1839,8 +2063,19 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     _user.workLocation = target;
     _user.workLocationPending = '';
     _user.workLocationRequestedAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _locationChip(String loc) {
@@ -2000,23 +2235,45 @@ class _ProfileDialogState extends State<_ProfileDialog> {
   Future<void> _confirmEl() async {
     setState(() => _saving = true);
     _user.elEligibleAt = DateTime.now().toIso8601String();
-    await widget.onSave(_user);
-    if (_user.email.isNotEmpty) {
-      NotificationService.elMarkedEligible(
-        employeeEmail: _user.email,
-        employeeRoutePrefix: NotificationService.routePrefixForRole(AppUser.userRoleFor(_user.role)),
-      );
+    try {
+      await widget.onSave(_user);
+      if (_user.email.isNotEmpty) {
+        NotificationService.elMarkedEligible(
+          employeeEmail: _user.email,
+          employeeRoutePrefix: NotificationService.routePrefixForRole(AppUser.userRoleFor(_user.role)),
+        );
+      }
+      _elTimer?.cancel();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) { setState(() => _saving = false); _startTimers(); }
     }
-    _elTimer?.cancel();
-    if (mounted) { setState(() => _saving = false); _startTimers(); }
   }
 
   Future<void> _undoEl() async {
     setState(() => _saving = true);
     _elTimer?.cancel();
     _user.elEligibleAt = '';
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
+    try {
+      await widget.onSave(_user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -2392,12 +2649,30 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    _user.active = !_user.active;
-                    widget.onSave(_user);
-                    Navigator.pop(context);
+                  onPressed: _saving ? null : () async {
+                    final wasActive = _user.active;
+                    setState(() => _saving = true);
+                    _user.active = !wasActive;
+                    try {
+                      await widget.onSave(_user);
+                      if (mounted) Navigator.pop(context);
+                    } catch (e) {
+                      _user.active = wasActive;
+                      if (mounted) {
+                        setState(() => _saving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Failed to save: $e'),
+                          backgroundColor: Colors.red.shade700,
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      }
+                    }
                   },
-                  icon: Icon(_user.active ? Icons.person_off_rounded : Icons.person_rounded, size: 16),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : Icon(_user.active ? Icons.person_off_rounded : Icons.person_rounded, size: 16),
                   label: Text(_user.active ? 'Deactivate Account' : 'Activate Account'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _user.active ? Colors.red : Colors.green,
@@ -2415,7 +2690,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                     Navigator.pop(context);
                     showDialog(
                       context: context,
-                      builder: (_) => _EditDialog(
+                      builder: (_) => EmployeeEditDialog(
                         user: _user,
                         allUsers: widget.allUsers,
                         onSave: widget.onSave,
@@ -2661,18 +2936,18 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
 
 // ── Edit / Create dialog ──────────────────────────────────────────────────────
 
-class _EditDialog extends StatefulWidget {
+class EmployeeEditDialog extends StatefulWidget {
   final AppUser? user; // null = creating new
   final List<AppUser> allUsers;
   final Future<void> Function(AppUser) onSave;
-  const _EditDialog(
+  const EmployeeEditDialog(
       {required this.user, required this.allUsers, required this.onSave});
 
   @override
-  State<_EditDialog> createState() => _EditDialogState();
+  State<EmployeeEditDialog> createState() => EmployeeEditDialogState();
 }
 
-class _EditDialogState extends State<_EditDialog> {
+class EmployeeEditDialogState extends State<EmployeeEditDialog> {
   static Color get _color => AppTheme.primaryBlue;
   static const _domain = '@fomrahousing.in';
 
@@ -3033,23 +3308,25 @@ class _EditDialogState extends State<_EditDialog> {
                   onChanged: (v) => setState(() => _businessUnit = v),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: DropdownButtonFormField<String>(
-                value: _designation != null && kDesignations.contains(_designation) ? _designation : null,
-                decoration: _dropDeco(context, 'Designation', Icons.work_rounded),
-                hint: _designation != null ? Text(_designation!) : null,
-                items: kDesignations.map((des) =>
-                    DropdownMenuItem(value: des, child: Text(des))).toList(),
-                onChanged: (v) => setState(() => _designation = v),
+            if (!isNew)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: DropdownButtonFormField<String>(
+                  value: _designation != null && kDesignations.contains(_designation) ? _designation : null,
+                  decoration: _dropDeco(context, 'Designation', Icons.work_rounded),
+                  hint: _designation != null ? Text(_designation!) : null,
+                  items: kDesignations.map((des) =>
+                      DropdownMenuItem(value: des, child: Text(des))).toList(),
+                  onChanged: (v) => setState(() => _designation = v),
+                ),
               ),
-            ),
             _field(_mobileCtrl,  'Mobile',                    Icons.phone_rounded,
                 keyboard: TextInputType.phone),
             _field(_addressCtrl, 'Address',                   Icons.location_on_rounded,
                 maxLines: 2),
-            _field(_companyEmailCtrl, 'Company Mail (Microsoft/Office 365)', Icons.alternate_email_rounded,
-                keyboard: TextInputType.emailAddress),
+            if (!isNew)
+              _field(_companyEmailCtrl, 'Company Mail (Microsoft/Office 365)', Icons.alternate_email_rounded,
+                  keyboard: TextInputType.emailAddress),
 
             // Date of birth — usually carried over from the onboarding form,
             // but HR can set/correct it here too.

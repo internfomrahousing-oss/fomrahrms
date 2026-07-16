@@ -91,7 +91,12 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
 
       if (mounted) {
         setState(() {
-          _employees = users.where((u) => u.role == 'Employee' || u.role == 'Manager').toList();
+          // Housekeeping/Support Staff are managed via Staff Portal Approvals
+          // instead, so they're excluded from Employee Allocations.
+          _employees = users
+              .where((u) => (u.role == 'Employee' || u.role == 'Manager') &&
+                  !kStaffPortalDepartments.contains(u.department))
+              .toList();
           _loading = false;
           _page = 1;
         });

@@ -251,7 +251,7 @@ final _router = GoRouter(
           isManagement: true,
           onlyDepartments: kStaffPortalDepartments,
           title: 'Staff Portal Approvals',
-          subtitle: 'Leave & permission requests from Housekeeping / Support Staff',
+          subtitle: 'Staff roster, and leave & permission requests, for Housekeeping / Support Staff',
         )),
         GoRoute(path: '/task-management',                 builder: (_, state) =>
             TaskManagementPage(initialStatus: taskStatusFromName(state.uri.queryParameters['status']))),

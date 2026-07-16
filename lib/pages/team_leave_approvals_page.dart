@@ -11,6 +11,7 @@ import '../widgets/back_button.dart';
 import '../widgets/filter_panel.dart';
 import '../widgets/filter_popup_button.dart';
 import '../theme/app_theme.dart';
+import 'hr_employee_records_page.dart' show EmployeeProfileDialog, EmployeeEditDialog;
 
 enum _SortOrder { newestFirst, oldestFirst }
 
@@ -144,6 +145,39 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
   }
 
   List<String> get _departments => kDepartments;
+
+  bool get _isStaffListTab => widget.onlyDepartments != null && _tabController.index == 2;
+
+  // ── Staff List tab (Staff Portal / onlyDepartments mode only) ────────────
+  List<AppUser> get _staffList {
+    final depts = widget.onlyDepartments;
+    if (depts == null) return const [];
+    final q = _search.trim().toLowerCase();
+    return _users.where((u) =>
+        depts.contains(u.department) &&
+        (q.isEmpty ||
+            u.name.toLowerCase().contains(q) ||
+            u.employeeId.toLowerCase().contains(q))).toList();
+  }
+
+  Future<void> _saveStaffUser(AppUser user) async {
+    await UserStore.upsertOne(user);
+    if (!mounted) return;
+    setState(() {
+      final idx = _users.indexWhere((u) => u.email == user.email);
+      if (idx >= 0) {
+        _users[idx] = user;
+      } else {
+        _users.add(user);
+      }
+    });
+  }
+
+  Future<void> _deleteStaffUser(AppUser user) async {
+    await UserStore.deleteOne(user.email);
+    if (!mounted) return;
+    setState(() => _users.removeWhere((u) => u.email == user.email));
+  }
 
   AppUser? _userFor(String name) {
     final n = name.trim().toLowerCase();
@@ -610,8 +644,8 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
                     ),
                     const SizedBox(width: 8),
                     _PillTab(
-                      label: 'Comp Off Applications',
-                      count: _compOffSection.length,
+                      label: widget.onlyDepartments != null ? 'Staff List' : 'Comp Off Applications',
+                      count: widget.onlyDepartments != null ? _staffList.length : _compOffSection.length,
                       selected: _tabController.index == 2,
                       onTap: () => setState(() { _tabController.index = 2; _page = 0; }),
                     ),
@@ -619,6 +653,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
                 ),
               ),
               const SizedBox(width: 8),
+              if (!_isStaffListTab)
               FilterTriggerButton(
                 hasActiveFilters: _departmentFilter != null || _filterStatus != null
                     || _sort != _SortOrder.newestFirst,
@@ -742,6 +777,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
         child: Center(child: CircularProgressIndicator()),
       );
     }
+    if (_isStaffListTab) {
+      return _buildStaffListTab();
+    }
     if (!_isMgmt && _teamLoaded && _teamNames.isEmpty) {
       return _emptyCard(
         icon: Icons.group_off_rounded,
@@ -798,6 +836,76 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
         onRowsPerPageChanged: (r) => setState(() { _rowsPerPage = r; _page = 0; }),
       ),
     ]);
+  }
+
+  Widget _buildStaffListTab() {
+    final list = _staffList;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton.icon(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => EmployeeEditDialog(user: null, allUsers: _users, onSave: _saveStaffUser),
+            ),
+            icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+            label: const Text('Add Staff'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (list.isEmpty)
+          _emptyCard(
+            icon: Icons.groups_2_rounded,
+            title: 'No staff accounts yet',
+            subtitle: 'Use "Add Staff" above to create a Housekeeping / Support Staff account.',
+          )
+        else
+          for (final u in list)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: ListTile(
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => EmployeeProfileDialog(
+                        user: u, allUsers: _users, onSave: _saveStaffUser, onDelete: _deleteStaffUser),
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: _blue.withValues(alpha: 0.1),
+                    child: Text(u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
+                        style: TextStyle(color: _blue, fontWeight: FontWeight.bold)),
+                  ),
+                  title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text([
+                    u.department,
+                    if (u.employeeId.isNotEmpty) u.employeeId,
+                    if (u.mobile.isNotEmpty) u.mobile,
+                  ].join(' · ')),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (u.active ? Colors.green.shade700 : Colors.red.shade700).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: (u.active ? Colors.green.shade700 : Colors.red.shade700).withValues(alpha: 0.3)),
+                    ),
+                    child: Text(u.active ? 'Active' : 'Inactive',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700,
+                            color: u.active ? Colors.green.shade700 : Colors.red.shade700)),
+                  ),
+                ),
+              ),
+            ),
+      ]),
+    );
   }
 
   Widget _emptyCard({required IconData icon, required String title, required String subtitle}) {
