@@ -918,6 +918,13 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     return chip;
   }
 
+  Future<void> _setBusinessUnit(String unit) async {
+    setState(() => _saving = true);
+    _user.businessUnit = unit;
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
   Future<void> _requestBusinessUnitChange() async {
     final target = _user.businessUnit == 'FOMRA Developers' ? 'FOMRA Housing' : 'FOMRA Developers';
     final confirmed = await showDialog<bool>(
@@ -957,10 +964,41 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     if (mounted) setState(() => _saving = false);
   }
 
-  Widget _businessUnitBlock({required bool isHr, required bool isManagement}) {
+  Widget _businessUnitBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
     if (_user.businessUnit.isEmpty) {
-      return Text('Not set',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic));
+      if (!canEdit) {
+        return Text('Not set',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic));
+      }
+      return Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : () => _setBusinessUnit('FOMRA Developers'),
+            icon: const Icon(Icons.developer_mode_rounded, size: 16),
+            label: const Text('FOMRA Developers'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.purple.shade700,
+              side: BorderSide(color: Colors.purple.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : () => _setBusinessUnit('FOMRA Housing'),
+            icon: const Icon(Icons.apartment_rounded, size: 16),
+            label: const Text('FOMRA Housing'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.teal.shade700,
+              side: BorderSide(color: Colors.teal.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ]);
     }
 
     final chip = Container(
@@ -1674,7 +1712,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
                       color: Color(0xFF6B7280))),
             ]),
             const SizedBox(height: 10),
-            _businessUnitBlock(isHr: isHr, isManagement: isManagement),
+            _businessUnitBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
             const SizedBox(height: 4),
 
             // ── Compensation ─────────────────────────────────────────────
