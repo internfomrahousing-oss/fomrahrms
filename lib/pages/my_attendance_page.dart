@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
+import '../utils/weekly_off.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -46,6 +49,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   Set<int> _holidayDays = {};
   List<LeaveApplication> _leaveApps = [];
   int? _selectedDay;
+  int _offWeekday = DateTime.sunday;
 
   @override
   void initState() {
@@ -62,6 +66,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       SupabaseService.fetchAttendanceForMonth(UserSession.employeeId, _month.year, _month.month),
       SupabaseService.fetchHolidays(_month.year),
       SupabaseService.fetchLeaveApplications(),
+      UserStore.load(),
     ]);
     if (!mounted) return;
 
@@ -69,6 +74,9 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final records  = results[1] as List<AttendanceRecord>;
     final holidays = results[2] as List<Map<String, dynamic>>;
     final leaveApps = results[3] as List<LeaveApplication>;
+    final users     = results[4] as List<AppUser>;
+    final me = users.where((u) => u.name == UserSession.name).firstOrNull;
+    final offWeekday = weeklyOffWeekdayFor(me?.effectiveWeeklyOffDay ?? 'Sunday');
 
     if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
       AttendanceStore.isCheckedIn = true;
@@ -80,7 +88,9 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       if (d != null) map[d] = r;
     }
 
-    // Build holiday set for current month (HR-entered holidays + all Sundays)
+    // Build holiday set for current month (HR-entered holidays + this
+    // employee's weekly off day — Sunday for everyone except Sales, who can
+    // be assigned Tuesday or Wednesday instead; see AppUser.weeklyOffDay).
     final Set<int> holidayDays = {};
     for (final h in holidays) {
       final date = DateTime.tryParse(h['holiday_date'] as String? ?? '');
@@ -90,7 +100,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     }
     final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
     for (int d = 1; d <= daysInMonth; d++) {
-      if (DateTime(_month.year, _month.month, d).weekday == DateTime.sunday) {
+      if (DateTime(_month.year, _month.month, d).weekday == offWeekday) {
         holidayDays.add(d);
       }
     }
@@ -113,7 +123,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       while (!d.isAfter(app.to)) {
         if (d.year == _month.year && d.month == _month.month) {
           final wd = d.weekday;
-          if (wd != DateTime.saturday && wd != DateTime.sunday && !holidayDays.contains(d.day)) {
+          if (wd != DateTime.saturday && wd != offWeekday && !holidayDays.contains(d.day)) {
             target.add(d.day);
           }
         }
@@ -129,6 +139,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       _compOffDays     = compOffs;
       _holidayDays     = holidayDays;
       _leaveApps       = leaveApps;
+      _offWeekday      = offWeekday;
       _loading         = false;
       _selectedDay     = null;
     });
@@ -327,11 +338,15 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                   ]),
                   const SizedBox(height: 4),
 
-                  // Weekday labels
-                  const Row(children: [
-                    _WDay('Sun', color: _yellow),
-                    _WDay('Mon'), _WDay('Tue'), _WDay('Wed'),
-                    _WDay('Thu'), _WDay('Fri'), _WDay('Sat'),
+                  // Weekday labels — the employee's weekly-off column (Sunday,
+                  // unless Sales reassigned it) is tinted the holiday yellow.
+                  Row(children: [
+                    for (final wd in const [
+                      (DateTime.sunday, 'Sun'), (DateTime.monday, 'Mon'), (DateTime.tuesday, 'Tue'),
+                      (DateTime.wednesday, 'Wed'), (DateTime.thursday, 'Thu'), (DateTime.friday, 'Fri'),
+                      (DateTime.saturday, 'Sat'),
+                    ])
+                      _WDay(wd.$2, color: wd.$1 == _offWeekday ? _yellow : null),
                   ]),
                   const SizedBox(height: 4),
                   Divider(height: 1, color: cs.outlineVariant),

@@ -1154,6 +1154,263 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     return chip;
   }
 
+  // ── Weekly Off Day (Sales department only) ────────────────────────────
+  // Default is Sunday for everyone; Sales works Sundays and gets Tuesday or
+  // Wednesday off instead. HR sets the first value directly; any change
+  // after that requires Management approval, same pattern as Work Location.
+  static const _weeklyOffChoices = ['Sunday', 'Tuesday', 'Wednesday'];
+
+  Future<String?> _pickWeeklyOffDay(String current) {
+    String selected = current;
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Weekly Off Day',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final d in _weeklyOffChoices)
+                RadioListTile<String>(
+                  value: d,
+                  groupValue: selected,
+                  dense: true,
+                  title: Text(d),
+                  onChanged: (v) => setS(() => selected = v!),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, selected),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setWeeklyOffDirect(String day) async {
+    setState(() => _saving = true);
+    _user.weeklyOffDay = day == 'Sunday' ? '' : day;
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _requestWeeklyOffChange() async {
+    final current = _user.effectiveWeeklyOffDay;
+    final picked = await _pickWeeklyOffDay(current);
+    if (picked == null || picked == current) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Request Weekly Off Change',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text(
+            'Send a request to Management to change ${_user.name}\'s weekly off from $current to $picked?',
+            style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: const Text('Send Request'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _saving = true);
+    _user.weeklyOffDayPending = picked;
+    _user.weeklyOffDayRequestedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _decideWeeklyOff(bool approve) async {
+    setState(() => _saving = true);
+    if (approve) {
+      _user.weeklyOffDay = _user.weeklyOffDayPending == 'Sunday' ? '' : _user.weeklyOffDayPending;
+    }
+    _user.weeklyOffDayPending = '';
+    _user.weeklyOffDayRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  // Management resolves pending requests via Approve/Deny above; this is
+  // for changing the value directly with no approval step, since Management
+  // is the approver already.
+  Future<void> _changeWeeklyOffDirect() async {
+    final current = _user.effectiveWeeklyOffDay;
+    final picked = await _pickWeeklyOffDay(current);
+    if (picked == null || picked == current) return;
+    setState(() => _saving = true);
+    _user.weeklyOffDay = picked == 'Sunday' ? '' : picked;
+    _user.weeklyOffDayPending = '';
+    _user.weeklyOffDayRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _weeklyOffBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
+    if (_user.weeklyOffDay.isEmpty) {
+      if (!canEdit) {
+        return Text('Sunday (default)',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic));
+      }
+      return Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : () => _setWeeklyOffDirect('Tuesday'),
+            icon: const Icon(Icons.event_busy_rounded, size: 16),
+            label: const Text('Tuesday'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.amber.shade800,
+              side: BorderSide(color: Colors.amber.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : () => _setWeeklyOffDirect('Wednesday'),
+            icon: const Icon(Icons.event_busy_rounded, size: 16),
+            label: const Text('Wednesday'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.amber.shade800,
+              side: BorderSide(color: Colors.amber.shade300),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ]);
+    }
+
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.event_busy_rounded, size: 15, color: Colors.amber.shade800),
+        const SizedBox(width: 8),
+        Text(_user.weeklyOffDay,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber.shade800)),
+      ]),
+    );
+
+    if (_user.hasPendingWeeklyOffChange) {
+      final pendingChip = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(children: [
+          Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.orange.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                'Change requested → ${_user.weeklyOffDayPending} (awaiting Management approval)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800)),
+          ),
+        ]),
+      );
+      if (isManagement) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          chip,
+          const SizedBox(height: 8),
+          pendingChip,
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _decideWeeklyOff(false),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Deny'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : () => _decideWeeklyOff(true),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Approve'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]),
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [chip, const SizedBox(height: 8), pendingChip]);
+    }
+
+    // Set, no pending request.
+    if (isHr) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _requestWeeklyOffChange,
+          icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+          label: const Text('Request Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    if (isManagement) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _changeWeeklyOffDirect,
+          icon: const Icon(Icons.edit_rounded, size: 16),
+          label: const Text('Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    return chip;
+  }
+
   Future<void> _decideHr(bool accept, {String comment = ''}) async {
     setState(() => _saving = true);
     _user.onrollHrStatus = accept ? 'accepted' : 'denied';
@@ -1771,6 +2028,23 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             const SizedBox(height: 10),
             _businessUnitBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
             const SizedBox(height: 4),
+
+            // ── Weekly Off Day (Sales department only) ─────────────────────
+            if (_user.department == 'Sales') ...[
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 10),
+              Row(children: [
+                const Icon(Icons.event_busy_rounded, size: 14, color: Color(0xFF6B7280)),
+                const SizedBox(width: 6),
+                const Text('Weekly Off Day',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                        color: Color(0xFF6B7280))),
+              ]),
+              const SizedBox(height: 10),
+              _weeklyOffBlock(canEdit: canEdit, isHr: isHr, isManagement: isManagement),
+              const SizedBox(height: 4),
+            ],
 
             // ── Compensation ─────────────────────────────────────────────
             if (canEdit) ...[

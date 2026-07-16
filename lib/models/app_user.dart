@@ -12,6 +12,13 @@ class AppUser {
   String businessUnit;
   String businessUnitPending;      // proposed new value awaiting Management approval; empty = none
   String businessUnitRequestedAt;  // ISO datetime the change was requested
+  // Weekly off day: '' = Sunday (default, everyone). Sales department only —
+  // HR can set 'Tuesday' or 'Wednesday' instead, since Sales works Sundays.
+  // HR sets the first value directly; once set, changing it requires
+  // Management approval (see weeklyOffDayPending), same pattern as workLocation.
+  String weeklyOffDay;
+  String weeklyOffDayPending;      // proposed new value awaiting Management approval; empty = none
+  String weeklyOffDayRequestedAt;  // ISO datetime the change was requested; empty = no pending request
   String role; // 'Employee' | 'Manager' | 'HR' | 'Management'
   bool active;
   String password;            // individual password; empty = use role default
@@ -69,6 +76,9 @@ class AppUser {
     this.businessUnit = '',
     this.businessUnitPending = '',
     this.businessUnitRequestedAt = '',
+    this.weeklyOffDay = '',
+    this.weeklyOffDayPending = '',
+    this.weeklyOffDayRequestedAt = '',
     required this.role,
     this.active = true,
     this.password = '',
@@ -115,6 +125,9 @@ class AppUser {
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
   bool get hasPendingBusinessUnitChange => businessUnitPending.isNotEmpty;
+  bool get hasPendingWeeklyOffChange => weeklyOffDayRequestedAt.isNotEmpty;
+  /// The weekday this employee is off every week; defaults to Sunday.
+  String get effectiveWeeklyOffDay => weeklyOffDay.isEmpty ? 'Sunday' : weeklyOffDay;
   bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
   bool get hasPendingReportingManagerChange => reportingManagerRequestedAt.isNotEmpty;
   bool get hasPendingRmFlagChange => isReportingManagerRequestedAt.isNotEmpty;
@@ -224,6 +237,9 @@ class AppUser {
     'businessUnit':          businessUnit,
     'businessUnitPending':   businessUnitPending,
     'businessUnitRequestedAt': businessUnitRequestedAt,
+    'weeklyOffDay':          weeklyOffDay,
+    'weeklyOffDayPending':   weeklyOffDayPending,
+    'weeklyOffDayRequestedAt': weeklyOffDayRequestedAt,
     'role':                  role,
     'active':                active,
     'password':              password,
@@ -274,6 +290,9 @@ class AppUser {
     businessUnit:         j['businessUnit']         as String? ?? '',
     businessUnitPending:      j['businessUnitPending']      as String? ?? '',
     businessUnitRequestedAt:  j['businessUnitRequestedAt']  as String? ?? '',
+    weeklyOffDay:             j['weeklyOffDay']             as String? ?? '',
+    weeklyOffDayPending:      j['weeklyOffDayPending']      as String? ?? '',
+    weeklyOffDayRequestedAt:  j['weeklyOffDayRequestedAt']  as String? ?? '',
     role:                 j['role']                 as String? ?? 'Employee',
     active:               j['active']               as bool?   ?? true,
     password:             j['password']             as String? ?? '',

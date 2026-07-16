@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../services/supabase_service.dart';
+import '../services/user_store.dart';
 import '../models/attendance_store.dart';
 import '../utils/checkin_status.dart';
 import '../utils/csv_export.dart';
+import '../utils/weekly_off.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -60,6 +63,7 @@ class _EmployeeAttendanceCalendarPageState
   Set<int> _holidayDays = {};
   List<LeaveApplication> _leaveApps = [];
   int? _selectedDay;
+  int _offWeekday = DateTime.sunday;
 
   // ── Summary / export range (independent of the calendar month above —
   // lets HR pull a custom cycle like "25th to 26th") ─────────────────────
@@ -89,12 +93,16 @@ class _EmployeeAttendanceCalendarPageState
       SupabaseService.fetchAttendanceForMonth(widget.employeeId, _month.year, _month.month),
       SupabaseService.fetchHolidays(_month.year),
       SupabaseService.fetchLeaveApplications(),
+      UserStore.load(),
     ]);
     if (!mounted) return;
 
     final records  = results[0] as List<AttendanceRecord>;
     final holidays = results[1] as List<Map<String, dynamic>>;
     final leaveApps = results[2] as List<LeaveApplication>;
+    final users      = results[3] as List<AppUser>;
+    final emp = users.where((u) => u.name == widget.employeeName).firstOrNull;
+    final offWeekday = weeklyOffWeekdayFor(emp?.effectiveWeeklyOffDay ?? 'Sunday');
 
     final Map<int, AttendanceRecord> map = {};
     for (final r in records) {
@@ -102,7 +110,9 @@ class _EmployeeAttendanceCalendarPageState
       if (d != null) map[d] = r;
     }
 
-    // Build holiday set for current month (HR-entered holidays + all Sundays)
+    // Build holiday set for current month (HR-entered holidays + this
+    // employee's weekly off day — Sunday for everyone except Sales, who can
+    // be assigned Tuesday or Wednesday instead; see AppUser.weeklyOffDay).
     final Set<int> holidayDays = {};
     for (final h in holidays) {
       final date = DateTime.tryParse(h['holiday_date'] as String? ?? '');
@@ -112,7 +122,7 @@ class _EmployeeAttendanceCalendarPageState
     }
     final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
     for (int d = 1; d <= daysInMonth; d++) {
-      if (DateTime(_month.year, _month.month, d).weekday == DateTime.sunday) {
+      if (DateTime(_month.year, _month.month, d).weekday == offWeekday) {
         holidayDays.add(d);
       }
     }
@@ -134,7 +144,7 @@ class _EmployeeAttendanceCalendarPageState
       while (!d.isAfter(app.to)) {
         if (d.year == _month.year && d.month == _month.month) {
           final wd = d.weekday;
-          if (wd != DateTime.saturday && wd != DateTime.sunday && !holidayDays.contains(d.day)) {
+          if (wd != DateTime.saturday && wd != offWeekday && !holidayDays.contains(d.day)) {
             target.add(d.day);
           }
         }
@@ -149,6 +159,7 @@ class _EmployeeAttendanceCalendarPageState
       _compOffDays    = compOffs;
       _holidayDays    = holidayDays;
       _leaveApps      = leaveApps;
+      _offWeekday     = offWeekday;
       _loading        = false;
       _selectedDay    = null;
     });
@@ -179,6 +190,7 @@ class _EmployeeAttendanceCalendarPageState
           (m) => SupabaseService.fetchAttendanceForMonth(widget.employeeId, m.$1, m.$2))),
       Future.wait(years.map(SupabaseService.fetchHolidays)),
       SupabaseService.fetchLeaveApplications(),
+      UserStore.load(),
     ]);
     if (!mounted) return;
 
@@ -186,6 +198,10 @@ class _EmployeeAttendanceCalendarPageState
       for (final list in results[0] as List<List<AttendanceRecord>>)
         for (final r in list) r.date: r,
     };
+
+    final rangeUsers = results[3] as List<AppUser>;
+    final rangeEmp = rangeUsers.where((u) => u.name == widget.employeeName).firstOrNull;
+    final rangeOffWeekday = weeklyOffWeekdayFor(rangeEmp?.effectiveWeeklyOffDay ?? 'Sunday');
 
     final holidayDateStrs = <String>{};
     for (final list in results[1] as List<List<Map<String, dynamic>>>) {
@@ -197,7 +213,7 @@ class _EmployeeAttendanceCalendarPageState
       }
     }
     for (var d = _rangeFrom; !d.isAfter(_rangeTo); d = d.add(const Duration(days: 1))) {
-      if (d.weekday == DateTime.sunday) holidayDateStrs.add(_fmtSlash(d));
+      if (d.weekday == rangeOffWeekday) holidayDateStrs.add(_fmtSlash(d));
     }
 
     final leaveApps = results[2] as List<LeaveApplication>;
@@ -214,7 +230,7 @@ class _EmployeeAttendanceCalendarPageState
       while (!d.isAfter(app.to)) {
         if (!d.isBefore(_rangeFrom) && !d.isAfter(_rangeTo)) {
           final ds = _fmtSlash(d);
-          if (d.weekday != DateTime.saturday && d.weekday != DateTime.sunday &&
+          if (d.weekday != DateTime.saturday && d.weekday != rangeOffWeekday &&
               !holidayDateStrs.contains(ds)) {
             target.add(ds);
           }
@@ -501,9 +517,13 @@ class _EmployeeAttendanceCalendarPageState
                     ),
                   ]),
                   const SizedBox(height: 4),
-                  const Row(children: [
-                    _WDay('Sun'), _WDay('Mon'), _WDay('Tue'), _WDay('Wed'),
-                    _WDay('Thu'), _WDay('Fri'), _WDay('Sat'),
+                  Row(children: [
+                    for (final wd in const [
+                      (DateTime.sunday, 'Sun'), (DateTime.monday, 'Mon'), (DateTime.tuesday, 'Tue'),
+                      (DateTime.wednesday, 'Wed'), (DateTime.thursday, 'Thu'), (DateTime.friday, 'Fri'),
+                      (DateTime.saturday, 'Sat'),
+                    ])
+                      _WDay(wd.$2, color: wd.$1 == _offWeekday ? _yellow : null),
                   ]),
                   const SizedBox(height: 4),
                   Divider(height: 1, color: cs.outlineVariant),
@@ -863,14 +883,15 @@ class _DaySheet extends StatelessWidget {
 // ── Small widgets ─────────────────────────────────────────────────────────────
 class _WDay extends StatelessWidget {
   final String label;
-  const _WDay(this.label, {super.key});
+  final Color? color;
+  const _WDay(this.label, {super.key, this.color});
 
   @override
   Widget build(BuildContext context) => Expanded(
     child: Text(label,
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45))),
+            color: color ?? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45))),
   );
 }
 

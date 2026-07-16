@@ -486,7 +486,20 @@ class _HolidaysBlockState extends State<HolidaysBlock> {
 
   Future<void> _load() async {
     final data = await SupabaseService.fetchHolidays(DateTime.now().year);
-    if (mounted) setState(() { _items = data; _loading = false; });
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // Only holidays still ahead — past ones drop off the list on their own,
+    // same as the Birthdays card does for the current month.
+    final upcoming = data.where((item) {
+      final d = DateTime.tryParse(item['holiday_date'] as String? ?? '');
+      return d != null && !d.isBefore(today);
+    }).toList()
+      ..sort((a, b) {
+        final da = DateTime.tryParse(a['holiday_date'] as String? ?? '') ?? DateTime(9999);
+        final db = DateTime.tryParse(b['holiday_date'] as String? ?? '') ?? DateTime(9999);
+        return da.compareTo(db);
+      });
+    if (mounted) setState(() { _items = upcoming; _loading = false; });
   }
 
   Future<void> _showAdd() async {
