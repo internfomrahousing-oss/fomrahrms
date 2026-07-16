@@ -44,6 +44,7 @@ import 'pages/employee_onboarding_page.dart';
 import 'pages/onboarding_form_page.dart';
 import 'pages/pre_offer_accept_page.dart';
 import 'pages/set_password_page.dart';
+import 'pages/reset_password_page.dart';
 import 'pages/email_logs_page.dart';
 import 'pages/lead_management_hub_page.dart';
 import 'pages/lead_management_page.dart';
@@ -101,6 +102,7 @@ String? _guard(GoRouterState state) {
   if (path.startsWith('/onboarding-form/')) return null; // tokenized joining form
   if (path.startsWith('/pre-offer/')) return null;       // public offer-accept page
   if (path.startsWith('/set-password/')) return null;    // public account activation
+  if (path.startsWith('/reset-password/')) return null;  // public forgot-password reset
 
   if (!UserSession.loggedIn) return '/login';
 
@@ -171,6 +173,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/set-password/:token',
       builder: (_, state) => SetPasswordPage(token: state.pathParameters['token']!),
+    ),
+    GoRoute(
+      path: '/reset-password/:token',
+      builder: (_, state) => ResetPasswordPage(token: state.pathParameters['token']!),
     ),
 
     // ── HR Shell ───────────────────────────────────────────────────────────

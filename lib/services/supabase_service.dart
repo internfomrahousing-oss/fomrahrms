@@ -1004,6 +1004,9 @@ class SupabaseService {
         devicePlatform:       (row['device_platform']         as String?) ?? '',
         deviceRegisteredAt:   (row['device_registered_at']    as String?) ?? '',
         deviceLastLogin:      (row['device_last_login']       as String?) ?? '',
+        companyEmail:         (row['company_email']           as String?) ?? '',
+        resetPasswordToken:      (row['reset_password_token']              as String?) ?? '',
+        resetPasswordTokenExpiresAt: (row['reset_password_token_expires_at'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -1062,6 +1065,7 @@ class SupabaseService {
       'device_platform':          u.devicePlatform,
       'device_registered_at':     u.deviceRegisteredAt,
       'device_last_login':        u.deviceLastLogin,
+      'company_email':            u.companyEmail,
     });
   }
 
@@ -2528,6 +2532,40 @@ class SupabaseService {
       'active': true,
       'activation_token': '',
       'activation_token_expires_at': '',
+    }).eq('email', email);
+  }
+
+  // ── Forgot Password tokens (already-active accounts) ───────────────────
+  // Deliberately separate from the activation-token flow above: this must
+  // never touch `active`, since the employee's existing password should
+  // keep working until they actually finish the reset.
+
+  static Future<void> setPasswordResetToken(
+    String email, {
+    required String token,
+    required String expiresAt,
+  }) async {
+    await _db?.from('app_users').update({
+      'reset_password_token': token,
+      'reset_password_token_expires_at': expiresAt,
+    }).eq('email', email);
+  }
+
+  static Future<Map<String, dynamic>?> fetchAppUserByResetToken(String token) async {
+    if (token.isEmpty) return null;
+    final data = await _db
+        ?.from('app_users')
+        .select()
+        .eq('reset_password_token', token)
+        .maybeSingle();
+    return data;
+  }
+
+  static Future<void> completePasswordReset(String email, {required String password}) async {
+    await _db?.from('app_users').update({
+      'password': password,
+      'reset_password_token': '',
+      'reset_password_token_expires_at': '',
     }).eq('email', email);
   }
 

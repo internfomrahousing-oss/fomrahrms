@@ -519,6 +519,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           child: Column(children: [
                             _Row(Icons.badge_rounded,      'Employee ID', _user?.employeeId ?? ''),
                             _Row(Icons.email_rounded,      'Email',       _user?.email ?? ''),
+                            _Row(Icons.alternate_email_rounded, 'Company Mail', _user?.companyEmail ?? ''),
                             _Row(Icons.phone_rounded,      'Phone Number', _user?.mobile ?? ''),
                             _Row(Icons.work_rounded,       'Designation', _user?.designation ?? ''),
                             _Row(Icons.apartment_rounded,  'Department',  _user?.department ?? ''),

@@ -1992,6 +1992,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
 
             _InfoRow(Icons.badge_rounded,           'Employee ID',       _user.employeeId),
             _InfoRow(Icons.email_rounded,           'Email',             _user.email),
+            _InfoRow(Icons.alternate_email_rounded, 'Company Mail',      _user.companyEmail),
             _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
             _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
             _InfoRow(Icons.cake_rounded,            'Date of Birth',     _user.dateOfBirth),
@@ -2579,6 +2580,7 @@ class _EditDialogState extends State<_EditDialog> {
   static const _businessUnits = ['FOMRA Developers', 'FOMRA Housing'];
   late final TextEditingController _mobileCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _companyEmailCtrl;
   late final TextEditingController _dobCtrl;
   late final TextEditingController _joiningCtrl;
   late final TextEditingController _leaveCtrl;
@@ -2605,6 +2607,7 @@ class _EditDialogState extends State<_EditDialog> {
     _businessUnit = (u?.businessUnit.isNotEmpty ?? false) ? u!.businessUnit : null;
     _mobileCtrl  = TextEditingController(text: u?.mobile ?? '');
     _addressCtrl = TextEditingController(text: u?.address ?? '');
+    _companyEmailCtrl = TextEditingController(text: u?.companyEmail ?? '');
     _dobCtrl     = TextEditingController(text: u?.dateOfBirth ?? '');
     _joiningCtrl = TextEditingController(text: u?.dateOfJoining ?? '');
     _leaveCtrl   = TextEditingController(
@@ -2621,7 +2624,7 @@ class _EditDialogState extends State<_EditDialog> {
   void dispose() {
     for (final c in [
       _nameCtrl, _emailCtrl, _empIdCtrl,
-      _mobileCtrl, _addressCtrl, _dobCtrl, _joiningCtrl, _leaveCtrl, _grossPayCtrl,
+      _mobileCtrl, _addressCtrl, _companyEmailCtrl, _dobCtrl, _joiningCtrl, _leaveCtrl, _grossPayCtrl,
     ]) {
       c.dispose();
     }
@@ -2705,6 +2708,7 @@ class _EditDialogState extends State<_EditDialog> {
       isReportingManagerRequestedAt: flagPendingAt,
       mobile:           _mobileCtrl.text.trim(),
       address:          _addressCtrl.text.trim(),
+      companyEmail:     _companyEmailCtrl.text.trim(),
       dateOfBirth:      _dobCtrl.text.trim(),
       dateOfJoining:    joiningVal.isNotEmpty
                             ? joiningVal
@@ -2944,6 +2948,8 @@ class _EditDialogState extends State<_EditDialog> {
                 keyboard: TextInputType.phone),
             _field(_addressCtrl, 'Address',                   Icons.location_on_rounded,
                 maxLines: 2),
+            _field(_companyEmailCtrl, 'Company Mail (Microsoft/Office 365)', Icons.alternate_email_rounded,
+                keyboard: TextInputType.emailAddress),
 
             // Date of birth — usually carried over from the onboarding form,
             // but HR can set/correct it here too.

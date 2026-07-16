@@ -39,6 +39,7 @@ class EmailService {
     'pre_offer': _preOfferTemplate,
     'onboarding_invite': _onboardingInviteTemplate,
     'employee_activation': _employeeActivationTemplate,
+    'password_reset': _passwordResetTemplate,
   };
 
   static Future<String?> sendEmail({
@@ -112,6 +113,30 @@ class EmailService {
         'userId': user.email,
         'setPasswordLink': 'https://fomrahrms-zeta.vercel.app/#/set-password/$token',
         'portalUrl': 'https://fomrahrms-zeta.vercel.app/#/login',
+      },
+    );
+  }
+
+  /// "Forgot Password" for an already-active account — always goes to the
+  /// employee's company (Microsoft/Office 365) mailbox HR entered, never
+  /// the login email or any personal address. Doesn't touch `active`, so
+  /// the old password keeps working until the employee actually resets it.
+  static Future<String?> sendPasswordReset(AppUser user) async {
+    if (user.companyEmail.isEmpty) {
+      return 'No company mail on file for this account — contact HR to add one.';
+    }
+    final token = TokenUtil.generate();
+    await SupabaseService.setPasswordResetToken(
+      user.email,
+      token: token,
+      expiresAt: TokenUtil.expiresInHours(24),
+    );
+    return sendEmail(
+      templateName: 'password_reset',
+      recipient: user.companyEmail,
+      data: {
+        'name': user.name,
+        'resetLink': 'https://fomrahrms-zeta.vercel.app/#/reset-password/$token',
       },
     );
   }
@@ -220,6 +245,29 @@ class EmailService {
           </a>
         </p>
         <p>Once your password is set, sign in at: <a href="$portalUrl">$portalUrl</a></p>
+        <p>Warm regards,<br/>HR Team<br/>Fomra Housing & Infrastructure Pvt Ltd</p>
+      </div>
+    ''';
+    return (subject, html);
+  }
+
+  static (String, String) _passwordResetTemplate(Map<String, dynamic> data) {
+    final name = (data['name'] ?? '').toString();
+    final resetLink = (data['resetLink'] ?? '').toString();
+    const subject = 'Reset Your Fomra HRMS Password';
+    final html = '''
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111827;">
+        <h2 style="color:#1e3a8a;">Password Reset Request</h2>
+        <p>Hi $name,</p>
+        <p>We received a request to reset your Fomra HRMS password. Click the button below to
+        set a new one. This link expires in 24 hours.</p>
+        <p style="text-align:center;margin:28px 0;">
+          <a href="$resetLink" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
+            Set New Password
+          </a>
+        </p>
+        <p>If you didn't request this, you can safely ignore this email — your current password
+        will keep working.</p>
         <p>Warm regards,<br/>HR Team<br/>Fomra Housing & Infrastructure Pvt Ltd</p>
       </div>
     ''';

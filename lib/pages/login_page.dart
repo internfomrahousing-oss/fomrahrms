@@ -13,6 +13,7 @@ import '../services/push_notification_service.dart';
 import '../services/user_store.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
+import '../services/email_service.dart';
 import '../widgets/fomra_logo.dart';
 
 class LoginPage extends StatefulWidget {
@@ -251,22 +252,77 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showForgotPasswordDialog() {
+    final emailCtrl = TextEditingController(text: _emailCtrl.text.trim());
+    bool sending = false;
+    String? error;
+    bool sent = false;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Forgot password?',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _textDark)),
-        content: Text(
-          'Please contact your HR administrator to have your password reset.',
-          style: GoogleFonts.inter(fontSize: 14, color: _textMuted),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Forgot password?',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _textDark)),
+          content: sent
+              ? Text(
+                  'If that account has a company mail on file, a reset link has been sent to it.',
+                  style: GoogleFonts.inter(fontSize: 14, color: _textMuted),
+                )
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                    'Enter your login email — we\'ll send a reset link to your company mail on file.',
+                    style: GoogleFonts.inter(fontSize: 13, color: _textMuted),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Login Email',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(error!, style: const TextStyle(color: Colors.red, fontSize: 12.5)),
+                  ],
+                ]),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(sent ? 'Close' : 'Cancel',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _navy)),
+            ),
+            if (!sent)
+              ElevatedButton(
+                onPressed: sending ? null : () async {
+                  final email = emailCtrl.text.trim();
+                  if (email.isEmpty) {
+                    setS(() => error = 'Please enter your login email.');
+                    return;
+                  }
+                  setS(() { sending = true; error = null; });
+                  final user = await UserStore.findByEmail(email);
+                  if (user == null) {
+                    setS(() { sending = false; error = 'No account found with that email.'; });
+                    return;
+                  }
+                  final sendError = await EmailService.sendPasswordReset(user);
+                  if (sendError != null) {
+                    setS(() { sending = false; error = sendError; });
+                    return;
+                  }
+                  setS(() { sending = false; sent = true; });
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: _navy, foregroundColor: Colors.white),
+                child: sending
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Send Reset Link'),
+              ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('OK', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _navy)),
-          ),
-        ],
       ),
     );
   }
