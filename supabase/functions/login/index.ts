@@ -220,13 +220,19 @@ Deno.serve(async (req) => {
     // Lazily provision a shadow auth.users row the first time this employee
     // logs in after the migration — its password is random/unusable, since
     // verify_app_user_password above is the real credential check. Reuse an
-    // existing auth user if one already exists for that email.
+    // existing auth user if one already exists for that email — looked up
+    // via the auth_user_id_by_email() RPC (see
+    // supabase/migrations/20260716000700_auth_user_lookup_rpc.sql) rather
+    // than auth.admin.getUserByEmail(), which doesn't exist on the
+    // supabase-js v2 Admin API.
     let authUserId = entry.auth_user_id as string | null;
     if (!authUserId) {
       try {
-        const { data: existingUser, error: getUserError } = await getSupabase().auth.admin.getUserByEmail(loginEmail);
-        if (!getUserError && existingUser?.user) {
-          authUserId = existingUser.user.id;
+        const { data: existingId } = await getSupabase().rpc("auth_user_id_by_email", {
+          p_email: loginEmail,
+        });
+        if (existingId) {
+          authUserId = existingId as string;
         } else {
           const { data: created, error: createError } = await getSupabase().auth.admin.createUser({
             email: loginEmail,
