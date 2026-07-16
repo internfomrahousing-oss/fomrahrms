@@ -91,14 +91,15 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
       _snack('Please specify the reason.'); return;
     }
 
-    // Monthly permission limit: 120 min (2 hours) per employee
+    // Monthly permission limit — per-employee quota (HR default: 120 min / 2 hours)
     final name  = UserSession.name.isEmpty ? 'Employee' : UserSession.name;
+    final quota = UserSession.permissionMinutesQuota;
     final used  = LeaveStore.permUsedThisMonth(name);
     final want  = LeaveStore.permMinutesFromReason(_duration);
-    if (used + want > 120) {
-      final left = (120 - used).clamp(0, 120);
+    if (used + want > quota) {
+      final left = (quota - used).clamp(0, quota);
       _snack(left == 0
-          ? 'Monthly permission limit (2 hrs) reached.'
+          ? 'Monthly permission limit (${quota ~/ 60}h ${quota % 60}m) reached.'
           : 'Only ${left} min remaining this month. Cannot apply $_duration.');
       return;
     }

@@ -14,6 +14,7 @@ class UserSession {
   static String   reportingManager= '';
   static bool     isReportingManager = false;
   static String   workLocation    = ''; // 'Office' | 'Onsite' | ''
+  static int      permissionMinutesQuota = 120; // monthly Permission-leave allowance
 
   /// Housekeeping/Support Staff employees use a separate, simplified
   /// "Staff Portal" shell instead of the regular employee shell — same
@@ -47,6 +48,7 @@ class UserSession {
     reportingManager = '';
     isReportingManager = false;
     workLocation     = '';
+    permissionMinutesQuota = 120;
     photoUrl         = '';
   }
 }

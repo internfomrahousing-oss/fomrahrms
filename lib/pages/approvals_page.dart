@@ -100,6 +100,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _users.where((u) => u.onrollAwaitingManagement).toList();
   List<AppUser> get _pendingGrossPay =>
       _users.where((u) => u.hasPendingGrossPayChange).toList();
+  List<AppUser> get _pendingPermissionQuota =>
+      _users.where((u) => u.hasPendingPermissionQuotaChange).toList();
   List<AppUser> get _pendingWorkLocation =>
       _users.where((u) => u.hasPendingWorkLocationChange).toList();
   List<AppUser> get _pendingBusinessUnit =>
@@ -135,6 +137,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _pendingCompOff.length +
       _pendingOnroll.length +
       _pendingGrossPay.length +
+      _pendingPermissionQuota.length +
       _pendingWorkLocation.length +
       _pendingBusinessUnit.length +
       _pendingReportingManager.length +
@@ -187,6 +190,15 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       if (approve) u.grossPay = u.grossPayPending;
       u.grossPayPending = 0;
       u.grossPayRequestedAt = '';
+    });
+    await UserStore.upsertOne(u);
+  }
+
+  Future<void> _decidePermissionQuota(AppUser u, bool approve) async {
+    setState(() {
+      if (approve) u.permissionMinutesQuota = u.permissionMinutesQuotaPending;
+      u.permissionMinutesQuotaPending = 0;
+      u.permissionMinutesQuotaRequestedAt = '';
     });
     await UserStore.upsertOne(u);
   }
@@ -292,6 +304,25 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
               .map((u) => _grossPayCard(u,
                   onApprove: () async { await _decideGrossPay(u, true); refresh(); },
                   onDeny: () async { await _decideGrossPay(u, false); refresh(); }))
+              .toList(),
+        ),
+      );
+
+  _CategoryInfo get _permissionQuotaCategory => _CategoryInfo(
+        icon: Icons.timer_outlined,
+        color: Colors.indigo.shade400,
+        label: 'Permission Quota Change Requests',
+        pending: _pendingPermissionQuota.length,
+        approved: 0,
+        rejected: 0,
+        total: _pendingPermissionQuota.length,
+        onViewAll: () => _showPendingSheet(
+          label: 'Permission Quota Change Requests',
+          color: Colors.indigo.shade400,
+          buildCards: (refresh) => _pendingPermissionQuota
+              .map((u) => _permissionQuotaCard(u,
+                  onApprove: () async { await _decidePermissionQuota(u, true); refresh(); },
+                  onDeny: () async { await _decidePermissionQuota(u, false); refresh(); }))
               .toList(),
         ),
       );
@@ -403,7 +434,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
 
   List<_CategoryInfo> get _allCategories => [
         _leaveCategory, _permissionCategory, _compOffCategory,
-        _onrollCategory, _grossPayCategory, _workLocationCategory,
+        _onrollCategory, _grossPayCategory, _permissionQuotaCategory, _workLocationCategory,
         _businessUnitCategory,
         _reportingManagerCategory, _rmFlagCategory, _kraCategory,
         _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
@@ -578,7 +609,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                 2 => _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
                 3 => _tabView([_grossPayCategory]),
                 4 => _tabView([_onrollCategory]),
-                5 => _tabView([_workLocationCategory, _businessUnitCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
+                5 => _tabView([_permissionQuotaCategory, _workLocationCategory, _businessUnitCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
                 _ => _tabView([
                     _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
                     _policyCategory, _maintenanceFormCategory,
@@ -655,6 +686,27 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         '₹${u.grossPay.toStringAsFixed(0)}/month → ₹${u.grossPayPending.toStringAsFixed(0)}/month',
       ],
       meta: _fmtIso(u.grossPayRequestedAt),
+      onApprove: onApprove,
+      onDeny: onDeny,
+    );
+  }
+
+  static String _fmtMinutes(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h == 0) return '${m}m';
+    if (m == 0) return '${h}h';
+    return '${h}h ${m}m';
+  }
+
+  Widget _permissionQuotaCard(AppUser u, {required VoidCallback onApprove, required VoidCallback onDeny}) {
+    return _ApprovalCard(
+      title: u.name,
+      subtitle: u.designation,
+      details: [
+        '${_fmtMinutes(u.permissionMinutesQuota)}/month → ${_fmtMinutes(u.permissionMinutesQuotaPending)}/month',
+      ],
+      meta: _fmtIso(u.permissionMinutesQuotaRequestedAt),
       onApprove: onApprove,
       onDeny: onDeny,
     );

@@ -975,6 +975,198 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     return chip;
   }
 
+  static String _fmtMinutes(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h == 0) return '${m}m';
+    if (m == 0) return '${h}h';
+    return '${h}h ${m}m';
+  }
+
+  /// Prompts for a positive whole-minute duration. Returns null if cancelled or invalid.
+  Future<int?> _promptMinutes(String title, {String initial = ''}) async {
+    final ctrl = TextEditingController(text: initial);
+    final value = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            suffixText: 'min / month',
+            hintText: 'e.g. 180 (for 3 hours)',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final v = int.tryParse(ctrl.text.trim());
+              if (v == null || v <= 0) return;
+              Navigator.pop(ctx, v);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return value;
+  }
+
+  Future<void> _changePermissionQuotaDirect() async {
+    final v = await _promptMinutes('Change Permission Quota',
+        initial: _user.permissionMinutesQuota.toString());
+    if (v == null) return;
+    setState(() => _saving = true);
+    _user.permissionMinutesQuota = v;
+    _user.permissionMinutesQuotaPending = 0;
+    _user.permissionMinutesQuotaRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _requestPermissionQuotaChange() async {
+    final v = await _promptMinutes('Request Permission Quota Change',
+        initial: _user.permissionMinutesQuota.toString());
+    if (v == null) return;
+    setState(() => _saving = true);
+    _user.permissionMinutesQuotaPending = v;
+    _user.permissionMinutesQuotaRequestedAt = DateTime.now().toIso8601String();
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _decidePermissionQuota(bool approve) async {
+    setState(() => _saving = true);
+    if (approve) _user.permissionMinutesQuota = _user.permissionMinutesQuotaPending;
+    _user.permissionMinutesQuotaPending = 0;
+    _user.permissionMinutesQuotaRequestedAt = '';
+    await widget.onSave(_user);
+    if (mounted) setState(() => _saving = false);
+  }
+
+  Widget _permissionQuotaBlock({required bool isHr, required bool isManagement}) {
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.indigo.shade200),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.timer_outlined, size: 15, color: Colors.indigo.shade700),
+        const SizedBox(width: 8),
+        Text('${_fmtMinutes(_user.permissionMinutesQuota)} / month',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.indigo.shade700)),
+      ]),
+    );
+
+    if (_user.hasPendingPermissionQuotaChange) {
+      final pendingChip = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(children: [
+          Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.orange.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                'Change requested → ${_fmtMinutes(_user.permissionMinutesQuotaPending)} / month (awaiting Management approval)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800)),
+          ),
+        ]),
+      );
+      if (isManagement) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          chip,
+          const SizedBox(height: 8),
+          pendingChip,
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _decidePermissionQuota(false),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Deny'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  side: BorderSide(color: Colors.red.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : () => _decidePermissionQuota(true),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Approve'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ]),
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [chip, const SizedBox(height: 8), pendingChip]);
+    }
+
+    // Set, no pending request.
+    if (isHr) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _requestPermissionQuotaChange,
+          icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+          label: const Text('Request Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    if (isManagement) {
+      return Row(children: [
+        Expanded(child: chip),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _changePermissionQuotaDirect,
+          icon: const Icon(Icons.edit_rounded, size: 16),
+          label: const Text('Change'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ]);
+    }
+    return chip;
+  }
+
   Future<void> _setBusinessUnit(String unit) async {
     setState(() => _saving = true);
     _user.businessUnit = unit;
@@ -2064,6 +2256,23 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               const SizedBox(height: 4),
             ],
 
+            // ── Permission Quota ────────────────────────────────────────────
+            if (canEdit) ...[
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 10),
+              Row(children: [
+                const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF6B7280)),
+                const SizedBox(width: 6),
+                const Text('Permission Quota',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                        color: Color(0xFF6B7280))),
+              ]),
+              const SizedBox(height: 10),
+              _permissionQuotaBlock(isHr: isHr, isManagement: isManagement),
+              const SizedBox(height: 4),
+            ],
+
             // ── Employment status management ──────────────────────────────
             if (showOnrollSection) ...[
               const SizedBox(height: 14),
@@ -2738,6 +2947,9 @@ class _EditDialogState extends State<_EditDialog> {
       workLocation:            widget.user?.workLocation ?? '',
       workLocationPending:     widget.user?.workLocationPending ?? '',
       workLocationRequestedAt: widget.user?.workLocationRequestedAt ?? '',
+      permissionMinutesQuota:            widget.user?.permissionMinutesQuota ?? 120,
+      permissionMinutesQuotaPending:     widget.user?.permissionMinutesQuotaPending ?? 0,
+      permissionMinutesQuotaRequestedAt: widget.user?.permissionMinutesQuotaRequestedAt ?? '',
       businessUnitPending:     widget.user?.businessUnitPending ?? '',
       businessUnitRequestedAt: widget.user?.businessUnitRequestedAt ?? '',
       // Device Binding is managed from the Device Security section on the

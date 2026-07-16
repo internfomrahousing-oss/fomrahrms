@@ -409,8 +409,9 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
                 if (req.leaveType == 'Permission') ...[
                   const SizedBox(height: 10),
                   Builder(builder: (ctx) {
+                    final quota = _userFor(req.employeeName)?.permissionMinutesQuota ?? 120;
                     final used = LeaveStore.permUsedThisMonth(req.employeeName);
-                    final remaining = (120 - used).clamp(0, 120);
+                    final remaining = (quota - used).clamp(0, quota);
                     final badgeColor = remaining == 0
                         ? Colors.red.shade700
                         : remaining <= 30 ? Colors.orange.shade700 : AppTheme.accentBlue;
@@ -691,7 +692,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
               ),
             if (_tabController.index == 1 && !_permBannerDismissed)
               _dismissibleBanner(
-                'Each employee is entitled to 2 hours of permission per month.',
+                'Each employee is entitled to 2 hours of permission per month by default (HR can request a higher quota for individual employees).',
                 () => setState(() => _permBannerDismissed = true),
               ),
             const SizedBox(height: 4),

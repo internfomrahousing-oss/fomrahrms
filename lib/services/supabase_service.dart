@@ -366,6 +366,17 @@ import '../models/user_session.dart';
   -- through recruitment (see role_hierarchy notes elsewhere).
   alter table onboarding_forms add column if not exists assigned_role text default 'Employee';
 
+  -- Per-stage timestamps for the onboarding pipeline shown on the Employee
+  -- Onboarding dashboard. `status` now also takes: sent_back, hr_denied,
+  -- mgmt_denied, hr_approved, mgmt_approved, activation_sent,
+  -- password_created, access_granted — each stage below is only stamped
+  -- once, the first time the row reaches it.
+  alter table onboarding_forms add column if not exists forwarded_at timestamptz;
+  alter table onboarding_forms add column if not exists mgmt_approved_at timestamptz;
+  alter table onboarding_forms add column if not exists activation_sent_at timestamptz;
+  alter table onboarding_forms add column if not exists password_created_at timestamptz;
+  alter table onboarding_forms add column if not exists account_active_at timestamptz;
+
   create table if not exists attendance_records (
     id text primary key,
     employee_name text not null,
@@ -999,6 +1010,9 @@ class SupabaseService {
         workLocation:            (row['work_location']             as String?) ?? '',
         workLocationPending:     (row['work_location_pending']     as String?) ?? '',
         workLocationRequestedAt: (row['work_location_requested_at'] as String?) ?? '',
+        permissionMinutesQuota:          (row['permission_minutes_quota'] as num?)?.toInt() ?? 120,
+        permissionMinutesQuotaPending:   (row['permission_minutes_quota_pending'] as num?)?.toInt() ?? 0,
+        permissionMinutesQuotaRequestedAt: (row['permission_minutes_quota_requested_at'] as String?) ?? '',
         deviceId:             (row['device_id']               as String?) ?? '',
         deviceName:           (row['device_name']             as String?) ?? '',
         devicePlatform:       (row['device_platform']         as String?) ?? '',
@@ -1060,6 +1074,9 @@ class SupabaseService {
       'work_location':            u.workLocation,
       'work_location_pending':    u.workLocationPending,
       'work_location_requested_at': u.workLocationRequestedAt,
+      'permission_minutes_quota':            u.permissionMinutesQuota,
+      'permission_minutes_quota_pending':    u.permissionMinutesQuotaPending,
+      'permission_minutes_quota_requested_at': u.permissionMinutesQuotaRequestedAt,
       'device_id':                u.deviceId,
       'device_name':              u.deviceName,
       'device_platform':          u.devicePlatform,
@@ -2533,6 +2550,34 @@ class SupabaseService {
       'activation_token': '',
       'activation_token_expires_at': '',
     }).eq('email', email);
+    // Advances the linked onboarding submission to "Password Created" — only
+    // fires from activation_sent so it can't rewind a further-along row.
+    try {
+      await _db
+          ?.from('onboarding_forms')
+          .update({
+            'status': 'password_created',
+            'password_created_at': DateTime.now().toIso8601String(),
+          })
+          .eq('assigned_email', email)
+          .eq('status', 'activation_sent');
+    } catch (_) {}
+  }
+
+  // Advances the linked onboarding submission to "Account Active" the first
+  // time the employee actually logs in — only fires from password_created,
+  // so repeat logins are a no-op.
+  static Future<void> markOnboardingAccountActive(String email) async {
+    try {
+      await _db
+          ?.from('onboarding_forms')
+          .update({
+            'status': 'access_granted',
+            'account_active_at': DateTime.now().toIso8601String(),
+          })
+          .eq('assigned_email', email)
+          .eq('status', 'password_created');
+    } catch (_) {}
   }
 
   // ── Forgot Password tokens (already-active accounts) ───────────────────

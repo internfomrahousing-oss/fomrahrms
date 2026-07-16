@@ -101,6 +101,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       if (!await _passDeviceBinding(dynamicUser)) return;
+      SupabaseService.markOnboardingAccountActive(dynamicUser.email);
       _completeLogin(AppUser.userRoleFor(dynamicUser.role), dynamicUser.name,
           dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
           email: dynamicUser.email,
@@ -108,7 +109,8 @@ class _LoginPageState extends State<LoginPage> {
           department: dynamicUser.department,
           reportingManager: dynamicUser.reportingManager,
           isReportingManager: dynamicUser.isReportingManager,
-          workLocation: dynamicUser.workLocation);
+          workLocation: dynamicUser.workLocation,
+          permissionMinutesQuota: dynamicUser.permissionMinutesQuota);
       return;
     }
 
@@ -192,7 +194,8 @@ class _LoginPageState extends State<LoginPage> {
         designation: user.designation,
         department: user.department,
         isReportingManager: user.isReportingManager,
-        workLocation: user.workLocation);
+        workLocation: user.workLocation,
+        permissionMinutesQuota: user.permissionMinutesQuota);
   }
 
   // Device Binding gate — native mobile only (web is never restricted; see
@@ -216,6 +219,7 @@ class _LoginPageState extends State<LoginPage> {
     String reportingManager = '',
     bool isReportingManager = false,
     String workLocation = '',
+    int permissionMinutesQuota = 120,
   }) {
     UserSession.loggedIn         = true;
     UserSession.role             = role;
@@ -227,6 +231,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.reportingManager = reportingManager;
     UserSession.isReportingManager = isReportingManager;
     UserSession.workLocation     = workLocation;
+    UserSession.permissionMinutesQuota = permissionMinutesQuota;
     SessionStorage.save();
     themeNotifier.loadForUser(employeeId);
     staffLanguageNotifier.loadForUser(employeeId);

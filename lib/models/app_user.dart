@@ -58,6 +58,12 @@ class AppUser {
   String workLocation;
   String workLocationPending;      // proposed new value awaiting Management approval; empty = none
   String workLocationRequestedAt;  // ISO datetime the change was requested
+  // Monthly "Permission" (late-arrival/early-departure) allowance in minutes;
+  // 120 (2 hours) is the standard policy default. HR can only request a
+  // change — Management approves/denies it — same pattern as workLocation.
+  int permissionMinutesQuota;
+  int permissionMinutesQuotaPending;      // proposed new value awaiting Management approval; 0 = none
+  String permissionMinutesQuotaRequestedAt; // ISO datetime the change was requested
   // Device Binding — restricts mobile app login/check-in-out to one phone per
   // employee. deviceId is a locally-generated token (see DeviceBindingService),
   // not a hardware id; empty = no device registered (or HR has reset it).
@@ -120,6 +126,9 @@ class AppUser {
     this.workLocation = '',
     this.workLocationPending = '',
     this.workLocationRequestedAt = '',
+    this.permissionMinutesQuota = 120,
+    this.permissionMinutesQuotaPending = 0,
+    this.permissionMinutesQuotaRequestedAt = '',
     this.deviceId = '',
     this.deviceName = '',
     this.devicePlatform = '',
@@ -139,6 +148,7 @@ class AppUser {
   /// The weekday this employee is off every week; defaults to Sunday.
   String get effectiveWeeklyOffDay => weeklyOffDay.isEmpty ? 'Sunday' : weeklyOffDay;
   bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
+  bool get hasPendingPermissionQuotaChange => permissionMinutesQuotaRequestedAt.isNotEmpty;
   bool get hasPendingReportingManagerChange => reportingManagerRequestedAt.isNotEmpty;
   bool get hasPendingRmFlagChange => isReportingManagerRequestedAt.isNotEmpty;
 
@@ -284,6 +294,9 @@ class AppUser {
     'workLocation':          workLocation,
     'workLocationPending':   workLocationPending,
     'workLocationRequestedAt': workLocationRequestedAt,
+    'permissionMinutesQuota':          permissionMinutesQuota,
+    'permissionMinutesQuotaPending':   permissionMinutesQuotaPending,
+    'permissionMinutesQuotaRequestedAt': permissionMinutesQuotaRequestedAt,
     'deviceId':              deviceId,
     'deviceName':            deviceName,
     'devicePlatform':        devicePlatform,
@@ -340,6 +353,9 @@ class AppUser {
     workLocation:            j['workLocation']            as String? ?? '',
     workLocationPending:     j['workLocationPending']     as String? ?? '',
     workLocationRequestedAt: j['workLocationRequestedAt'] as String? ?? '',
+    permissionMinutesQuota:          (j['permissionMinutesQuota'] as num?)?.toInt() ?? 120,
+    permissionMinutesQuotaPending:   (j['permissionMinutesQuotaPending'] as num?)?.toInt() ?? 0,
+    permissionMinutesQuotaRequestedAt: j['permissionMinutesQuotaRequestedAt'] as String? ?? '',
     deviceId:               j['deviceId']            as String? ?? '',
     deviceName:             j['deviceName']          as String? ?? '',
     devicePlatform:         j['devicePlatform']      as String? ?? '',
