@@ -607,7 +607,7 @@ class _CandidateApplicationFormPageState
       data: ThemeData.light(),
       child: Scaffold(
       backgroundColor: Colors.white,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         // Header
         Container(
           color: Colors.white,
@@ -640,10 +640,9 @@ class _CandidateApplicationFormPageState
         ),
 
         // Form
-        Expanded(
-          child: Form(
+        Form(
             key: _formKey,
-            child: SingleChildScrollView(
+            child: Padding(
               padding: EdgeInsets.all(pad),
               child: Center(
                 child: ConstrainedBox(
@@ -1037,8 +1036,7 @@ class _CandidateApplicationFormPageState
               ),
             ),
           ),
-        ),
-      ]),
+      ])),
     ),   // Scaffold
     );   // Theme
   }

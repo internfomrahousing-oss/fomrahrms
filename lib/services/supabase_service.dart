@@ -533,6 +533,12 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists activation_token text default '';
   alter table app_users add column if not exists activation_token_expires_at text default '';
 
+  -- Company-issued Microsoft/Office 365 mailbox, set by HR — "Forgot
+  -- Password" reset links go here, never the personal or login email.
+  alter table app_users add column if not exists company_email text default '';
+  alter table app_users add column if not exists reset_password_token text default '';
+  alter table app_users add column if not exists reset_password_token_expires_at text default '';
+
   create table if not exists email_logs (
     id uuid default gen_random_uuid() primary key,
     template_name text not null,

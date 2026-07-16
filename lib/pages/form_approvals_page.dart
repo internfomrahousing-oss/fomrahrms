@@ -35,6 +35,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 5, vsync: this);
+    _tabs.addListener(() => setState(() {}));
     _load();
   }
 
@@ -190,7 +191,7 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
 
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -240,62 +241,60 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
           ]),
         ),
         const Divider(height: 1),
-        Expanded(
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: _blue))
-              : TabBarView(
-                  controller: _tabs,
-                  children: [
-                    _VersionList(
-                      versions: _leaveVersions,
-                      formLabel: 'Leave / Permission / Comp Off Form',
-                      onApprove: (id) => _approveLeave(id),
-                      onReject: (id) async {
-                        final note = await _rejectDialog();
-                        if (note != null) _rejectLeave(id, note);
-                      },
-                    ),
-                    _VersionList(
-                      versions: _interviewVersions,
-                      formLabel: 'Interview / Application Form',
-                      versionLabels: _interviewVersionLabels,
-                      onApprove: (id) => _approveInterview(id),
-                      onReject: (id) async {
-                        final note = await _rejectDialog();
-                        if (note != null) _rejectInterview(id, note);
-                      },
-                    ),
-                    _VersionList(
-                      versions: _onboardingVersions,
-                      formLabel: 'Onboarding Form',
-                      versionLabels: _onboardingVersionLabels,
-                      onApprove: (id) => _approveOnboarding(id),
-                      onReject: (id) async {
-                        final note = await _rejectDialog();
-                        if (note != null) _rejectOnboarding(id, note);
-                      },
-                    ),
-                    _PolicyVersionList(
-                      versions: _policyVersions,
-                      onApprove: (id) => _approvePolicy(id),
-                      onReject: (id) async {
-                        final note = await _rejectDialog();
-                        if (note != null) _rejectPolicy(id, note);
-                      },
-                    ),
-                    _VersionList(
-                      versions: _maintenanceVersions,
-                      formLabel: 'Maintenance Issue Report Form',
-                      onApprove: (id) => _approveMaintenance(id),
-                      onReject: (id) async {
-                        final note = await _rejectDialog();
-                        if (note != null) _rejectMaintenance(id, note);
-                      },
-                    ),
-                  ],
-                ),
-        ),
-      ]),
+        _loading
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: _blue)),
+              )
+            : switch (_tabs.index) {
+                0 => _VersionList(
+                    versions: _leaveVersions,
+                    formLabel: 'Leave / Permission / Comp Off Form',
+                    onApprove: (id) => _approveLeave(id),
+                    onReject: (id) async {
+                      final note = await _rejectDialog();
+                      if (note != null) _rejectLeave(id, note);
+                    },
+                  ),
+                1 => _VersionList(
+                    versions: _interviewVersions,
+                    formLabel: 'Interview / Application Form',
+                    versionLabels: _interviewVersionLabels,
+                    onApprove: (id) => _approveInterview(id),
+                    onReject: (id) async {
+                      final note = await _rejectDialog();
+                      if (note != null) _rejectInterview(id, note);
+                    },
+                  ),
+                2 => _VersionList(
+                    versions: _onboardingVersions,
+                    formLabel: 'Onboarding Form',
+                    versionLabels: _onboardingVersionLabels,
+                    onApprove: (id) => _approveOnboarding(id),
+                    onReject: (id) async {
+                      final note = await _rejectDialog();
+                      if (note != null) _rejectOnboarding(id, note);
+                    },
+                  ),
+                3 => _PolicyVersionList(
+                    versions: _policyVersions,
+                    onApprove: (id) => _approvePolicy(id),
+                    onReject: (id) async {
+                      final note = await _rejectDialog();
+                      if (note != null) _rejectPolicy(id, note);
+                    },
+                  ),
+                _ => _VersionList(
+                    versions: _maintenanceVersions,
+                    formLabel: 'Maintenance Issue Report Form',
+                    onApprove: (id) => _approveMaintenance(id),
+                    onReject: (id) async {
+                      final note = await _rejectDialog();
+                      if (note != null) _rejectMaintenance(id, note);
+                    },
+                  ),
+              },
+      ])),
     );
   }
 }
@@ -354,22 +353,25 @@ class _VersionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (versions.isEmpty) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text('No change requests for $formLabel',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-        ]),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text('No change requests for $formLabel',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+          ]),
+        ),
       );
     }
 
     final pending  = versions.where(_isPending).toList();
     final resolved = versions.where((v) => !_isPending(v)).toList();
 
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.all(20),
-      children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (pending.isNotEmpty) ...[
           _SectionLabel('Pending Approval', Colors.orange.shade700, Icons.hourglass_empty_rounded),
           const SizedBox(height: 8),
@@ -393,7 +395,7 @@ class _VersionList extends StatelessWidget {
             child: Text('No versions yet for $formLabel',
                 style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
           ),
-      ],
+      ]),
     );
   }
 }
@@ -585,12 +587,18 @@ class _PolicyVersionList extends StatelessWidget {
         ]),
       );
     }
-    return ListView.separated(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: versions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) {
-        final v          = versions[i];
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (int i = 0; i < versions.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _buildCard(versions[i]),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildCard(Map<String, dynamic> v) {
         final id         = v['id']?.toString() ?? '';
         final vNum       = v['version_number'] ?? '';
         final status     = (v['status'] as String?) ?? 'pending';
@@ -719,7 +727,5 @@ class _PolicyVersionList extends StatelessWidget {
             ],
           ),
         );
-      },
-    );
   }
 }

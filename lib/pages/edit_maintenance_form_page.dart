@@ -420,7 +420,7 @@ class _EditMaintenanceFormPageState extends State<EditMaintenanceFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
@@ -463,10 +463,12 @@ class _EditMaintenanceFormPageState extends State<EditMaintenanceFormPage> {
         ),
         const Divider(height: 1),
 
-        Expanded(
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: _blue))
-              : SingleChildScrollView(
+        _loading
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: _blue)),
+              )
+            : Padding(
                   padding: const EdgeInsets.all(24),
                   child: Center(
                     child: ConstrainedBox(
@@ -525,8 +527,7 @@ class _EditMaintenanceFormPageState extends State<EditMaintenanceFormPage> {
                     ),
                   ),
                 ),
-        ),
-      ]),
+      ])),
     );
   }
 

@@ -67,6 +67,13 @@ class AppUser {
   String deviceRegisteredAt;   // ISO datetime; empty = not registered
   String deviceLastLogin;      // ISO datetime of the most recent login from the bound device
 
+  // Company-issued Microsoft/Office 365 mailbox; '' = HR hasn't entered it
+  // yet. This is where "Forgot Password" reset links are sent — never the
+  // personal email, and never the @fomrahousing.in login username itself.
+  String companyEmail;
+  String resetPasswordToken;            // '' = no reset in progress
+  String resetPasswordTokenExpiresAt;   // ISO datetime; token is valid for 24h
+
   AppUser({
     required this.name,
     required this.email,
@@ -118,6 +125,9 @@ class AppUser {
     this.devicePlatform = '',
     this.deviceRegisteredAt = '',
     this.deviceLastLogin = '',
+    this.companyEmail = '',
+    this.resetPasswordToken = '',
+    this.resetPasswordTokenExpiresAt = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
@@ -279,6 +289,9 @@ class AppUser {
     'devicePlatform':        devicePlatform,
     'deviceRegisteredAt':    deviceRegisteredAt,
     'deviceLastLogin':       deviceLastLogin,
+    'companyEmail':          companyEmail,
+    'resetPasswordToken':    resetPasswordToken,
+    'resetPasswordTokenExpiresAt': resetPasswordTokenExpiresAt,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -332,5 +345,8 @@ class AppUser {
     devicePlatform:         j['devicePlatform']      as String? ?? '',
     deviceRegisteredAt:     j['deviceRegisteredAt']  as String? ?? '',
     deviceLastLogin:        j['deviceLastLogin']     as String? ?? '',
+    companyEmail:           j['companyEmail']          as String? ?? '',
+    resetPasswordToken:     j['resetPasswordToken']    as String? ?? '',
+    resetPasswordTokenExpiresAt: j['resetPasswordTokenExpiresAt'] as String? ?? '',
   );
 }

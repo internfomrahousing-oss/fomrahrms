@@ -383,7 +383,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         _Header(
           onRefresh: _reload,
           onReportIssue: () => setState(() => _hrTabIndex = 3),
@@ -406,8 +406,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
             ],
           ),
         ),
-        Expanded(
-          child: IndexedStack(index: _hrTabIndex, children: [
+        IndexedStack(index: _hrTabIndex, children: [
             // Pending tab
             _TicketList(
               tickets: pending,
@@ -455,8 +454,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
               ]),
             ),
           ]),
-        ),
-      ]),
+      ])),
     );
   }
 
@@ -471,7 +469,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         _Header(
           onRefresh: _reload,
           statCards: _MaintStatCardsRow(
@@ -491,8 +489,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
             ],
           ),
         ),
-        Expanded(
-          child: IndexedStack(index: _mgmtTabIndex, children: [
+        IndexedStack(index: _mgmtTabIndex, children: [
             _TicketList(
               tickets: hrSent,
               emptyMessage: 'No issues sent by HR yet.',
@@ -517,9 +514,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
                 ),
               ],
             ),
-          ]),
-        ),
-      ]),
+        ]),
+      ])),
     );
   }
 
@@ -1024,16 +1020,18 @@ class _TicketList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (tickets.isEmpty) return _EmptyState(message: emptyMessage);
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(20),
-      itemCount: tickets.length,
-      itemBuilder: (_, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _TicketCard(
-          ticket: tickets[i],
-          actions: actionsBuilder(tickets[i]),
-        ),
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final t in tickets)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _TicketCard(
+              ticket: t,
+              actions: actionsBuilder(t),
+            ),
+          ),
+      ]),
     );
   }
 }

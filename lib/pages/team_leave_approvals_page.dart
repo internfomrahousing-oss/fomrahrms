@@ -538,7 +538,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
 
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         // ── Fixed header ─────────────────────────────────────────────────
         Container(
           color: Theme.of(context).colorScheme.surface,
@@ -698,14 +698,12 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
           ]),
         ),
 
-        // ── Scrollable body ─────────────────────────────────────────────
-        Expanded(
-          child: AnimatedBuilder(
-            animation: _tabController,
-            builder: (context, _) => _buildBody(context),
-          ),
+        // ── Body ──────────────────────────────────────────────────────
+        AnimatedBuilder(
+          animation: _tabController,
+          builder: (context, _) => _buildBody(context),
         ),
-      ]),
+      ])),
     );
   }
 
@@ -738,7 +736,10 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
 
   Widget _buildBody(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 60),
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
     if (!_isMgmt && _teamLoaded && _teamNames.isEmpty) {
       return _emptyCard(
@@ -770,23 +771,23 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
         : list.sublist(start, (start + _rowsPerPage).clamp(0, list.length));
 
     return Column(children: [
-      Expanded(
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-          itemCount: pageItems.length,
-          itemBuilder: (_, i) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _RequestRow(
-              request: pageItems[i],
-              isManagement: _isMgmt,
-              user: _userFor(pageItems[i].employeeName),
-              onApprove: () => _approve(pageItems[i]),
-              onDeny: () => _deny(pageItems[i]),
-              onReset: () => _reset(pageItems[i]),
-              onViewDetails: () => _showDetails(pageItems[i]),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (final item in pageItems)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _RequestRow(
+                request: item,
+                isManagement: _isMgmt,
+                user: _userFor(item.employeeName),
+                onApprove: () => _approve(item),
+                onDeny: () => _deny(item),
+                onReset: () => _reset(item),
+                onViewDetails: () => _showDetails(item),
+              ),
             ),
-          ),
-        ),
+        ]),
       ),
       _Pagination(
         total: list.length,

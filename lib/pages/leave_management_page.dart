@@ -87,7 +87,7 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
       length: 3,
       child: Scaffold(
         backgroundColor: null,
-        body: Column(children: [
+        body: SingleChildScrollView(child: Column(children: [
           // Fixed top area
           Container(
             color: Theme.of(context).colorScheme.surface,
@@ -240,24 +240,21 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
             ]),
           ),
 
-          // Scrollable tab content
-          Expanded(
-            child: TabBarView(children: [
-              _AppList(
-                apps: leaves,
-                emptyMessage: 'No leave applications.',
-              ),
-              _AppList(
-                apps: permissions,
-                emptyMessage: 'No permission applications.',
-              ),
-              _AppList(
-                apps: compOffs,
-                emptyMessage: 'No comp off applications.',
-              ),
-            ]),
-          ),
-        ]),
+          // Tab content — whole page (header, tab bar, and this) scrolls as
+          // one via the SingleChildScrollView above, so this shows whichever
+          // tab is selected rather than a bounded-height TabBarView.
+          Builder(builder: (context) {
+            final controller = DefaultTabController.of(context);
+            return AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) => switch (controller.index) {
+                0 => _AppList(apps: leaves, emptyMessage: 'No leave applications.'),
+                1 => _AppList(apps: permissions, emptyMessage: 'No permission applications.'),
+                _ => _AppList(apps: compOffs, emptyMessage: 'No comp off applications.'),
+              },
+            );
+          }),
+        ])),
       ),
     );
   }
@@ -276,22 +273,27 @@ class _AppList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (apps.isEmpty) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.inbox_rounded, size: 52, color: Colors.grey.shade300),
-          const SizedBox(height: 10),
-          Text(emptyMessage,
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-        ]),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.inbox_rounded, size: 52, color: Colors.grey.shade300),
+            const SizedBox(height: 10),
+            Text(emptyMessage,
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+          ]),
+        ),
       );
     }
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(20),
-      itemCount: apps.length,
-      itemBuilder: (_, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _ApplicationCard(app: apps[i]),
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final app in apps)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ApplicationCard(app: app),
+          ),
+      ]),
     );
   }
 }

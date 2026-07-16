@@ -385,7 +385,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         // ── Header ────────────────────────────────────────────────────────
         Container(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -395,15 +395,16 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
         const Divider(height: 1),
 
         // ── Body ──────────────────────────────────────────────────────────
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
+        _loading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : Padding(
                   padding: const EdgeInsets.all(16),
-                  children: historyChildren,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: historyChildren),
                 ),
-        ),
-      ]),
+      ])),
     );
   }
 }

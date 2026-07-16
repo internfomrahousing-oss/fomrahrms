@@ -445,7 +445,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: null,
-      body: Column(children: [
+      body: SingleChildScrollView(child: Column(children: [
         // ── Header ──────────────────────────────────────────────────────────
         Container(
           color: Colors.white,
@@ -490,10 +490,12 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
         const Divider(height: 1),
 
         // ── Body ────────────────────────────────────────────────────────────
-        Expanded(
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: _blue))
-              : SingleChildScrollView(
+        _loading
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: _blue)),
+              )
+            : Padding(
                   padding: const EdgeInsets.all(24),
                   child: Center(
                     child: ConstrainedBox(
@@ -559,8 +561,7 @@ class _EditLeaveFormPageState extends State<EditLeaveFormPage> {
                     ),
                   ),
                 ),
-        ),
-      ]),
+      ])),
     );
   }
 
