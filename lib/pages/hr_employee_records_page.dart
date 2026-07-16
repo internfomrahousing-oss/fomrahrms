@@ -45,6 +45,15 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   String _search = '';
   _SortOrder _sort = _SortOrder.newestFirst;
   _StatusFilter _statusFilter = _StatusFilter.all;
+  String? _deptFilter;
+  String? _designationFilter;
+  String? _workLocationFilter;
+  String? _businessUnitFilter;
+
+  List<String> get _departmentOptions =>
+      (_all.map((u) => u.department).where((d) => d.isNotEmpty).toSet().toList()..sort());
+  List<String> get _designationOptions =>
+      (_all.map((u) => u.designation).where((d) => d.isNotEmpty).toSet().toList()..sort());
 
   int get _countActive      => _all.where((u) => u.active).length;
   int get _countOnroll      => _all.where((u) => u.isOnroll).length;
@@ -125,6 +134,11 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
       case _StatusFilter.all:
         break;
     }
+
+    if (_deptFilter != null) list = list.where((u) => u.department == _deptFilter).toList();
+    if (_designationFilter != null) list = list.where((u) => u.designation == _designationFilter).toList();
+    if (_workLocationFilter != null) list = list.where((u) => u.workLocation == _workLocationFilter).toList();
+    if (_businessUnitFilter != null) list = list.where((u) => u.businessUnit == _businessUnitFilter).toList();
 
     // Search
     if (_search.trim().isNotEmpty) {
@@ -324,16 +338,29 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                 ),
               );
               final filterBtn = FilterTriggerButton(
-                hasActiveFilters: _statusFilter != _StatusFilter.all || _sort != _SortOrder.newestFirst,
+                hasActiveFilters: _statusFilter != _StatusFilter.all || _sort != _SortOrder.newestFirst ||
+                    _deptFilter != null || _designationFilter != null ||
+                    _workLocationFilter != null || _businessUnitFilter != null,
                 onTap: () {
                   _StatusFilter statusDraft = _statusFilter;
                   _SortOrder sortDraft = _sort;
+                  String? deptDraft = _deptFilter;
+                  String? designationDraft = _designationFilter;
+                  String? workLocationDraft = _workLocationFilter;
+                  String? businessUnitDraft = _businessUnitFilter;
                   showFilterPanel(
                     context,
                     title: 'Filters',
-                    onReset: () { statusDraft = _StatusFilter.all; sortDraft = _SortOrder.newestFirst; },
+                    onReset: () {
+                      statusDraft = _StatusFilter.all; sortDraft = _SortOrder.newestFirst;
+                      deptDraft = null; designationDraft = null;
+                      workLocationDraft = null; businessUnitDraft = null;
+                    },
                     onApply: () => setState(() {
-                      _statusFilter = statusDraft; _sort = sortDraft; _applyFilter();
+                      _statusFilter = statusDraft; _sort = sortDraft;
+                      _deptFilter = deptDraft; _designationFilter = designationDraft;
+                      _workLocationFilter = workLocationDraft; _businessUnitFilter = businessUnitDraft;
+                      _applyFilter();
                     }),
                     builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       FilterChipGroup<_StatusFilter>(
@@ -349,6 +376,36 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                           _StatusFilter.deactivated => 'Deactivated ($_countDeactivated)',
                         },
                         onChanged: (v) => setPanelState(() => statusDraft = v ?? _StatusFilter.all),
+                      ),
+                      if (_departmentOptions.isNotEmpty)
+                        FilterChipGroup<String>(
+                          label: 'Department',
+                          value: deptDraft,
+                          options: _departmentOptions,
+                          labelOf: (d) => d,
+                          onChanged: (v) => setPanelState(() => deptDraft = v),
+                        ),
+                      if (_designationOptions.isNotEmpty)
+                        FilterChipGroup<String>(
+                          label: 'Designation',
+                          value: designationDraft,
+                          options: _designationOptions,
+                          labelOf: (d) => d,
+                          onChanged: (v) => setPanelState(() => designationDraft = v),
+                        ),
+                      FilterChipGroup<String>(
+                        label: 'Work Location',
+                        value: workLocationDraft,
+                        options: const ['Office', 'Onsite'],
+                        labelOf: (d) => d,
+                        onChanged: (v) => setPanelState(() => workLocationDraft = v),
+                      ),
+                      FilterChipGroup<String>(
+                        label: 'Company',
+                        value: businessUnitDraft,
+                        options: const ['FOMRA Developers', 'FOMRA Housing'],
+                        labelOf: (d) => d,
+                        onChanged: (v) => setPanelState(() => businessUnitDraft = v),
                       ),
                       FilterChipGroup<_SortOrder>(
                         label: 'Sort',
