@@ -50,17 +50,23 @@ function getSupabase() {
   return supabase;
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// Same allow-list approach as send-email — CORS is a browser-side check
+// only (a non-browser caller ignores it), so this is defense-in-depth,
+// not the real security boundary (password verification is).
+const ALLOWED_ORIGINS = ["https://fomrahrms-zeta.vercel.app"];
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function corsHeadersFor(req: Request) {
+  const origin = req.headers.get("Origin") ?? "";
+  const allowOrigin =
+    ALLOWED_ORIGINS.includes(origin) || origin.startsWith("http://localhost")
+      ? origin
+      : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
 }
 
 // Escape PostgREST/ilike wildcards so an email containing `%` or `_`
@@ -147,8 +153,16 @@ export async function findAppUserByLoginIdentifier(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  function json(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
