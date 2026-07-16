@@ -7,6 +7,7 @@ import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
+import '../utils/tenure.dart';
 import '../utils/weekly_off.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -50,6 +51,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   List<LeaveApplication> _leaveApps = [];
   int? _selectedDay;
   int _offWeekday = DateTime.sunday;
+  DateTime? _joiningDate;
 
   @override
   void initState() {
@@ -77,6 +79,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final users     = results[4] as List<AppUser>;
     final me = users.where((u) => u.name == UserSession.name).firstOrNull;
     final offWeekday = weeklyOffWeekdayFor(me?.effectiveWeeklyOffDay ?? 'Sunday');
+    final joiningDate = parseFlexibleDate(me?.dateOfJoining ?? '');
 
     if (today != null && today.checkInTime.isNotEmpty && today.checkOutTime.isEmpty) {
       AttendanceStore.isCheckedIn = true;
@@ -140,6 +143,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       _holidayDays     = holidayDays;
       _leaveApps       = leaveApps;
       _offWeekday      = offWeekday;
+      _joiningDate     = joiningDate;
       _loading         = false;
       _selectedDay     = null;
     });
@@ -158,7 +162,8 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
 
   // True when a day has no check-in, no approved leave/permission/comp-off,
   // and isn't a holiday, but has already passed — i.e. no entry was ever
-  // made for it.
+  // made for it. Days before the employee's joining date are never "missed"
+  // — they simply weren't employed yet.
   bool _isMissedDay(int day) {
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) return false;
@@ -166,9 +171,14 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     if (_permissionDays.contains(day)) return false;
     if (_compOffDays.contains(day)) return false;
     if (_holidayDays.contains(day)) return false;
+    final date = DateTime(_month.year, _month.month, day);
+    final joined = _joiningDate;
+    if (joined != null && date.isBefore(DateTime(joined.year, joined.month, joined.day))) {
+      return false;
+    }
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
-    return DateTime(_month.year, _month.month, day).isBefore(todayDate);
+    return date.isBefore(todayDate);
   }
 
   // Returns the status color for a calendar day (null = no highlight).

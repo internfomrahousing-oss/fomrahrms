@@ -7,6 +7,7 @@ import '../services/user_store.dart';
 import '../models/attendance_store.dart';
 import '../utils/checkin_status.dart';
 import '../utils/csv_export.dart';
+import '../utils/tenure.dart';
 import '../utils/weekly_off.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
@@ -64,6 +65,7 @@ class _EmployeeAttendanceCalendarPageState
   List<LeaveApplication> _leaveApps = [];
   int? _selectedDay;
   int _offWeekday = DateTime.sunday;
+  DateTime? _joiningDate;
 
   // ── Summary / export range (independent of the calendar month above —
   // lets HR pull a custom cycle like "25th to 26th") ─────────────────────
@@ -103,6 +105,7 @@ class _EmployeeAttendanceCalendarPageState
     final users      = results[3] as List<AppUser>;
     final emp = users.where((u) => u.name == widget.employeeName).firstOrNull;
     final offWeekday = weeklyOffWeekdayFor(emp?.effectiveWeeklyOffDay ?? 'Sunday');
+    final joiningDate = parseFlexibleDate(emp?.dateOfJoining ?? '');
 
     final Map<int, AttendanceRecord> map = {};
     for (final r in records) {
@@ -160,6 +163,7 @@ class _EmployeeAttendanceCalendarPageState
       _holidayDays    = holidayDays;
       _leaveApps      = leaveApps;
       _offWeekday     = offWeekday;
+      _joiningDate    = joiningDate;
       _loading        = false;
       _selectedDay    = null;
     });
@@ -202,6 +206,7 @@ class _EmployeeAttendanceCalendarPageState
     final rangeUsers = results[3] as List<AppUser>;
     final rangeEmp = rangeUsers.where((u) => u.name == widget.employeeName).firstOrNull;
     final rangeOffWeekday = weeklyOffWeekdayFor(rangeEmp?.effectiveWeeklyOffDay ?? 'Sunday');
+    final rangeJoiningDate = parseFlexibleDate(rangeEmp?.dateOfJoining ?? '');
 
     final holidayDateStrs = <String>{};
     for (final list in results[1] as List<List<Map<String, dynamic>>>) {
@@ -258,6 +263,9 @@ class _EmployeeAttendanceCalendarPageState
         rows.add(_RangeDay(d, 'Permission', '', ''));
       } else if (compOffDates.contains(ds)) {
         rows.add(_RangeDay(d, 'Comp Off', '', ''));
+      } else if (rangeJoiningDate != null &&
+          d.isBefore(DateTime(rangeJoiningDate.year, rangeJoiningDate.month, rangeJoiningDate.day))) {
+        rows.add(_RangeDay(d, '—', '', ''));
       } else if (d.isBefore(todayDate)) {
         rows.add(_RangeDay(d, 'Absent', '', ''));
       } else {
@@ -316,7 +324,8 @@ class _EmployeeAttendanceCalendarPageState
 
   // True when a day has no check-in, no approved leave/permission/comp-off,
   // and isn't a holiday, but has already passed — i.e. no entry was ever
-  // made for it.
+  // made for it. Days before the employee's joining date are never "missed"
+  // — they simply weren't employed yet.
   bool _isMissedDay(int day) {
     final r = _attendance[day];
     if (r != null && r.checkInTime.isNotEmpty) return false;
@@ -324,9 +333,14 @@ class _EmployeeAttendanceCalendarPageState
     if (_permissionDays.contains(day)) return false;
     if (_compOffDays.contains(day)) return false;
     if (_holidayDays.contains(day)) return false;
+    final date = DateTime(_month.year, _month.month, day);
+    final joined = _joiningDate;
+    if (joined != null && date.isBefore(DateTime(joined.year, joined.month, joined.day))) {
+      return false;
+    }
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
-    return DateTime(_month.year, _month.month, day).isBefore(todayDate);
+    return date.isBefore(todayDate);
   }
 
   // Precedence: actual attendance > holiday > leave > permission > comp off > absent.
