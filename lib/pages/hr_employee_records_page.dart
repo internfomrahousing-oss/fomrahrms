@@ -6,7 +6,6 @@ import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
-import '../services/device_binding_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
@@ -1843,96 +1842,6 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     if (mounted) setState(() => _saving = false);
   }
 
-  // ── Device Security ────────────────────────────────────────────────────
-
-  Widget _deviceSecurityBlock({required bool canEdit}) {
-    final bound = _user.isDeviceBound;
-    final statusColor = bound ? const Color(0xFF15803D) : const Color(0xFFB45309);
-    final statusLabel = bound ? 'Bound' : 'No Device Registered';
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (bound) ...[
-        _InfoRow(Icons.phone_android_rounded, 'Current Device',
-            _user.deviceName.isEmpty ? 'Unknown device' : _user.deviceName),
-        _InfoRow(Icons.memory_rounded, 'Platform', _user.devicePlatform),
-        _InfoRow(Icons.event_available_rounded, 'Registered On',
-            DeviceBindingService.formatDate(_user.deviceRegisteredAt)),
-        _InfoRow(Icons.login_rounded, 'Last Login',
-            DeviceBindingService.formatDateTime(_user.deviceLastLogin)),
-      ],
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(children: [
-          Icon(Icons.circle, size: 9, color: statusColor),
-          const SizedBox(width: 8),
-          const SizedBox(
-            width: 132,
-            child: Text('Status', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-          ),
-          Expanded(
-            child: Text(statusLabel,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: statusColor)),
-          ),
-        ]),
-      ),
-      if (canEdit) ...[
-        const SizedBox(height: 6),
-        SizedBox(
-          width: double.infinity,
-          child: Tooltip(
-            message: 'Allows the employee to register a new phone on their next login.',
-            child: OutlinedButton.icon(
-              onPressed: (!bound || _saving) ? null : _resetDevice,
-              icon: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.smartphone_rounded, size: 15),
-                SizedBox(width: 3),
-                Icon(Icons.refresh_rounded, size: 13),
-              ]),
-              label: const Text('Reset Device'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange.shade800,
-                side: BorderSide(color: Colors.orange.shade300),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ]);
-  }
-
-  Future<void> _resetDevice() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reset Registered Device?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        content: const Text(
-          "This will remove the employee's current device binding.\n\n"
-          'The employee will be able to register a new phone the next time they log in.\n\n'
-          'Until then, mobile check-in and check-out will not work.',
-          style: TextStyle(fontSize: 13),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade600, foregroundColor: Colors.white),
-            child: const Text('Reset Device'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    setState(() => _saving = true);
-    DeviceBindingService.resetDevice(_user);
-    await widget.onSave(_user);
-    if (mounted) setState(() => _saving = false);
-  }
-
   Widget _locationChip(String loc) {
     final c = _locationColor(loc);
     return Container(
@@ -2459,20 +2368,6 @@ class _ProfileDialogState extends State<_ProfileDialog> {
               const SizedBox(height: 4),
             ],
 
-            // ── Device Security ─────────────────────────────────────────
-            const SizedBox(height: 14),
-            const Divider(),
-            const SizedBox(height: 10),
-            Row(children: [
-              const Icon(Icons.smartphone_rounded, size: 14, color: Color(0xFF6B7280)),
-              const SizedBox(width: 6),
-              const Text('Device Security',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                      color: Color(0xFF6B7280))),
-            ]),
-            const SizedBox(height: 10),
-            _deviceSecurityBlock(canEdit: canEdit),
-
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -2952,13 +2847,6 @@ class _EditDialogState extends State<_EditDialog> {
       permissionMinutesQuotaRequestedAt: widget.user?.permissionMinutesQuotaRequestedAt ?? '',
       businessUnitPending:     widget.user?.businessUnitPending ?? '',
       businessUnitRequestedAt: widget.user?.businessUnitRequestedAt ?? '',
-      // Device Binding is managed from the Device Security section on the
-      // profile view (Reset Device), never from this edit form.
-      deviceId:               widget.user?.deviceId ?? '',
-      deviceName:             widget.user?.deviceName ?? '',
-      devicePlatform:         widget.user?.devicePlatform ?? '',
-      deviceRegisteredAt:     widget.user?.deviceRegisteredAt ?? '',
-      deviceLastLogin:        widget.user?.deviceLastLogin ?? '',
     );
 
     await widget.onSave(updated);

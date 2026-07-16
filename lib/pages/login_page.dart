@@ -7,7 +7,6 @@ import '../models/app_user.dart';
 import '../models/language_notifier.dart';
 import '../models/notification_store.dart';
 import '../models/theme_notifier.dart';
-import '../services/device_binding_service.dart';
 import '../services/notification_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_store.dart';
@@ -100,7 +99,6 @@ class _LoginPageState extends State<LoginPage> {
         setState(() { _error = 'Invalid email or password.'; _loading = false; });
         return;
       }
-      if (!await _passDeviceBinding(dynamicUser)) return;
       SupabaseService.markOnboardingAccountActive(dynamicUser.email);
       _completeLogin(AppUser.userRoleFor(dynamicUser.role), dynamicUser.name,
           dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
@@ -187,7 +185,6 @@ class _LoginPageState extends State<LoginPage> {
     user.password = newPass;
     await UserStore.upsertOne(user);
     if (!mounted) return;
-    if (!await _passDeviceBinding(user)) return;
     _completeLogin(AppUser.userRoleFor(user.role), user.name,
         user.employeeId.isNotEmpty ? user.employeeId : user.email,
         email: user.email,
@@ -196,20 +193,6 @@ class _LoginPageState extends State<LoginPage> {
         isReportingManager: user.isReportingManager,
         workLocation: user.workLocation,
         permissionMinutesQuota: user.permissionMinutesQuota);
-  }
-
-  // Device Binding gate — native mobile only (web is never restricted; see
-  // DeviceBindingService). Auto-registers this phone on first login, blocks
-  // login outright if it doesn't match the employee's already-bound device.
-  Future<bool> _passDeviceBinding(AppUser user) async {
-    if (!DeviceBindingService.isNativeMobile) return true;
-    final result = await DeviceBindingService.checkLogin(user);
-    if (!mounted) return false;
-    if (result == DeviceBindingResult.blockedOtherDevice) {
-      setState(() { _error = DeviceBindingService.blockedMessage; _loading = false; });
-      return false;
-    }
-    return true;
   }
 
   void _completeLogin(UserRole role, String name, String employeeId, {

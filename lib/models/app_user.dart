@@ -64,15 +64,6 @@ class AppUser {
   int permissionMinutesQuota;
   int permissionMinutesQuotaPending;      // proposed new value awaiting Management approval; 0 = none
   String permissionMinutesQuotaRequestedAt; // ISO datetime the change was requested
-  // Device Binding — restricts mobile app login/check-in-out to one phone per
-  // employee. deviceId is a locally-generated token (see DeviceBindingService),
-  // not a hardware id; empty = no device registered (or HR has reset it).
-  String deviceId;
-  String deviceName;           // e.g. "Samsung Galaxy S24"; best-effort, may be empty
-  String devicePlatform;       // 'Android' | 'iPhone' | ''
-  String deviceRegisteredAt;   // ISO datetime; empty = not registered
-  String deviceLastLogin;      // ISO datetime of the most recent login from the bound device
-
   // Company-issued Microsoft/Office 365 mailbox; '' = HR hasn't entered it
   // yet. This is where "Forgot Password" reset links are sent — never the
   // personal email, and never the @fomrahousing.in login username itself.
@@ -129,18 +120,12 @@ class AppUser {
     this.permissionMinutesQuota = 120,
     this.permissionMinutesQuotaPending = 0,
     this.permissionMinutesQuotaRequestedAt = '',
-    this.deviceId = '',
-    this.deviceName = '',
-    this.devicePlatform = '',
-    this.deviceRegisteredAt = '',
-    this.deviceLastLogin = '',
     this.companyEmail = '',
     this.resetPasswordToken = '',
     this.resetPasswordTokenExpiresAt = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
-  bool get isDeviceBound => deviceId.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
   bool get hasPendingBusinessUnitChange => businessUnitPending.isNotEmpty;
@@ -297,11 +282,6 @@ class AppUser {
     'permissionMinutesQuota':          permissionMinutesQuota,
     'permissionMinutesQuotaPending':   permissionMinutesQuotaPending,
     'permissionMinutesQuotaRequestedAt': permissionMinutesQuotaRequestedAt,
-    'deviceId':              deviceId,
-    'deviceName':            deviceName,
-    'devicePlatform':        devicePlatform,
-    'deviceRegisteredAt':    deviceRegisteredAt,
-    'deviceLastLogin':       deviceLastLogin,
     'companyEmail':          companyEmail,
     'resetPasswordToken':    resetPasswordToken,
     'resetPasswordTokenExpiresAt': resetPasswordTokenExpiresAt,
@@ -356,11 +336,6 @@ class AppUser {
     permissionMinutesQuota:          (j['permissionMinutesQuota'] as num?)?.toInt() ?? 120,
     permissionMinutesQuotaPending:   (j['permissionMinutesQuotaPending'] as num?)?.toInt() ?? 0,
     permissionMinutesQuotaRequestedAt: j['permissionMinutesQuotaRequestedAt'] as String? ?? '',
-    deviceId:               j['deviceId']            as String? ?? '',
-    deviceName:             j['deviceName']          as String? ?? '',
-    devicePlatform:         j['devicePlatform']      as String? ?? '',
-    deviceRegisteredAt:     j['deviceRegisteredAt']  as String? ?? '',
-    deviceLastLogin:        j['deviceLastLogin']     as String? ?? '',
     companyEmail:           j['companyEmail']          as String? ?? '',
     resetPasswordToken:     j['resetPasswordToken']    as String? ?? '',
     resetPasswordTokenExpiresAt: j['resetPasswordTokenExpiresAt'] as String? ?? '',

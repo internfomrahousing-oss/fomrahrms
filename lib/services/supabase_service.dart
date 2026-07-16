@@ -292,15 +292,6 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists business_unit_requested_at text default '';
   alter table app_users add column if not exists is_reporting_manager_requested_at text default '';
 
-  -- Device Binding: one registered mobile device per employee, gates mobile
-  -- app login/check-in-out (see DeviceBindingService). device_id empty = no
-  -- device registered (never logged in from mobile, or HR reset it).
-  alter table app_users add column if not exists device_id text default '';
-  alter table app_users add column if not exists device_name text default '';
-  alter table app_users add column if not exists device_platform text default '';
-  alter table app_users add column if not exists device_registered_at text default '';
-  alter table app_users add column if not exists device_last_login text default '';
-
   -- One-time backfill: existing Manager-role users must keep RM-dropdown
   -- eligibility now that eligibility is flag-based, not role-based.
   update app_users set is_reporting_manager = true where role = 'Manager' and is_reporting_manager = false;
@@ -1013,11 +1004,6 @@ class SupabaseService {
         permissionMinutesQuota:          (row['permission_minutes_quota'] as num?)?.toInt() ?? 120,
         permissionMinutesQuotaPending:   (row['permission_minutes_quota_pending'] as num?)?.toInt() ?? 0,
         permissionMinutesQuotaRequestedAt: (row['permission_minutes_quota_requested_at'] as String?) ?? '',
-        deviceId:             (row['device_id']               as String?) ?? '',
-        deviceName:           (row['device_name']             as String?) ?? '',
-        devicePlatform:       (row['device_platform']         as String?) ?? '',
-        deviceRegisteredAt:   (row['device_registered_at']    as String?) ?? '',
-        deviceLastLogin:      (row['device_last_login']       as String?) ?? '',
         companyEmail:         (row['company_email']           as String?) ?? '',
         resetPasswordToken:      (row['reset_password_token']              as String?) ?? '',
         resetPasswordTokenExpiresAt: (row['reset_password_token_expires_at'] as String?) ?? '',
@@ -1077,11 +1063,6 @@ class SupabaseService {
       'permission_minutes_quota':            u.permissionMinutesQuota,
       'permission_minutes_quota_pending':    u.permissionMinutesQuotaPending,
       'permission_minutes_quota_requested_at': u.permissionMinutesQuotaRequestedAt,
-      'device_id':                u.deviceId,
-      'device_name':              u.deviceName,
-      'device_platform':          u.devicePlatform,
-      'device_registered_at':     u.deviceRegisteredAt,
-      'device_last_login':        u.deviceLastLogin,
       'company_email':            u.companyEmail,
     });
   }
