@@ -44,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
   String? _error;
 
   // When non-null, this user needs to set their password for the first time
-  AppUser? _pendingUser;
+  ({String name, String email})? _pendingUser;
 
   @override
   void dispose() {
@@ -55,14 +55,6 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Fallback system credentials (always work)
-  static const _systemCredentials = {
-    'hr@fomrahousing.in':         ('Admin@123',  UserRole.hr,               'HR Admin',     'HR001'),
-    'manager@fomrahousing.in':    ('Manager@123',UserRole.reportingManager, 'Ravi Kumar',   'MGR001'),
-    'employee@fomrahousing.in':   ('Emp@123',    UserRole.employee,         'Priya Sharma', 'EMP001'),
-    'management@fomrahousing.in': ('Mgmt@123',   UserRole.management,       'Director',     'MGMT001'),
-  };
-
   Future<void> _login() async {
     final email    = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
@@ -72,96 +64,38 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() { _loading = true; _error = null; });
+
+    // Credential check happens server-side (Edge Function) so the client
+    // never downloads another user's data or password material — see
+    // supabase/functions/login/index.ts.
+    final result = await SupabaseService.login(email, password);
     if (!mounted) return;
 
-    // 1. Check dynamic users created by Management
-    final dynamicUser = await UserStore.findByEmail(email);
-    if (dynamicUser != null) {
-      // First login — no password set yet, prompt user to create one.
-      // Accounts created by the recruitment pipeline start active:false and
-      // are only unlocked by the emailed Set-Password token
-      // (/set-password/{token}) — see employee_onboarding_page.dart's
-      // _approveManagement. Every other account defaults active:true, so
-      // this doesn't change behavior for existing or manually-added users.
-      if (dynamicUser.password.isEmpty) {
-        if (!dynamicUser.active) {
-          setState(() {
-            _loading = false;
-            _error = "Your account isn't activated yet — check your email for the "
-                'activation link, or ask HR to resend it.';
-          });
-          return;
-        }
-        setState(() { _loading = false; _pendingUser = dynamicUser; });
-        return;
-      }
-      if (password != dynamicUser.password) {
-        setState(() { _error = 'Invalid email or password.'; _loading = false; });
-        return;
-      }
-      SupabaseService.markOnboardingAccountActive(dynamicUser.email);
-      _completeLogin(AppUser.userRoleFor(dynamicUser.role), dynamicUser.name,
-          dynamicUser.employeeId.isNotEmpty ? dynamicUser.employeeId : dynamicUser.email,
-          email: dynamicUser.email,
-          designation: dynamicUser.designation,
-          department: dynamicUser.department,
-          reportingManager: dynamicUser.reportingManager,
-          isReportingManager: dynamicUser.isReportingManager,
-          workLocation: dynamicUser.workLocation,
-          permissionMinutesQuota: dynamicUser.permissionMinutesQuota);
+    if (result.notActivated) {
+      setState(() {
+        _loading = false;
+        _error = "Your account isn't activated yet — check your email for the "
+            'activation link, or ask HR to resend it.';
+      });
+      return;
+    }
+    if (result.needsPasswordSetup) {
+      final profile = result.profile ?? const {};
+      setState(() {
+        _loading = false;
+        _pendingUser = (
+          name: (profile['name'] as String?) ?? '',
+          email: (profile['email'] as String?) ?? email,
+        );
+      });
+      return;
+    }
+    if (!result.ok || result.profile == null) {
+      setState(() { _error = result.error ?? 'Invalid email or password.'; _loading = false; });
       return;
     }
 
-    // 2. Fall back to system credentials
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-    final match = _systemCredentials[email.toLowerCase()];
-    if (match == null || match.$1 != password) {
-      setState(() { _error = 'Invalid email or password.'; _loading = false; });
-      return;
-    }
-    final systemEmail = email.toLowerCase();
-    await _ensureSystemUserProvisioned(systemEmail, match);
-    _completeLogin(match.$2, match.$3, match.$4, email: systemEmail,
-        isReportingManager: match.$2 == UserRole.reportingManager);
-  }
-
-  // System-credential logins (HR/Manager/Employee demo accounts) never had a
-  // matching AppUser row, so they never showed up as a regular employee
-  // record (e.g. in Employee Management, or in the leave/payslip lookups
-  // that key off the app_users table) even though HR and Manager are
-  // employees too. Management is not an employee record, so it's excluded.
-  static String _roleString(UserRole role) => switch (role) {
-        UserRole.hr => 'HR',
-        UserRole.reportingManager => 'Manager',
-        UserRole.management => 'Management',
-        UserRole.employee => 'Employee',
-      };
-
-  static String _designationFor(UserRole role) => switch (role) {
-        UserRole.hr => 'HR Administrator',
-        UserRole.reportingManager => 'Reporting Manager',
-        UserRole.management => 'Director',
-        UserRole.employee => 'Employee',
-      };
-
-  Future<void> _ensureSystemUserProvisioned(
-      String email, (String, UserRole, String, String) match) async {
-    if (match.$2 == UserRole.management) return;
-    final existing = await UserStore.findByEmail(email);
-    if (existing != null) return;
-    final now = DateTime.now().toIso8601String();
-    await UserStore.upsertOne(AppUser(
-      name: match.$3,
-      email: email,
-      employeeId: match.$4,
-      designation: _designationFor(match.$2),
-      role: _roleString(match.$2),
-      password: match.$1,
-      dateOfJoining: now,
-      onrollConfirmedAt: now,
-      isReportingManager: match.$2 == UserRole.reportingManager,
-    ));
+    await _completeLoginFromProfile(result.profile!, fallbackEmail: email);
   }
 
   Future<void> _savePassword() async {
@@ -181,18 +115,50 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() { _loading = true; _error = null; });
-    final user = _pendingUser!;
-    user.password = newPass;
-    await UserStore.upsertOne(user);
+    final email = _pendingUser!.email;
+    final saved = await SupabaseService.setInitialUserPassword(email, newPass);
     if (!mounted) return;
-    _completeLogin(AppUser.userRoleFor(user.role), user.name,
-        user.employeeId.isNotEmpty ? user.employeeId : user.email,
-        email: user.email,
-        designation: user.designation,
-        department: user.department,
-        isReportingManager: user.isReportingManager,
-        workLocation: user.workLocation,
-        permissionMinutesQuota: user.permissionMinutesQuota);
+    if (!saved) {
+      setState(() { _loading = false; _error = 'Could not set your password. Please try again.'; });
+      return;
+    }
+
+    final result = await SupabaseService.login(email, newPass);
+    if (!mounted) return;
+    if (!result.ok || result.profile == null) {
+      setState(() {
+        _loading = false;
+        _error = result.error ?? 'Could not sign you in. Please try again.';
+      });
+      return;
+    }
+
+    await _completeLoginFromProfile(result.profile!, fallbackEmail: email);
+  }
+
+  // Shared by _login and _savePassword — maps the profile returned by the
+  // login Edge Function onto UserSession exactly like the old client-side
+  // flow did, so navigation/role behavior after credentials are verified is
+  // unchanged.
+  Future<void> _completeLoginFromProfile(
+    Map<String, dynamic> profile, {
+    required String fallbackEmail,
+  }) async {
+    final email = (profile['email'] as String?) ?? fallbackEmail;
+    SupabaseService.markOnboardingAccountActive(email);
+    final employeeId = (profile['employee_id'] as String?) ?? '';
+    _completeLogin(
+      AppUser.userRoleFor((profile['role'] as String?) ?? 'Employee'),
+      (profile['name'] as String?) ?? '',
+      employeeId.isNotEmpty ? employeeId : email,
+      email: email,
+      designation: (profile['designation'] as String?) ?? '',
+      department: (profile['department'] as String?) ?? '',
+      reportingManager: (profile['reporting_manager'] as String?) ?? '',
+      isReportingManager: (profile['is_reporting_manager'] as bool?) ?? false,
+      workLocation: (profile['work_location'] as String?) ?? '',
+      permissionMinutesQuota: (profile['permission_minutes_quota'] as num?)?.toInt() ?? 120,
+    );
   }
 
   void _completeLogin(UserRole role, String name, String employeeId, {

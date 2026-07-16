@@ -42,6 +42,11 @@ class AttendanceRecord {
   final List<List<double>> gpsPoints; // [[lat,lng], ...] route
   final String checkInNote;
   final String checkOutNote;
+  // Storage object paths (not URLs) in the private `attendance-selfies`
+  // bucket — never a public URL. HR/Management pages exchange these for a
+  // short-lived signed URL on demand via SupabaseService.attendanceSelfieUrl.
+  final String checkInSelfiePath;
+  final String checkOutSelfiePath;
 
   const AttendanceRecord({
     required this.id,
@@ -54,5 +59,7 @@ class AttendanceRecord {
     this.gpsPoints = const [],
     this.checkInNote = '',
     this.checkOutNote = '',
+    this.checkInSelfiePath = '',
+    this.checkOutSelfiePath = '',
   });
 }

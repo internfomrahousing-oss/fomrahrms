@@ -1301,6 +1301,10 @@ class _AttendanceDetailDialog extends StatelessWidget {
                 const SizedBox(height: 8),
                 _NoteBlock(label: 'Check-out note', text: r.checkOutNote),
               ],
+              if (r.checkInSelfiePath.isNotEmpty || r.checkOutSelfiePath.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _SelfieSection(record: r),
+              ],
               if (r.gpsPoints.isNotEmpty || r.location.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 _RouteSection(record: r),
@@ -1346,6 +1350,117 @@ class _AttendanceDetailDialog extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Selfies are never visible to the employee themselves — this dialog only
+// renders on HR/Management-facing pages, and the signed URL fetch below is
+// additionally rejected server-side (storage RLS) for any other role.
+class _SelfieSection extends StatelessWidget {
+  final AttendanceRecord record;
+  const _SelfieSection({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasIn = record.checkInSelfiePath.isNotEmpty;
+    final hasOut = record.checkOutSelfiePath.isNotEmpty;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(Icons.camera_alt_rounded, color: AppTheme.primaryBlue, size: 16),
+        const SizedBox(width: 8),
+        const Text('Selfie', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+      ]),
+      const SizedBox(height: 10),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (hasIn)
+          Expanded(child: _SelfieThumbnail(path: record.checkInSelfiePath, label: 'Check-In')),
+        if (hasIn && hasOut) const SizedBox(width: 10),
+        if (hasOut)
+          Expanded(child: _SelfieThumbnail(path: record.checkOutSelfiePath, label: 'Check-Out')),
+      ]),
+    ]);
+  }
+}
+
+class _SelfieThumbnail extends StatefulWidget {
+  final String path;
+  final String label;
+  const _SelfieThumbnail({required this.path, required this.label});
+
+  @override
+  State<_SelfieThumbnail> createState() => _SelfieThumbnailState();
+}
+
+class _SelfieThumbnailState extends State<_SelfieThumbnail> {
+  late final Future<String?> _urlFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _urlFuture = SupabaseService.attendanceSelfieUrl(widget.path);
+  }
+
+  void _openFullScreen(String url) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(children: [
+          InteractiveViewer(child: Image.network(url)),
+          Positioned(
+            top: 8, right: 8,
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(),
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(Icons.close_rounded, color: Colors.white, size: 24),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _urlFuture,
+      builder: (context, snap) {
+        final url = snap.data;
+        final loading = snap.connectionState != ConnectionState.done;
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.label,
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+                  color: Color(0xFF9CA3AF))),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: url == null ? null : () => _openFullScreen(url),
+            child: Container(
+              height: 110,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                color: const Color(0xFFF8FAFC),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: loading
+                  ? const Center(
+                      child: SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2)))
+                  : url == null
+                      ? const Center(
+                          child: Icon(Icons.no_photography_rounded,
+                              color: Color(0xFF9CA3AF), size: 22))
+                      : Image.network(url, fit: BoxFit.cover, width: double.infinity),
+            ),
+          ),
+        ]);
+      },
     );
   }
 }

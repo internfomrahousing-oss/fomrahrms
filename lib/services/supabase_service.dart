@@ -380,6 +380,14 @@ import '../models/user_session.dart';
   alter table attendance_records disable row level security;
   alter table attendance_records add column if not exists check_in_note text default '';
   alter table attendance_records add column if not exists check_out_note text default '';
+  alter table attendance_records add column if not exists location text default '';
+  alter table attendance_records add column if not exists gps_points jsonb;
+  -- Selfie columns + the private storage bucket + its RLS policies + the
+  -- retention cron are defined in
+  -- supabase/migrations/20260716020000_attendance_selfies.sql — run that
+  -- migration rather than adding these columns by hand.
+  alter table attendance_records add column if not exists check_in_selfie_path text default '';
+  alter table attendance_records add column if not exists check_out_selfie_path text default '';
 
   create table if not exists form_versions (
     id uuid default gen_random_uuid() primary key,
@@ -564,6 +572,23 @@ import '../models/user_session.dart';
   -- Lets the HR portal reflect offer acceptance live without a manual refresh.
   alter publication supabase_realtime add table candidate_applications;
 */
+
+/// Result of [SupabaseService.login] — see supabase/functions/login/index.ts.
+class LoginResult {
+  final bool ok;
+  final bool needsPasswordSetup;
+  final bool notActivated;
+  final String? error;
+  final Map<String, dynamic>? profile;
+
+  const LoginResult({
+    this.ok = false,
+    this.needsPasswordSetup = false,
+    this.notActivated = false,
+    this.error,
+    this.profile,
+  });
+}
 
 class SupabaseService {
   static SupabaseClient? get _db {
@@ -918,6 +943,53 @@ class SupabaseService {
     return _db!.storage.from('RESUME').getPublicUrl(path);
   }
 
+  // ── Attendance Selfies ────────────────────────────────────────────────
+  // Private bucket — see supabase/migrations/20260716020000_attendance_selfies.sql
+  // for the bucket + RLS policies (upload = own employee_id folder only,
+  // read = HR/Management only) and the retention cron that deletes these
+  // after 30 days. Never use getPublicUrl on this bucket.
+
+  static const _selfieBucket = 'attendance-selfies';
+
+  /// Uploads an already-watermarked, already-compressed selfie and returns
+  /// its storage path (not a URL) for storing on the attendance row, or
+  /// null on failure.
+  static Future<String?> uploadAttendanceSelfie({
+    required String employeeId,
+    required String date, // 'dd/MM/yyyy'
+    required String kind, // 'checkin' | 'checkout'
+    required Uint8List bytes,
+  }) async {
+    final db = _db;
+    if (db == null || employeeId.isEmpty) return null;
+    final safeDate = date.replaceAll('/', '-');
+    final path =
+        '$employeeId/${safeDate}_${kind}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    try {
+      await db.storage.from(_selfieBucket).uploadBinary(
+        path, bytes,
+        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+      );
+      return path;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Short-lived signed URL for an HR/Management viewer — storage RLS
+  /// rejects this for any caller who isn't HR/Management, regardless of
+  /// what the client claims, so this must only ever be called from those
+  /// screens (never from the employee's own attendance view).
+  static Future<String?> attendanceSelfieUrl(String path) async {
+    final db = _db;
+    if (db == null || path.isEmpty) return null;
+    try {
+      return await db.storage.from(_selfieBucket).createSignedUrl(path, 3600);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Candidate Applications ────────────────────────────────────────────
 
   static Future<void> saveCandidateApplication(Map<String, dynamic> data) async {
@@ -951,9 +1023,32 @@ class SupabaseService {
 
   // ── App Users (Administration) ────────────────────────────────────────
 
+  // Explicit column list — deliberately excludes password/password_hash and
+  // the activation/reset token columns. This used to be a bare .select(),
+  // which shipped every employee's plaintext password (and pending reset
+  // tokens) to any logged-in client fetching the roster; has_password is a
+  // generated boolean column, never the hash itself.
+  static const _appUserColumns =
+      'name, email, employee_id, designation, department, '
+      'business_unit, business_unit_pending, business_unit_requested_at, '
+      'weekly_off_day, weekly_off_day_pending, weekly_off_day_requested_at, '
+      'role, active, has_password, leave_allocation, '
+      'reporting_manager, reporting_manager_pending, reporting_manager_requested_at, '
+      'is_reporting_manager, is_reporting_manager_pending, is_reporting_manager_requested_at, '
+      'mobile, address, date_of_birth, date_of_joining, '
+      'onroll_confirmed_at, onroll_requested_at, '
+      'onroll_hr_status, onroll_hr_comment, onroll_hr_decided_at, '
+      'onroll_manager_status, onroll_manager_comment, onroll_manager_decided_at, '
+      'onroll_management_status, onroll_management_comment, onroll_management_decided_at, '
+      'el_eligible_at, el_avail_requested_at, el_last_availed_at, '
+      'gross_pay, gross_pay_pending, gross_pay_requested_at, '
+      'work_location, work_location_pending, work_location_requested_at, '
+      'permission_minutes_quota, permission_minutes_quota_pending, permission_minutes_quota_requested_at, '
+      'company_email';
+
   static Future<List<AppUser>> fetchAppUsers() async {
     try {
-      final data = await _db?.from('app_users').select().order('name');
+      final data = await _db?.from('app_users').select(_appUserColumns).order('name');
       if (data == null) return [];
       return (data as List).map((row) => AppUser(
         name:                 (row['name']                    as String?) ?? '',
@@ -969,7 +1064,7 @@ class SupabaseService {
         weeklyOffDayRequestedAt:  (row['weekly_off_day_requested_at']  as String?) ?? '',
         role:                 (row['role']                    as String?) ?? 'Employee',
         active:               (row['active']                  as bool?)   ?? true,
-        password:             (row['password']                as String?) ?? '',
+        hasPassword:          (row['has_password']            as bool?)   ?? false,
         leaveAllocation:      (row['leave_allocation']        as int?)    ?? 21,
         reportingManager:     (row['reporting_manager']       as String?) ?? '',
         reportingManagerPending:     (row['reporting_manager_pending']       as String?) ?? '',
@@ -1005,8 +1100,6 @@ class SupabaseService {
         permissionMinutesQuotaPending:   (row['permission_minutes_quota_pending'] as num?)?.toInt() ?? 0,
         permissionMinutesQuotaRequestedAt: (row['permission_minutes_quota_requested_at'] as String?) ?? '',
         companyEmail:         (row['company_email']           as String?) ?? '',
-        resetPasswordToken:      (row['reset_password_token']              as String?) ?? '',
-        resetPasswordTokenExpiresAt: (row['reset_password_token_expires_at'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -1028,7 +1121,6 @@ class SupabaseService {
       'weekly_off_day_requested_at': u.weeklyOffDayRequestedAt,
       'role':                     u.role,
       'active':                   u.active,
-      'password':                 u.password,
       'leave_allocation':         u.leaveAllocation,
       'reporting_manager':        u.reportingManager,
       'reporting_manager_pending':        u.reportingManagerPending,
@@ -1606,18 +1698,20 @@ class SupabaseService {
     required String time,
     String location = '',
     String note = '',
+    String selfiePath = '',
   }) async {
     try {
       if (_db == null) return 'Database not connected';
       await _db!.from('attendance_records').upsert({
-        'id':             _attendanceId(employeeId, date),
-        'employee_name':  employeeName,
-        'employee_id':    employeeId,
-        'date':           date,
-        'check_in_time':  time,
-        'check_out_time': '',
-        'location':       location,
-        'check_in_note':  note,
+        'id':                    _attendanceId(employeeId, date),
+        'employee_name':         employeeName,
+        'employee_id':           employeeId,
+        'date':                  date,
+        'check_in_time':         time,
+        'check_out_time':        '',
+        'location':              location,
+        'check_in_note':         note,
+        'check_in_selfie_path':  selfiePath,
       });
       return null;
     } catch (e) {
@@ -1687,11 +1781,16 @@ class SupabaseService {
     required String date,
     required String time,
     String note = '',
+    String selfiePath = '',
   }) async {
     try {
       await _db
           ?.from('attendance_records')
-          .update({'check_out_time': time, 'check_out_note': note})
+          .update({
+            'check_out_time':        time,
+            'check_out_note':        note,
+            'check_out_selfie_path': selfiePath,
+          })
           .eq('id', _attendanceId(employeeId, date));
     } catch (_) {}
   }
@@ -1715,6 +1814,8 @@ class SupabaseService {
         gpsPoints:    _parseGpsPoints(row['gps_points']),
         checkInNote:  (row['check_in_note']  as String?) ?? '',
         checkOutNote: (row['check_out_note'] as String?) ?? '',
+        checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
+        checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -1743,6 +1844,8 @@ class SupabaseService {
         gpsPoints:    _parseGpsPoints(row['gps_points']),
         checkInNote:  (row['check_in_note']  as String?) ?? '',
         checkOutNote: (row['check_out_note'] as String?) ?? '',
+        checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
+        checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -1773,6 +1876,8 @@ class SupabaseService {
         gpsPoints:    _parseGpsPoints(row['gps_points']),
         checkInNote:  (row['check_in_note']  as String?) ?? '',
         checkOutNote: (row['check_out_note'] as String?) ?? '',
+        checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
+        checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
       );
     } catch (_) {
       return null;
@@ -1801,6 +1906,8 @@ class SupabaseService {
         gpsPoints:    _parseGpsPoints(row['gps_points']),
         checkInNote:  (row['check_in_note']  as String?) ?? '',
         checkOutNote: (row['check_out_note'] as String?) ?? '',
+        checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
+        checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -2518,15 +2625,18 @@ class SupabaseService {
     if (token.isEmpty) return null;
     final data = await _db
         ?.from('app_users')
-        .select()
+        .select('email, name, activation_token_expires_at')
         .eq('activation_token', token)
         .maybeSingle();
     return data;
   }
 
   static Future<void> completeAccountActivation(String email, {required String password}) async {
+    // Hashes server-side via the service_role-only RPC — see
+    // supabase/migrations/20260716000000_auth_foundation.sql — rather than
+    // writing the plaintext password column directly.
+    await _db?.rpc('set_app_user_password', params: {'p_email': email, 'p_password': password});
     await _db?.from('app_users').update({
-      'password': password,
       'active': true,
       'activation_token': '',
       'activation_token_expires_at': '',
@@ -2581,18 +2691,59 @@ class SupabaseService {
     if (token.isEmpty) return null;
     final data = await _db
         ?.from('app_users')
-        .select()
+        .select('email, name, reset_password_token_expires_at')
         .eq('reset_password_token', token)
         .maybeSingle();
     return data;
   }
 
   static Future<void> completePasswordReset(String email, {required String password}) async {
+    await _db?.rpc('set_app_user_password', params: {'p_email': email, 'p_password': password});
     await _db?.from('app_users').update({
-      'password': password,
       'reset_password_token': '',
       'reset_password_token_expires_at': '',
     }).eq('email', email);
+  }
+
+  // ── Server-side login (Edge Function) ───────────────────────────────────
+  // See supabase/functions/login/index.ts. Replaces fetching the whole
+  // app_users table and comparing passwords client-side.
+
+  static Future<bool> setInitialUserPassword(String email, String password) async {
+    try {
+      await _db?.rpc('set_app_user_password', params: {'p_email': email, 'p_password': password});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<LoginResult> login(String email, String password) async {
+    final db = _db;
+    if (db == null) return const LoginResult(error: 'Not connected');
+    try {
+      final res = await db.functions.invoke('login', body: {'email': email, 'password': password});
+      final data = res.data;
+      if (res.status == 200 && data is Map) {
+        if (data['needsPasswordSetup'] == true) {
+          return LoginResult(
+            needsPasswordSetup: true,
+            profile: Map<String, dynamic>.from(data['profile'] as Map),
+          );
+        }
+        final refreshToken = data['refresh_token'] as String?;
+        if (refreshToken != null) {
+          await db.auth.setSession(refreshToken);
+        }
+        return LoginResult(ok: true, profile: Map<String, dynamic>.from(data['profile'] as Map));
+      }
+      if (res.status == 403 && data is Map && data['error'] == 'not_activated') {
+        return const LoginResult(notActivated: true);
+      }
+      return const LoginResult(error: 'Invalid email or password.');
+    } catch (_) {
+      return const LoginResult(error: 'Invalid email or password.');
+    }
   }
 
   // ── Notification preferences (muted categories) ─────────────────────────

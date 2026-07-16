@@ -5,6 +5,7 @@ import '../models/attendance_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
+import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/checkin_status.dart';
 import '../utils/location_consent.dart';
@@ -976,6 +977,24 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     final now = DateTime.now();
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
 
+    final selfiePath = await SelfieCaptureService.captureAndUpload(
+      employeeId: UserSession.employeeId,
+      date: _fmtDate(now),
+      kind: 'checkin',
+      label: 'Check-In',
+    );
+    if (!mounted) return;
+    if (selfiePath == null) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('A selfie is required to check in. Please try again.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
 
@@ -989,6 +1008,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       time:         _timeCtrl.text,
       location:     loc,
       note:         _noteCtrl.text.trim(),
+      selfiePath:   selfiePath,
     );
 
     if (!mounted) return;
@@ -1038,14 +1058,33 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     setState(() => _submitting = true);
     final now = DateTime.now();
 
+    final selfiePath = await SelfieCaptureService.captureAndUpload(
+      employeeId: UserSession.employeeId,
+      date: _fmtDate(now),
+      kind: 'checkout',
+      label: 'Check-Out',
+    );
+    if (!mounted) return;
+    if (selfiePath == null) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('A selfie is required to check out. Please try again.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     GpsTrackingService.stop();
     AttendanceStore.isCheckedIn = false;
 
     await SupabaseService.saveCheckOut(
-      employeeId: UserSession.employeeId,
-      date:       _fmtDate(now),
-      time:       _timeCtrl.text,
-      note:       _noteCtrl.text.trim(),
+      employeeId:  UserSession.employeeId,
+      date:        _fmtDate(now),
+      time:        _timeCtrl.text,
+      note:        _noteCtrl.text.trim(),
+      selfiePath:  selfiePath,
     );
 
     if (!mounted) return;

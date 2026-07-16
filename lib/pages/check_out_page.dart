@@ -4,6 +4,7 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
+import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/office_geofence.dart';
 import '../widgets/back_button.dart';
@@ -149,6 +150,26 @@ class _CheckOutPageState extends State<CheckOutPage> {
     final date =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
 
+    setState(() => _locatingForCheckOut = true);
+    final selfiePath = await SelfieCaptureService.captureAndUpload(
+      employeeId: UserSession.employeeId,
+      date: date,
+      kind: 'checkout',
+      label: 'Check-Out',
+    );
+    if (!mounted) return;
+    if (selfiePath == null) {
+      setState(() => _locatingForCheckOut = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('A selfie is required to check out. Please try again.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+    setState(() => _locatingForCheckOut = false);
+
     GpsTrackingService.stop();
     AttendanceStore.isCheckedIn = false;
 
@@ -157,6 +178,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
       date: date,
       time: _timeController.text,
       note: _noteController.text.trim(),
+      selfiePath: selfiePath,
     );
 
     if (!mounted) return;

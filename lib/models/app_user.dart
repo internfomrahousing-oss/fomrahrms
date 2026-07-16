@@ -21,7 +21,10 @@ class AppUser {
   String weeklyOffDayRequestedAt;  // ISO datetime the change was requested; empty = no pending request
   String role; // 'Employee' | 'Manager' | 'HR' | 'Management'
   bool active;
-  String password;            // individual password; empty = use role default
+  // Whether a password has been set (bcrypt-hashed server-side). The hash
+  // itself is never fetched to the client — only this derived flag, via the
+  // has_password generated column. See supabase/functions/login/index.ts.
+  bool hasPassword;
   int leaveAllocation;        // total leave days per year, set by HR
   String reportingManager;    // name of the manager this employee reports to
   String reportingManagerPending;      // proposed new manager name awaiting Management approval; '' = none
@@ -68,8 +71,6 @@ class AppUser {
   // yet. This is where "Forgot Password" reset links are sent — never the
   // personal email, and never the @fomrahousing.in login username itself.
   String companyEmail;
-  String resetPasswordToken;            // '' = no reset in progress
-  String resetPasswordTokenExpiresAt;   // ISO datetime; token is valid for 24h
 
   AppUser({
     required this.name,
@@ -85,7 +86,7 @@ class AppUser {
     this.weeklyOffDayRequestedAt = '',
     required this.role,
     this.active = true,
-    this.password = '',
+    this.hasPassword = false,
     this.leaveAllocation = 21,
     this.reportingManager = '',
     this.reportingManagerPending = '',
@@ -121,8 +122,6 @@ class AppUser {
     this.permissionMinutesQuotaPending = 0,
     this.permissionMinutesQuotaRequestedAt = '',
     this.companyEmail = '',
-    this.resetPasswordToken = '',
-    this.resetPasswordTokenExpiresAt = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
@@ -214,16 +213,6 @@ class AppUser {
     return 'Probation';
   }
 
-  // Role-based shared password — all employees use the same password, etc.
-  static String passwordForRole(String role) {
-    switch (role) {
-      case 'HR':         return 'Admin@123';
-      case 'Manager':    return 'Manager@123';
-      case 'Management': return 'Mgmt@123';
-      default:           return 'Emp@123';
-    }
-  }
-
   static UserRole userRoleFor(String role) {
     switch (role) {
       case 'HR':         return UserRole.hr;
@@ -247,7 +236,7 @@ class AppUser {
     'weeklyOffDayRequestedAt': weeklyOffDayRequestedAt,
     'role':                  role,
     'active':                active,
-    'password':              password,
+    'hasPassword':           hasPassword,
     'leaveAllocation':       leaveAllocation,
     'reportingManager':      reportingManager,
     'reportingManagerPending':     reportingManagerPending,
@@ -283,8 +272,6 @@ class AppUser {
     'permissionMinutesQuotaPending':   permissionMinutesQuotaPending,
     'permissionMinutesQuotaRequestedAt': permissionMinutesQuotaRequestedAt,
     'companyEmail':          companyEmail,
-    'resetPasswordToken':    resetPasswordToken,
-    'resetPasswordTokenExpiresAt': resetPasswordTokenExpiresAt,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -301,7 +288,7 @@ class AppUser {
     weeklyOffDayRequestedAt:  j['weeklyOffDayRequestedAt']  as String? ?? '',
     role:                 j['role']                 as String? ?? 'Employee',
     active:               j['active']               as bool?   ?? true,
-    password:             j['password']             as String? ?? '',
+    hasPassword:          j['hasPassword']          as bool?   ?? false,
     leaveAllocation:      j['leaveAllocation']      as int?    ?? 21,
     reportingManager:     j['reportingManager']     as String? ?? '',
     reportingManagerPending:     j['reportingManagerPending']     as String? ?? '',
@@ -337,7 +324,5 @@ class AppUser {
     permissionMinutesQuotaPending:   (j['permissionMinutesQuotaPending'] as num?)?.toInt() ?? 0,
     permissionMinutesQuotaRequestedAt: j['permissionMinutesQuotaRequestedAt'] as String? ?? '',
     companyEmail:           j['companyEmail']          as String? ?? '',
-    resetPasswordToken:     j['resetPasswordToken']    as String? ?? '',
-    resetPasswordTokenExpiresAt: j['resetPasswordTokenExpiresAt'] as String? ?? '',
   );
 }

@@ -6,6 +6,7 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
+import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/checkin_status.dart';
 import '../utils/location_consent.dart';
@@ -133,6 +134,24 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     final date = _fmtDate(now);
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
 
+    final selfiePath = await SelfieCaptureService.captureAndUpload(
+      employeeId: UserSession.employeeId,
+      date: date,
+      kind: 'checkin',
+      label: 'Check-In',
+    );
+    if (selfiePath == null) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('A selfie is required to check in. Please try again.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
     _refreshTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
@@ -149,6 +168,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       time:     _checkInCtrl.text,
       location: loc,
       note:     _checkInNoteCtrl.text.trim(),
+      selfiePath: selfiePath,
     );
 
     if (!mounted) return;
@@ -195,6 +215,24 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     final now  = DateTime.now();
     final date = _fmtDate(now);
 
+    final selfiePath = await SelfieCaptureService.captureAndUpload(
+      employeeId: UserSession.employeeId,
+      date: date,
+      kind: 'checkout',
+      label: 'Check-Out',
+    );
+    if (selfiePath == null) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('A selfie is required to check out. Please try again.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+
     GpsTrackingService.stop();
     AttendanceStore.isCheckedIn = false;
     _refreshTimer?.cancel();
@@ -205,6 +243,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       date: date,
       time: _checkOutCtrl.text,
       note: _checkOutNoteCtrl.text.trim(),
+      selfiePath: selfiePath,
     );
     if (UserSession.email.isNotEmpty) {
       NotificationService.checkOutRecorded(

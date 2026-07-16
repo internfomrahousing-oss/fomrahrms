@@ -6,6 +6,7 @@ import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
+import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/location_consent.dart';
 import '../utils/office_geofence.dart';
@@ -158,6 +159,26 @@ class _CheckInPageState extends State<CheckInPage> {
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
 
+    setState(() => _locatingForCheckIn = true);
+    final selfiePath = await SelfieCaptureService.captureAndUpload(
+      employeeId: UserSession.employeeId,
+      date: date,
+      kind: 'checkin',
+      label: 'Check-In',
+    );
+    if (!mounted) return;
+    if (selfiePath == null) {
+      setState(() => _locatingForCheckIn = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('A selfie is required to check in. Please try again.'),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
+    setState(() => _locatingForCheckIn = false);
+
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -173,6 +194,7 @@ class _CheckInPageState extends State<CheckInPage> {
       time: _timeController.text,
       location: loc,
       note: _noteController.text.trim(),
+      selfiePath: selfiePath,
     );
 
     if (!mounted) return;
