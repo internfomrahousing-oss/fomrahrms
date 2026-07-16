@@ -373,18 +373,33 @@ end $$;
 -- so this is a conservative default (self via email match + HR/Management)
 -- rather than a verified-correct policy. Check Employee Records / any
 -- "legacy employee list" pages still work before relying on this.
+--
+-- Guarded with to_regclass — on at least one live project neither table
+-- actually exists (only ever referenced in an old SQL comment, apparently
+-- never created), so this is skipped rather than failing the migration.
 
-alter table employee_profiles enable row level security;
-drop policy if exists employee_profiles_all on employee_profiles;
-create policy employee_profiles_all on employee_profiles for all to authenticated
-  using (email = current_app_email() or current_app_is_hr_or_mgmt())
-  with check (current_app_is_hr_or_mgmt());
+do $$
+begin
+  if to_regclass('public.employee_profiles') is not null then
+    execute 'alter table employee_profiles enable row level security';
+    execute 'drop policy if exists employee_profiles_all on employee_profiles';
+    execute $policy$
+      create policy employee_profiles_all on employee_profiles for all to authenticated
+        using (email = current_app_email() or current_app_is_hr_or_mgmt())
+        with check (current_app_is_hr_or_mgmt())
+    $policy$;
+  end if;
 
-alter table employees enable row level security;
-drop policy if exists employees_all on employees;
-create policy employees_all on employees for all to authenticated
-  using (email = current_app_email() or current_app_is_hr_or_mgmt())
-  with check (current_app_is_hr_or_mgmt());
+  if to_regclass('public.employees') is not null then
+    execute 'alter table employees enable row level security';
+    execute 'drop policy if exists employees_all on employees';
+    execute $policy$
+      create policy employees_all on employees for all to authenticated
+        using (email = current_app_email() or current_app_is_hr_or_mgmt())
+        with check (current_app_is_hr_or_mgmt())
+    $policy$;
+  end if;
+end $$;
 
 -- ── Token-gated lookups, moved behind SECURITY DEFINER RPCs ─────────────
 -- Before this migration, set_password_page.dart / reset_password_page.dart
