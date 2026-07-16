@@ -884,11 +884,17 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     const roleOptions = ['Employee', 'Manager', 'HR'];
 
     // Department/designation chosen by HR on the pre-offer letter carry over here,
-    // still editable in case the role changed before joining.
+    // still editable in case the role changed before joining. Matched
+    // case-insensitively so older records that don't exactly match the
+    // curated list's casing still prefill instead of silently showing blank.
     final linkedDept  = (_linkedInterview?['department']  as String?)?.trim() ?? '';
     final linkedDesig = (_linkedInterview?['designation'] as String?)?.trim() ?? '';
-    String? selectedDepartment   = kDepartments.contains(linkedDept)  ? linkedDept  : null;
-    String? selectedDesignation  = kDesignations.contains(linkedDesig) ? linkedDesig : null;
+    final deptMatch = kDepartments.firstWhere(
+        (d) => d.toLowerCase() == linkedDept.toLowerCase(), orElse: () => '');
+    String? selectedDepartment = deptMatch.isEmpty ? null : deptMatch;
+    final desigMatch = kDesignations.firstWhere(
+        (d) => d.toLowerCase() == linkedDesig.toLowerCase(), orElse: () => '');
+    String? selectedDesignation = desigMatch.isEmpty ? null : desigMatch;
 
     await showDialog(
       context: context,
