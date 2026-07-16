@@ -229,18 +229,6 @@ class _OnboardingTableRow extends StatelessWidget {
     );
   }
 
-  void _email(BuildContext context) {
-    final email = ((data['assigned_email'] as String?) ?? '').trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('No account email assigned yet — forward this submission first.'),
-        backgroundColor: Colors.orange,
-      ));
-      return;
-    }
-    openUrl('mailto:$email');
-  }
-
   @override
   Widget build(BuildContext context) {
     final d = data;
@@ -345,28 +333,11 @@ class _OnboardingTableRow extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
               IconButton(
-                tooltip: 'Email',
-                icon: Icon(Icons.email_outlined, size: 18, color: _blue),
-                onPressed: () => _email(context),
+                tooltip: 'Delete',
+                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                onPressed: () => _confirmDeleteSubmission(context, d, onRefresh),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'More actions',
-                icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF6B7280)),
-                onSelected: (v) {
-                  if (v == 'delete') _confirmDeleteSubmission(context, d, onRefresh);
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(children: [
-                      Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Delete', style: TextStyle(color: Colors.red)),
-                    ]),
-                  ),
-                ],
               ),
             ]),
           ),
