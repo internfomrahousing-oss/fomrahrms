@@ -74,19 +74,39 @@ class AppraisalRecommendation {
       );
 }
 
+/// Pipeline stages for the request → HR setup → employee → RM → Management
+/// → (back to HR, read-only) workflow. Strictly one-way — no send-backs.
+/// Older rows saved under the previous draft/completed model keep their
+/// original 'draft'/'completed' string and are simply read-only history;
+/// they never re-enter this pipeline.
+class AppraisalStatus {
+  static const requested = 'requested';
+  static const withEmployee = 'with_employee';
+  static const withRm = 'with_rm';
+  static const withManagement = 'with_management';
+  static const completed = 'completed';
+  static const legacyDraft = 'draft';
+}
+
 class AppraisalForm {
   String id;
   String employeeEmail;
   String employeeId;
   String employeeName;
-  String status; // 'draft' | 'completed'
+  String status; // see AppraisalStatus
   bool movedToSalaryHike;
   String createdBy;
   String lastEditedBy;
   DateTime createdAt;
   DateTime updatedAt;
 
-  // Section 1 — snapshot, editable.
+  // Stage timestamps, for queue displays ("submitted 2 days ago").
+  DateTime? requestedAt;
+  DateTime? sentToEmployeeAt;
+  DateTime? employeeSubmittedAt;
+  DateTime? rmSubmittedAt;
+
+  // Section 1 — snapshot, editable by HR at setup.
   String designation;
   String department;
   String dateOfJoining;
@@ -133,12 +153,16 @@ class AppraisalForm {
     required this.employeeEmail,
     required this.employeeId,
     required this.employeeName,
-    this.status = 'draft',
+    this.status = AppraisalStatus.requested,
     this.movedToSalaryHike = false,
     this.createdBy = '',
     this.lastEditedBy = '',
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.requestedAt,
+    this.sentToEmployeeAt,
+    this.employeeSubmittedAt,
+    this.rmSubmittedAt,
     this.designation = '',
     this.department = '',
     this.dateOfJoining = '',
@@ -180,23 +204,70 @@ class AppraisalForm {
         recommendation = recommendation ?? AppraisalRecommendation(),
         mdCeoRemarks = mdCeoRemarks ?? List.filled(3, '', growable: true);
 
-  /// Builds a brand-new draft pre-filled from the employee's current record.
-  factory AppraisalForm.newFor(AppUser u, String id) => AppraisalForm(
+  /// Brand-new request — identity only, everything else is filled in by HR
+  /// at setup time.
+  factory AppraisalForm.newRequest({
+    required String id,
+    required String employeeEmail,
+    required String employeeId,
+    required String employeeName,
+    String reportingManager = '',
+  }) =>
+      AppraisalForm(
         id: id,
-        employeeEmail: u.email,
-        employeeId: u.employeeId,
-        employeeName: u.name,
-        designation: u.designation,
-        department: u.department,
-        dateOfJoining: u.dateOfJoining,
-        reportingManager: u.reportingManager,
+        employeeEmail: employeeEmail,
+        employeeId: employeeId,
+        employeeName: employeeName,
+        status: AppraisalStatus.requested,
+        reportingManager: reportingManager,
         createdBy: UserSession.name,
         lastEditedBy: UserSession.name,
+        requestedAt: DateTime.now(),
       );
+
+  // ── Stage permission getters ──────────────────────────────────────────
+  // Drive section-level read-only rendering in AppraisalFormEditorPage and
+  // the actionable-queue filters on the HR/Management/RM list pages.
+
+  bool get hrCanSetup =>
+      status == AppraisalStatus.requested &&
+      (UserSession.role == UserRole.hr || UserSession.role == UserRole.management);
+
+  bool get employeeCanEdit =>
+      status == AppraisalStatus.withEmployee &&
+      employeeEmail.trim().isNotEmpty &&
+      UserSession.email.trim().toLowerCase() == employeeEmail.trim().toLowerCase();
+
+  bool get rmCanEdit =>
+      status == AppraisalStatus.withRm &&
+      UserSession.name.trim().isNotEmpty &&
+      reportingManager.trim().toLowerCase() == UserSession.name.trim().toLowerCase();
+
+  bool get managementCanEdit =>
+      status == AppraisalStatus.withManagement && UserSession.role == UserRole.management;
+
+  bool get isReadOnly => !(hrCanSetup || employeeCanEdit || rmCanEdit || managementCanEdit);
+
+  /// Human-readable label for status badges across every appraisal list page.
+  String get statusLabel {
+    switch (status) {
+      case AppraisalStatus.requested: return 'Requested';
+      case AppraisalStatus.withEmployee: return 'With Employee';
+      case AppraisalStatus.withRm: return 'With Reporting Manager';
+      case AppraisalStatus.withManagement: return 'With Management';
+      case AppraisalStatus.completed: return 'Completed';
+      case AppraisalStatus.legacyDraft: return 'Draft (legacy)';
+      default: return status;
+    }
+  }
 
   double get totalScore => scoreKra + scoreFunctional + scoreBehavioural + scoreAchievements;
 
   Map<String, dynamic> _dataJson() => {
+        'requested_at': requestedAt?.toIso8601String(),
+        'sent_to_employee_at': sentToEmployeeAt?.toIso8601String(),
+        'employee_submitted_at': employeeSubmittedAt?.toIso8601String(),
+        'rm_submitted_at': rmSubmittedAt?.toIso8601String(),
         'designation': designation,
         'department': department,
         'date_of_joining': dateOfJoining,
@@ -260,6 +331,9 @@ class AppraisalForm {
     return [];
   }
 
+  static DateTime? _tryParse(dynamic v) =>
+      v is String && v.isNotEmpty ? DateTime.tryParse(v) : null;
+
   factory AppraisalForm.fromRow(Map<String, dynamic> row) {
     final rawData = row['data'];
     final data = rawData is String
@@ -270,12 +344,16 @@ class AppraisalForm {
       employeeEmail: (row['employee_email'] as String?) ?? '',
       employeeId: (row['employee_id'] as String?) ?? '',
       employeeName: (row['employee_name'] as String?) ?? '',
-      status: (row['status'] as String?) ?? 'draft',
+      status: (row['status'] as String?) ?? AppraisalStatus.requested,
       movedToSalaryHike: (row['moved_to_salary_hike'] as bool?) ?? false,
       createdBy: (row['created_by'] as String?) ?? '',
       lastEditedBy: (row['last_edited_by'] as String?) ?? '',
       createdAt: DateTime.tryParse((row['created_at'] as String?) ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse((row['updated_at'] as String?) ?? '') ?? DateTime.now(),
+      requestedAt: _tryParse(data['requested_at']),
+      sentToEmployeeAt: _tryParse(data['sent_to_employee_at']),
+      employeeSubmittedAt: _tryParse(data['employee_submitted_at']),
+      rmSubmittedAt: _tryParse(data['rm_submitted_at']),
       designation: (data['designation'] as String?) ?? '',
       department: (data['department'] as String?) ?? '',
       dateOfJoining: (data['date_of_joining'] as String?) ?? '',
@@ -323,3 +401,15 @@ List<AppUser> visibleEmployeesForAppraisal(List<AppUser> users) {
   if (me.isEmpty) return const [];
   return users.where((u) => u.reportingManager.trim().toLowerCase() == me).toList();
 }
+
+/// Forms actionable by the current user right now, across any stage —
+/// drives HR's "Requests" filter, Management's "Forwarded from Manager"
+/// tab, and the RM "Appraisal Received" queue.
+List<AppraisalForm> appraisalsAwaitingMe(List<AppraisalForm> all) =>
+    all.where((f) => f.hrCanSetup || f.rmCanEdit || f.managementCanEdit).toList();
+
+/// Shared "who can be chosen as a manager" predicate: flagged reporting
+/// managers, plus HR and Management users generally (both can always be
+/// picked as someone's manager, independent of the flag).
+List<AppUser> visibleManagersForPicker(List<AppUser> users) =>
+    users.where((u) => u.isReportingManager || u.role == 'HR' || u.role == 'Management').toList();

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
+import '../models/appraisal_store.dart' show visibleManagersForPicker;
 import '../models/onboarding_form_config.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
@@ -1351,7 +1352,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
 
   Future<void> _sendToManagement(BuildContext context) async {
     final allUsers = await _loadAllUsers();
-    final managers = allUsers.where((u) => u.isReportingManager).map((u) => u.name).toList();
+    final managers = visibleManagersForPicker(allUsers).map((u) => u.name).toList();
     await _fetchLinkedInterview();
     if (!context.mounted) return;
 

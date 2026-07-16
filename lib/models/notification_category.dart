@@ -98,7 +98,11 @@ const List<NotificationCategory> notificationCategories = [
   ]),
   NotificationCategory('performance', 'Performance & KRA',
       Icons.trending_up_rounded, ['appraisal_', 'kra_'], [
-    (type: 'appraisal_started', label: 'Appraisal Form Started', roles: ['Manager', 'HR']),
+    (type: 'appraisal_requested', label: 'Appraisal Requested', roles: ['HR']),
+    (type: 'appraisal_sent_to_employee', label: 'Appraisal Ready for Self-Evaluation', roles: _selfNoManagement),
+    (type: 'appraisal_submitted_to_rm', label: 'Appraisal Awaiting Your Review', roles: null),
+    (type: 'appraisal_submitted_to_management', label: 'Appraisal Awaiting Management', roles: ['Management']),
+    (type: 'appraisal_completed', label: 'Appraisal Completed', roles: null),
     (type: 'kra_uploaded', label: 'KRA Document Uploaded', roles: ['Management']),
     (type: 'kra_decided', label: 'KRA Decision', roles: ['HR']),
   ]),

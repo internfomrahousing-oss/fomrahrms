@@ -47,6 +47,7 @@ const _navItems = [
   _NavItem('Payroll Management',     Icons.account_balance_wallet_rounded, '/management/payroll-management'),
   _NavItem('Interview Process',      Icons.record_voice_over_rounded,      '/management/interview-process'),
   _NavItem('Interview Review',       Icons.admin_panel_settings_rounded,   '/management/interview-review'),
+  _NavItem('Appraisals',             Icons.fact_check_rounded,             '/management/appraisals'),
   _NavItem('Employee Onboarding',    Icons.how_to_reg_rounded,             '/management/employee-onboarding'),
   _NavItem('Lead Management',        Icons.leaderboard_rounded,            '/management/lead-management'),
   _NavItem('Maintenance Management', Icons.build_rounded,                  '/management/maintenance-management'),

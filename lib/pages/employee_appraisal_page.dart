@@ -8,7 +8,8 @@ import '../theme/app_theme.dart';
 
 class EmployeeAppraisalPage extends StatefulWidget {
   final AppUser employee;
-  const EmployeeAppraisalPage({super.key, required this.employee});
+  final List<AppUser> allUsers;
+  const EmployeeAppraisalPage({super.key, required this.employee, this.allUsers = const []});
 
   @override
   State<EmployeeAppraisalPage> createState() => _EmployeeAppraisalPageState();
@@ -43,8 +44,12 @@ class _EmployeeAppraisalPageState extends State<EmployeeAppraisalPage> {
     return '/performance-management/form';
   }
 
-  Future<void> _openForm({AppraisalForm? existing}) async {
-    await context.push(_formRoute, extra: {'employee': widget.employee, 'existing': existing});
+  Future<void> _openForm(AppraisalForm existing) async {
+    await context.push(_formRoute, extra: {
+      'employee': widget.employee,
+      'existing': existing,
+      'allUsers': widget.allUsers,
+    });
     if (mounted) _load();
   }
 
@@ -77,17 +82,6 @@ class _EmployeeAppraisalPageState extends State<EmployeeAppraisalPage> {
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
                 ]),
               ),
-              ElevatedButton.icon(
-                onPressed: () => _openForm(),
-                icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('New Appraisal'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _color,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
             ]),
             const SizedBox(height: 24),
 
@@ -111,7 +105,7 @@ class _EmployeeAppraisalPageState extends State<EmployeeAppraisalPage> {
                       Text('No appraisal forms yet',
                           style: TextStyle(color: Colors.grey.shade400, fontSize: 13.5)),
                       const SizedBox(height: 4),
-                      Text('Tap "New Appraisal" to start one',
+                      Text('New appraisals are started by the employee from their own Appraisal page',
                           style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
                     ]),
                   ),
@@ -120,7 +114,7 @@ class _EmployeeAppraisalPageState extends State<EmployeeAppraisalPage> {
             else
               ..._history.map((f) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _HistoryCard(form: f, onTap: () => _openForm(existing: f)),
+                    child: _HistoryCard(form: f, onTap: () => _openForm(f)),
                   )),
           ],
         ),
@@ -139,7 +133,7 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completed = form.status == 'completed';
+    final completed = form.status == AppraisalStatus.completed;
     final color = completed ? Colors.green.shade700 : Colors.orange.shade700;
     return Card(
       child: InkWell(
@@ -175,7 +169,7 @@ class _HistoryCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(completed ? 'Completed' : 'Draft',
+              child: Text(form.statusLabel,
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
             ),
             const SizedBox(width: 8),

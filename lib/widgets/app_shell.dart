@@ -40,6 +40,7 @@ const _navItems = [
   _NavItem('Leave Management', Icons.event_available_rounded, '/leave-management'),
   _NavItem('Staff Portal Approvals', Icons.cleaning_services_rounded, '/leave/staff-portal-approvals'),
   _NavItem('Task Management', Icons.task_alt_rounded, '/task-management'),
+  _NavItem('Appraisals', Icons.fact_check_rounded, '/appraisals'),
   _NavItem('Payroll Management', Icons.account_balance_wallet_rounded, '/payroll-management'),
   _NavItem('Interview Process', Icons.record_voice_over_rounded, '/interview-process'),
   _NavItem('Employee Onboarding', Icons.how_to_reg_rounded, '/employee-onboarding'),
@@ -58,8 +59,18 @@ const _personalNavItems = [
   _NavItem('Maintenance',   Icons.build_rounded,                  '/hr/maintenance-management'),
 ];
 
+// Shown only when UserSession.isReportingManager — HR can also be flagged
+// as a Reporting Manager (see reporting-manager-overhaul), and previously
+// had none of an RM's team-facing views. Mirrors manager_shell.dart's
+// equivalent items.
+const _myTeamNavItems = [
+  _NavItem('Team Leave Approvals', Icons.group_rounded,       '/hr/leave/team-approvals'),
+  _NavItem('Interview Review',     Icons.rate_review_rounded, '/hr/interview-review'),
+  _NavItem('Appraisal Received',   Icons.fact_check_rounded,  '/hr/appraisal-received'),
+];
+
 List<BreadcrumbSection> get _breadcrumbSections =>
-    [..._navItems, ..._personalNavItems]
+    [..._navItems, ..._personalNavItems, ..._myTeamNavItems]
         .map((e) => (label: e.label, route: e.route))
         .toList();
 
@@ -265,6 +276,10 @@ class _Sidebar extends StatelessWidget {
                     final selected = location == item.route;
                     return _SidebarTile(item: item, selected: selected);
                   }),
+                  if (UserSession.isReportingManager) ...[
+                    const _SectionDivider(label: 'My Team'),
+                    ..._myTeamNavItems.map((item) => _SidebarTile(item: item, selected: location == item.route)),
+                  ],
                   const _SectionDivider(label: 'Edit Forms'),
                   _ExpandableNavGroup(
                     label: 'Edit Forms',
@@ -576,6 +591,11 @@ class _DrawerContent extends StatelessWidget {
                   return _SidebarTile(
                       item: item, selected: selected, closeDrawer: true);
                 }),
+                if (UserSession.isReportingManager) ...[
+                  const _SectionDivider(label: 'My Team'),
+                  ..._myTeamNavItems.map((item) => _SidebarTile(
+                      item: item, selected: location == item.route, closeDrawer: true)),
+                ],
                 const _SectionDivider(label: 'Edit Forms'),
                 _ExpandableNavGroup(
                   label: 'Edit Forms',

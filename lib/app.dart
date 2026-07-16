@@ -30,6 +30,10 @@ import 'pages/add_task_page.dart';
 import 'pages/performance_management_page.dart';
 import 'pages/employee_appraisal_page.dart';
 import 'pages/appraisal_form_editor_page.dart';
+import 'pages/employee_appraisal_request_page.dart';
+import 'pages/hr_appraisals_page.dart';
+import 'pages/management_appraisals_page.dart';
+import 'pages/appraisal_received_page.dart';
 import 'pages/kra_management_page.dart';
 import 'pages/employee_kra_page.dart';
 import 'pages/my_kra_page.dart';
@@ -255,13 +259,25 @@ final _router = GoRouter(
         GoRoute(path: '/performance-management',          builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/performance-management/employee', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
-          return EmployeeAppraisalPage(employee: extra['employee'] as AppUser);
+          return EmployeeAppraisalPage(
+            employee: extra['employee'] as AppUser,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
+          );
         }),
         GoRoute(path: '/performance-management/form', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
           return AppraisalFormEditorPage(
             employee: extra['employee'] as AppUser,
             existing: extra['existing'] as AppraisalForm?,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
+          );
+        }),
+        GoRoute(path: '/appraisals',                      builder: (_, __) => const HrAppraisalsPage()),
+        GoRoute(path: '/appraisals/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(
+            existing: extra['existing'] as AppraisalForm?,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
           );
         }),
         GoRoute(path: '/salary-hike-engine',              builder: (_, __) => const SalaryHikeEnginePage()),
@@ -297,6 +313,14 @@ final _router = GoRouter(
         GoRoute(path: '/hr/interview-form',         builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/hr/employee-onboarding',    builder: (_, __) => const MyOnboardingFormPage()),
         GoRoute(path: '/hr/maintenance-management', builder: (_, __) => const MaintenanceManagementPage(personalView: true)),
+        // "My Team" — only shown/relevant when UserSession.isReportingManager (see app_shell.dart).
+        GoRoute(path: '/hr/leave/team-approvals',   builder: (_, __) => const TeamLeaveApprovalsPage()),
+        GoRoute(path: '/hr/interview-review',       builder: (_, __) => const ManagerInterviewReviewPage()),
+        GoRoute(path: '/hr/appraisal-received',     builder: (_, __) => const AppraisalReceivedPage()),
+        GoRoute(path: '/hr/appraisal-received/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
+        }),
         GoRoute(path: '/settings',                  builder: (_, __) => const SettingsPage()),
       ],
     ),
@@ -328,6 +352,11 @@ final _router = GoRouter(
         GoRoute(path: '/employee/tasks/add',                builder: (_, __) => const AddTaskPage(selfAssign: true)),
         GoRoute(path: '/employee/payslips',                 builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/employee/kra',                      builder: (_, __) => const MyKraPage()),
+        GoRoute(path: '/employee/appraisal',                builder: (_, __) => const EmployeeAppraisalRequestPage()),
+        GoRoute(path: '/employee/appraisal/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
+        }),
         GoRoute(path: '/employee/profile',                  builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/employee/maintenance-management',   builder: (_, __) => const MaintenanceManagementPage()),
         GoRoute(path: '/employee/employee-onboarding',      builder: (_, __) => const MyOnboardingFormPage()),
@@ -339,6 +368,12 @@ final _router = GoRouter(
         // if their role isn't Manager (see reporting-manager-overhaul).
         GoRoute(path: '/employee/my-team/records',          builder: (_, __) => const HrEmployeeRecordsPage()),
         GoRoute(path: '/employee/my-team/leave-approvals',  builder: (_, __) => const TeamLeaveApprovalsPage()),
+        GoRoute(path: '/employee/my-team/interview-review', builder: (_, __) => const ManagerInterviewReviewPage()),
+        GoRoute(path: '/employee/my-team/appraisal-received', builder: (_, __) => const AppraisalReceivedPage()),
+        GoRoute(path: '/employee/my-team/appraisal-received/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
+        }),
       ],
     ),
 
@@ -375,14 +410,23 @@ final _router = GoRouter(
         GoRoute(path: '/manager/performance-management',  builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/manager/performance-management/employee', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
-          return EmployeeAppraisalPage(employee: extra['employee'] as AppUser);
+          return EmployeeAppraisalPage(
+            employee: extra['employee'] as AppUser,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
+          );
         }),
         GoRoute(path: '/manager/performance-management/form', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
           return AppraisalFormEditorPage(
             employee: extra['employee'] as AppUser,
             existing: extra['existing'] as AppraisalForm?,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
           );
+        }),
+        GoRoute(path: '/manager/appraisal-received',      builder: (_, __) => const AppraisalReceivedPage()),
+        GoRoute(path: '/manager/appraisal-received/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
         }),
         GoRoute(path: '/manager/salary-hike-engine',      builder: (_, __) => const SalaryHikeEnginePage()),
         GoRoute(path: '/manager/interview-process',       builder: (_, __) => const InterviewProcessPage()),
@@ -454,13 +498,25 @@ final _router = GoRouter(
         GoRoute(path: '/management/performance-management', builder: (_, __) => const PerformanceManagementPage()),
         GoRoute(path: '/management/performance-management/employee', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
-          return EmployeeAppraisalPage(employee: extra['employee'] as AppUser);
+          return EmployeeAppraisalPage(
+            employee: extra['employee'] as AppUser,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
+          );
         }),
         GoRoute(path: '/management/performance-management/form', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
           return AppraisalFormEditorPage(
             employee: extra['employee'] as AppUser,
             existing: extra['existing'] as AppraisalForm?,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
+          );
+        }),
+        GoRoute(path: '/management/appraisals',              builder: (_, __) => const ManagementAppraisalsPage()),
+        GoRoute(path: '/management/appraisals/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(
+            existing: extra['existing'] as AppraisalForm?,
+            allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
           );
         }),
         GoRoute(path: '/management/salary-hike-engine',     builder: (_, __) => const SalaryHikeEnginePage()),

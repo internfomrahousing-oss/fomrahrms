@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
+import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../widgets/welcome_banner.dart';
@@ -10,6 +11,7 @@ import '../widgets/employee_list_dialog.dart';
 import '../widgets/fade_in.dart';
 import '../widgets/milestone_confetti.dart';
 import '../widgets/my_space_blocks.dart';
+import '../widgets/my_team_block.dart';
 import '../widgets/stat_strip.dart';
 import '../widgets/task_analytics_block.dart';
 import '../theme/app_theme.dart';
@@ -119,6 +121,15 @@ class _DashboardPageState extends State<DashboardPage> {
                       MyPayslipBlock(viewRoute: '/hr/my-payslips', compact: true),
                     ]),
                     const SizedBox(height: 16),
+
+                    if (UserSession.isReportingManager) ...[
+                      const MyTeamBlock(
+                        teamLeaveApprovalsRoute: '/hr/leave/team-approvals',
+                        interviewReviewRoute: '/hr/interview-review',
+                        appraisalReceivedRoute: '/hr/appraisal-received',
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
                 ),
               ),

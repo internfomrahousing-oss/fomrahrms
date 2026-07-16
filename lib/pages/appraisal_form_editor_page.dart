@@ -9,10 +9,25 @@ import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
+/// The appraisal form, rendered with section-level access control driven by
+/// [AppraisalForm]'s stage getters (`hrCanSetup`/`employeeCanEdit`/
+/// `rmCanEdit`/`managementCanEdit`). Whoever opens it only ever sees their
+/// own stage's fields as editable — everything else renders read-only.
 class AppraisalFormEditorPage extends StatefulWidget {
-  final AppUser employee;
+  /// Only needed when opening a brand-new (not yet persisted) form outside
+  /// the employee-request flow — e.g. legacy top-down creation. When
+  /// [existing] is provided this is unused.
+  final AppUser? employee;
   final AppraisalForm? existing;
-  const AppraisalFormEditorPage({super.key, required this.employee, this.existing});
+  /// Full user roster — only needed to populate the Reporting Manager
+  /// dropdown during HR setup; safe to omit everywhere else.
+  final List<AppUser> allUsers;
+  const AppraisalFormEditorPage({
+    super.key,
+    this.employee,
+    this.existing,
+    this.allUsers = const [],
+  });
 
   @override
   State<AppraisalFormEditorPage> createState() => _AppraisalFormEditorPageState();
@@ -27,31 +42,88 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
   @override
   void initState() {
     super.initState();
-    _form = widget.existing ?? AppraisalForm.newFor(widget.employee, AppraisalStore.generateId());
+    final fallbackEmployee = widget.employee;
+    _form = widget.existing ??
+        AppraisalForm.newRequest(
+          id: AppraisalStore.generateId(),
+          employeeEmail: fallbackEmployee?.email ?? UserSession.email,
+          employeeId: fallbackEmployee?.employeeId ?? UserSession.employeeId,
+          employeeName: fallbackEmployee?.name ?? UserSession.name,
+          reportingManager: fallbackEmployee?.reportingManager ?? UserSession.reportingManager,
+        );
   }
 
-  Future<void> _save({bool complete = false}) async {
-    setState(() => _saving = true);
-    final prevStatus = _form.status;
-    final prevMoved = _form.movedToSalaryHike;
-    final prevKraNotified = _form.kraStartNotified;
+  bool get _hrSetup => _form.hrCanSetup;
+  bool get _employeeStage => _form.employeeCanEdit;
+  bool get _rmStage => _form.rmCanEdit;
+  bool get _mgmtStage => _form.managementCanEdit;
+
+  Future<void> _persist() async {
     _form.lastEditedBy = UserSession.name;
     _form.updatedAt = DateTime.now();
-    if (complete) {
-      _form.status = 'completed';
-      _form.movedToSalaryHike = true;
+    await SupabaseService.saveAppraisalForm(_form);
+  }
+
+  Future<void> _saveProgress() async {
+    setState(() => _saving = true);
+    try {
+      await _persist();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Progress saved'),
+          backgroundColor: _color,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not save: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-    final shouldNotifyKraStart = !_form.kraStartNotified && _form.kra.isNotEmpty;
-    if (shouldNotifyKraStart) _form.kraStartNotified = true;
+  }
+
+  /// Advances the form to the next stage. One-way — there is no send-back.
+  Future<void> _advance() async {
+    final prevStatus = _form.status;
+    final prevMoved = _form.movedToSalaryHike;
+    setState(() => _saving = true);
+    switch (_form.status) {
+      case AppraisalStatus.requested:
+        _form.status = AppraisalStatus.withEmployee;
+        _form.sentToEmployeeAt = DateTime.now();
+        break;
+      case AppraisalStatus.withEmployee:
+        _form.status = AppraisalStatus.withRm;
+        _form.employeeSubmittedAt = DateTime.now();
+        break;
+      case AppraisalStatus.withRm:
+        _form.status = AppraisalStatus.withManagement;
+        _form.rmSubmittedAt = DateTime.now();
+        break;
+      case AppraisalStatus.withManagement:
+        _form.status = AppraisalStatus.completed;
+        _form.movedToSalaryHike = true;
+        break;
+      default:
+        setState(() => _saving = false);
+        return;
+    }
 
     try {
-      await SupabaseService.saveAppraisalForm(_form);
+      await _persist();
     } catch (e) {
-      // Roll back the local flags so a failed save doesn't leave the UI
-      // showing "completed"/notified state that was never persisted.
       _form.status = prevStatus;
       _form.movedToSalaryHike = prevMoved;
-      _form.kraStartNotified = prevKraNotified;
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,27 +137,58 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
       return;
     }
 
-    if (shouldNotifyKraStart) {
-      if (UserSession.role == UserRole.reportingManager) {
-        await NotificationService.appraisalStartedByManager(employeeName: _form.employeeName);
-      } else if (_form.reportingManager.trim().isNotEmpty) {
-        await NotificationService.appraisalStarted(
+    switch (prevStatus) {
+      case AppraisalStatus.requested:
+        await NotificationService.appraisalSentToEmployee(employeeEmail: _form.employeeEmail);
+        break;
+      case AppraisalStatus.withEmployee:
+        await NotificationService.appraisalSubmittedToRm(
           employeeName: _form.employeeName,
           reportingManagerName: _form.reportingManager,
         );
-      }
+        break;
+      case AppraisalStatus.withRm:
+        await NotificationService.appraisalSubmittedToManagement(employeeName: _form.employeeName);
+        break;
+      case AppraisalStatus.withManagement:
+        await NotificationService.appraisalCompleted(
+          employeeEmail: _form.employeeEmail,
+          employeeName: _form.employeeName,
+        );
+        break;
     }
+
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(complete ? 'Appraisal completed and moved to Salary Hike Engine' : 'Draft saved'),
+        content: Text(_advanceSuccessMessage(prevStatus)),
         backgroundColor: _color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
-    if (complete && context.canPop()) context.pop();
+    if (context.canPop()) context.pop();
+  }
+
+  String _advanceSuccessMessage(String fromStatus) {
+    switch (fromStatus) {
+      case AppraisalStatus.requested: return 'Sent to employee for self-evaluation';
+      case AppraisalStatus.withEmployee: return 'Submitted to your Reporting Manager';
+      case AppraisalStatus.withRm: return 'Submitted to Management';
+      case AppraisalStatus.withManagement: return 'Appraisal completed';
+      default: return 'Saved';
+    }
+  }
+
+  String get _advanceLabel {
+    switch (_form.status) {
+      case AppraisalStatus.requested: return 'Send to Employee';
+      case AppraisalStatus.withEmployee: return 'Submit to Reporting Manager';
+      case AppraisalStatus.withRm: return 'Submit to Management';
+      case AppraisalStatus.withManagement: return 'Complete Appraisal';
+      default: return 'Submit';
+    }
   }
 
   Future<void> _download() async {
@@ -118,6 +221,7 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final canAdvance = _hrSetup || _employeeStage || _rmStage || _mgmtStage;
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -142,11 +246,7 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
                   Text('${_form.employeeName} — Self Appraisal Form',
                       style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
-                  Text(
-                      _form.status == 'completed'
-                          ? 'Completed · moved to Salary Hike Engine'
-                          : 'Draft',
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  Text(_form.statusLabel, style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
                 ]),
               ),
               OutlinedButton.icon(
@@ -168,7 +268,12 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
             _SectionCard(
               title: '1. Employee Information',
               icon: Icons.badge_rounded,
-              child: _EmployeeInfoSection(form: _form, onPickDate: _pickDate),
+              child: _EmployeeInfoSection(
+                form: _form,
+                editable: _hrSetup,
+                allUsers: widget.allUsers,
+                onPickDate: _pickDate,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -182,10 +287,14 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
             _SectionCard(
               title: '3. Key Responsibility Areas (KRA) — Core Job Responsibilities (60%)',
               icon: Icons.checklist_rounded,
-              subtitle: 'Add each responsibility relevant to this employee.',
+              subtitle: _hrSetup ? 'Add each responsibility relevant to this employee.' : null,
               child: _RatingRowsEditor(
                 rows: _form.kra,
                 onChanged: (rows) => setState(() => _form.kra = rows),
+                canAddRemove: _hrSetup,
+                editDescription: _hrSetup,
+                editSelf: _employeeStage,
+                editRm: _rmStage,
               ),
             ),
             const SizedBox(height: 16),
@@ -193,10 +302,14 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
             _SectionCard(
               title: '4. Functional & Operational Competencies (20%)',
               icon: Icons.settings_suggest_rounded,
-              subtitle: 'Add each competency relevant to this employee.',
+              subtitle: _hrSetup ? 'Add each competency relevant to this employee.' : null,
               child: _RatingRowsEditor(
                 rows: _form.functional,
                 onChanged: (rows) => setState(() => _form.functional = rows),
+                canAddRemove: _hrSetup,
+                editDescription: _hrSetup,
+                editSelf: _employeeStage,
+                editRm: _rmStage,
               ),
             ),
             const SizedBox(height: 16),
@@ -207,6 +320,10 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
               child: _RatingRowsEditor(
                 rows: _form.behavioural,
                 onChanged: (rows) => setState(() => _form.behavioural = rows),
+                canAddRemove: _hrSetup,
+                editDescription: _hrSetup,
+                editSelf: _employeeStage,
+                editRm: _rmStage,
               ),
             ),
             const SizedBox(height: 16),
@@ -214,43 +331,43 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
             _SectionCard(
               title: '6. Key Achievements During the Review Period (5%)',
               icon: Icons.emoji_events_rounded,
-              child: _LinesEditor(lines: _form.achievements, onChanged: (v) => _form.achievements = v),
+              child: _LinesEditor(lines: _form.achievements, editable: _employeeStage, onChanged: (v) => _form.achievements = v),
             ),
             const SizedBox(height: 16),
             _SectionCard(
               title: '7. Challenges Faced During the Review Period',
               icon: Icons.report_problem_rounded,
-              child: _LinesEditor(lines: _form.challenges, onChanged: (v) => _form.challenges = v),
+              child: _LinesEditor(lines: _form.challenges, editable: _employeeStage, onChanged: (v) => _form.challenges = v),
             ),
             const SizedBox(height: 16),
             _SectionCard(
               title: '8. Training / Support Required',
               icon: Icons.school_rounded,
-              child: _LinesEditor(lines: _form.trainingSupport, onChanged: (v) => _form.trainingSupport = v),
+              child: _LinesEditor(lines: _form.trainingSupport, editable: _employeeStage, onChanged: (v) => _form.trainingSupport = v),
             ),
             const SizedBox(height: 16),
             _SectionCard(
               title: '9. Goals & Action Plan for Next Review Period',
               icon: Icons.flag_rounded,
-              child: _LinesEditor(lines: _form.goals, onChanged: (v) => _form.goals = v),
+              child: _LinesEditor(lines: _form.goals, editable: _employeeStage, onChanged: (v) => _form.goals = v),
             ),
             const SizedBox(height: 16),
             _SectionCard(
               title: '10. Where Do You See Yourself (3 Professional Aspects)',
               icon: Icons.trending_up_rounded,
-              child: _LinesEditor(lines: _form.professionalAspects, onChanged: (v) => _form.professionalAspects = v),
+              child: _LinesEditor(lines: _form.professionalAspects, editable: _employeeStage, onChanged: (v) => _form.professionalAspects = v),
             ),
             const SizedBox(height: 16),
             _SectionCard(
               title: '11. Expectations from the Organization',
               icon: Icons.volunteer_activism_rounded,
-              child: _LinesEditor(lines: _form.expectationsFromOrg, onChanged: (v) => _form.expectationsFromOrg = v),
+              child: _LinesEditor(lines: _form.expectationsFromOrg, editable: _employeeStage, onChanged: (v) => _form.expectationsFromOrg = v),
             ),
             const SizedBox(height: 16),
             _SectionCard(
               title: '12. Things You Love About the Organization',
               icon: Icons.favorite_rounded,
-              child: _LinesEditor(lines: _form.thingsLoveAboutOrg, onChanged: (v) => _form.thingsLoveAboutOrg = v),
+              child: _LinesEditor(lines: _form.thingsLoveAboutOrg, editable: _employeeStage, onChanged: (v) => _form.thingsLoveAboutOrg = v),
             ),
             const SizedBox(height: 16),
 
@@ -267,63 +384,85 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
             _SectionCard(
               title: '14. Final Score Summary',
               icon: Icons.score_rounded,
-              child: _ScoreSummarySection(form: _form, onChanged: () => setState(() {})),
+              child: _ScoreSummarySection(form: _form, editable: _rmStage, onChanged: () => setState(() {})),
             ),
             const SizedBox(height: 16),
 
             _SectionCard(
-              title: '15. Final Recommendation of Reporting Manager',
+              title: '15. Final Recommendation of Management',
               icon: Icons.thumb_up_alt_rounded,
-              child: _RecommendationSection(form: _form, onChanged: () => setState(() {})),
+              child: _RecommendationSection(form: _form, editable: _mgmtStage, onChanged: () => setState(() {})),
             ),
             const SizedBox(height: 16),
 
             _SectionCard(
               title: '16. Recommended Designation & Salary Increase',
               icon: Icons.currency_rupee_rounded,
-              child: _RecommendedChangeSection(form: _form),
+              child: _RecommendedChangeSection(form: _form, editable: _mgmtStage),
             ),
             const SizedBox(height: 16),
 
             _SectionCard(
               title: '17. MD & CEO Remarks',
               icon: Icons.verified_rounded,
-              child: _LinesEditor(lines: _form.mdCeoRemarks, onChanged: (v) => _form.mdCeoRemarks = v),
+              child: _LinesEditor(lines: _form.mdCeoRemarks, editable: _mgmtStage, onChanged: (v) => _form.mdCeoRemarks = v),
             ),
             const SizedBox(height: 24),
 
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _saving ? null : () => _save(),
-                  icon: const Icon(Icons.save_rounded, size: 16),
-                  label: const Text('Save Draft'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _color,
-                    side: BorderSide(color: _color.withValues(alpha: 0.4)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            if (canAdvance)
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saving ? null : _saveProgress,
+                    icon: const Icon(Icons.save_rounded, size: 16),
+                    label: const Text('Save Progress'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _color,
+                      side: BorderSide(color: _color.withValues(alpha: 0.4)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: _saving ? null : () => _save(complete: true),
-                  icon: _saving
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: const Text('Mark Complete & Move to Salary Hike Engine'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _color,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: _saving ? null : _advance,
+                    icon: _saving
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.arrow_forward_rounded, size: 16),
+                    label: Text(_advanceLabel),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
+              ])
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(children: [
+                  Icon(Icons.lock_outline_rounded, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _form.status == AppraisalStatus.completed
+                          ? 'This appraisal is complete — read-only.'
+                          : 'This appraisal is currently ${_form.statusLabel.toLowerCase()} — not your turn to edit it.',
+                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+                    ),
+                  ),
+                ]),
               ),
-            ]),
             const SizedBox(height: 24),
           ],
         ),
@@ -393,8 +532,15 @@ InputDecoration _dec(String label, {IconData? icon}) => InputDecoration(
 
 class _EmployeeInfoSection extends StatefulWidget {
   final AppraisalForm form;
+  final bool editable;
+  final List<AppUser> allUsers;
   final Future<void> Function(TextEditingController, void Function(String)) onPickDate;
-  const _EmployeeInfoSection({required this.form, required this.onPickDate});
+  const _EmployeeInfoSection({
+    required this.form,
+    required this.editable,
+    required this.allUsers,
+    required this.onPickDate,
+  });
 
   @override
   State<_EmployeeInfoSection> createState() => _EmployeeInfoSectionState();
@@ -425,7 +571,8 @@ class _EmployeeInfoSectionState extends State<_EmployeeInfoSection> {
     return TextFormField(
       controller: ctrl,
       readOnly: true,
-      onTap: () => widget.onPickDate(ctrl, onPicked),
+      enabled: widget.editable,
+      onTap: widget.editable ? () => widget.onPickDate(ctrl, onPicked) : null,
       decoration: _dec(label, icon: Icons.calendar_today_rounded),
     );
   }
@@ -433,54 +580,70 @@ class _EmployeeInfoSectionState extends State<_EmployeeInfoSection> {
   @override
   Widget build(BuildContext context) {
     final f = widget.form;
-    return LayoutBuilder(builder: (context, constraints) {
-      final wide = constraints.maxWidth > 640;
-      final left = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextFormField(
-          initialValue: f.employeeName,
-          decoration: _dec('Employee Name', icon: Icons.person_rounded),
-          onChanged: (v) => f.employeeName = v,
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          initialValue: f.employeeId,
-          decoration: _dec('Employee ID', icon: Icons.badge_rounded),
-          onChanged: (v) => f.employeeId = v,
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          initialValue: f.designation,
-          decoration: _dec('Designation', icon: Icons.work_outline_rounded),
-          onChanged: (v) => f.designation = v,
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          initialValue: f.department,
-          decoration: _dec('Department', icon: Icons.account_tree_rounded),
-          onChanged: (v) => f.department = v,
-        ),
-      ]);
-      final right = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextFormField(
-          initialValue: f.dateOfJoining,
-          decoration: _dec('Date of Joining', icon: Icons.event_rounded),
-          onChanged: (v) => f.dateOfJoining = v,
-        ),
-        const SizedBox(height: 14),
+    final editable = widget.editable;
+    final managerNames = visibleManagersForPicker(widget.allUsers).map((u) => u.name).toSet().toList()..sort();
+    final left = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TextFormField(
+        initialValue: f.employeeName,
+        enabled: editable,
+        decoration: _dec('Employee Name', icon: Icons.person_rounded),
+        onChanged: (v) => f.employeeName = v,
+      ),
+      const SizedBox(height: 14),
+      TextFormField(
+        initialValue: f.employeeId,
+        enabled: editable,
+        decoration: _dec('Employee ID', icon: Icons.badge_rounded),
+        onChanged: (v) => f.employeeId = v,
+      ),
+      const SizedBox(height: 14),
+      TextFormField(
+        initialValue: f.designation,
+        enabled: editable,
+        decoration: _dec('Designation', icon: Icons.work_outline_rounded),
+        onChanged: (v) => f.designation = v,
+      ),
+      const SizedBox(height: 14),
+      TextFormField(
+        initialValue: f.department,
+        enabled: editable,
+        decoration: _dec('Department', icon: Icons.account_tree_rounded),
+        onChanged: (v) => f.department = v,
+      ),
+    ]);
+    final right = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TextFormField(
+        initialValue: f.dateOfJoining,
+        enabled: editable,
+        decoration: _dec('Date of Joining', icon: Icons.event_rounded),
+        onChanged: (v) => f.dateOfJoining = v,
+      ),
+      const SizedBox(height: 14),
+      if (editable && managerNames.isNotEmpty)
+        DropdownButtonFormField<String>(
+          value: managerNames.contains(f.reportingManager) ? f.reportingManager : null,
+          decoration: _dec('Reporting Manager', icon: Icons.manage_accounts_rounded),
+          items: managerNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+          onChanged: (v) => setState(() => f.reportingManager = v ?? ''),
+        )
+      else
         TextFormField(
           initialValue: f.reportingManager,
+          enabled: editable,
           decoration: _dec('Reporting Manager', icon: Icons.manage_accounts_rounded),
           onChanged: (v) => f.reportingManager = v,
         ),
-        const SizedBox(height: 14),
-        Row(children: [
-          Expanded(child: _dateField(_periodFrom, 'Review Period From', (v) => f.reviewPeriodFrom = v)),
-          const SizedBox(width: 10),
-          Expanded(child: _dateField(_periodTo, 'Review Period To', (v) => f.reviewPeriodTo = v)),
-        ]),
-        const SizedBox(height: 14),
-        _dateField(_submission, 'Self-Appraisal Submission Date', (v) => f.selfAppraisalSubmissionDate = v),
-      ]);
+      const SizedBox(height: 14),
+      Row(children: [
+        Expanded(child: _dateField(_periodFrom, 'Review Period From', (v) => f.reviewPeriodFrom = v)),
+        const SizedBox(width: 10),
+        Expanded(child: _dateField(_periodTo, 'Review Period To', (v) => f.reviewPeriodTo = v)),
+      ]),
+      const SizedBox(height: 14),
+      _dateField(_submission, 'Self-Appraisal Submission Date', (v) => f.selfAppraisalSubmissionDate = v),
+    ]);
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > 640;
       if (!wide) {
         return Column(children: [left, const SizedBox(height: 14), right]);
       }
@@ -534,7 +697,18 @@ class _RatingScaleLegend extends StatelessWidget {
 class _RatingRowsEditor extends StatefulWidget {
   final List<AppraisalRatingRow> rows;
   final ValueChanged<List<AppraisalRatingRow>> onChanged;
-  const _RatingRowsEditor({required this.rows, required this.onChanged});
+  final bool canAddRemove;
+  final bool editDescription;
+  final bool editSelf;
+  final bool editRm;
+  const _RatingRowsEditor({
+    required this.rows,
+    required this.onChanged,
+    required this.canAddRemove,
+    required this.editDescription,
+    required this.editSelf,
+    required this.editRm,
+  });
 
   @override
   State<_RatingRowsEditor> createState() => _RatingRowsEditorState();
@@ -567,7 +741,10 @@ class _RatingRowsEditorState extends State<_RatingRowsEditor> {
       if (_rows.isEmpty)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Text('No items yet — add one below.', style: TextStyle(fontSize: 12.5, color: Colors.grey.shade500)),
+          child: Text(
+            widget.canAddRemove ? 'No items yet — add one below.' : 'No items added yet.',
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade500),
+          ),
         ),
       for (var i = 0; i < _rows.length; i++)
         Container(
@@ -582,67 +759,77 @@ class _RatingRowsEditorState extends State<_RatingRowsEditor> {
               Expanded(
                 child: TextFormField(
                   initialValue: _rows[i].description,
+                  enabled: widget.editDescription,
                   decoration: _dec('Description'),
                   onChanged: (v) { _rows[i].description = v; _emit(); },
                 ),
               ),
-              const SizedBox(width: 10),
-              IconButton(
-                tooltip: 'Remove',
-                icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
-                onPressed: () => _removeRow(i),
-              ),
-            ]),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-              Text('Self Rating:', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-              for (var star = 1; star <= 5; star++)
-                ChoiceChip(
-                  label: Text('$star'),
-                  selected: _rows[i].selfRating == star,
-                  onSelected: (_) {
-                    setState(() => _rows[i].selfRating = _rows[i].selfRating == star ? 0 : star);
-                    _emit();
-                  },
-                  selectedColor: AppTheme.primaryBlue,
-                  labelStyle: TextStyle(
-                      fontSize: 12,
-                      color: _rows[i].selfRating == star ? Colors.white : const Color(0xFF111827),
-                      fontWeight: FontWeight.w600),
+              if (widget.canAddRemove) ...[
+                const SizedBox(width: 10),
+                IconButton(
+                  tooltip: 'Remove',
+                  icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                  onPressed: () => _removeRow(i),
                 ),
+              ],
             ]),
-            const SizedBox(height: 10),
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: _rows[i].selfRemarks,
-                  maxLines: 2,
-                  decoration: _dec('Self Remarks'),
-                  onChanged: (v) { _rows[i].selfRemarks = v; _emit(); },
+            if (widget.editSelf || widget.editRm || _rows[i].selfRating > 0 || _rows[i].selfRemarks.isNotEmpty || _rows[i].rmRemarks.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                Text('Self Rating:', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                for (var star = 1; star <= 5; star++)
+                  ChoiceChip(
+                    label: Text('$star'),
+                    selected: _rows[i].selfRating == star,
+                    onSelected: widget.editSelf
+                        ? (_) {
+                            setState(() => _rows[i].selfRating = _rows[i].selfRating == star ? 0 : star);
+                            _emit();
+                          }
+                        : null,
+                    selectedColor: AppTheme.primaryBlue,
+                    labelStyle: TextStyle(
+                        fontSize: 12,
+                        color: _rows[i].selfRating == star ? Colors.white : const Color(0xFF111827),
+                        fontWeight: FontWeight.w600),
+                  ),
+              ]),
+              const SizedBox(height: 10),
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _rows[i].selfRemarks,
+                    enabled: widget.editSelf,
+                    maxLines: 2,
+                    decoration: _dec('Self Remarks'),
+                    onChanged: (v) { _rows[i].selfRemarks = v; _emit(); },
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  initialValue: _rows[i].rmRemarks,
-                  maxLines: 2,
-                  decoration: _dec('Reporting Manager Remarks'),
-                  onChanged: (v) { _rows[i].rmRemarks = v; _emit(); },
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _rows[i].rmRemarks,
+                    enabled: widget.editRm,
+                    maxLines: 2,
+                    decoration: _dec('Reporting Manager Remarks'),
+                    onChanged: (v) { _rows[i].rmRemarks = v; _emit(); },
+                  ),
                 ),
-              ),
-            ]),
+              ]),
+            ],
           ]),
         ),
-      OutlinedButton.icon(
-        onPressed: _addRow,
-        icon: const Icon(Icons.add_rounded, size: 16),
-        label: const Text('Add Row'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppTheme.primaryBlue,
-          side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      if (widget.canAddRemove)
+        OutlinedButton.icon(
+          onPressed: _addRow,
+          icon: const Icon(Icons.add_rounded, size: 16),
+          label: const Text('Add Row'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primaryBlue,
+            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         ),
-      ),
     ]);
   }
 }
@@ -651,8 +838,9 @@ class _RatingRowsEditorState extends State<_RatingRowsEditor> {
 
 class _LinesEditor extends StatefulWidget {
   final List<String> lines;
+  final bool editable;
   final ValueChanged<List<String>> onChanged;
-  const _LinesEditor({required this.lines, required this.onChanged});
+  const _LinesEditor({required this.lines, required this.editable, required this.onChanged});
 
   @override
   State<_LinesEditor> createState() => _LinesEditorState();
@@ -676,6 +864,7 @@ class _LinesEditorState extends State<_LinesEditor> {
             padding: const EdgeInsets.only(bottom: 10),
             child: TextFormField(
               initialValue: _lines[i],
+              enabled: widget.editable,
               maxLines: 2,
               decoration: _dec('${i + 1}.'),
               onChanged: (v) {
@@ -693,13 +882,15 @@ class _LinesEditorState extends State<_LinesEditor> {
 
 class _ScoreSummarySection extends StatelessWidget {
   final AppraisalForm form;
+  final bool editable;
   final VoidCallback onChanged;
-  const _ScoreSummarySection({required this.form, required this.onChanged});
+  const _ScoreSummarySection({required this.form, required this.editable, required this.onChanged});
 
   Widget _scoreField(String label, double value, void Function(double) set) {
     return Expanded(
       child: TextFormField(
         initialValue: value == 0 ? '' : value.toString(),
+        enabled: editable,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: _dec(label),
         onChanged: (v) => set(double.tryParse(v) ?? 0),
@@ -740,13 +931,14 @@ class _ScoreSummarySection extends StatelessWidget {
 
 class _RecommendationSection extends StatelessWidget {
   final AppraisalForm form;
+  final bool editable;
   final VoidCallback onChanged;
-  const _RecommendationSection({required this.form, required this.onChanged});
+  const _RecommendationSection({required this.form, required this.editable, required this.onChanged});
 
   Widget _tile(String label, bool value, void Function(bool) set) {
     return CheckboxListTile(
       value: value,
-      onChanged: (v) { set(v ?? false); onChanged(); },
+      onChanged: editable ? (v) { set(v ?? false); onChanged(); } : null,
       title: Text(label, style: const TextStyle(fontSize: 13)),
       controlAffinity: ListTileControlAffinity.leading,
       contentPadding: EdgeInsets.zero,
@@ -772,19 +964,22 @@ class _RecommendationSection extends StatelessWidget {
 
 class _RecommendedChangeSection extends StatelessWidget {
   final AppraisalForm form;
-  const _RecommendedChangeSection({required this.form});
+  final bool editable;
+  const _RecommendedChangeSection({required this.form, required this.editable});
 
   @override
   Widget build(BuildContext context) {
     return Column(children: [
       TextFormField(
         initialValue: form.recommendedDesignation,
+        enabled: editable,
         decoration: _dec('Recommended Designation', icon: Icons.work_outline_rounded),
         onChanged: (v) => form.recommendedDesignation = v,
       ),
       const SizedBox(height: 14),
       TextFormField(
         initialValue: form.recommendedSalaryIncrease,
+        enabled: editable,
         decoration: _dec('Recommended Salary Increase', icon: Icons.currency_rupee_rounded),
         onChanged: (v) => form.recommendedSalaryIncrease = v,
       ),

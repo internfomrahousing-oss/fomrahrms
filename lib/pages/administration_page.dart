@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
+import '../models/appraisal_store.dart' show visibleManagersForPicker;
 import '../services/user_store.dart';
 import '../services/supabase_service.dart';
 import '../services/email_service.dart';
@@ -306,7 +307,7 @@ class _UsersTab extends StatelessWidget {
                     // EmailService.sendEmployeeActivation). Re-activating an
                     // existing employee who already has a password is just
                     // a plain toggle, no email needed.
-                    if (!u.active && u.password.isEmpty) {
+                    if (!u.active && !u.hasPassword) {
                       final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
                         name: u.name,
                         mobile: u.mobile,
@@ -325,7 +326,7 @@ class _UsersTab extends StatelessWidget {
                   ),
                   visualDensity: VisualDensity.compact,
                 ),
-                if (!u.active && u.password.isEmpty)
+                if (!u.active && !u.hasPassword)
                   IconButton(
                     tooltip: 'Resend Activation Email',
                     onPressed: () async {
@@ -381,7 +382,7 @@ class _UsersTab extends StatelessWidget {
     // This dialog is Management-only (route-gated) and Management is the
     // ultimate RM-change approver, so edits here save directly with no
     // pending-approval step, unlike the HR-facing edit dialog.
-    final managerNames = users.where((u) => u.isReportingManager).map((u) => u.name).toList();
+    final managerNames = visibleManagersForPicker(users).map((u) => u.name).toList();
 
     showDialog(
       context: context,
@@ -743,7 +744,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     List<String> managers = [];
     try {
       final users = await UserStore.load();
-      managers = users.where((u) => u.role == 'Manager').map((u) => u.name).toList();
+      managers = visibleManagersForPicker(users).map((u) => u.name).toList();
     } catch (_) {}
     String selectedManager = managerCtrl.text.isNotEmpty ? managerCtrl.text : (managers.isNotEmpty ? managers.first : '');
 

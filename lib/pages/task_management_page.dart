@@ -7,7 +7,6 @@ import '../services/task_transitions.dart';
 import '../widgets/back_button.dart';
 import '../widgets/filter_panel.dart';
 import '../theme/app_theme.dart';
-import 'performance_management_page.dart';
 import 'salary_hike_engine_page.dart';
 
 enum _TaskSort { dueDate, priority, recentlyAdded, alphabetical }
@@ -44,7 +43,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() => setState(() {}));
     _filter = widget.initialStatus;
     _load();
@@ -230,7 +229,6 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                 const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
             tabs: const [
               Tab(text: 'Tasks'),
-              Tab(text: 'Performance Management'),
               Tab(text: 'Salary Hike Engine'),
             ],
           ),
@@ -266,10 +264,6 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                   onAssigneeChanged: (v) => setState(() => _assigneeFilter = v),
                   onSortChanged: (v) => setState(() => _sort = v),
                   onDelete: _onDelete,
-                ),
-            1 => const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: PerformanceManagementBody(),
                 ),
             _ => const Padding(
                   padding: EdgeInsets.all(24),

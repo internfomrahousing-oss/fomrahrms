@@ -25,6 +25,7 @@ const _baseEmpNavItems = [
   _NavItem('My Profile',           Icons.person_rounded,                  '/employee/profile'),
   _NavItem('My Attendance and Leaves', Icons.event_note_rounded,          '/employee/attendance-leaves'),
   _NavItem('My Tasks',             Icons.task_alt_rounded,                '/employee/tasks'),
+  _NavItem('Appraisal',            Icons.fact_check_rounded,              '/employee/appraisal'),
   _NavItem('Maintenance',          Icons.build_rounded,                   '/employee/maintenance-management'),
   _NavItem('My Notifications',     Icons.notifications_rounded,           '/employee/notifications'),
 ];
@@ -34,6 +35,8 @@ const _baseEmpNavItems = [
 const _myTeamNavItems = [
   _NavItem('My Team',              Icons.groups_rounded,                  '/employee/my-team/records'),
   _NavItem('Team Leave Approvals', Icons.event_available_rounded,         '/employee/my-team/leave-approvals'),
+  _NavItem('Interview Review',     Icons.rate_review_rounded,             '/employee/my-team/interview-review'),
+  _NavItem('Appraisal Received',   Icons.fact_check_rounded,              '/employee/my-team/appraisal-received'),
 ];
 
 List<_NavItem> get _empNavItems => [

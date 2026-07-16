@@ -25,6 +25,7 @@ const _hrNavItems = [
   _NavItem('Employee Management',  Icons.people_alt_rounded,    '/manager/employee-management'),
   _NavItem('Interview Review',     Icons.rate_review_rounded,   '/manager/interview-review'),
   _NavItem('Team Leave Approvals', Icons.group_rounded,         '/manager/leave/team-approvals'),
+  _NavItem('Appraisal Received',   Icons.fact_check_rounded,    '/manager/appraisal-received'),
   _NavItem('Task Management',      Icons.task_alt_rounded,      '/manager/task-management'),
   _NavItem('Notifications',        Icons.notifications_rounded, '/manager/notifications'),
 ];

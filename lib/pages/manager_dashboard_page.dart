@@ -1,12 +1,14 @@
 
 
 import 'package:flutter/material.dart';
+import '../models/user_session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/attendance_shortcut_card.dart';
 import '../widgets/dashboard_info_blocks.dart';
 import '../widgets/fade_in.dart';
 import '../widgets/milestone_confetti.dart';
 import '../widgets/my_space_blocks.dart';
+import '../widgets/my_team_block.dart';
 import '../widgets/task_analytics_block.dart';
 import '../widgets/welcome_banner.dart';
 
@@ -65,6 +67,15 @@ class ManagerDashboardPage extends StatelessWidget {
                     MyPayslipBlock(viewRoute: '/manager/my-payslips', compact: true),
                   ]),
                   const SizedBox(height: 16),
+
+                  if (UserSession.isReportingManager) ...[
+                    const MyTeamBlock(
+                      teamLeaveApprovalsRoute: '/manager/leave/team-approvals',
+                      interviewReviewRoute: '/manager/interview-review',
+                      appraisalReceivedRoute: '/manager/appraisal-received',
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ],
               ),
               ),

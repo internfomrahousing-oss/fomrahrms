@@ -257,34 +257,69 @@ class NotificationService {
         targetReportingManager: reportingManagerName,
       );
 
-  /// HR started filling an employee's KRA section — notify their Reporting
-  /// Manager so they can add their own remarks.
-  static Future<void> appraisalStarted({
+  /// An employee requested a new appraisal — notify HR to set it up.
+  static Future<void> appraisalRequested({required String employeeName}) => _create(
+        type: 'appraisal_requested',
+        title: 'Appraisal requested',
+        body: '$employeeName requested a new appraisal',
+        route: '/appraisals',
+        targetRole: 'HR',
+      );
+
+  /// HR finished setup and sent the appraisal on to the employee.
+  static Future<void> appraisalSentToEmployee({required String employeeEmail}) => _create(
+        type: 'appraisal_sent_to_employee',
+        title: 'Appraisal ready for self-evaluation',
+        body: 'Your appraisal form is ready — fill in your self-evaluation',
+        route: '/employee/appraisal',
+        targetEmail: employeeEmail,
+      );
+
+  /// The employee submitted their self-evaluation — notify their Reporting
+  /// Manager so they can add their remarks and final score.
+  static Future<void> appraisalSubmittedToRm({
     required String employeeName,
     required String reportingManagerName,
   }) {
     if (reportingManagerName.trim().isEmpty) return Future.value();
     return _create(
-      type: 'appraisal_started',
-      title: 'Appraisal form started',
+      type: 'appraisal_submitted_to_rm',
+      title: 'Appraisal awaiting your review',
       body: '$employeeName\'s appraisal form is ready for your review',
-      route: '/manager/performance-management',
+      route: '/manager/appraisal-received',
       targetReportingManager: reportingManagerName,
     );
   }
 
-  /// The Reporting Manager started filling an employee's KRA section —
-  /// notify HR.
-  static Future<void> appraisalStartedByManager({
-    required String employeeName,
-  }) =>
-      _create(
-        type: 'appraisal_started',
-        title: 'Appraisal form started',
-        body: '$employeeName\'s appraisal form is ready for your review',
-        route: '/performance-management',
-        targetRole: 'HR',
+  /// The Reporting Manager submitted their review — notify Management.
+  static Future<void> appraisalSubmittedToManagement({required String employeeName}) => _create(
+        type: 'appraisal_submitted_to_management',
+        title: 'Appraisal awaiting Management',
+        body: '$employeeName\'s appraisal form is ready for Management review',
+        route: '/management/appraisals',
+        targetRole: 'Management',
       );
+
+  /// Management completed the final stage — the form is back with HR
+  /// (view/download only) and the employee can see the final outcome.
+  static Future<void> appraisalCompleted({
+    required String employeeEmail,
+    required String employeeName,
+  }) async {
+    await _create(
+      type: 'appraisal_completed',
+      title: 'Appraisal completed',
+      body: '$employeeName\'s appraisal is complete',
+      route: '/appraisals',
+      targetRole: 'HR',
+    );
+    await _create(
+      type: 'appraisal_completed',
+      title: 'Your appraisal is complete',
+      route: '/employee/appraisal',
+      targetEmail: employeeEmail,
+    );
+  }
 
   /// HR uploaded a KRA document — it's held pending until Management
   /// approves it, so Management needs to know it's waiting.

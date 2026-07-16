@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
+import '../models/appraisal_store.dart' show visibleManagersForPicker;
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
@@ -2801,7 +2802,7 @@ class _EditDialogState extends State<_EditDialog> {
       businessUnit:     _businessUnit ?? '',
       role:             _role,
       active:           _active,
-      password:         widget.user?.password ?? '',
+      hasPassword:      widget.user?.hasPassword ?? false,
       leaveAllocation:  int.tryParse(_leaveCtrl.text.trim()) ??
                         (widget.user?.leaveAllocation ?? 21),
       reportingManager: finalMgr,
@@ -2867,8 +2868,7 @@ class _EditDialogState extends State<_EditDialog> {
     }
   }
 
-  List<String> get _managerNames => widget.allUsers
-      .where((u) => u.isReportingManager)
+  List<String> get _managerNames => visibleManagersForPicker(widget.allUsers)
       .map((u) => u.name)
       .toList();
 

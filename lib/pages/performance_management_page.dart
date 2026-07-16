@@ -114,7 +114,7 @@ class _PerformanceManagementBodyState extends State<PerformanceManagementBody> {
   }
 
   Future<void> _openEmployee(AppUser u) async {
-    await context.push(_employeeRoute, extra: {'employee': u});
+    await context.push(_employeeRoute, extra: {'employee': u, 'allUsers': _employees});
     if (mounted) _load();
   }
 
@@ -223,12 +223,12 @@ class _EmployeeRow extends StatelessWidget {
         child: Text('No appraisal yet', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
       );
     } else {
-      final completed = latest!.status == 'completed';
+      final completed = latest!.status == AppraisalStatus.completed;
       final c = completed ? Colors.green.shade700 : Colors.orange.shade700;
       badge = Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(color: c.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-        child: Text('${completed ? 'Completed' : 'Draft'} · ${_fmt(latest!.updatedAt)}',
+        child: Text('${latest!.statusLabel} · ${_fmt(latest!.updatedAt)}',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: c)),
       );
     }
