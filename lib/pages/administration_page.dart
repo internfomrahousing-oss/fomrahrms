@@ -688,6 +688,11 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         active:           true,
         reportingManager: manager,
         dateOfJoining:    (form['date_of_joining'] as String?) ?? '',
+        dateOfBirth:      (form['date_of_birth'] as String?) ?? '',
+        mobile:           (form['phone_number'] as String?) ?? '',
+        address:          ((form['permanent_address'] as String?)?.isNotEmpty ?? false)
+                              ? form['permanent_address'] as String
+                              : (form['postal_address'] as String?) ?? '',
       );
       await UserStore.upsertOne(user);
       await Supabase.instance.client

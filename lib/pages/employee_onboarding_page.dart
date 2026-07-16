@@ -1096,6 +1096,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         reportingManager: manager,
         dateOfBirth:      (d['date_of_birth'] as String?) ?? '',
         dateOfJoining:    (d['date_of_joining'] as String?) ?? '',
+        mobile:           (d['phone_number'] as String?) ?? '',
+        address:          ((d['permanent_address'] as String?)?.isNotEmpty ?? false)
+                              ? d['permanent_address'] as String
+                              : (d['postal_address'] as String?) ?? '',
       );
       await UserStore.upsertOne(user);
       await Supabase.instance.client

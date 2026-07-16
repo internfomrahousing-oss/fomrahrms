@@ -1991,7 +1991,7 @@ class _ProfileDialogState extends State<_ProfileDialog> {
             const SizedBox(height: 8),
 
             _InfoRow(Icons.badge_rounded,           'Employee ID',       _user.employeeId),
-            _InfoRow(Icons.email_rounded,           'Email',             _user.email),
+            _InfoRow(Icons.email_rounded,           'Login ID',          _user.email),
             _InfoRow(Icons.alternate_email_rounded, 'Company Mail',      _user.companyEmail),
             _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
             _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
@@ -2851,7 +2851,7 @@ class _EditDialogState extends State<_EditDialog> {
                 keyboardType: TextInputType.emailAddress,
                 readOnly: !isNew,
                 decoration: InputDecoration(
-                  labelText: isNew ? 'Username' : 'Email',
+                  labelText: isNew ? 'Username' : 'Login ID',
                   prefixIcon: Icon(Icons.email_rounded,
                       color: _color, size: 20),
                   suffix: Text('@fomrahousing.in',
