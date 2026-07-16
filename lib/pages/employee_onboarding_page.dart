@@ -59,7 +59,10 @@ String _statusLabel(String s) {
 Color get _blue => AppTheme.primaryBlue;
 
 // ── Pipeline stage model ────────────────────────────────────────────────
-// Six real, timestamped stages. Each row's `status` maps onto how far along
+// Four real, timestamped stages. Mgmt Approved/Activation Mail Sent are one
+// node (the mail send is an automatic side effect of approval), and so are
+// Password Created/Account Active (the account activates the moment the
+// employee sets a password). Each row's `status` maps onto how far along
 // the pipeline it's reached; hr_denied/mgmt_denied are terminal off-ramps
 // rather than pipeline stages themselves.
 class _PipelineStage {
@@ -72,9 +75,7 @@ const _kPipelineStages = <_PipelineStage>[
   _PipelineStage('Onboarding\nReceived', 'submitted_at'),
   _PipelineStage('Forwarded\nto Mgmt', 'forwarded_at'),
   _PipelineStage('Mgmt\nApproved', 'mgmt_approved_at'),
-  _PipelineStage('Activation\nMail Sent', 'activation_sent_at'),
   _PipelineStage('Password\nCreated', 'password_created_at'),
-  _PipelineStage('Account\nActive', 'account_active_at'),
 ];
 
 const _kStatusStageIndex = <String, int>{
@@ -84,12 +85,12 @@ const _kStatusStageIndex = <String, int>{
   'hr_approved':       1,
   'mgmt_denied':       1,
   'mgmt_approved':     2,
-  'activation_sent':   3,
-  'password_created':  4,
-  'access_granted':    5,
+  'activation_sent':   2,
+  'password_created':  3,
+  'access_granted':    3,
 };
 
-/// How many stages are fully complete (0–5). Denied rows freeze at the
+/// How many stages are fully complete (0–3). Denied rows freeze at the
 /// stage they were denied from — they never reach the next node.
 int _stageReached(String status) => _kStatusStageIndex[status] ?? 0;
 
