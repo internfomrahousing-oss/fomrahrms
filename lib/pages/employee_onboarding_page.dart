@@ -12,7 +12,6 @@ import '../services/user_store.dart';
 import '../services/email_service.dart';
 import '../utils/form_version_label.dart';
 import '../utils/open_url.dart';
-import '../widgets/filter_panel.dart';
 import '../widgets/responsive_header_row.dart';
 import '../theme/app_theme.dart';
 
@@ -35,27 +34,359 @@ String _nextEmpId(List<AppUser> users) {
 
 // Status helpers
 Color _statusColor(String s) {
-  if (s == 'hr_approved')    return const Color(0xFF3B82F6);
-  if (s == 'hr_denied')      return const Color(0xFFEF4444);
-  if (s == 'mgmt_approved')  return const Color(0xFF22C55E);
-  if (s == 'mgmt_denied')    return const Color(0xFFB91C1C);
-  if (s == 'access_granted') return const Color(0xFF2563EB);
-  if (s == 'sent_back')      return const Color(0xFFF59E0B);
+  if (s == 'hr_approved')       return const Color(0xFF3B82F6);
+  if (s == 'hr_denied')         return const Color(0xFFEF4444);
+  if (s == 'mgmt_approved')     return const Color(0xFF8B5CF6);
+  if (s == 'mgmt_denied')       return const Color(0xFFB91C1C);
+  if (s == 'activation_sent')   return const Color(0xFF06B6D4);
+  if (s == 'password_created')  return const Color(0xFFF97316);
+  if (s == 'access_granted')    return const Color(0xFF22C55E);
+  if (s == 'sent_back')         return const Color(0xFFF59E0B);
   return const Color(0xFFF59E0B);
 }
 String _statusLabel(String s) {
-  if (s == 'hr_approved')    return 'Awaiting Management';
-  if (s == 'hr_denied')      return 'HR Denied';
-  if (s == 'mgmt_approved')  return 'Mgmt Approved';
-  if (s == 'mgmt_denied')    return 'Mgmt Denied';
-  if (s == 'access_granted') return 'Active';
-  if (s == 'sent_back')      return 'Sent Back by Management';
-  return 'Pending';
+  if (s == 'hr_approved')       return 'Forwarded to Mgmt';
+  if (s == 'hr_denied')         return 'HR Denied';
+  if (s == 'mgmt_approved')     return 'Mgmt Approved';
+  if (s == 'mgmt_denied')       return 'Mgmt Denied';
+  if (s == 'activation_sent')   return 'Activation Mail Sent';
+  if (s == 'password_created')  return 'Password Created';
+  if (s == 'access_granted')    return 'Account Active';
+  if (s == 'sent_back')         return 'Sent Back by Management';
+  return 'Onboarding Received';
 }
 
 Color get _blue => AppTheme.primaryBlue;
 
-enum _SubFilter { all, received, sentToManagement, approvedActive }
+// ── Pipeline stage model ────────────────────────────────────────────────
+// Six real, timestamped stages. Each row's `status` maps onto how far along
+// the pipeline it's reached; hr_denied/mgmt_denied are terminal off-ramps
+// rather than pipeline stages themselves.
+class _PipelineStage {
+  final String label;
+  final IconData icon;
+  final String tsField; // column on onboarding_forms holding this stage's timestamp
+  const _PipelineStage(this.label, this.icon, this.tsField);
+}
+
+const _kPipelineStages = <_PipelineStage>[
+  _PipelineStage('Onboarding\nReceived', Icons.description_rounded, 'submitted_at'),
+  _PipelineStage('Forwarded\nto Mgmt', Icons.send_rounded, 'forwarded_at'),
+  _PipelineStage('Mgmt\nApproved', Icons.person_rounded, 'mgmt_approved_at'),
+  _PipelineStage('Activation\nMail Sent', Icons.mail_rounded, 'activation_sent_at'),
+  _PipelineStage('Password\nCreated', Icons.vpn_key_rounded, 'password_created_at'),
+  _PipelineStage('Account\nActive', Icons.verified_rounded, 'account_active_at'),
+];
+
+const _kStageColors = <Color>[
+  Color(0xFF3B82F6), Color(0xFFF59E0B), Color(0xFF8B5CF6),
+  Color(0xFF14B8A6), Color(0xFFF97316), Color(0xFF22C55E),
+];
+
+const _kStatusStageIndex = <String, int>{
+  'pending':           0,
+  'sent_back':         0,
+  'hr_denied':         0,
+  'hr_approved':       1,
+  'mgmt_denied':       1,
+  'mgmt_approved':     2,
+  'activation_sent':   3,
+  'password_created':  4,
+  'access_granted':    5,
+};
+
+/// How many stages are fully complete (0–5). Denied rows freeze at the
+/// stage they were denied from — they never reach the next node.
+int _stageReached(String status) => _kStatusStageIndex[status] ?? 0;
+
+const _kForwardedStatuses = {
+  'hr_approved', 'mgmt_denied', 'mgmt_approved', 'activation_sent', 'password_created', 'access_granted',
+};
+const _kActivatedStatuses = {'activation_sent', 'password_created', 'access_granted'};
+
+const _kStageMonths = <String>[
+  'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',
+];
+String _stageDateLabel(dynamic iso) {
+  if (iso is! String || iso.isEmpty) return '—';
+  final d = DateTime.tryParse(iso);
+  if (d == null) return '—';
+  final local = d.toLocal();
+  return '${local.day.toString().padLeft(2, '0')} ${_kStageMonths[local.month - 1]}';
+}
+
+// ── Horizontal per-row pipeline stepper ─────────────────────────────────────
+class _PipelineStepper extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String status;
+  const _PipelineStepper({required this.data, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final reached = _stageReached(status);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < _kPipelineStages.length; i++) ...[
+          if (i > 0)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 15),
+                child: Container(
+                  height: 2,
+                  color: i <= reached ? _kStageColors[i - 1].withValues(alpha: 0.5) : const Color(0xFFE5E7EB),
+                ),
+              ),
+            ),
+          _PipelineNode(
+            stage: _kPipelineStages[i],
+            color: _kStageColors[i],
+            done: i <= reached,
+            dateLabel: i <= reached ? _stageDateLabel(data[_kPipelineStages[i].tsField]) : '–',
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PipelineNode extends StatelessWidget {
+  final _PipelineStage stage;
+  final Color color;
+  final bool done;
+  final String dateLabel;
+  const _PipelineNode({
+    required this.stage,
+    required this.color,
+    required this.done,
+    required this.dateLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 76,
+      child: Column(children: [
+        Container(
+          width: 32, height: 32,
+          decoration: BoxDecoration(
+            color: done ? color : const Color(0xFFF3F4F6),
+            shape: BoxShape.circle,
+            border: done ? null : Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Icon(stage.icon, size: 15, color: done ? Colors.white : const Color(0xFFB0B7C3)),
+        ),
+        const SizedBox(height: 6),
+        Text(stage.label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10.5,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
+              color: done ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
+            )),
+        const SizedBox(height: 3),
+        Text(dateLabel,
+            style: TextStyle(fontSize: 10, color: done ? const Color(0xFF6B7280) : const Color(0xFFC0C5CE))),
+      ]),
+    );
+  }
+}
+
+// ── Wide-screen table header ─────────────────────────────────────────────────
+class _OnboardingTableHeader extends StatelessWidget {
+  const _OnboardingTableHeader();
+
+  static const _style = TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF6B7280));
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+      ),
+      child: Row(children: const [
+        Expanded(flex: 3, child: Text('EMPLOYEE', style: _style)),
+        Expanded(flex: 5, child: Text('ONBOARDING PROGRESS', style: _style)),
+        Expanded(flex: 2, child: Text('CURRENT STATUS', style: _style)),
+        Expanded(flex: 2, child: Text('SUBMITTED ON', style: _style)),
+        SizedBox(width: 132, child: Text('ACTIONS', style: _style)),
+      ]),
+    );
+  }
+}
+
+// ── Wide-screen table row ────────────────────────────────────────────────────
+class _OnboardingTableRow extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final VoidCallback onRefresh;
+  const _OnboardingTableRow({required this.data, required this.onRefresh});
+
+  void _view(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 720),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(4),
+            child: _SubmissionCard(data: data, onRefresh: onRefresh, initiallyExpanded: true),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _email(BuildContext context) {
+    final email = ((data['assigned_email'] as String?) ?? '').trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No account email assigned yet — forward this submission first.'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
+    openUrl('mailto:$email');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = data;
+    final name = ((d['name'] as String?) ?? '').isNotEmpty
+        ? d['name'] as String
+        : (d['full_name'] as String?) ?? 'Unknown';
+    final status = (d['status'] as String?) ?? 'pending';
+    final designation = ((d['assigned_designation'] as String?) ?? '').trim().isNotEmpty
+        ? d['assigned_designation'] as String
+        : (d['designation'] as String?) ?? '';
+    final department = (d['assigned_department'] as String?) ?? '';
+    final email = (d['assigned_email'] as String?) ?? '';
+    final phone = (d['phone_number'] as String?) ?? '';
+    final submittedAt = d['submitted_at'] != null
+        ? DateTime.tryParse(d['submitted_at'] as String)?.toLocal()
+        : null;
+    final dateStr = submittedAt != null
+        ? '${submittedAt.day.toString().padLeft(2, '0')}/${submittedAt.month.toString().padLeft(2, '0')}/${submittedAt.year}'
+        : '—';
+    final timeStr = submittedAt != null
+        ? '${submittedAt.hour.toString().padLeft(2, '0')}:${submittedAt.minute.toString().padLeft(2, '0')}'
+        : '';
+
+    return InkWell(
+      onTap: () => _view(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFF1F3F6))),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            flex: 3,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: _avatarColor(name).withValues(alpha: 0.15),
+                child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: TextStyle(color: _avatarColor(name), fontWeight: FontWeight.w800, fontSize: 14)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFF111827)),
+                      overflow: TextOverflow.ellipsis),
+                  if ([department, designation].any((v) => v.isNotEmpty)) ...[
+                    const SizedBox(height: 2),
+                    Text([department, designation].where((v) => v.isNotEmpty).join(' · '),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                  if (email.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(email,
+                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF9CA3AF)),
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                  if (phone.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(phone, style: const TextStyle(fontSize: 10.5, color: Color(0xFF9CA3AF))),
+                  ],
+                ]),
+              ),
+            ]),
+          ),
+          Expanded(flex: 5, child: _PipelineStepper(data: d, status: status)),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4, right: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _statusColor(status).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(_statusLabel(status),
+                    style: TextStyle(fontSize: 11, color: _statusColor(status), fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(dateStr, style: const TextStyle(fontSize: 12, color: Color(0xFF111827))),
+                if (timeStr.isNotEmpty)
+                  Text(timeStr, style: const TextStyle(fontSize: 10.5, color: Color(0xFF9CA3AF))),
+              ]),
+            ),
+          ),
+          SizedBox(
+            width: 132,
+            child: Row(children: [
+              IconButton(
+                tooltip: 'View',
+                icon: Icon(Icons.visibility_outlined, size: 18, color: _blue),
+                onPressed: () => _view(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              IconButton(
+                tooltip: 'Email',
+                icon: Icon(Icons.email_outlined, size: 18, color: _blue),
+                onPressed: () => _email(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'More actions',
+                icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF6B7280)),
+                onSelected: (v) {
+                  if (v == 'delete') _confirmDeleteSubmission(context, d, onRefresh);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ]),
+                  ),
+                ],
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+enum _SubFilter { all, received, forwarded, mgmtApproved, activationSent, passwordCreated, accountActive }
 enum _OnboardSort { latest, oldest, nameAz }
 
 // Deterministic pastel avatar color from a name, so rows read as distinct
@@ -68,17 +399,26 @@ const _avatarPalette = <Color>[
 Color _avatarColor(String name) =>
     _avatarPalette[name.isEmpty ? 0 : name.codeUnitAt(0) % _avatarPalette.length];
 
+// Buckets by *current* status — mutually exclusive, so every row lives in
+// exactly one non-"all" tab. Denied rows fold into the bucket they stalled
+// at (hr_denied never left "received"; mgmt_denied never left "forwarded").
 bool _matchesSubFilter(Map<String, dynamic> row, _SubFilter f) {
   final status = (row['status'] as String?) ?? 'pending';
   switch (f) {
     case _SubFilter.all:
       return true;
     case _SubFilter.received:
-      return status == 'pending' || status == 'sent_back';
-    case _SubFilter.sentToManagement:
-      return status == 'hr_approved';
-    case _SubFilter.approvedActive:
-      return status == 'mgmt_approved' || status == 'access_granted';
+      return status == 'pending' || status == 'sent_back' || status == 'hr_denied';
+    case _SubFilter.forwarded:
+      return status == 'hr_approved' || status == 'mgmt_denied';
+    case _SubFilter.mgmtApproved:
+      return status == 'mgmt_approved';
+    case _SubFilter.activationSent:
+      return status == 'activation_sent';
+    case _SubFilter.passwordCreated:
+      return status == 'password_created';
+    case _SubFilter.accountActive:
+      return status == 'access_granted';
   }
 }
 
@@ -102,6 +442,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
   String _managerFilter = 'All';
   _OnboardSort _sort = _OnboardSort.latest;
   final _searchCtrl = TextEditingController();
+  int _page = 1;
+  int _pageSize = 10;
 
   String _statusOf(Map<String, dynamic> r) => (r['status'] as String?) ?? 'pending';
 
@@ -117,7 +459,8 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
 
   int get _countActiveOnboarding => _all.where((r) {
         final s = _statusOf(r);
-        return s == 'pending' || s == 'hr_approved' || s == 'mgmt_approved';
+        return s == 'pending' || s == 'hr_approved' || s == 'mgmt_approved' ||
+            s == 'activation_sent' || s == 'password_created';
       }).length;
   int get _countMgmtApproved => _all.where((r) => _statusOf(r) == 'mgmt_approved').length;
   int get _countJoined => _all.where((r) => _statusOf(r) == 'access_granted').length;
@@ -259,15 +602,137 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
         ),
       );
     }
-    return Padding(
-      padding: EdgeInsets.all(pad),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        for (int i = 0; i < _filtered.length; i++) ...[
-          if (i > 0) const SizedBox(height: 10),
-          _SubmissionCard(data: _filtered[i], onRefresh: _fetch),
-        ],
-      ]),
+    final pageCount = (_filtered.length / _pageSize).ceil().clamp(1, 999999);
+    final page = _page.clamp(1, pageCount);
+    final start = (page - 1) * _pageSize;
+    final pageRows = _filtered.sublist(start, (start + _pageSize).clamp(0, _filtered.length));
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= 980;
+      return Padding(
+        padding: EdgeInsets.all(pad),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (wide)
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(children: [
+                const _OnboardingTableHeader(),
+                for (final row in pageRows) _OnboardingTableRow(data: row, onRefresh: _fetch),
+              ]),
+            )
+          else
+            for (int i = 0; i < pageRows.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _SubmissionCard(data: pageRows[i], onRefresh: _fetch),
+            ],
+          const SizedBox(height: 16),
+          _buildPaginationFooter(_filtered.length, pageCount, page),
+        ]),
+      );
+    });
+  }
+
+  Widget _buildPaginationFooter(int totalCount, int pageCount, int page) {
+    final rangeStart = totalCount == 0 ? 0 : (page - 1) * _pageSize + 1;
+    final rangeEnd = (page * _pageSize).clamp(0, totalCount);
+
+    final info = Text('Showing $rangeStart to $rangeEnd of $totalCount results',
+        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)));
+
+    final pageSizeDropdown = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.borderSubtle),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _pageSize,
+          isDense: true,
+          items: const [10, 20, 50]
+              .map((n) => DropdownMenuItem(value: n, child: Text('$n / page', style: const TextStyle(fontSize: 12))))
+              .toList(),
+          onChanged: (v) => setState(() { _pageSize = v!; _page = 1; }),
+        ),
+      ),
     );
+
+    final pager = Row(mainAxisSize: MainAxisSize.min, children: [
+      IconButton(
+        icon: const Icon(Icons.chevron_left_rounded),
+        color: page > 1 ? _blue : Colors.grey.shade400,
+        onPressed: page > 1 ? () => setState(() => _page = page - 1) : null,
+      ),
+      for (final entry in _pageWindow(pageCount, page))
+        entry == '...'
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text('...', style: TextStyle(color: Color(0xFF6B7280))),
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => setState(() => _page = entry as int),
+                  child: Container(
+                    width: 32, height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: entry == page ? _blue : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('$entry',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: entry == page ? Colors.white : const Color(0xFF111827),
+                        )),
+                  ),
+                ),
+              ),
+      IconButton(
+        icon: const Icon(Icons.chevron_right_rounded),
+        color: page < pageCount ? _blue : Colors.grey.shade400,
+        onPressed: page < pageCount ? () => setState(() => _page = page + 1) : null,
+      ),
+    ]);
+
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 640) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          info,
+          const SizedBox(height: 8),
+          Row(children: [pageSizeDropdown, const Spacer(), pager]),
+        ]);
+      }
+      return Row(children: [
+        info,
+        const Spacer(),
+        pageSizeDropdown,
+        const SizedBox(width: 16),
+        pager,
+      ]);
+    });
+  }
+
+  /// Builds the compact page-number window (e.g. 1 … 4 5 6 … 13), always
+  /// including the first, last, and pages adjacent to the current one.
+  List<Object> _pageWindow(int total, int current) {
+    if (total <= 7) return List.generate(total, (i) => i + 1);
+    final keep = <int>{1, total, current};
+    if (current - 1 >= 1) keep.add(current - 1);
+    if (current + 1 <= total) keep.add(current + 1);
+    final sorted = keep.toList()..sort();
+    final result = <Object>[];
+    for (var i = 0; i < sorted.length; i++) {
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.add('...');
+      result.add(sorted[i]);
+    }
+    return result;
   }
 
   Widget _buildFormApprovalsTab(double pad) {
@@ -330,9 +795,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
     );
   }
 
-  int get _countReceived => _all.where((r) => _matchesSubFilter(r, _SubFilter.received)).length;
-  int get _countSent     => _all.where((r) => _matchesSubFilter(r, _SubFilter.sentToManagement)).length;
-  int get _countApproved => _all.where((r) => _matchesSubFilter(r, _SubFilter.approvedActive)).length;
+  int _stageCount(_SubFilter f) => _all.where((r) => _matchesSubFilter(r, f)).length;
 
   void _applyFilter() {
     final q = _searchCtrl.text.trim().toLowerCase();
@@ -342,7 +805,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             r.values.any((v) => v.toString().toLowerCase().contains(q)))
         .toList();
     if (_deptFilter != 'All') {
-      rows = rows.where((r) => (r['department'] ?? '').toString().trim() == _deptFilter).toList();
+      rows = rows.where((r) => (r['assigned_department'] ?? '').toString().trim() == _deptFilter).toList();
     }
     if (_managerFilter != 'All') {
       rows = rows.where((r) => (r['assigned_manager'] ?? '').toString().trim() == _managerFilter).toList();
@@ -362,7 +825,7 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
             .compareTo((b['name'] ?? '').toString().toLowerCase()));
         break;
     }
-    setState(() => _filtered = rows);
+    setState(() { _filtered = rows; _page = 1; });
   }
 
   void _openForm() {
@@ -479,62 +942,42 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                         borderSide: BorderSide.none),
                   ),
                 );
-                final filterBtn = FilterTriggerButton(
-                  hasActiveFilters: _deptFilter != 'All' || _managerFilter != 'All' || _sort != _OnboardSort.latest,
-                  onTap: () {
-                    String deptDraft = _deptFilter;
-                    String managerDraft = _managerFilter;
-                    _OnboardSort sortDraft = _sort;
-                    showFilterPanel(
-                      context,
-                      title: 'Filters',
-                      onReset: () { deptDraft = 'All'; managerDraft = 'All'; sortDraft = _OnboardSort.latest; },
-                      onApply: () => setState(() {
-                        _deptFilter = deptDraft; _managerFilter = managerDraft; _sort = sortDraft;
-                        _applyFilter();
-                      }),
-                      builder: (context, setPanelState) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        FilterDropdownField<String>(
-                          label: 'Department',
-                          value: deptDraft == 'All' ? null : deptDraft,
-                          options: kDepartments,
-                          labelOf: (d) => d,
-                          allLabel: 'All Departments',
-                          onChanged: (v) => setPanelState(() => deptDraft = v ?? 'All'),
-                        ),
-                        FilterDropdownField<String>(
-                          label: 'Manager',
-                          value: managerDraft == 'All' ? null : managerDraft,
-                          options: _managerOptions.where((m) => m != 'All').toList(),
-                          labelOf: (m) => m,
-                          allLabel: 'All Managers',
-                          onChanged: (v) => setPanelState(() => managerDraft = v ?? 'All'),
-                        ),
-                        FilterChipGroup<_OnboardSort>(
-                          label: 'Sort',
-                          value: sortDraft == _OnboardSort.latest ? null : sortDraft,
-                          options: const [_OnboardSort.oldest, _OnboardSort.nameAz],
-                          labelOf: (s) => switch (s) {
-                            _OnboardSort.latest => 'Latest',
-                            _OnboardSort.oldest => 'Oldest',
-                            _OnboardSort.nameAz => 'Name A–Z',
-                          },
-                          onChanged: (v) => setPanelState(() => sortDraft = v ?? _OnboardSort.latest),
-                        ),
-                      ]),
-                    );
-                  },
+                final deptDropdown = _InlineDropdown<String>(
+                  label: 'Department',
+                  value: _deptFilter,
+                  options: ['All', ...kDepartments],
+                  onChanged: (v) => setState(() { _deptFilter = v; _applyFilter(); }),
                 );
+                final managerDropdown = _InlineDropdown<String>(
+                  label: 'Manager',
+                  value: _managerFilter,
+                  options: _managerOptions,
+                  onChanged: (v) => setState(() { _managerFilter = v; _applyFilter(); }),
+                );
+                final sortDropdown = _InlineDropdown<_OnboardSort>(
+                  label: 'Sort',
+                  value: _sort,
+                  options: _OnboardSort.values,
+                  labelOf: (s) => switch (s) {
+                    _OnboardSort.latest => 'Latest',
+                    _OnboardSort.oldest => 'Oldest',
+                    _OnboardSort.nameAz => 'Name A–Z',
+                  },
+                  onChanged: (v) => setState(() { _sort = v; _applyFilter(); }),
+                );
+                final dropdownRow = Wrap(spacing: 10, runSpacing: 10, children: [
+                  deptDropdown, managerDropdown, sortDropdown,
+                ]);
                 return narrow
-                    ? Column(children: [
+                    ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         search,
                         const SizedBox(height: 10),
-                        filterBtn,
+                        dropdownRow,
                       ])
                     : Row(children: [
                         Expanded(child: search),
                         const SizedBox(width: 10),
-                        filterBtn,
+                        dropdownRow,
                       ]);
               }),
               const SizedBox(height: 10),
@@ -542,36 +985,29 @@ class _EmployeeOnboardingPageState extends State<EmployeeOnboardingPage> {
                 scrollDirection: Axis.horizontal,
                 child: Row(children: [
                   _OnboardFilterChip(
-                    label: 'Received ($_countReceived)',
-                    icon: Icons.inbox_rounded,
-                    color: const Color(0xFFF59E0B),
-                    selected: _statusFilter == _SubFilter.received,
-                    onTap: () => setState(() { _statusFilter = _SubFilter.received; _applyFilter(); }),
-                  ),
-                  const SizedBox(width: 8),
-                  _OnboardFilterChip(
-                    label: 'Sent to Management ($_countSent)',
-                    icon: Icons.forward_to_inbox_rounded,
-                    color: const Color(0xFF3B82F6),
-                    selected: _statusFilter == _SubFilter.sentToManagement,
-                    onTap: () => setState(() { _statusFilter = _SubFilter.sentToManagement; _applyFilter(); }),
-                  ),
-                  const SizedBox(width: 8),
-                  _OnboardFilterChip(
-                    label: 'Approved & Active ($_countApproved)',
-                    icon: Icons.verified_rounded,
-                    color: const Color(0xFF22C55E),
-                    selected: _statusFilter == _SubFilter.approvedActive,
-                    onTap: () => setState(() { _statusFilter = _SubFilter.approvedActive; _applyFilter(); }),
-                  ),
-                  const SizedBox(width: 8),
-                  _OnboardFilterChip(
                     label: 'All (${_all.length})',
                     icon: Icons.list_alt_rounded,
                     color: const Color(0xFF111827),
                     selected: _statusFilter == _SubFilter.all,
                     onTap: () => setState(() { _statusFilter = _SubFilter.all; _applyFilter(); }),
                   ),
+                  for (final entry in const [
+                    (_SubFilter.received, 'Onboarding Received', Icons.description_rounded, Color(0xFFF59E0B)),
+                    (_SubFilter.forwarded, 'Forwarded to Mgmt', Icons.send_rounded, Color(0xFF3B82F6)),
+                    (_SubFilter.mgmtApproved, 'Mgmt Approved', Icons.person_rounded, Color(0xFF8B5CF6)),
+                    (_SubFilter.activationSent, 'Activation Mail Sent', Icons.mail_rounded, Color(0xFF06B6D4)),
+                    (_SubFilter.passwordCreated, 'Password Created', Icons.vpn_key_rounded, Color(0xFFF97316)),
+                    (_SubFilter.accountActive, 'Account Active', Icons.verified_rounded, Color(0xFF22C55E)),
+                  ]) ...[
+                    const SizedBox(width: 8),
+                    _OnboardFilterChip(
+                      label: '${entry.$2} (${_stageCount(entry.$1)})',
+                      icon: entry.$3,
+                      color: entry.$4,
+                      selected: _statusFilter == entry.$1,
+                      onTap: () => setState(() { _statusFilter = entry.$1; _applyFilter(); }),
+                    ),
+                  ],
                 ]),
               ),
             ],
@@ -702,6 +1138,53 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+// ── Inline "Department: All ▾" style dropdown ───────────────────────────────────
+class _InlineDropdown<T> extends StatelessWidget {
+  final String label;
+  final T value;
+  final List<T> options;
+  final String Function(T)? labelOf;
+  final ValueChanged<T> onChanged;
+  const _InlineDropdown({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.labelOf,
+    super.key,
+  });
+
+  String _textFor(T v) => labelOf != null ? labelOf!(v) : v.toString();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isDense: true,
+          icon: const Icon(Icons.expand_more_rounded, size: 18),
+          items: options
+              .map((o) => DropdownMenuItem(
+                    value: o,
+                    child: Text('$label: ${_textFor(o)}',
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                  ))
+              .toList(),
+          onChanged: (v) { if (v != null) onChanged(v); },
+        ),
+      ),
+    );
+  }
+}
+
 // ── Status filter chip ──────────────────────────────────────────────────────────
 class _OnboardFilterChip extends StatelessWidget {
   final String label;
@@ -807,19 +1290,57 @@ class _TabBtn extends StatelessWidget {
 }
 
 // ── Submission card ────────────────────────────────────────────────────────────
+// Shared by both the compact card (narrow) and the table row (wide) actions.
+Future<bool> _confirmDeleteSubmission(
+    BuildContext context, Map<String, dynamic> data, VoidCallback onRefresh) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete Submission', style: TextStyle(color: Colors.red)),
+      content: const Text('Are you sure you want to permanently delete this submission?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (confirm != true) return false;
+  try {
+    await Supabase.instance.client
+        .from('onboarding_forms')
+        .delete()
+        .eq('id', data['id'].toString());
+    onRefresh();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 class _SubmissionCard extends StatefulWidget {
   final Map<String, dynamic> data;
   final VoidCallback onRefresh;
-  const _SubmissionCard({required this.data, required this.onRefresh});
+  final bool initiallyExpanded;
+  const _SubmissionCard({required this.data, required this.onRefresh, this.initiallyExpanded = false});
 
   @override
   State<_SubmissionCard> createState() => _SubmissionCardState();
 }
 
 class _SubmissionCardState extends State<_SubmissionCard> {
-  bool _expanded = false;
+  late bool _expanded = widget.initiallyExpanded;
   bool _acting = false;
   Map<String, dynamic>? _linkedInterview;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_expanded) _fetchLinkedInterview();
+  }
 
   Future<void> _fetchLinkedInterview() async {
     if (_linkedInterview != null) return;
@@ -1015,6 +1536,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                       .from('onboarding_forms')
                       .update({
                         'status':                'hr_approved',
+                        'forwarded_at':          DateTime.now().toIso8601String(),
                         'assigned_email':        '${emailCtrl.text.trim()}@fomrahousing.in',
                         'assigned_emp_id':       empIdCtrl.text.trim(),
                         'assigned_manager':      selectedManager,
@@ -1044,32 +1566,9 @@ class _SubmissionCardState extends State<_SubmissionCard> {
   }
 
   Future<void> _delete(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Submission', style: TextStyle(color: Colors.red)),
-        content: const Text('Are you sure you want to permanently delete this submission?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
     setState(() => _acting = true);
-    try {
-      await Supabase.instance.client
-          .from('onboarding_forms')
-          .delete()
-          .eq('id', widget.data['id'].toString());
-      widget.onRefresh();
-    } catch (_) {
-      setState(() => _acting = false);
-    }
+    final deleted = await _confirmDeleteSubmission(context, widget.data, widget.onRefresh);
+    if (!deleted) setState(() => _acting = false);
   }
 
   Future<void> _approveManagement(BuildContext context) async {
@@ -1110,7 +1609,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
       await UserStore.upsertOne(user);
       await Supabase.instance.client
           .from('onboarding_forms')
-          .update({'status': 'access_granted'})
+          .update({
+            'status': 'mgmt_approved',
+            'mgmt_approved_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', d['id'].toString());
       final personalEmail = await SupabaseService.fetchCandidatePersonalEmail(
         candidateApplicationId: d['candidate_application_id'] as String?,
@@ -1118,6 +1620,13 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         mobile: (d['phone_number'] as String?) ?? '',
       );
       await _sendActivationEmail(user, personalEmail: personalEmail);
+      await Supabase.instance.client
+          .from('onboarding_forms')
+          .update({
+            'status': 'activation_sent',
+            'activation_sent_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', d['id'].toString());
       NotificationService.employeeActivated(name: user.name);
       widget.onRefresh();
       if (context.mounted) {
@@ -1403,8 +1912,9 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   ),
                 ]),
               ],
-              // Show assigned details once forwarded
-              if (status == 'hr_approved') ...[
+              // Show assigned details once forwarded — stays visible through
+              // every later stage since assigned_* fields never change again.
+              if (_kForwardedStatuses.contains(status)) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -1423,7 +1933,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   ]),
                 ),
                 // Management: final approve/deny/send-back — approving creates the employee account.
-                if (UserSession.role == UserRole.management) ...[
+                if (status == 'hr_approved' && UserSession.role == UserRole.management) ...[
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
@@ -1468,7 +1978,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   ]),
                 ],
                 // HR: resend the activation email if it failed, or the employee lost it.
-                if (status == 'access_granted') ...[
+                if (_kActivatedStatuses.contains(status)) ...[
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.forward_to_inbox_rounded, size: 16),
