@@ -64,23 +64,17 @@ Color get _blue => AppTheme.primaryBlue;
 // rather than pipeline stages themselves.
 class _PipelineStage {
   final String label;
-  final IconData icon;
   final String tsField; // column on onboarding_forms holding this stage's timestamp
-  const _PipelineStage(this.label, this.icon, this.tsField);
+  const _PipelineStage(this.label, this.tsField);
 }
 
 const _kPipelineStages = <_PipelineStage>[
-  _PipelineStage('Onboarding\nReceived', Icons.description_rounded, 'submitted_at'),
-  _PipelineStage('Forwarded\nto Mgmt', Icons.send_rounded, 'forwarded_at'),
-  _PipelineStage('Mgmt\nApproved', Icons.person_rounded, 'mgmt_approved_at'),
-  _PipelineStage('Activation\nMail Sent', Icons.mail_rounded, 'activation_sent_at'),
-  _PipelineStage('Password\nCreated', Icons.vpn_key_rounded, 'password_created_at'),
-  _PipelineStage('Account\nActive', Icons.verified_rounded, 'account_active_at'),
-];
-
-const _kStageColors = <Color>[
-  Color(0xFF3B82F6), Color(0xFFF59E0B), Color(0xFF8B5CF6),
-  Color(0xFF14B8A6), Color(0xFFF97316), Color(0xFF22C55E),
+  _PipelineStage('Onboarding\nReceived', 'submitted_at'),
+  _PipelineStage('Forwarded\nto Mgmt', 'forwarded_at'),
+  _PipelineStage('Mgmt\nApproved', 'mgmt_approved_at'),
+  _PipelineStage('Activation\nMail Sent', 'activation_sent_at'),
+  _PipelineStage('Password\nCreated', 'password_created_at'),
+  _PipelineStage('Account\nActive', 'account_active_at'),
 ];
 
 const _kStatusStageIndex = <String, int>{
@@ -116,80 +110,75 @@ String _stageDateLabel(dynamic iso) {
 }
 
 // ── Horizontal per-row pipeline stepper ─────────────────────────────────────
+// Labels+dates row on top, connected check-circle timeline below — matches
+// the Interview Process page's _StageTimeline look.
 class _PipelineStepper extends StatelessWidget {
   final Map<String, dynamic> data;
   final String status;
   const _PipelineStepper({required this.data, required this.status});
 
+  static const _doneColor = Color(0xFF22C55E);
+  static const _deniedColor = Color(0xFFEF4444);
+  static const _pendingColor = Color(0xFFD1D5DB);
+
   @override
   Widget build(BuildContext context) {
     final reached = _stageReached(status);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (int i = 0; i < _kPipelineStages.length; i++) ...[
-          if (i > 0)
+    final denied = status == 'hr_denied' || status == 'mgmt_denied';
+    final deniedAt = reached + 1; // stage it never reached — where it was denied
+
+    Color colorFor(int i) {
+      if (i <= reached) return _doneColor;
+      if (denied && i == deniedAt) return _deniedColor;
+      return _pendingColor;
+    }
+
+    IconData iconFor(int i) {
+      if (i <= reached) return Icons.check_circle_rounded;
+      if (denied && i == deniedAt) return Icons.cancel_rounded;
+      return Icons.circle_outlined;
+    }
+
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < _kPipelineStages.length; i++)
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 15),
-                child: Container(
-                  height: 2,
-                  color: i <= reached ? _kStageColors[i - 1].withValues(alpha: 0.5) : const Color(0xFFE5E7EB),
+              child: Column(children: [
+                Text(_kPipelineStages[i].label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                      color: i <= reached ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
+                    )),
+                const SizedBox(height: 3),
+                Text(
+                  i <= reached ? _stageDateLabel(data[_kPipelineStages[i].tsField]) : '—',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: i <= reached ? const Color(0xFF6B7280) : const Color(0xFFC0C5CE)),
                 ),
+              ]),
+            ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Row(children: [
+        for (int i = 0; i < _kPipelineStages.length; i++) ...[
+          Icon(iconFor(i), size: 16, color: colorFor(i)),
+          if (i != _kPipelineStages.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                color: i <= reached ? _doneColor : _pendingColor,
               ),
             ),
-          _PipelineNode(
-            stage: _kPipelineStages[i],
-            color: _kStageColors[i],
-            done: i <= reached,
-            dateLabel: i <= reached ? _stageDateLabel(data[_kPipelineStages[i].tsField]) : '–',
-          ),
         ],
-      ],
-    );
-  }
-}
-
-class _PipelineNode extends StatelessWidget {
-  final _PipelineStage stage;
-  final Color color;
-  final bool done;
-  final String dateLabel;
-  const _PipelineNode({
-    required this.stage,
-    required this.color,
-    required this.done,
-    required this.dateLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 76,
-      child: Column(children: [
-        Container(
-          width: 32, height: 32,
-          decoration: BoxDecoration(
-            color: done ? color : const Color(0xFFF3F4F6),
-            shape: BoxShape.circle,
-            border: done ? null : Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: Icon(stage.icon, size: 15, color: done ? Colors.white : const Color(0xFFB0B7C3)),
-        ),
-        const SizedBox(height: 6),
-        Text(stage.label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10.5,
-              height: 1.2,
-              fontWeight: FontWeight.w600,
-              color: done ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
-            )),
-        const SizedBox(height: 3),
-        Text(dateLabel,
-            style: TextStyle(fontSize: 10, color: done ? const Color(0xFF6B7280) : const Color(0xFFC0C5CE))),
       ]),
-    );
+    ]);
   }
 }
 
