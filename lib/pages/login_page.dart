@@ -271,7 +271,7 @@ class _LoginPageState extends State<LoginPage> {
                 )
               : Column(mainAxisSize: MainAxisSize.min, children: [
                   Text(
-                    'Enter your login email — we\'ll send a reset link to your company mail on file.',
+                    'Enter your login email or company mail — we\'ll send a reset link to your company mail on file.',
                     style: GoogleFonts.inter(fontSize: 13, color: _textMuted),
                   ),
                   const SizedBox(height: 16),
@@ -279,7 +279,7 @@ class _LoginPageState extends State<LoginPage> {
                     controller: emailCtrl,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Login Email',
+                      labelText: 'Login Email or Company Mail',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
@@ -303,7 +303,7 @@ class _LoginPageState extends State<LoginPage> {
                     return;
                   }
                   setS(() { sending = true; error = null; });
-                  final user = await UserStore.findByEmail(email);
+                  final user = await UserStore.findByLoginOrCompanyEmail(email);
                   if (user == null) {
                     setS(() { sending = false; error = 'No account found with that email.'; });
                     return;

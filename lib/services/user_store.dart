@@ -89,6 +89,26 @@ class UserStore {
     }
   }
 
+  // Same as [findByEmail], but also matches on companyEmail — used by
+  // "Forgot Password" so someone who only knows/uses their real company
+  // mailbox (not the separate internal login username) can still find their
+  // account. Deliberately not used for actual sign-in, which stays keyed
+  // to the login email only.
+  static Future<AppUser?> findByLoginOrCompanyEmail(String email) async {
+    final users = await load();
+    final q = email.trim().toLowerCase();
+    try {
+      return users.firstWhere(
+        (u) =>
+            u.active &&
+            (u.email.trim().toLowerCase() == q ||
+                (u.companyEmail.trim().isNotEmpty && u.companyEmail.trim().toLowerCase() == q)),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<List<AppUser>> _loadLocal() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
