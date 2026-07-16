@@ -5,6 +5,7 @@ import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/office_geofence.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -59,6 +60,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
   bool _loading = true;
   AttendanceRecord? _record;
   int _permissionMinutes = 0;
+  bool _outsideOffice = false;
+  bool _locatingForCheckOut = false;
 
   final _timeController = TextEditingController();
   final _noteController = TextEditingController();
@@ -99,7 +102,39 @@ class _CheckOutPageState extends State<CheckOutPage> {
   }
 
   Future<void> _onCheckOut() async {
-    if (_isEarlyCheckOut(_timeController.text, _permissionMinutes) &&
+    setState(() => _locatingForCheckOut = true);
+    final pos = await GpsTrackingService.getCurrentLocation();
+    final outsideOffice = UserSession.workLocation == 'Office' &&
+        pos != null &&
+        !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude);
+    if (!mounted) return;
+    setState(() {
+      _locatingForCheckOut = false;
+      _outsideOffice = outsideOffice;
+    });
+
+    if (outsideOffice && _noteController.text.trim().isEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('You Are Not In Office Location'),
+          content: const Text(
+            "You're outside the office premises. Please enter a reason "
+            'below to check out from this location.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!outsideOffice &&
+        _isEarlyCheckOut(_timeController.text, _permissionMinutes) &&
         _noteController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -194,13 +229,44 @@ class _CheckOutPageState extends State<CheckOutPage> {
           else ...[
             _CheckInSummaryBanner(record: _record!, isDark: isDark),
             const SizedBox(height: 16),
+            if (_outsideOffice) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.red.withValues(alpha: 0.12) : Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade300),
+                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Icon(Icons.location_off_rounded,
+                      color: isDark ? Colors.red.shade300 : Colors.red.shade700, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "You're not in office location. Please give a reason to check out from here.",
+                      style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.red.shade300 : Colors.red.shade800),
+                    ),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 12),
+            ],
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: ListenableBuilder(
                   listenable: _timeController,
                   builder: (context, _) {
-                    final showNote = _isEarlyCheckOut(_timeController.text, _permissionMinutes);
+                    final isEarly = _isEarlyCheckOut(_timeController.text, _permissionMinutes);
+                    final showNote = isEarly || _outsideOffice;
+                    final noteLabel = _outsideOffice && isEarly
+                        ? 'Reason for early & outside-office check-out (required)'
+                        : _outsideOffice
+                            ? 'Reason for checking out outside office (required)'
+                            : 'Reason for early check-out (required)';
                     return Column(children: [
                       TextField(
                         controller: _timeController,
@@ -232,7 +298,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           controller: _noteController,
                           maxLines: 2,
                           decoration: InputDecoration(
-                            labelText: 'Reason for early check-out (required)',
+                            labelText: noteLabel,
                             hintText: 'e.g. left early for client meeting',
                             prefixIcon: Icon(Icons.edit_note_rounded, color: _color, size: 20),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -259,9 +325,14 @@ class _CheckOutPageState extends State<CheckOutPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _onCheckOut,
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('Check Out'),
+                onPressed: _locatingForCheckOut ? null : _onCheckOut,
+                icon: _locatingForCheckOut
+                    ? const SizedBox(
+                        width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.logout_rounded),
+                label: Text(_locatingForCheckOut ? 'Checking location…' : 'Check Out'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _color,
                   foregroundColor: Colors.white,

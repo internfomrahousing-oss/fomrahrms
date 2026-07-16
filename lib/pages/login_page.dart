@@ -107,7 +107,8 @@ class _LoginPageState extends State<LoginPage> {
           designation: dynamicUser.designation,
           department: dynamicUser.department,
           reportingManager: dynamicUser.reportingManager,
-          isReportingManager: dynamicUser.isReportingManager);
+          isReportingManager: dynamicUser.isReportingManager,
+          workLocation: dynamicUser.workLocation);
       return;
     }
 
@@ -190,7 +191,8 @@ class _LoginPageState extends State<LoginPage> {
         email: user.email,
         designation: user.designation,
         department: user.department,
-        isReportingManager: user.isReportingManager);
+        isReportingManager: user.isReportingManager,
+        workLocation: user.workLocation);
   }
 
   // Device Binding gate — native mobile only (web is never restricted; see
@@ -213,6 +215,7 @@ class _LoginPageState extends State<LoginPage> {
     String department = '',
     String reportingManager = '',
     bool isReportingManager = false,
+    String workLocation = '',
   }) {
     UserSession.loggedIn         = true;
     UserSession.role             = role;
@@ -223,6 +226,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.department       = department;
     UserSession.reportingManager = reportingManager;
     UserSession.isReportingManager = isReportingManager;
+    UserSession.workLocation     = workLocation;
     SessionStorage.save();
     themeNotifier.loadForUser(employeeId);
     staffLanguageNotifier.loadForUser(employeeId);

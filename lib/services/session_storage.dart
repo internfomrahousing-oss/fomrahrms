@@ -11,6 +11,7 @@ class SessionStorage {
   static const _kDepartment       = 'fomra_department';
   static const _kReportingManager = 'fomra_reporting_manager';
   static const _kIsReportingManager = 'fomra_is_reporting_manager';
+  static const _kWorkLocation     = 'fomra_work_location';
 
   static const _duration = Duration(hours: 8);
 
@@ -23,6 +24,7 @@ class SessionStorage {
     await kvSetString(_kDepartment, UserSession.department);
     await kvSetString(_kReportingManager, UserSession.reportingManager);
     await kvSetString(_kIsReportingManager, UserSession.isReportingManager ? '1' : '0');
+    await kvSetString(_kWorkLocation, UserSession.workLocation);
     await kvSetString(_kExpiry,
         DateTime.now().add(_duration).millisecondsSinceEpoch.toString());
   }
@@ -52,6 +54,7 @@ class SessionStorage {
       UserSession.department       = await kvGetString(_kDepartment) ?? '';
       UserSession.reportingManager = await kvGetString(_kReportingManager) ?? '';
       UserSession.isReportingManager = (await kvGetString(_kIsReportingManager)) == '1';
+      UserSession.workLocation     = await kvGetString(_kWorkLocation) ?? '';
       // Photo URL is fetched from main() once Supabase has finished
       // initializing (fetching it here would race Supabase.initialize()
       // and silently fail every time).
@@ -71,5 +74,6 @@ class SessionStorage {
     await kvRemove(_kDepartment);
     await kvRemove(_kReportingManager);
     await kvRemove(_kIsReportingManager);
+    await kvRemove(_kWorkLocation);
   }
 }

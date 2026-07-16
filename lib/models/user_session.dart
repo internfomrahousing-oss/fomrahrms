@@ -13,6 +13,7 @@ class UserSession {
   static String   department      = '';
   static String   reportingManager= '';
   static bool     isReportingManager = false;
+  static String   workLocation    = ''; // 'Office' | 'Onsite' | ''
 
   /// Housekeeping/Support Staff employees use a separate, simplified
   /// "Staff Portal" shell instead of the regular employee shell — same
@@ -45,6 +46,7 @@ class UserSession {
     department       = '';
     reportingManager = '';
     isReportingManager = false;
+    workLocation     = '';
     photoUrl         = '';
   }
 }

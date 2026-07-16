@@ -8,6 +8,7 @@ import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/location_consent.dart';
+import '../utils/office_geofence.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
@@ -54,6 +55,8 @@ class _CheckInPageState extends State<CheckInPage> {
   bool _loading = true;
   AttendanceRecord? _record; // today's record from Supabase
   bool _onPermission = false;
+  bool _outsideOffice = false;
+  bool _locatingForCheckIn = false;
 
   final _timeController = TextEditingController();
   final _noteController = TextEditingController();
@@ -108,7 +111,38 @@ class _CheckInPageState extends State<CheckInPage> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    if (!_onPermission && _isLateCheckIn(_timeController.text) &&
+    setState(() => _locatingForCheckIn = true);
+    final pos = await GpsTrackingService.getCurrentLocation();
+    final outsideOffice = UserSession.workLocation == 'Office' &&
+        pos != null &&
+        !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude);
+    if (!mounted) return;
+    setState(() {
+      _locatingForCheckIn = false;
+      _outsideOffice = outsideOffice;
+    });
+
+    if (outsideOffice && _noteController.text.trim().isEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('You Are Not In Office Location'),
+          content: const Text(
+            "You're outside the office premises. Please enter a reason "
+            'below to check in from this location.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!_onPermission && !outsideOffice && _isLateCheckIn(_timeController.text) &&
         _noteController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking in late.'),
@@ -130,7 +164,6 @@ class _CheckInPageState extends State<CheckInPage> {
       if (mounted) setState(() {});
     });
 
-    final pos = await GpsTrackingService.getCurrentLocation();
     final loc = pos != null ? '${pos.latitude},${pos.longitude}' : '';
 
     final err = await SupabaseService.saveCheckIn(
@@ -207,6 +240,8 @@ class _CheckInPageState extends State<CheckInPage> {
               timeController: _timeController,
               noteController: _noteController,
               onPermission: _onPermission,
+              outsideOffice: _outsideOffice,
+              locating: _locatingForCheckIn,
               color: _color,
               cs: cs,
               onRefreshTime: _autoFillTime,
@@ -375,25 +410,60 @@ class _CheckInForm extends StatelessWidget {
   final TextEditingController timeController;
   final TextEditingController noteController;
   final bool onPermission;
+  final bool outsideOffice;
+  final bool locating;
   final Color color;
   final ColorScheme cs;
   final VoidCallback onRefreshTime;
   final VoidCallback onCheckIn;
   const _CheckInForm({
     required this.timeController, required this.noteController, required this.onPermission,
+    required this.outsideOffice, required this.locating,
     required this.color, required this.cs, required this.onRefreshTime, required this.onCheckIn,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(children: [
+      if (outsideOffice) ...[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.red.withValues(alpha: 0.12) : Colors.red.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade300),
+          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.location_off_rounded,
+                color: isDark ? Colors.red.shade300 : Colors.red.shade700, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "You're not in office location. Please give a reason to check in from here.",
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.red.shade300 : Colors.red.shade800),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+      ],
       Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: ListenableBuilder(
             listenable: timeController,
             builder: (context, _) {
-              final showNote = !onPermission && _isLateCheckIn(timeController.text);
+              final isLate = !onPermission && _isLateCheckIn(timeController.text);
+              final showNote = isLate || outsideOffice;
+              final noteLabel = outsideOffice && isLate
+                  ? 'Reason for late & outside-office check-in (required)'
+                  : outsideOffice
+                      ? 'Reason for checking in outside office (required)'
+                      : 'Reason for late check-in (required)';
               return Column(children: [
                 TextField(
                   controller: timeController,
@@ -425,7 +495,7 @@ class _CheckInForm extends StatelessWidget {
                     controller: noteController,
                     maxLines: 2,
                     decoration: InputDecoration(
-                      labelText: 'Reason for late check-in (required)',
+                      labelText: noteLabel,
                       hintText: 'e.g. traffic delay, doctor appointment',
                       prefixIcon: Icon(Icons.edit_note_rounded, color: color, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -452,9 +522,14 @@ class _CheckInForm extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: onCheckIn,
-          icon: const Icon(Icons.login_rounded),
-          label: const Text('Check In'),
+          onPressed: locating ? null : onCheckIn,
+          icon: locating
+              ? const SizedBox(
+                  width: 18, height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.login_rounded),
+          label: Text(locating ? 'Checking location…' : 'Check In'),
           style: ElevatedButton.styleFrom(
             backgroundColor: color,
             foregroundColor: Colors.white,
