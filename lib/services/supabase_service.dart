@@ -283,6 +283,13 @@ import '../models/user_session.dart';
   alter table app_users add column if not exists is_reporting_manager boolean default false;
   alter table app_users add column if not exists is_reporting_manager_pending boolean default false;
   alter table app_users add column if not exists date_of_birth text default '';
+  -- 'FOMRA Developers' | 'FOMRA Housing' — which company this employee
+  -- belongs to; '' = not yet classified by HR. HR sets it once directly;
+  -- changing an already-set value requires Management approval, same
+  -- pattern as work_location.
+  alter table app_users add column if not exists business_unit text default '';
+  alter table app_users add column if not exists business_unit_pending text default '';
+  alter table app_users add column if not exists business_unit_requested_at text default '';
   alter table app_users add column if not exists is_reporting_manager_requested_at text default '';
 
   -- Device Binding: one registered mobile device per employee, gates mobile
@@ -946,6 +953,9 @@ class SupabaseService {
         employeeId:           (row['employee_id']             as String?) ?? '',
         designation:          (row['designation']             as String?) ?? '',
         department:           (row['department']              as String?) ?? '',
+        businessUnit:         (row['business_unit']           as String?) ?? '',
+        businessUnitPending:      (row['business_unit_pending']      as String?) ?? '',
+        businessUnitRequestedAt:  (row['business_unit_requested_at'] as String?) ?? '',
         role:                 (row['role']                    as String?) ?? 'Employee',
         active:               (row['active']                  as bool?)   ?? true,
         password:             (row['password']                as String?) ?? '',
@@ -998,6 +1008,9 @@ class SupabaseService {
       'employee_id':              u.employeeId,
       'designation':              u.designation,
       'department':               u.department,
+      'business_unit':            u.businessUnit,
+      'business_unit_pending':    u.businessUnitPending,
+      'business_unit_requested_at': u.businessUnitRequestedAt,
       'role':                     u.role,
       'active':                   u.active,
       'password':                 u.password,

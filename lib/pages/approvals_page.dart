@@ -102,6 +102,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _users.where((u) => u.hasPendingGrossPayChange).toList();
   List<AppUser> get _pendingWorkLocation =>
       _users.where((u) => u.hasPendingWorkLocationChange).toList();
+  List<AppUser> get _pendingBusinessUnit =>
+      _users.where((u) => u.hasPendingBusinessUnitChange).toList();
   List<AppUser> get _pendingReportingManager =>
       _users.where((u) => u.hasPendingReportingManagerChange).toList();
   List<AppUser> get _pendingRmFlag =>
@@ -134,6 +136,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       _pendingOnroll.length +
       _pendingGrossPay.length +
       _pendingWorkLocation.length +
+      _pendingBusinessUnit.length +
       _pendingReportingManager.length +
       _pendingRmFlag.length +
       _pendingOf(_leaveVersions).length +
@@ -193,6 +196,15 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       if (approve) u.workLocation = u.workLocationPending;
       u.workLocationPending = '';
       u.workLocationRequestedAt = '';
+    });
+    await UserStore.upsertOne(u);
+  }
+
+  Future<void> _decideBusinessUnit(AppUser u, bool approve) async {
+    setState(() {
+      if (approve) u.businessUnit = u.businessUnitPending;
+      u.businessUnitPending = '';
+      u.businessUnitRequestedAt = '';
     });
     await UserStore.upsertOne(u);
   }
@@ -303,6 +315,25 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         ),
       );
 
+  _CategoryInfo get _businessUnitCategory => _CategoryInfo(
+        icon: Icons.corporate_fare_rounded,
+        color: Colors.purple.shade700,
+        label: 'Company Change Requests',
+        pending: _pendingBusinessUnit.length,
+        approved: 0,
+        rejected: 0,
+        total: _pendingBusinessUnit.length,
+        onViewAll: () => _showPendingSheet(
+          label: 'Company Change Requests',
+          color: Colors.purple.shade700,
+          buildCards: (refresh) => _pendingBusinessUnit
+              .map((u) => _businessUnitCard(u,
+                  onApprove: () async { await _decideBusinessUnit(u, true); refresh(); },
+                  onDeny: () async { await _decideBusinessUnit(u, false); refresh(); }))
+              .toList(),
+        ),
+      );
+
   _CategoryInfo get _reportingManagerCategory => _CategoryInfo(
         icon: Icons.manage_accounts_rounded,
         color: Colors.deepPurple.shade700,
@@ -373,6 +404,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<_CategoryInfo> get _allCategories => [
         _leaveCategory, _permissionCategory, _compOffCategory,
         _onrollCategory, _grossPayCategory, _workLocationCategory,
+        _businessUnitCategory,
         _reportingManagerCategory, _rmFlagCategory, _kraCategory,
         _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
         _policyCategory, _maintenanceFormCategory,
@@ -546,7 +578,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                 2 => _tabView([_leaveCategory, _permissionCategory, _compOffCategory]),
                 3 => _tabView([_grossPayCategory]),
                 4 => _tabView([_onrollCategory]),
-                5 => _tabView([_workLocationCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
+                5 => _tabView([_workLocationCategory, _businessUnitCategory, _reportingManagerCategory, _rmFlagCategory, _kraCategory]),
                 _ => _tabView([
                     _leaveFormCategory, _interviewFormCategory, _onboardingFormCategory,
                     _policyCategory, _maintenanceFormCategory,
@@ -634,6 +666,17 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       subtitle: u.designation,
       details: ['${u.workLocation.isEmpty ? '—' : u.workLocation} → ${u.workLocationPending}'],
       meta: _fmtIso(u.workLocationRequestedAt),
+      onApprove: onApprove,
+      onDeny: onDeny,
+    );
+  }
+
+  Widget _businessUnitCard(AppUser u, {required VoidCallback onApprove, required VoidCallback onDeny}) {
+    return _ApprovalCard(
+      title: u.name,
+      subtitle: u.designation,
+      details: ['${u.businessUnit.isEmpty ? '—' : u.businessUnit} → ${u.businessUnitPending}'],
+      meta: _fmtIso(u.businessUnitRequestedAt),
       onApprove: onApprove,
       onDeny: onDeny,
     );

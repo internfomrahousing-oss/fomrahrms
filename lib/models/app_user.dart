@@ -6,6 +6,12 @@ class AppUser {
   String employeeId;
   String designation;
   String department;
+  // 'FOMRA Developers' | 'FOMRA Housing'; '' = not yet set. HR sets it once
+  // directly; once set, HR can only request a change — Management
+  // approves/denies it (see businessUnitPending), same pattern as workLocation.
+  String businessUnit;
+  String businessUnitPending;      // proposed new value awaiting Management approval; empty = none
+  String businessUnitRequestedAt;  // ISO datetime the change was requested
   String role; // 'Employee' | 'Manager' | 'HR' | 'Management'
   bool active;
   String password;            // individual password; empty = use role default
@@ -60,6 +66,9 @@ class AppUser {
     required this.employeeId,
     required this.designation,
     this.department = '',
+    this.businessUnit = '',
+    this.businessUnitPending = '',
+    this.businessUnitRequestedAt = '',
     required this.role,
     this.active = true,
     this.password = '',
@@ -105,6 +114,7 @@ class AppUser {
   bool get isDeviceBound => deviceId.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
+  bool get hasPendingBusinessUnitChange => businessUnitPending.isNotEmpty;
   bool get hasPendingGrossPayChange => grossPayRequestedAt.isNotEmpty;
   bool get hasPendingReportingManagerChange => reportingManagerRequestedAt.isNotEmpty;
   bool get hasPendingRmFlagChange => isReportingManagerRequestedAt.isNotEmpty;
@@ -211,6 +221,9 @@ class AppUser {
     'employeeId':            employeeId,
     'designation':           designation,
     'department':            department,
+    'businessUnit':          businessUnit,
+    'businessUnitPending':   businessUnitPending,
+    'businessUnitRequestedAt': businessUnitRequestedAt,
     'role':                  role,
     'active':                active,
     'password':              password,
@@ -258,6 +271,9 @@ class AppUser {
     employeeId:           j['employeeId']           as String? ?? '',
     designation:          j['designation']          as String? ?? '',
     department:           j['department']           as String? ?? '',
+    businessUnit:         j['businessUnit']         as String? ?? '',
+    businessUnitPending:      j['businessUnitPending']      as String? ?? '',
+    businessUnitRequestedAt:  j['businessUnitRequestedAt']  as String? ?? '',
     role:                 j['role']                 as String? ?? 'Employee',
     active:               j['active']               as bool?   ?? true,
     password:             j['password']             as String? ?? '',
