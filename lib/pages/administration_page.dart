@@ -4,6 +4,7 @@ import '../models/app_user.dart';
 import '../services/user_store.dart';
 import '../services/supabase_service.dart';
 import '../services/email_service.dart';
+import '../constants/org_lists.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -666,6 +667,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     final email   = (form['assigned_email']   as String?) ?? '';
     final empId   = (form['assigned_emp_id']  as String?) ?? '';
     final manager = (form['assigned_manager'] as String?) ?? '';
+    final role    = (form['assigned_role']    as String?)?.trim();
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -680,8 +682,9 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         name:             (form['name']          as String?) ?? '',
         email:            email,
         employeeId:       empId,
-        designation:      (form['designation']   as String?) ?? '',
-        role:             'Employee',
+        designation:      (form['assigned_designation'] as String?) ?? (form['designation'] as String?) ?? '',
+        department:       (form['assigned_department']  as String?) ?? '',
+        role:             (role != null && role.isNotEmpty) ? role : 'Employee',
         active:           true,
         reportingManager: manager,
         dateOfJoining:    (form['date_of_joining'] as String?) ?? '',
@@ -723,6 +726,13 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     final emailCtrl   = TextEditingController(text: (form['assigned_email']   as String? ?? '').replaceAll('@fomrahousing.in', ''));
     final empIdCtrl   = TextEditingController(text: form['assigned_emp_id']   as String? ?? '');
     final managerCtrl = TextEditingController(text: form['assigned_manager']  as String? ?? '');
+    const roleOptions = ['Employee', 'Manager', 'HR'];
+    final existingRole = (form['assigned_role'] as String?)?.trim() ?? '';
+    String selectedRole = roleOptions.contains(existingRole) ? existingRole : 'Employee';
+    final existingDept = (form['assigned_department'] as String?)?.trim() ?? '';
+    final existingDesig = (form['assigned_designation'] as String?)?.trim() ?? '';
+    String? selectedDepartment = kDepartments.contains(existingDept) ? existingDept : null;
+    String? selectedDesignation = kDesignations.contains(existingDesig) ? existingDesig : null;
 
     // Load managers list for dropdown
     List<String> managers = [];
@@ -763,6 +773,44 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                   filled: true, fillColor: Colors.white,
                   labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedDepartment,
+                hint: const Text('Select department'),
+                decoration: InputDecoration(
+                  labelText: 'Department',
+                  prefixIcon: Icon(Icons.account_tree_rounded, color: _mgmtColor, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: kDepartments.map((dep) => DropdownMenuItem(value: dep, child: Text(dep))).toList(),
+                onChanged: (v) => setS(() => selectedDepartment = v),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedDesignation,
+                hint: const Text('Select designation'),
+                decoration: InputDecoration(
+                  labelText: 'Designation',
+                  prefixIcon: Icon(Icons.work_rounded, color: _mgmtColor, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: kDesignations.map((des) => DropdownMenuItem(value: des, child: Text(des))).toList(),
+                onChanged: (v) => setS(() => selectedDesignation = v),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedRole,
+                decoration: InputDecoration(
+                  labelText: 'User Type',
+                  prefixIcon: Icon(Icons.badge_outlined, color: _mgmtColor, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: roleOptions.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                onChanged: (v) => setS(() => selectedRole = v ?? 'Employee'),
               ),
               const SizedBox(height: 12),
               if (managers.isNotEmpty)
@@ -806,9 +854,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                   await Supabase.instance.client
                       .from('onboarding_forms')
                       .update({
-                        'assigned_email':   newEmail,
-                        'assigned_emp_id':  newEmpId,
-                        'assigned_manager': newManager,
+                        'assigned_email':       newEmail,
+                        'assigned_emp_id':      newEmpId,
+                        'assigned_manager':     newManager,
+                        'assigned_role':        selectedRole,
+                        'assigned_department':  selectedDepartment ?? '',
+                        'assigned_designation': selectedDesignation ?? '',
                       })
                       .eq('id', form['id'].toString());
                   await _load();
@@ -1030,6 +1081,8 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 const SizedBox(height: 5),
                                 _DetailRow(Icons.email_rounded,           'Email',    f['assigned_email']   as String? ?? '—'),
                                 _DetailRow(Icons.badge_rounded,           'Emp ID',   f['assigned_emp_id']  as String? ?? '—'),
+                                _DetailRow(Icons.badge_outlined,          'User Type',
+                                    (f['assigned_role'] as String?)?.trim().isNotEmpty == true ? f['assigned_role'] as String : 'Employee'),
                                 _DetailRow(Icons.manage_accounts_rounded, 'Manager',  f['assigned_manager'] as String? ?? '—'),
                               ])),
                               if (status == 'hr_approved')

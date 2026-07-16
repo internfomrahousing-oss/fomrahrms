@@ -354,6 +354,10 @@ import '../models/user_session.dart';
   alter table onboarding_forms add column if not exists assigned_manager text default '';
   alter table onboarding_forms add column if not exists assigned_department text default '';
   alter table onboarding_forms add column if not exists assigned_designation text default '';
+  -- 'Employee' | 'Manager' | 'HR' — the account role HR/Management picks
+  -- when assigning fields; Management is excluded since it's not created
+  -- through recruitment (see role_hierarchy notes elsewhere).
+  alter table onboarding_forms add column if not exists assigned_role text default 'Employee';
 
   create table if not exists attendance_records (
     id text primary key,

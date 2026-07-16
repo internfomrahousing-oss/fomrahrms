@@ -878,6 +878,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     final emailCtrl = TextEditingController(text: _autoEmail(name));
     final empIdCtrl  = TextEditingController(text: _nextEmpId(allUsers));
     String selectedManager = managers.isNotEmpty ? managers.first : '';
+    // Management is excluded here — it's not an employee record and isn't
+    // created through recruitment (see role_hierarchy notes elsewhere).
+    String selectedRole = 'Employee';
+    const roleOptions = ['Employee', 'Manager', 'HR'];
 
     // Department/designation chosen by HR on the pre-offer letter carry over here,
     // still editable in case the role changed before joining.
@@ -931,6 +935,18 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                   filled: true, fillColor: Colors.white,
                   labelStyle: const TextStyle(color: Color(0xFF6B7280)),
                 ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedRole,
+                decoration: InputDecoration(
+                  labelText: 'User Type',
+                  prefixIcon: Icon(Icons.badge_outlined, color: _blue, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true, fillColor: Colors.white,
+                ),
+                items: roleOptions.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                onChanged: (v) => setS(() => selectedRole = v ?? 'Employee'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -998,6 +1014,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                         'assigned_manager':      selectedManager,
                         'assigned_department':   selectedDepartment ?? '',
                         'assigned_designation':  selectedDesignation ?? '',
+                        'assigned_role':         selectedRole,
                       })
                       .eq('id', widget.data['id'].toString());
                   widget.onRefresh();
@@ -1056,6 +1073,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
     final manager     = (d['assigned_manager']     as String?) ?? '';
     final department  = (d['assigned_department']  as String?) ?? '';
     final designation = (d['assigned_designation'] as String?) ?? (d['designation'] as String?) ?? '';
+    final role        = (d['assigned_role']        as String?)?.trim();
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -1073,7 +1091,7 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         employeeId:       empId,
         designation:      designation,
         department:       department,
-        role:             'Employee',
+        role:             (role != null && role.isNotEmpty) ? role : 'Employee',
         active:           true,
         reportingManager: manager,
         dateOfBirth:      (d['date_of_birth'] as String?) ?? '',
@@ -1389,6 +1407,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
                     const SizedBox(height: 4),
                     Text('Email: ${d['assigned_email'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
                     Text('Emp ID: ${d['assigned_emp_id'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
+                    Text('User Type: ${(d['assigned_role'] as String?)?.trim().isNotEmpty == true ? d['assigned_role'] : 'Employee'}',
+                        style: TextStyle(fontSize: 11, color: _blue)),
                     Text('Manager: ${d['assigned_manager'] ?? '—'}', style: TextStyle(fontSize: 11, color: _blue)),
                   ]),
                 ),
