@@ -114,9 +114,12 @@ class _CheckInPageState extends State<CheckInPage> {
 
     setState(() => _locatingForCheckIn = true);
     final pos = await GpsTrackingService.getCurrentLocation();
+    // A failed location lookup (denied permission, GPS off, etc.) is treated
+    // the same as being outside the office — Office employees still get a
+    // check-in, just with a required reason, rather than silently skipping
+    // the geofence check whenever the position can't be read.
     final outsideOffice = UserSession.workLocation == 'Office' &&
-        pos != null &&
-        !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude);
+        (pos == null || !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude));
     if (!mounted) return;
     setState(() {
       _locatingForCheckIn = false;

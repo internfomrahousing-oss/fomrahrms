@@ -16,9 +16,20 @@ class GpsTrackingService {
   static bool get isTracking => _subscription != null;
 
   /// One-shot fix for check-in: fetch a fresh position directly instead of
-  /// relying on the position stream (which may not have emitted yet).
+  /// relying on the position stream (which may not have emitted yet). Unlike
+  /// [start], this runs before tracking has ever been started this session —
+  /// e.g. the very first check-in on a fresh install — so it must request
+  /// permission itself rather than assume [start] already did.
   static Future<Position?> getCurrentLocation() async {
     try {
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        return null;
+      }
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );

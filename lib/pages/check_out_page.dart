@@ -105,9 +105,12 @@ class _CheckOutPageState extends State<CheckOutPage> {
   Future<void> _onCheckOut() async {
     setState(() => _locatingForCheckOut = true);
     final pos = await GpsTrackingService.getCurrentLocation();
+    // A failed location lookup (denied permission, GPS off, etc.) is treated
+    // the same as being outside the office — Office employees still get a
+    // check-out, just with a required reason, rather than silently skipping
+    // the geofence check whenever the position can't be read.
     final outsideOffice = UserSession.workLocation == 'Office' &&
-        pos != null &&
-        !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude);
+        (pos == null || !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude));
     if (!mounted) return;
     setState(() {
       _locatingForCheckOut = false;
