@@ -316,6 +316,12 @@ final _router = GoRouter(
         // "My Team" — only shown/relevant when UserSession.isReportingManager (see app_shell.dart).
         GoRoute(path: '/hr/leave/team-approvals',   builder: (_, __) => const TeamLeaveApprovalsPage()),
         GoRoute(path: '/hr/interview-review',       builder: (_, __) => const ManagerInterviewReviewPage()),
+        GoRoute(path: '/hr/appraisal',               builder: (_, __) =>
+            const EmployeeAppraisalRequestPage(formRoute: '/hr/appraisal/form')),
+        GoRoute(path: '/hr/appraisal/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
+        }),
         GoRoute(path: '/hr/appraisal-received',     builder: (_, __) => const AppraisalReceivedPage()),
         GoRoute(path: '/hr/appraisal-received/form', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
@@ -422,6 +428,12 @@ final _router = GoRouter(
             existing: extra['existing'] as AppraisalForm?,
             allUsers: (extra['allUsers'] as List<AppUser>?) ?? const [],
           );
+        }),
+        GoRoute(path: '/manager/appraisal',               builder: (_, __) =>
+            const EmployeeAppraisalRequestPage(formRoute: '/manager/appraisal/form')),
+        GoRoute(path: '/manager/appraisal/form', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
         }),
         GoRoute(path: '/manager/appraisal-received',      builder: (_, __) => const AppraisalReceivedPage()),
         GoRoute(path: '/manager/appraisal-received/form', builder: (_, state) {

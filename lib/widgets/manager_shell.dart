@@ -38,6 +38,7 @@ const _personalNavItems = [
   _NavItem('My Attendance and Leaves', Icons.event_note_rounded,   '/manager/attendance-leaves'),
   _NavItem('My Tasks',      Icons.task_alt_rounded,                '/manager/my-tasks'),
   _NavItem('My Payslips',   Icons.account_balance_wallet_rounded,  '/manager/my-payslips'),
+  _NavItem('Appraisal',     Icons.fact_check_rounded,              '/manager/appraisal'),
   _NavItem('Maintenance',   Icons.build_rounded,                   '/manager/maintenance-management'),
 ];
 

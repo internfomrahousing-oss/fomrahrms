@@ -10,7 +10,12 @@ import '../theme/app_theme.dart';
 /// Employee-facing entry point: request a new appraisal, track the active
 /// one's stage, and browse past completed appraisals.
 class EmployeeAppraisalRequestPage extends StatefulWidget {
-  const EmployeeAppraisalRequestPage({super.key});
+  // HR/Manager reuse this same page for their own "request my appraisal"
+  // flow (see role_hierarchy notes — both are employees, only Management
+  // isn't) but live under their own shells, so the form editor push needs
+  // to land on their prefixed route rather than always /employee/....
+  final String formRoute;
+  const EmployeeAppraisalRequestPage({super.key, this.formRoute = '/employee/appraisal/form'});
 
   @override
   State<EmployeeAppraisalRequestPage> createState() => _EmployeeAppraisalRequestPageState();
@@ -82,7 +87,7 @@ class _EmployeeAppraisalRequestPageState extends State<EmployeeAppraisalRequestP
   }
 
   Future<void> _open(AppraisalForm form) async {
-    await context.push('/employee/appraisal/form', extra: {'existing': form});
+    await context.push(widget.formRoute, extra: {'existing': form});
     if (mounted) _load();
   }
 
