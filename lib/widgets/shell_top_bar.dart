@@ -76,8 +76,13 @@ class ShellTopBar extends StatelessWidget {
           onTap: () => context.go(homeRoute),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Image.asset('assets/images/fomra_logo.png', height: 44, fit: BoxFit.contain),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Text('FOMRA HOUSING AND INFRASTRUCTURE',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.4)),
           ),
         ),
         const Spacer(),
