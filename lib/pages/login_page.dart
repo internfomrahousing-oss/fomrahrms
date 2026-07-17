@@ -352,7 +352,7 @@ class _LoginPageState extends State<LoginPage> {
       SizedBox(height: compact ? 14 : 18),
       Container(width: 36, height: 2, color: _infinityBlue.withValues(alpha: 0.7)),
       SizedBox(height: compact ? 20 : 28),
-      Image.asset('assets/images/fomra_logo.png', width: compact ? 180 : 220),
+      Image.asset('assets/images/fomra_logo.png', width: compact ? 220 : 270),
     ]);
   }
 
