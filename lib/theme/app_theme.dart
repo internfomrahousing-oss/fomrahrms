@@ -22,6 +22,20 @@ class AppTheme {
   static Color get sidebarMuted => Color.lerp(_t.accent, Colors.white, 0.65)!;
   static const Color white = Colors.white;
 
+  // Shared dark->primary gradient for the app's top surfaces (top bars,
+  // mobile app bars, the dashboard welcome banner) so they read as one
+  // continuous surface instead of stacked flat-color bands.
+  static LinearGradient get headerGradient {
+    final dark = primaryBlueDark;
+    final mid = Color.lerp(dark, primaryBlue, 0.55)!;
+    return LinearGradient(
+      colors: [dark, mid, primaryBlue],
+      stops: const [0.0, 0.55, 1.0],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
+  }
+
   static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);

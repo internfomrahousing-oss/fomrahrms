@@ -7,12 +7,14 @@ import '../services/push_notification_service.dart';
 import '../services/audit_log_service.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
+import '../models/color_theme_notifier.dart';
 import '../models/theme_notifier.dart';
 import 'breadcrumb_bar.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'quick_actions_bar.dart';
 import 'notification_bell_button.dart';
+import 'profile_avatar_button.dart';
 
 class _NavItem {
   final String label;
@@ -192,33 +194,41 @@ class _NarrowLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_currentTitle),
-        backgroundColor: AppTheme.accentBlue,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          const ThemeToggle(),
-          const SizedBox(width: 4),
-          const NotificationBellButton(
-            notificationsRoute: '/employee/notifications',
-            color: Colors.white,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              backgroundColor: AppTheme.accentBlue,
-              radius: 16,
-              child: const Icon(Icons.person, color: Colors.white, size: 18),
+    // The dashboard already shows a large, functional profile avatar in the
+    // WelcomeBanner below — repeating it here would be a second, redundant
+    // profile icon on screen at once.
+    final hideProfile = location == '/employee/dashboard';
+    return ListenableBuilder(
+      listenable: colorThemeNotifier,
+      builder: (context, _) => Scaffold(
+        appBar: AppBar(
+          title: Text(_currentTitle),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.headerGradient)),
+          iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            const ThemeToggle(),
+            const SizedBox(width: 4),
+            const NotificationBellButton(
+              notificationsRoute: '/employee/notifications',
+              color: Colors.white,
             ),
-          ),
-        ],
+            if (!hideProfile) ...[
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: ProfileAvatarButton(),
+              ),
+            ] else
+              const SizedBox(width: 12),
+          ],
+        ),
+        drawer: Drawer(child: _DrawerContent(location: location)),
+        body: Column(children: [
+          BreadcrumbBar(location: location, homeRoute: '/employee/dashboard', sections: _breadcrumbSections),
+          Expanded(child: QuickActionsBody(child: child)),
+        ]),
       ),
-      drawer: Drawer(child: _DrawerContent(location: location)),
-      body: Column(children: [
-        BreadcrumbBar(location: location, homeRoute: '/employee/dashboard', sections: _breadcrumbSections),
-        Expanded(child: QuickActionsBody(child: child)),
-      ]),
     );
   }
 }

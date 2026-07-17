@@ -58,18 +58,9 @@ class _WelcomeBannerState extends State<WelcomeBanner> {
   }
 
   Widget _bannerBody(String name, bool wide) {
-    final dark = AppTheme.primaryBlueDark;
-    final mid = Color.lerp(dark, AppTheme.primaryBlue, 0.55)!;
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [dark, mid, AppTheme.primaryBlue],
-          stops: const [0.0, 0.55, 1.0],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.headerGradient),
       padding: EdgeInsets.fromLTRB(wide ? 28 : 16, 18, wide ? 28 : 16, 18),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Expanded(

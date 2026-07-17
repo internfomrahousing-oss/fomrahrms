@@ -7,6 +7,7 @@ import '../services/audit_log_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
 import '../theme/app_theme.dart';
+import '../models/color_theme_notifier.dart';
 import '../models/theme_notifier.dart';
 import 'breadcrumb_bar.dart';
 import 'shell_top_bar.dart';
@@ -224,31 +225,43 @@ class _NarrowLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_currentTitle),
-        backgroundColor: AppTheme.primaryBlue,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          const ThemeToggle(),
-          const SizedBox(width: 4),
-          const NotificationBellButton(
-            notificationsRoute: '/notifications',
-            color: Colors.white,
-          ),
-          const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: ProfileAvatarButton(),
-          ),
-        ],
+    // The dashboard already shows a large, functional profile avatar in the
+    // WelcomeBanner below — repeating it here would be a second, redundant
+    // profile icon on screen at once.
+    final hideProfile = location == '/dashboard';
+    return ListenableBuilder(
+      listenable: colorThemeNotifier,
+      builder: (context, _) => Scaffold(
+        appBar: AppBar(
+          title: Text(_currentTitle),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.headerGradient)),
+          iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            const ThemeToggle(),
+            const SizedBox(width: 4),
+            const NotificationBellButton(
+              notificationsRoute: '/notifications',
+              color: Colors.white,
+            ),
+            if (!hideProfile) ...[
+              const Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: ProfileAvatarButton(),
+              ),
+            ] else
+              const SizedBox(width: 8),
+          ],
+        ),
+        drawer: Drawer(
+          child: _DrawerContent(location: location),
+        ),
+        body: Column(children: [
+          BreadcrumbBar(location: location, homeRoute: '/dashboard', sections: _breadcrumbSections),
+          Expanded(child: QuickActionsBody(child: child)),
+        ]),
       ),
-      drawer: Drawer(
-        child: _DrawerContent(location: location),
-      ),
-      body: Column(children: [
-        BreadcrumbBar(location: location, homeRoute: '/dashboard', sections: _breadcrumbSections),
-        Expanded(child: QuickActionsBody(child: child)),
-      ]),
     );
   }
 }

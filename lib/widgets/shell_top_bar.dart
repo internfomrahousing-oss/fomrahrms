@@ -39,19 +39,10 @@ class ShellTopBar extends StatelessWidget {
   }
 
   Widget _bar(BuildContext context) {
-    final dark = AppTheme.primaryBlueDark;
-    final mid = Color.lerp(dark, AppTheme.primaryBlue, 0.55)!;
     final toggleAccent = AppTheme.accentBlue;
     return Container(
       height: 60,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [dark, mid, AppTheme.primaryBlue],
-          stops: const [0.0, 0.55, 1.0],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.headerGradient),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(children: [
         // Sidebar toggle

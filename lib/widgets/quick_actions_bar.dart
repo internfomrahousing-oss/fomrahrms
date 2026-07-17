@@ -159,10 +159,10 @@ class QuickActionsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      // Colored to match the dark banner/app-bar these icons sit above, so
-      // there's no visible seam of the (light) scaffold background behind them.
+      // Same gradient as the app bar above and the banner below, so all three
+      // read as one continuous surface instead of stacked flat-color bands.
       Container(
-        color: AppTheme.primaryBlue,
+        decoration: BoxDecoration(gradient: AppTheme.headerGradient),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
