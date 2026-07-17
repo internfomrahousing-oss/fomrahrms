@@ -13,7 +13,6 @@ import '../services/user_store.dart';
 import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
 import '../services/email_service.dart';
-import '../widgets/fomra_logo.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -353,7 +352,7 @@ class _LoginPageState extends State<LoginPage> {
       SizedBox(height: compact ? 14 : 18),
       Container(width: 36, height: 2, color: _infinityBlue.withValues(alpha: 0.7)),
       SizedBox(height: compact ? 20 : 28),
-      FomraLogoMark(wordmarkSize: compact ? 40 : 46),
+      Image.asset('assets/images/fomra_logo.png', width: compact ? 180 : 220),
     ]);
   }
 
