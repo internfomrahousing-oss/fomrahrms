@@ -996,8 +996,9 @@ class SupabaseService {
   // ── Attendance Selfies ────────────────────────────────────────────────
   // Private bucket — see supabase/migrations/20260716020000_attendance_selfies.sql
   // for the bucket + RLS policies (upload = own employee_id folder only,
-  // read = HR/Management only) and the retention cron that deletes these
-  // after 30 days. Never use getPublicUrl on this bucket.
+  // read = HR/Management only) and supabase/migrations/20260717000000_selfie_45day_retention.sql
+  // for the 45-day retention window (both the purge cron and the RLS
+  // policy itself refuse anything older). Never use getPublicUrl on this bucket.
 
   static const _selfieBucket = 'attendance-selfies';
 
@@ -1033,11 +1034,11 @@ class SupabaseService {
   static Future<String?> attendanceSelfieUrl(String path) async {
     final db = _db;
     if (db == null || path.isEmpty) return null;
-    try {
-      return await db.storage.from(_selfieBucket).createSignedUrl(path, 3600);
-    } catch (_) {
-      return null;
-    }
+    // Deliberately not caught here — the caller (HR attendance records page)
+    // shows the real error message so a permission/RLS/network failure is
+    // distinguishable from "no selfie was ever taken" instead of both
+    // rendering as the same generic broken-camera icon.
+    return await db.storage.from(_selfieBucket).createSignedUrl(path, 3600);
   }
 
   // ── Candidate Applications ────────────────────────────────────────────

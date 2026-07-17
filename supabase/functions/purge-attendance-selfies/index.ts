@@ -1,5 +1,5 @@
 // Daily retention sweep for attendance selfies. Deletes any check-in/
-// check-out selfie older than 30 days from the private `attendance-selfies`
+// check-out selfie older than 45 days from the private `attendance-selfies`
 // storage bucket and clears the corresponding path columns on
 // attendance_records. Deleting storage objects has to go through the
 // Storage API (not a plain SQL delete on storage.objects), which is why
@@ -22,7 +22,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const RETENTION_DAYS = 30;
+const RETENTION_DAYS = 45;
 const BUCKET = "attendance-selfies";
 
 function json(body: unknown, status = 200) {
