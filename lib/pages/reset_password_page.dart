@@ -24,6 +24,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   String? _error;
   final _newPassCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+  bool _showNewPass = false;
+  bool _showConfirmPass = false;
 
   @override
   void initState() {
@@ -162,19 +164,27 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       const SizedBox(height: 20),
       TextField(
         controller: _newPassCtrl,
-        obscureText: true,
+        obscureText: !_showNewPass,
         decoration: InputDecoration(
           labelText: 'New Password',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          suffixIcon: IconButton(
+            icon: Icon(_showNewPass ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+            onPressed: () => setState(() => _showNewPass = !_showNewPass),
+          ),
         ),
       ),
       const SizedBox(height: 12),
       TextField(
         controller: _confirmCtrl,
-        obscureText: true,
+        obscureText: !_showConfirmPass,
         decoration: InputDecoration(
           labelText: 'Confirm Password',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          suffixIcon: IconButton(
+            icon: Icon(_showConfirmPass ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+            onPressed: () => setState(() => _showConfirmPass = !_showConfirmPass),
+          ),
         ),
         onSubmitted: (_) => _submit(),
       ),
