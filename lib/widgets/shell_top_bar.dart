@@ -77,28 +77,7 @@ class ShellTopBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              SizedBox(
-                width: 34,
-                height: 34,
-                child: Image.asset('assets/images/fomra_logo.png', fit: BoxFit.contain),
-              ),
-              const SizedBox(width: 10),
-              const Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('FOMRA HRMS',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5)),
-                  Text('Human Resource Management',
-                      style: TextStyle(color: Colors.white54, fontSize: 9)),
-                ],
-              ),
-            ]),
+            child: Image.asset('assets/images/fomra_logo.png', height: 44, fit: BoxFit.contain),
           ),
         ),
         const Spacer(),

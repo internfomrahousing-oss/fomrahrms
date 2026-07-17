@@ -333,30 +333,12 @@ class _SidebarHeader extends StatelessWidget {
           InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () => context.go('/dashboard'),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Image.asset('assets/images/fomra_logo.png', fit: BoxFit.contain),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'FOMRA',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-                      ),
-                      Text(
-                        'Housing & Infrastructure',
-                        style: TextStyle(color: AppTheme.sidebarMuted, fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            child: SizedBox(
+              width: double.infinity,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Image.asset('assets/images/fomra_logo.png', height: 60, fit: BoxFit.contain),
+              ),
             ),
           ),
           const SizedBox(height: 16),
