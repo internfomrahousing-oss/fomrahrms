@@ -1916,6 +1916,37 @@ class SupabaseService {
     }
   }
 
+  /// Employees currently checked in for [date] (checked in, not yet checked
+  /// out) — used by the Reports & Analytics live tracking map, which only
+  /// needs whoever's on the move right now rather than the full day's rows.
+  static Future<List<AttendanceRecord>> fetchCheckedInAttendance(String date) async {
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('date', date)
+          .not('check_in_time', 'eq', '')
+          .eq('check_out_time', '');
+      if (data == null) return [];
+      return (data as List).map((row) => AttendanceRecord(
+        id:           row['id'] as String,
+        employeeName: row['employee_name'] as String,
+        employeeId:   (row['employee_id']    as String?) ?? '',
+        date:         row['date'] as String,
+        checkInTime:  (row['check_in_time']  as String?) ?? '',
+        checkOutTime: (row['check_out_time'] as String?) ?? '',
+        location:     (row['location']        as String?) ?? '',
+        gpsPoints:    _parseGpsPoints(row['gps_points']),
+        checkInNote:  (row['check_in_note']  as String?) ?? '',
+        checkOutNote: (row['check_out_note'] as String?) ?? '',
+        checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
+        checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+      )).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<AttendanceRecord?> fetchTodayAttendance(String employeeId) async {
     if (employeeId.isEmpty) return null;
     final today = DateTime.now();
@@ -2420,6 +2451,24 @@ class SupabaseService {
     try {
       await _db?.from('payslips').upsert(p.toJson());
     } catch (_) {}
+  }
+
+  /// All employees' payslips for one month (`'YYYY-MM'`) — unlike
+  /// [fetchPayslips], which is scoped to a single employee. Used by the
+  /// Reports & Analytics Payroll Summary card.
+  static Future<List<Payslip>> fetchPayslipsForMonth(String monthYear) async {
+    try {
+      final data = await _db
+          ?.from('payslips')
+          .select()
+          .eq('month_year', monthYear);
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => Payslip.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   // ── Notifications ─────────────────────────────────────────────────────

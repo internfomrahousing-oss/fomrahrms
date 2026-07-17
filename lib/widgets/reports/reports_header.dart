@@ -1,0 +1,238 @@
+import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
+import '../filter_panel.dart';
+
+enum QuickRange { today, thisWeek, thisMonth, custom }
+
+extension QuickRangeLabel on QuickRange {
+  String get label => switch (this) {
+        QuickRange.today => 'Today',
+        QuickRange.thisWeek => 'This Week',
+        QuickRange.thisMonth => 'This Month',
+        QuickRange.custom => 'Custom',
+      };
+}
+
+DateTimeRange rangeFor(QuickRange q) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  switch (q) {
+    case QuickRange.today:
+      return DateTimeRange(start: today, end: today);
+    case QuickRange.thisWeek:
+      final start = today.subtract(Duration(days: today.weekday - 1));
+      return DateTimeRange(start: start, end: today);
+    case QuickRange.thisMonth:
+      return DateTimeRange(start: DateTime(today.year, today.month, 1), end: today);
+    case QuickRange.custom:
+      return DateTimeRange(start: today, end: today);
+  }
+}
+
+/// Header for the Reports & Analytics page: title/subtitle, date-range
+/// trigger + quick-range chips (the first real date-range picker in this
+/// app — showDateRangePicker wrapped in a styled pill), Department/
+/// Location/Role filter dropdowns (reusing FilterDropdownField), refresh,
+/// and Export Report.
+class ReportsHeader extends StatelessWidget {
+  final DateTimeRange range;
+  final QuickRange quickRange;
+  final ValueChanged<QuickRange> onQuickRange;
+  final ValueChanged<DateTimeRange> onCustomRange;
+
+  final String? department;
+  final List<String> departmentOptions;
+  final ValueChanged<String?> onDepartmentChanged;
+
+  final String? location;
+  final List<String> locationOptions;
+  final ValueChanged<String?> onLocationChanged;
+
+  final String? role;
+  final List<String> roleOptions;
+  final ValueChanged<String?> onRoleChanged;
+
+  final VoidCallback onRefresh;
+  final bool refreshing;
+  final VoidCallback onExport;
+  final bool exporting;
+
+  const ReportsHeader({
+    super.key,
+    required this.range,
+    required this.quickRange,
+    required this.onQuickRange,
+    required this.onCustomRange,
+    required this.department,
+    required this.departmentOptions,
+    required this.onDepartmentChanged,
+    required this.location,
+    required this.locationOptions,
+    required this.onLocationChanged,
+    required this.role,
+    required this.roleOptions,
+    required this.onRoleChanged,
+    required this.onRefresh,
+    required this.refreshing,
+    required this.onExport,
+    required this.exporting,
+  });
+
+  static String _fmt(DateTime d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+
+  Future<void> _pickCustomRange(BuildContext context) async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: range,
+    );
+    if (picked != null) onCustomRange(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final narrow = constraints.maxWidth < 900;
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Reports & Analytics', style: AppTheme.pageHeading),
+              const SizedBox(height: 4),
+              const Text('Real-time insights and comprehensive analytics across your organization.',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+            ]),
+          ),
+          if (!narrow) ...[
+            const SizedBox(width: 16),
+            _refreshButton(),
+            const SizedBox(width: 8),
+            _exportButton(),
+          ],
+        ]),
+        const SizedBox(height: 18),
+        Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          _dateRangeButton(context),
+          for (final q in [QuickRange.today, QuickRange.thisWeek, QuickRange.thisMonth])
+            _quickChip(q),
+          SizedBox(
+            width: 170,
+            child: FilterDropdownField<String>(
+              label: 'Department',
+              value: department,
+              options: departmentOptions,
+              labelOf: (o) => o,
+              allLabel: 'All Departments',
+              onChanged: onDepartmentChanged,
+            ),
+          ),
+          SizedBox(
+            width: 170,
+            child: FilterDropdownField<String>(
+              label: 'Location',
+              value: location,
+              options: locationOptions,
+              labelOf: (o) => o,
+              allLabel: 'All Locations',
+              onChanged: onLocationChanged,
+            ),
+          ),
+          SizedBox(
+            width: 170,
+            child: FilterDropdownField<String>(
+              label: 'Employee Type',
+              value: role,
+              options: roleOptions,
+              labelOf: (o) => o,
+              allLabel: 'All Types',
+              onChanged: onRoleChanged,
+            ),
+          ),
+          if (narrow) ...[
+            _refreshButton(),
+            _exportButton(),
+          ],
+        ]),
+      ]);
+    });
+  }
+
+  Widget _dateRangeButton(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _pickCustomRange(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.borderSubtle),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.calendar_today_rounded, size: 15, color: AppTheme.textSecondary),
+            const SizedBox(width: 8),
+            Text('${_fmt(range.start)} - ${_fmt(range.end)}',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+            const SizedBox(width: 6),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppTheme.textSecondary),
+          ]),
+        ),
+      );
+
+  Widget _quickChip(QuickRange q) {
+    final selected = quickRange == q;
+    return GestureDetector(
+      onTap: () => onQuickRange(q),
+      child: AnimatedContainer(
+        duration: AppTheme.fastAnim,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.primaryBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: selected ? AppTheme.primaryBlue : AppTheme.borderSubtle),
+        ),
+        child: Text(q.label,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : AppTheme.textPrimary)),
+      ),
+    );
+  }
+
+  Widget _refreshButton() => Tooltip(
+        message: 'Refresh',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: refreshing ? null : onRefresh,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.borderSubtle),
+            ),
+            child: refreshing
+                ? const SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.refresh_rounded, size: 18, color: AppTheme.textPrimary),
+          ),
+        ),
+      );
+
+  Widget _exportButton() => ElevatedButton.icon(
+        onPressed: exporting ? null : onExport,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        icon: exporting
+            ? const SizedBox(width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.file_download_outlined, size: 18),
+        label: const Text('Export Report',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      );
+}
