@@ -113,14 +113,7 @@ class _PreOfferAcceptPageState extends State<PreOfferAcceptPage> {
     return Column(children: [
       _card(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(Icons.badge_rounded, color: AppTheme.primaryBlue, size: 28),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text('Fomra Housing & Infrastructure Pvt Ltd',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF111827))),
-            ),
-          ]),
+          Image.asset('assets/images/fomra_logo.png', height: 40),
           const SizedBox(height: 20),
           Text('Dear $name,',
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827))),

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -9,7 +10,6 @@ import '../models/payslip_store.dart';
 /// table, net pay, leave details) — dense enough to sit within about half
 /// an A4 page.
 class PayslipPdfService {
-  static const _blue = PdfColor.fromInt(0xFF2563EB);
   static const _grey = PdfColor.fromInt(0xFF6B7280);
   static const _border = PdfColor.fromInt(0xFFD1D5DB);
   static const _headerFill = PdfColor.fromInt(0xFFF3F4F6);
@@ -192,6 +192,8 @@ class PayslipPdfService {
 
   static Future<Uint8List> build(Payslip p) async {
     final doc = pw.Document();
+    final logoBytes = (await rootBundle.load('assets/images/fomra_logo.png')).buffer.asUint8List();
+    final logo = pw.MemoryImage(logoBytes);
 
     doc.addPage(
       pw.Page(
@@ -203,9 +205,8 @@ class PayslipPdfService {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('FOMRA HOUSING & INFRASTRUCTURE PVT LTD',
-                  style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: _blue)),
-              pw.SizedBox(height: 2),
+              pw.Image(logo, height: 44),
+              pw.SizedBox(height: 6),
               pw.Text('Pay Slip - ${_monthLabel(p.monthYear)}', style: const pw.TextStyle(fontSize: 9, color: _grey)),
               pw.SizedBox(height: 10),
               _infoGrid(p),

@@ -613,14 +613,7 @@ class _CandidateApplicationFormPageState
           color: Colors.white,
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 24, pad, 16),
           child: Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.assignment_ind_rounded, color: _blue, size: 20),
-            ),
+            Image.asset('assets/images/fomra_logo.png', height: 40),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
