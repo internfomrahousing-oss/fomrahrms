@@ -2669,16 +2669,25 @@ class SupabaseService {
 
   // ── Account activation tokens (Set Your Password flow) ─────────────────
 
+  // .select() + a rows-affected check so a blocked/no-op write throws
+  // instead of silently succeeding — otherwise the activation email goes
+  // out with a token that was never actually saved, leaving the employee
+  // with a permanently "Invalid Activation Link".
   static Future<void> setAppUserActivationToken(
     String email, {
     required String token,
     required String expiresAt,
   }) async {
-    await _db?.from('app_users').update({
+    final db = _db;
+    if (db == null) return;
+    final rows = await db.from('app_users').update({
       'activation_token': token,
       'activation_token_expires_at': expiresAt,
       'active': false,
-    }).eq('email', email);
+    }).eq('email', email).select();
+    if (rows.isEmpty) {
+      throw Exception('Could not save the activation token for $email — check permissions and that the account exists.');
+    }
   }
 
   static Future<Map<String, dynamic>?> fetchAppUserByActivationToken(String token) async {
