@@ -78,17 +78,10 @@ class ShellTopBar extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(
+              SizedBox(
                 width: 34,
                 height: 34,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25), width: 0.8),
-                ),
-                child: const Icon(Icons.apartment_rounded,
-                    color: Colors.white, size: 20),
+                child: Image.asset('assets/images/fomra_logo.png', fit: BoxFit.contain),
               ),
               const SizedBox(width: 10),
               const Column(

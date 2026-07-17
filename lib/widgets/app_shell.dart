@@ -335,14 +335,10 @@ class _SidebarHeader extends StatelessWidget {
             onTap: () => context.go('/dashboard'),
             child: Row(
               children: [
-                Container(
+                SizedBox(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.apartment_rounded, color: AppTheme.primaryBlue, size: 26),
+                  child: Image.asset('assets/images/fomra_logo.png', fit: BoxFit.contain),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
