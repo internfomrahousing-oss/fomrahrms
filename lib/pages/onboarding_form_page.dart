@@ -1042,14 +1042,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       borderRadius: BorderRadius.circular(16),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Image.asset('assets/images/fomra_logo.png', height: 44),
-      ),
+      Image.asset('assets/images/fomra_logo.png', height: 44),
       const SizedBox(height: 4),
       const Text('(Corporate Office)',
           textAlign: TextAlign.center,
