@@ -1407,20 +1407,44 @@ class _SelfieThumbnailState extends State<_SelfieThumbnail> {
       builder: (_) => Dialog(
         backgroundColor: Colors.black,
         insetPadding: const EdgeInsets.all(16),
-        child: Stack(children: [
-          InteractiveViewer(child: Image.network(url)),
-          Positioned(
-            top: 8, right: 8,
-            child: InkWell(
-              onTap: () => Navigator.of(context).pop(),
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(Icons.close_rounded, color: Colors.white, size: 24),
+        child: SizedBox.expand(
+          child: Stack(children: [
+            // InteractiveViewer needs a bounded/sized child to zoom/pan
+            // correctly — a bare Image.network here would render at zero
+            // size in some cases, making the dialog look like it did
+            // nothing when tapped.
+            Positioned.fill(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 5,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                  loadingBuilder: (context, child, progress) => progress == null
+                      ? child
+                      : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                  errorBuilder: (context, error, stack) => const Center(
+                    child: Icon(Icons.broken_image_rounded, color: Colors.white54, size: 48),
+                  ),
+                ),
               ),
             ),
-          ),
-        ]),
+            Positioned(
+              top: 8, right: 8,
+              child: InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+                ),
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -1432,13 +1456,30 @@ class _SelfieThumbnailState extends State<_SelfieThumbnail> {
       builder: (context, snap) {
         final url = snap.data;
         final loading = snap.connectionState != ConnectionState.done;
+        final error = snap.hasError ? snap.error.toString() : null;
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(widget.label,
               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
                   color: Color(0xFF9CA3AF))),
           const SizedBox(height: 4),
           GestureDetector(
-            onTap: url == null ? null : () => _openFullScreen(url),
+            onTap: url != null
+                ? () => _openFullScreen(url)
+                : error != null
+                    ? () => showDialog<void>(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text('Could not load selfie'),
+                            content: Text(error),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Close'),
+                              ),
+                            ],
+                          ),
+                        )
+                    : null,
             child: Container(
               height: 110,
               width: double.infinity,
@@ -1452,11 +1493,15 @@ class _SelfieThumbnailState extends State<_SelfieThumbnail> {
                   ? const Center(
                       child: SizedBox(width: 18, height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2)))
-                  : url == null
+                  : error != null
                       ? const Center(
-                          child: Icon(Icons.no_photography_rounded,
-                              color: Color(0xFF9CA3AF), size: 22))
-                      : Image.network(url, fit: BoxFit.cover, width: double.infinity),
+                          child: Icon(Icons.error_outline_rounded,
+                              color: Colors.redAccent, size: 22))
+                      : url == null
+                          ? const Center(
+                              child: Icon(Icons.no_photography_rounded,
+                                  color: Color(0xFF9CA3AF), size: 22))
+                          : Image.network(url, fit: BoxFit.cover, width: double.infinity),
             ),
           ),
         ]);
@@ -1536,6 +1581,50 @@ class _RouteSection extends StatelessWidget {
     return [];
   }
 
+  // The map is an embedded Leaflet iframe on web, which swallows pointer
+  // events before a wrapping GestureDetector ever sees them — so "tap the
+  // map to enlarge" doesn't work here the way it does for a plain image.
+  // An explicit expand button avoids that instead of relying on a tap
+  // gesture the iframe would eat.
+  void _openFullMap(BuildContext context, List<List<double>> pts) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: SizedBox(
+          width: 700,
+          height: 600,
+          child: Stack(children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: RouteMapView(
+                  points: pts,
+                  recordId: record.id,
+                  keyPrefix: 'hr_route_full',
+                  height: 600,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8, right: 8,
+              child: InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pts = _points;
@@ -1546,10 +1635,20 @@ class _RouteSection extends StatelessWidget {
       Row(children: [
         Icon(Icons.route_rounded, size: 15, color: AppTheme.accentBlue),
         const SizedBox(width: 6),
-        Text(
-          pts.length > 1 ? 'Route (${pts.length} points)' : 'Last Known Location',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+        Expanded(
+          child: Text(
+            pts.length > 1 ? 'Route (${pts.length} points)' : 'Last Known Location',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+          ),
+        ),
+        InkWell(
+          onTap: () => _openFullMap(context, pts),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Icon(Icons.open_in_full_rounded, size: 15, color: AppTheme.accentBlue),
+          ),
         ),
       ]),
       const SizedBox(height: 8),
