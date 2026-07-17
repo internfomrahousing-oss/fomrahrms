@@ -648,65 +648,80 @@ class _LeadManagementPageState extends State<LeadManagementPage> {
               children: [
                 Row(children: [
                   const NavBackButton(),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                  SizedBox(width: narrow ? 4 : 8),
+                  if (!narrow) ...[
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.campaign_rounded,
+                          color: Color(0xFF1877F2), size: 20),
                     ),
-                    child: const Icon(Icons.campaign_rounded,
-                        color: Color(0xFF1877F2), size: 20),
-                  ),
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(_sourceName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: _blue)),
-                        RichText(text: TextSpan(
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                          children: [
-                            if (_hasActiveFilter) ...[
-                              TextSpan(
-                                text: '${_filtered.length}',
-                                style: TextStyle(fontWeight: FontWeight.w700, color: _blue),
-                              ),
-                              TextSpan(text: ' of ${_all.length} leads'),
-                            ] else
-                              TextSpan(text: '${_all.length} lead${_all.length == 1 ? '' : 's'} total'),
-                          ],
-                        )),
-                        if (_scriptUrl.isNotEmpty)
-                          Text(
-                            'Sheet: ${_shortUrl(_scriptUrl)}',
-                            style: const TextStyle(
-                                fontSize: 10, color: Color(0xFF6B7280)),
-                          ),
+                        if (!narrow) ...[
+                          RichText(text: TextSpan(
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                            children: [
+                              if (_hasActiveFilter) ...[
+                                TextSpan(
+                                  text: '${_filtered.length}',
+                                  style: TextStyle(fontWeight: FontWeight.w700, color: _blue),
+                                ),
+                                TextSpan(text: ' of ${_all.length} leads'),
+                              ] else
+                                TextSpan(text: '${_all.length} lead${_all.length == 1 ? '' : 's'} total'),
+                            ],
+                          )),
+                          if (_scriptUrl.isNotEmpty)
+                            Text(
+                              'Sheet: ${_shortUrl(_scriptUrl)}',
+                              style: const TextStyle(
+                                  fontSize: 10, color: Color(0xFF6B7280)),
+                            ),
+                        ],
                       ],
                     ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _showAddDialog,
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: Text(narrow ? 'Add' : 'Add Lead',
-                        style: const TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  narrow
+                      ? IconButton(
+                          tooltip: 'Add Lead',
+                          onPressed: _showAddDialog,
+                          icon: const Icon(Icons.add_rounded),
+                          style: IconButton.styleFrom(
+                              backgroundColor: _blue,
+                              foregroundColor: Colors.white),
+                        )
+                      : ElevatedButton.icon(
+                          onPressed: _showAddDialog,
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Add Lead',
+                              style: TextStyle(fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _blue,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                  SizedBox(width: narrow ? 4 : 8),
                   IconButton(
                     tooltip: 'Refresh',
                     onPressed: _loading ? null : _fetch,

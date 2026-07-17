@@ -269,6 +269,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
             const SizedBox(width: 10),
             const Expanded(
               child: Text('Leave',
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -287,6 +288,7 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
             const SizedBox(width: 12),
             Expanded(
               child: Text('Leave Management',
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineMedium),
             ),

@@ -227,7 +227,10 @@ class _CheckOutPageState extends State<CheckOutPage> {
               child: Icon(Icons.logout_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
-            Text('Check Out', style: Theme.of(context).textTheme.headlineMedium),
+            Text('Check Out',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium),
           ]),
           const SizedBox(height: 24),
 

@@ -111,16 +111,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
         .toList();
     final hasOlder = !_showAll && all.length > scoped.length;
 
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(narrow ? 12 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 const NavBackButton(),
-                const SizedBox(width: 8),
+                SizedBox(width: narrow ? 2 : 8),
                 CompositedTransformTarget(
                   link: _prefsLink,
                   child: IconButton(
@@ -129,31 +130,44 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     tooltip: 'Notification preferences',
                   ),
                 ),
-                const SizedBox(width: 4),
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppTheme.lightBlue,
-                    borderRadius: BorderRadius.circular(12),
+                if (!narrow) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppTheme.lightBlue,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.notifications_rounded,
+                        color: AppTheme.primaryBlue, size: 26),
                   ),
-                  child: Icon(Icons.notifications_rounded,
-                      color: AppTheme.primaryBlue, size: 26),
-                ),
-                const SizedBox(width: 16),
+                  const SizedBox(width: 16),
+                ],
                 Expanded(
                   child: Text('Notifications',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium),
                 ),
                 if (unread.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: () async {
-                      await NotificationService.markAllRead(items);
-                      if (mounted) setState(() {});
-                    },
-                    icon: const Icon(Icons.done_all_rounded, size: 18),
-                    label: const Text('Mark all read'),
-                  ),
+                  narrow
+                      ? IconButton(
+                          tooltip: 'Mark all read',
+                          onPressed: () async {
+                            await NotificationService.markAllRead(items);
+                            if (mounted) setState(() {});
+                          },
+                          icon: const Icon(Icons.done_all_rounded, size: 20),
+                        )
+                      : TextButton.icon(
+                          onPressed: () async {
+                            await NotificationService.markAllRead(items);
+                            if (mounted) setState(() {});
+                          },
+                          icon: const Icon(Icons.done_all_rounded, size: 18),
+                          label: const Text('Mark all read'),
+                        ),
                 IconButton(
                   onPressed: _refresh,
                   icon: const Icon(Icons.refresh_rounded),

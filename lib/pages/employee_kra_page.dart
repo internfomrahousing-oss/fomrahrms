@@ -144,6 +144,7 @@ class _EmployeeKraPageState extends State<EmployeeKraPage> {
   @override
   Widget build(BuildContext context) {
     final u = widget.employee;
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -153,44 +154,70 @@ class _EmployeeKraPageState extends State<EmployeeKraPage> {
           children: [
             Row(children: [
               const NavBackButton(),
-              const SizedBox(width: 8),
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: _color.withValues(alpha: 0.12),
-                child: Text(u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-                    style: TextStyle(color: _color, fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 14),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: _color.withValues(alpha: 0.12),
+                  child: Text(u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
+                      style: TextStyle(color: _color, fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(u.name, style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 2),
-                  Text(
-                      [u.designation, u.department].where((s) => s.isNotEmpty).join(' · '),
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  Text(u.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  if (!narrow) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                        [u.designation, u.department].where((s) => s.isNotEmpty).join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  ],
                 ]),
               ),
-              if (_canManage)
+              if (_canManage) ...[
+                SizedBox(width: narrow ? 4 : 8),
                 AppFilePicker(
                   accept: '.pdf,.doc,.docx,image/*',
                   onFiles: _handleUpload,
-                  builder: (trigger) => ElevatedButton.icon(
-                    onPressed: _uploading ? null : trigger,
-                    icon: _uploading
-                        ? const SizedBox(
-                            width: 14, height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.upload_file_rounded, size: 16),
-                    label: Text(_uploading ? 'Uploading…' : 'Upload KRA'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _color,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
+                  builder: (trigger) => narrow
+                      ? IconButton(
+                          tooltip: _uploading ? 'Uploading…' : 'Upload KRA',
+                          onPressed: _uploading ? null : trigger,
+                          icon: _uploading
+                              ? const SizedBox(
+                                  width: 14, height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.upload_file_rounded),
+                          style: IconButton.styleFrom(
+                            backgroundColor: _color,
+                            foregroundColor: Colors.white,
+                          ),
+                        )
+                      : ElevatedButton.icon(
+                          onPressed: _uploading ? null : trigger,
+                          icon: _uploading
+                              ? const SizedBox(
+                                  width: 14, height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.upload_file_rounded, size: 16),
+                          label: Text(_uploading ? 'Uploading…' : 'Upload KRA'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _color,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
                 ),
+              ],
             ]),
             const SizedBox(height: 24),
 

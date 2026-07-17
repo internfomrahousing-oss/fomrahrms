@@ -36,7 +36,12 @@ class HrAttendanceDetailPage extends StatelessWidget {
                 child: Icon(icon, color: color, size: 26),
               ),
               const SizedBox(width: 16),
-              Text(title, style: Theme.of(context).textTheme.headlineMedium),
+              Expanded(
+                child: Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
+              ),
             ]),
             const SizedBox(height: 24),
 

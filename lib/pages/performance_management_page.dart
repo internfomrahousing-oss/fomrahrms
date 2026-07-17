@@ -34,7 +34,10 @@ class PerformanceManagementPage extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Performance Management', style: Theme.of(context).textTheme.headlineMedium),
+                  Text('Performance Management',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text('Self-appraisal forms, by employee',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),

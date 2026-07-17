@@ -75,7 +75,10 @@ class _EmployeeAppraisalPageState extends State<EmployeeAppraisalPage> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(u.name, style: Theme.of(context).textTheme.headlineMedium),
+                  Text(u.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text(
                       [u.designation, u.department].where((s) => s.isNotEmpty).join(' · '),

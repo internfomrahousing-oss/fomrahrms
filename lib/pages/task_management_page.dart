@@ -144,6 +144,7 @@ class _TaskManagementPageState extends State<TaskManagementPage>
   @override
   Widget build(BuildContext context) {
     final onTab0 = _tabController.index == 0;
+    final narrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: null,
@@ -153,35 +154,44 @@ class _TaskManagementPageState extends State<TaskManagementPage>
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            padding: EdgeInsets.fromLTRB(narrow ? 12 : 24, narrow ? 16 : 24, narrow ? 12 : 24, 0),
             child: Row(children: [
               const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.task_alt_rounded,
+                      color: AppTheme.primaryBlue, size: 22),
                 ),
-                child: Icon(Icons.task_alt_rounded,
-                    color: AppTheme.primaryBlue, size: 22),
-              ),
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Task Management',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.headlineMedium),
-                    const SizedBox(height: 2),
-                    Text('Create, assign and track tasks efficiently',
-                        style: TextStyle(
-                            fontSize: 12.5, color: Colors.grey.shade600)),
+                    if (!narrow) ...[
+                      const SizedBox(height: 2),
+                      Text('Create, assign and track tasks efficiently',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 12.5, color: Colors.grey.shade600)),
+                    ],
                   ],
                 ),
               ),
               if (onTab0) ...[
+                SizedBox(width: narrow ? 4 : 8),
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -194,24 +204,37 @@ class _TaskManagementPageState extends State<TaskManagementPage>
                     onPressed: _load,
                   ),
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    await context.push(_addRoute);
-                    if (mounted) _load();
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Task'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                  ),
-                ),
+                SizedBox(width: narrow ? 4 : 8),
+                narrow
+                    ? IconButton(
+                        tooltip: 'Add Task',
+                        onPressed: () async {
+                          await context.push(_addRoute);
+                          if (mounted) _load();
+                        },
+                        icon: const Icon(Icons.add_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () async {
+                          await context.push(_addRoute);
+                          if (mounted) _load();
+                        },
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add Task'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                      ),
               ],
             ]),
           ),

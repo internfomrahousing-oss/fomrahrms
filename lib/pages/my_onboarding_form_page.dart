@@ -95,8 +95,13 @@ class _MyOnboardingFormPageState extends State<MyOnboardingFormPage> {
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('My Onboarding Form', style: Theme.of(context).textTheme.headlineMedium),
+                Text('My Onboarding Form',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
                 const Text('The joining details you submitted',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),

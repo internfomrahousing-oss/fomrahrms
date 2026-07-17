@@ -550,11 +550,15 @@ class _ManagementInterviewReviewPageState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Interview Review',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: _mgmtColor)),
                       Text('Review candidates and form edit requests',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 12, color: Color(0xFF6B7280))),
                     ],

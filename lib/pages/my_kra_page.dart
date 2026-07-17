@@ -67,7 +67,10 @@ class _MyKraPageState extends State<MyKraPage> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('My KRA', style: Theme.of(context).textTheme.headlineMedium),
+                  Text('My KRA',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text('Key Result Area documents uploaded by HR',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),

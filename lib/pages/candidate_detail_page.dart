@@ -42,33 +42,53 @@ class CandidateDetailPage extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(pad, narrow ? 16 : 20, pad, 16),
           child: Row(children: [
             const NavBackButton(),
-            const SizedBox(width: 8),
+            SizedBox(width: narrow ? 4 : 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_val(d, 'name').isEmpty ? 'Candidate Details' : _val(d, 'name'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
-                Text('Applied on ${_fmtDate(_val(d, 'submitted_at'))}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                if (!narrow) ...[
+                  Text('Applied on ${_fmtDate(_val(d, 'submitted_at'))}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                ],
               ]),
             ),
             // Resume: view (opens inline, no download) + download
             if (_val(d, 'resume_url').isNotEmpty) ...[
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final url = await SupabaseService.resolveAttachmentUrl(
-                      _val(d, 'resume_url'), bucket: 'RESUME');
-                  if (url != null) viewAttachment(url);
-                },
-                icon: const Icon(Icons.visibility_outlined, size: 16),
-                label: const Text('View Resume', style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _blue,
-                  side: BorderSide(color: _blue),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
+              SizedBox(width: narrow ? 4 : 8),
+              narrow
+                  ? IconButton(
+                      onPressed: () async {
+                        final url = await SupabaseService.resolveAttachmentUrl(
+                            _val(d, 'resume_url'), bucket: 'RESUME');
+                        if (url != null) viewAttachment(url);
+                      },
+                      icon: const Icon(Icons.visibility_outlined, size: 20),
+                      tooltip: 'View Resume',
+                      style: IconButton.styleFrom(
+                        foregroundColor: _blue,
+                      ),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: () async {
+                        final url = await SupabaseService.resolveAttachmentUrl(
+                            _val(d, 'resume_url'), bucket: 'RESUME');
+                        if (url != null) viewAttachment(url);
+                      },
+                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                      label: const Text('View Resume', style: TextStyle(fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _blue,
+                        side: BorderSide(color: _blue),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
               const SizedBox(width: 8),
               IconButton(
                 onPressed: () async {

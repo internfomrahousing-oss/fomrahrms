@@ -109,6 +109,8 @@ class _LeaveManagementPageState extends State<LeaveManagementPage> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text('Leave Management',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium),
                 ),
                 IconButton(

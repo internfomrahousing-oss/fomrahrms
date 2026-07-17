@@ -88,7 +88,10 @@ class _AppraisalReceivedPageState extends State<AppraisalReceivedPage> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Appraisal Received', style: Theme.of(context).textTheme.headlineMedium),
+                  Text('Appraisal Received',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text('Appraisals from your team awaiting your review',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),

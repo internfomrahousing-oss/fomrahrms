@@ -309,12 +309,16 @@ class _ManagerInterviewReviewPageState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Interview Review',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: _blue)),
                   Text(
                     '${_items.length} candidate${_items.length == 1 ? '' : 's'} assigned to you',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFF6B7280)),
                   ),

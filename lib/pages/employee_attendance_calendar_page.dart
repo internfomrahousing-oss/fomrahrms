@@ -485,8 +485,12 @@ class _EmployeeAttendanceCalendarPageState
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(widget.employeeName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium),
                   const Text('Attendance Calendar',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                 ]),
               ),

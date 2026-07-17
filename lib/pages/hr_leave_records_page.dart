@@ -164,6 +164,7 @@ static String _fmtD(double d) =>
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -172,44 +173,63 @@ static String _fmtD(double d) =>
           // Header
           Container(
             color: Theme.of(context).scaffoldBackgroundColor,
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            padding: EdgeInsets.fromLTRB(narrow ? 12 : 24, narrow ? 16 : 24, narrow ? 12 : 24, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
                   const NavBackButton(),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      color: _color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                  SizedBox(width: narrow ? 4 : 8),
+                  if (!narrow) ...[
+                    Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: _color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.folder_shared_rounded, color: _color, size: 26),
                     ),
-                    child: Icon(Icons.folder_shared_rounded, color: _color, size: 26),
+                    const SizedBox(width: 16),
+                  ],
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Leave Records',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium),
+                      if (!narrow)
+                        const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                    ]),
                   ),
-                  const SizedBox(width: 16),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Leave Records', style: Theme.of(context).textTheme.headlineMedium),
-                    const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                  ]),
-                  const Spacer(),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      final prefix = UserSession.role == UserRole.management
-                          ? '/management'
-                          : '';
-                      context.push('$prefix/edit-leave-form');
-                    },
-                    icon: const Icon(Icons.edit_note_rounded, size: 15),
-                    label: const Text('Edit Forms', style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _color,
-                      side: BorderSide(color: _color),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: narrow ? 4 : 8),
+                  narrow
+                      ? IconButton(
+                          tooltip: 'Edit Forms',
+                          onPressed: () {
+                            final prefix = UserSession.role == UserRole.management
+                                ? '/management'
+                                : '';
+                            context.push('$prefix/edit-leave-form');
+                          },
+                          icon: Icon(Icons.edit_note_rounded, color: _color),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () {
+                            final prefix = UserSession.role == UserRole.management
+                                ? '/management'
+                                : '';
+                            context.push('$prefix/edit-leave-form');
+                          },
+                          icon: const Icon(Icons.edit_note_rounded, size: 15),
+                          label: const Text('Edit Forms', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _color,
+                            side: BorderSide(color: _color),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                  SizedBox(width: narrow ? 4 : 8),
                   IconButton(
                     onPressed: _reload,
                     icon: Icon(Icons.refresh_rounded, color: _color),

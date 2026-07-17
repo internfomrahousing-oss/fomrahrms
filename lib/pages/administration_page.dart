@@ -123,16 +123,21 @@ class _AdministrationPageState extends State<AdministrationPage>
                           color: _mgmtColor, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  ],
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Administration',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: _mgmtColor)),
-                      const Text('Management access only',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                      if (!narrow)
+                        const Text('Management access only',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                     ]),
-                  ],
+                  ),
                 ]),
                 if (!narrow) const SizedBox(height: 20),
                 TabBar(

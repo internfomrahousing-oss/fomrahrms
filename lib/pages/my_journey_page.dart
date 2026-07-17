@@ -94,8 +94,12 @@ class _MyJourneyPageState extends State<MyJourneyPage> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('My Journey',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium),
                   const Text('Interview & onboarding status',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                 ]),
               ),

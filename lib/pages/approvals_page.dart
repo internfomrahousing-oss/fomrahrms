@@ -544,8 +544,13 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
             const SizedBox(width: 16),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Approvals', style: Theme.of(context).textTheme.headlineMedium),
+                Text('Approvals',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
                 const Text('Review and take action on pending requests',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
               ]),
             ),

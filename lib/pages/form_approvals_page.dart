@@ -211,8 +211,12 @@ class _FormApprovalsPageState extends State<FormApprovalsPage>
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Form Change Approvals',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _blue)),
                   Text('Approve or reject HR requests to update employee-facing forms',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                 ]),
               ),

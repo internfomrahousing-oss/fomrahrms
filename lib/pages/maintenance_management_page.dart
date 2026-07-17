@@ -717,9 +717,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   }
 
   Widget _buildMyReportedIssuesList(BuildContext context) {
-    final myRole    = UserSession.role;
     final myTickets = MaintenanceStore.tickets
-        .where((t) => t.reportedByRole == myRole && _matchesFilters(t))
+        .where((t) => t.reportedBy == UserSession.name && _matchesFilters(t))
         .toList();
     if (myTickets.isEmpty) {
       return const _EmptyState(message: 'You have not reported any issues yet.');
@@ -733,19 +732,24 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
   }
 
   Widget _buildHeaderRow(BuildContext context) {
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Row(children: [
       const NavBackButton(),
-      const SizedBox(width: 8),
-      Container(
-        width: 44, height: 44,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10)),
-        child: Icon(Icons.build_rounded,
-            color: Theme.of(context).colorScheme.primary, size: 22),
-      ),
-      const SizedBox(width: 14),
+      SizedBox(width: narrow ? 4 : 8),
+      if (!narrow) ...[
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10)),
+          child: Icon(Icons.build_rounded,
+              color: Theme.of(context).colorScheme.primary, size: 22),
+        ),
+        const SizedBox(width: 14),
+      ],
       Expanded(child: Text('Maintenance Management',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.headlineMedium)),
       IconButton(
         icon: Icon(Icons.refresh_rounded, color: Theme.of(context).colorScheme.primary),
@@ -777,23 +781,28 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Container(
       color: Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: EdgeInsets.fromLTRB(narrow ? 12 : 24, narrow ? 16 : 24, narrow ? 12 : 24, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const NavBackButton(),
-          const SizedBox(width: 8),
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
+          SizedBox(width: narrow ? 4 : 8),
+          if (!narrow) ...[
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.build_rounded, color: primary, size: 22),
             ),
-            child: Icon(Icons.build_rounded, color: primary, size: 22),
-          ),
-          const SizedBox(width: 14),
+            const SizedBox(width: 14),
+          ],
           Expanded(child: Text('Maintenance Management',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.headlineMedium)),
           IconButton(
             icon: Icon(Icons.refresh_rounded, color: primary),
@@ -801,19 +810,29 @@ class _Header extends StatelessWidget {
             onPressed: onRefresh,
           ),
           if (onReportIssue != null) ...[
-            const SizedBox(width: 4),
-            ElevatedButton.icon(
-              onPressed: onReportIssue,
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Report an Issue'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
+            SizedBox(width: narrow ? 2 : 4),
+            narrow
+                ? IconButton(
+                    tooltip: 'Report an Issue',
+                    onPressed: onReportIssue,
+                    icon: const Icon(Icons.add_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: onReportIssue,
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Report an Issue'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
           ],
         ]),
         if (statCards != null) ...[

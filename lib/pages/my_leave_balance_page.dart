@@ -144,6 +144,8 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
                     const SizedBox(width: 16),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Leave Balance',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.headlineMedium),
                       Text(_monthName(DateTime.now().month),
                           style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),

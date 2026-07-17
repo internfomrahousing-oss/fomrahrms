@@ -222,6 +222,7 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
   @override
   Widget build(BuildContext context) {
     final canAdvance = _hrSetup || _employeeStage || _rmStage || _mgmtStage;
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -231,37 +232,54 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
           children: [
             Row(children: [
               const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: _color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.fact_check_rounded, color: _color, size: 22),
                 ),
-                child: Icon(Icons.fact_check_rounded, color: _color, size: 22),
-              ),
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('${_form.employeeName} — Self Appraisal Form',
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 2),
-                  Text(_form.statusLabel, style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  if (!narrow) ...[
+                    const SizedBox(height: 2),
+                    Text(_form.statusLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  ],
                 ]),
               ),
-              OutlinedButton.icon(
-                onPressed: _downloading ? null : _download,
-                icon: _downloading
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.download_rounded, size: 16),
-                label: const Text('Download PDF'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _color,
-                  side: BorderSide(color: _color.withValues(alpha: 0.4)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
+              narrow
+                  ? IconButton(
+                      tooltip: 'Download PDF',
+                      onPressed: _downloading ? null : _download,
+                      icon: _downloading
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.download_rounded),
+                      style: IconButton.styleFrom(
+                        foregroundColor: _color,
+                        side: BorderSide(color: _color.withValues(alpha: 0.4)),
+                      ),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: _downloading ? null : _download,
+                      icon: _downloading
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.download_rounded, size: 16),
+                      label: const Text('Download PDF'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _color,
+                        side: BorderSide(color: _color.withValues(alpha: 0.4)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
             ]),
             const SizedBox(height: 20),
 

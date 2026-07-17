@@ -225,78 +225,112 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Header ────────────────────────────────────────────────────
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+            Builder(builder: (context) {
+              final narrow = MediaQuery.of(context).size.width < 600;
+              final canManage = UserSession.role == UserRole.hr ||
+                  UserSession.role == UserRole.management;
+              return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const NavBackButton(),
+                SizedBox(width: narrow ? 4 : 8),
+                if (!narrow) ...[
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: _color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.people_alt_rounded, color: _color, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                ],
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Employee Directory',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.headlineMedium),
+                    if (!narrow) ...[
+                      const SizedBox(height: 2),
+                      Text('Manage and view employee information',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                    ],
+                  ]),
                 ),
-                child: Icon(Icons.people_alt_rounded, color: _color, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Employee Directory',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 2),
-                  Text('Manage and view employee information',
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
-                ]),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: IconButton(
-                  tooltip: 'Refresh',
-                  icon: Icon(Icons.refresh_rounded, color: _color, size: 20),
-                  onPressed: _load,
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (UserSession.role == UserRole.hr ||
-                  UserSession.role == UserRole.management) ...[
-                OutlinedButton.icon(
-                  onPressed: () => context.push(UserSession.role == UserRole.management
-                      ? '/management/employee-management/reporting-managers'
-                      : '/employee-management/reporting-managers'),
-                  icon: const Icon(Icons.account_tree_rounded, size: 16),
-                  label: const Text('Reporting Managers'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _color,
-                    side: BorderSide(color: _color.withValues(alpha: 0.4)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    textStyle: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
+                SizedBox(width: narrow ? 4 : 8),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: IconButton(
+                    tooltip: 'Refresh',
+                    icon: Icon(Icons.refresh_rounded, color: _color, size: 20),
+                    onPressed: _load,
                   ),
                 ),
-                const SizedBox(width: 8),
-              ],
-              if (UserSession.role == UserRole.hr ||
-                  UserSession.role == UserRole.management)
-                ElevatedButton.icon(
-                  onPressed: _openCreate,
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Add New Employee'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _color,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    textStyle: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ),
-            ]),
+                if (canManage) ...[
+                  SizedBox(width: narrow ? 4 : 8),
+                  narrow
+                      ? IconButton(
+                          tooltip: 'Reporting Managers',
+                          onPressed: () => context.push(UserSession.role == UserRole.management
+                              ? '/management/employee-management/reporting-managers'
+                              : '/employee-management/reporting-managers'),
+                          icon: Icon(Icons.account_tree_rounded, color: _color),
+                          style: IconButton.styleFrom(
+                            side: BorderSide(color: _color.withValues(alpha: 0.4)),
+                          ),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () => context.push(UserSession.role == UserRole.management
+                              ? '/management/employee-management/reporting-managers'
+                              : '/employee-management/reporting-managers'),
+                          icon: const Icon(Icons.account_tree_rounded, size: 16),
+                          label: const Text('Reporting Managers'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _color,
+                            side: BorderSide(color: _color.withValues(alpha: 0.4)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            textStyle: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                ],
+                if (canManage) ...[
+                  SizedBox(width: narrow ? 4 : 8),
+                  narrow
+                      ? IconButton(
+                          tooltip: 'Add New Employee',
+                          onPressed: _openCreate,
+                          icon: const Icon(Icons.add_rounded),
+                          style: IconButton.styleFrom(
+                            backgroundColor: _color,
+                            foregroundColor: Colors.white,
+                          ),
+                        )
+                      : ElevatedButton.icon(
+                          onPressed: _openCreate,
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Add New Employee'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _color,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            textStyle: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                ],
+              ]);
+            }),
             const SizedBox(height: 20),
 
             // ── Stat cards ───────────────────────────────────────────────

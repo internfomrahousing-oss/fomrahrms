@@ -96,7 +96,10 @@ class _HrAppraisalsPageState extends State<HrAppraisalsPage> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Appraisals', style: Theme.of(context).textTheme.headlineMedium),
+                  Text('Appraisals',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text('Employee-requested appraisals, through every stage',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),

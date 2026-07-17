@@ -130,30 +130,42 @@ class _OnrollApprovalsPageState extends State<OnrollApprovalsPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+          Builder(builder: (context) {
+            final narrow = MediaQuery.of(context).size.width < 600;
+            return Row(children: [
+              const NavBackButton(),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: _color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.verified_user_rounded, color: _color, size: 26),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('On-Roll Approvals',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  if (!narrow)
+                    const Text('Requests already accepted by HR and Reporting Manager',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                ]),
               ),
-              child: Icon(Icons.verified_user_rounded, color: _color, size: 26),
-            ),
-            const SizedBox(width: 16),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('On-Roll Approvals', style: Theme.of(context).textTheme.headlineMedium),
-              const Text('Requests already accepted by HR and Reporting Manager',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-            ]),
-            const Spacer(),
-            IconButton(
-              tooltip: 'Refresh',
-              icon: Icon(Icons.refresh_rounded, color: _color),
-              onPressed: _loadData,
-            ),
-          ]),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: Icon(Icons.refresh_rounded, color: _color),
+                onPressed: _loadData,
+              ),
+            ]);
+          }),
           const SizedBox(height: 24),
 
           Row(children: [

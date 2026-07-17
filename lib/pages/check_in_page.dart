@@ -249,7 +249,10 @@ class _CheckInPageState extends State<CheckInPage> {
               child: Icon(Icons.login_rounded, color: _color, size: 26),
             ),
             const SizedBox(width: 16),
-            Text('Check In', style: Theme.of(context).textTheme.headlineMedium),
+            Text('Check In',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium),
           ]),
           const SizedBox(height: 24),
 

@@ -570,6 +570,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
     final subtitle = widget.subtitle ?? (_showAll
         ? 'View and edit all employee leave decisions'
         : 'Review and approve leave requests from your team');
+    final narrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: null,
@@ -581,23 +582,33 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: _blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _isMgmt ? Icons.admin_panel_settings_rounded : Icons.group_rounded,
+                    color: _blue, size: 22),
                 ),
-                child: Icon(
-                  _isMgmt ? Icons.admin_panel_settings_rounded : Icons.group_rounded,
-                  color: _blue, size: 22),
-              ),
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  if (!narrow) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  ],
                 ]),
               ),
               Container(

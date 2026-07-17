@@ -279,6 +279,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     final filtered = _displayRecords
         .where((r) => _matches(r.employeeName))
         .toList();
+    final narrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: null,
@@ -288,14 +289,20 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
           // Header
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const NavBackButton(),
-            const SizedBox(width: 12),
+            SizedBox(width: narrow ? 6 : 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Attendance Dashboard',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 2),
-                Text('Track and manage employee attendance',
-                    style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280))),
+                if (!narrow) ...[
+                  const SizedBox(height: 2),
+                  Text('Track and manage employee attendance',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280))),
+                ],
               ]),
             ),
             Tooltip(
@@ -313,17 +320,27 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: _displayRecords.isEmpty ? null : _exportCsv,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF111827),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              ),
-              icon: const Icon(Icons.file_download_rounded, size: 18),
-              label: const Text('Export'),
-            ),
+            SizedBox(width: narrow ? 4 : 8),
+            narrow
+                ? IconButton(
+                    tooltip: 'Export',
+                    onPressed: _displayRecords.isEmpty ? null : _exportCsv,
+                    icon: const Icon(Icons.file_download_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFF111827),
+                      foregroundColor: Colors.white,
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: _displayRecords.isEmpty ? null : _exportCsv,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF111827),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    ),
+                    icon: const Icon(Icons.file_download_rounded, size: 18),
+                    label: const Text('Export'),
+                  ),
           ]),
           const SizedBox(height: 24),
 

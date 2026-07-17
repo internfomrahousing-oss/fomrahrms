@@ -154,8 +154,12 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
                           color: _color, size: 26),
                     ),
                     const SizedBox(width: 16),
-                    Text('My Payslips',
-                        style: Theme.of(context).textTheme.headlineMedium),
+                    Flexible(
+                      child: Text('My Payslips',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium),
+                    ),
                     const Spacer(),
                     IconButton(
                       tooltip: 'Refresh',
@@ -629,8 +633,12 @@ class PayslipDetailPage extends StatelessWidget {
               child: Icon(Icons.description_rounded, color: _purple, size: 26),
             ),
             const SizedBox(width: 16),
-            Text('Pay Slip — ${_monthLabel(p.monthYear)}',
-                style: Theme.of(context).textTheme.headlineMedium),
+            Flexible(
+              child: Text('Pay Slip — ${_monthLabel(p.monthYear)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.headlineMedium),
+            ),
           ]),
           const SizedBox(height: 24),
 

@@ -281,31 +281,39 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rec    = _record;
 
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(narrow ? 12 : 24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Header
           Row(children: [
             const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+            SizedBox(width: narrow ? 4 : 8),
+            if (!narrow) ...[
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.access_time_rounded, color: _blue, size: 22),
               ),
-              child: Icon(Icons.access_time_rounded, color: _blue, size: 22),
+              const SizedBox(width: 14),
+            ],
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('My Attendance',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
+                Text(_dayLabel(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+              ]),
             ),
-            const SizedBox(width: 14),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('My Attendance',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              Text(_dayLabel(),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-            ]),
-            const Spacer(),
             IconButton(
               tooltip: 'Refresh',
               icon: Icon(Icons.refresh_rounded, color: _blue),

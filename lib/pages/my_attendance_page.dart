@@ -236,7 +236,18 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     );
   }
 
-  Widget get _checkInOutAction {
+  Widget _checkInOutAction(bool narrow) {
+    if (narrow) {
+      return IconButton(
+        tooltip: 'Check In / Out',
+        onPressed: () => context.go(widget.checkInRoute),
+        icon: const Icon(Icons.fingerprint_rounded),
+        style: IconButton.styleFrom(
+          backgroundColor: _blue,
+          foregroundColor: Colors.white,
+        ),
+      );
+    }
     return ElevatedButton.icon(
       onPressed: () => context.go(widget.checkInRoute),
       icon: const Icon(Icons.fingerprint_rounded, size: 16),
@@ -255,47 +266,63 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   Widget build(BuildContext context) {
     final cs  = Theme.of(context).colorScheme;
     final now = DateTime.now();
+    final narrow = MediaQuery.of(context).size.width < 600;
     const mNames = ['January','February','March','April','May','June',
                     'July','August','September','October','November','December'];
 
     final header = widget.embedded
         ? Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+            if (!narrow) ...[
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.access_time_rounded, color: _blue, size: 18),
               ),
-              child: Icon(Icons.access_time_rounded, color: _blue, size: 18),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
+              const SizedBox(width: 10),
+            ],
+            Expanded(
               child: Text('Attendance',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
-            _checkInOutAction,
+            SizedBox(width: narrow ? 4 : 8),
+            _checkInOutAction(narrow),
           ])
         : Row(children: [
             const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: _blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+            SizedBox(width: narrow ? 4 : 8),
+            if (!narrow) ...[
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.access_time_rounded, color: _blue, size: 22),
               ),
-              child: Icon(Icons.access_time_rounded, color: _blue, size: 22),
-            ),
-            const SizedBox(width: 14),
+              const SizedBox(width: 14),
+            ],
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('My Attendance',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineMedium),
-                const Text('Attendance records',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                if (!narrow) ...[
+                  const SizedBox(height: 2),
+                  const Text('Attendance records',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                ],
               ]),
             ),
-            _checkInOutAction,
+            SizedBox(width: narrow ? 4 : 8),
+            _checkInOutAction(narrow),
           ]);
 
     final content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

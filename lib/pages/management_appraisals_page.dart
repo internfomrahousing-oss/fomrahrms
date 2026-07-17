@@ -68,6 +68,7 @@ class _ManagementAppraisalsPageState extends State<ManagementAppraisalsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: null,
       body: SingleChildScrollView(
@@ -77,19 +78,24 @@ class _ManagementAppraisalsPageState extends State<ManagementAppraisalsPage> {
           children: [
             Row(children: [
               const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(color: _color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.fact_check_rounded, color: _color, size: 22),
-              ),
-              const SizedBox(width: 14),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: _color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.fact_check_rounded, color: _color, size: 22),
+                ),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Appraisals', style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 2),
-                  Text('Every appraisal in flight, and what needs your sign-off',
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  Text('Appraisals', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineMedium),
+                  if (!narrow) ...[
+                    const SizedBox(height: 2),
+                    Text('Every appraisal in flight, and what needs your sign-off',
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
+                  ],
                 ]),
               ),
               Container(

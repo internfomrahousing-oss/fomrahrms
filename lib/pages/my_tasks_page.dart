@@ -155,32 +155,38 @@ class _MyTasksPageState extends State<MyTasksPage> {
   Widget build(BuildContext context) {
     final tasks = _filtered;
 
+    final narrow = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(narrow ? 12 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
             Row(children: [
               const NavBackButton(),
-              const SizedBox(width: 8),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: AppTheme.accentBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              SizedBox(width: narrow ? 4 : 8),
+              if (!narrow) ...[
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.task_alt_rounded,
+                      color: AppTheme.accentBlue, size: 22),
                 ),
-                child: Icon(Icons.task_alt_rounded,
-                    color: AppTheme.accentBlue, size: 22),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Text('My Tasks',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
               ),
-              const SizedBox(width: 14),
-              Text('My Tasks',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const Spacer(),
               IconButton(
                 tooltip: 'Refresh',
                 icon: Icon(Icons.refresh_rounded, color: AppTheme.accentBlue),
@@ -188,27 +194,43 @@ class _MyTasksPageState extends State<MyTasksPage> {
               ),
               if (UserSession.role == UserRole.employee ||
                   UserSession.role == UserRole.reportingManager) ...[
-                const SizedBox(width: 4),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final route = UserSession.role == UserRole.employee
-                        ? '/employee/tasks/add'
-                        : '/manager/my-tasks/add';
-                    await context.push(route);
-                    if (mounted) _load();
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Task'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                  ),
-                ),
+                SizedBox(width: narrow ? 2 : 4),
+                narrow
+                    ? IconButton(
+                        tooltip: 'Add Task',
+                        onPressed: () async {
+                          final route = UserSession.role == UserRole.employee
+                              ? '/employee/tasks/add'
+                              : '/manager/my-tasks/add';
+                          await context.push(route);
+                          if (mounted) _load();
+                        },
+                        icon: const Icon(Icons.add_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.accentBlue,
+                          foregroundColor: Colors.white,
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () async {
+                          final route = UserSession.role == UserRole.employee
+                              ? '/employee/tasks/add'
+                              : '/manager/my-tasks/add';
+                          await context.push(route);
+                          if (mounted) _load();
+                        },
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add Task'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accentBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                      ),
               ],
             ]),
             const SizedBox(height: 20),

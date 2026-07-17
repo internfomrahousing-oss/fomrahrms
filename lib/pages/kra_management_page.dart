@@ -33,7 +33,10 @@ class KraManagementPage extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('KRA', style: Theme.of(context).textTheme.headlineMedium),
+                  Text('KRA',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text('Upload and manage Key Result Area documents, by employee',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),

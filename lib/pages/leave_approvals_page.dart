@@ -68,9 +68,13 @@ class _LeaveApprovalsPageState extends State<LeaveApprovalsPage> {
                 child: Icon(Icons.approval_rounded, color: _color, size: 26),
               ),
               const SizedBox(width: 16),
-              Text('Leave Approvals',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const Spacer(),
+              Expanded(
+                child: Text('Leave Approvals',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
+              ),
+              const SizedBox(width: 8),
               _CountChip(
                 label: 'Pending',
                 count: pending.length,

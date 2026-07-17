@@ -149,6 +149,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
   Widget build(BuildContext context) {
     final elEmployees = _employees.where((u) => u.isElEligible).toList();
     final pendingCount = elEmployees.where((u) => u.elAvailRequestedAt.isNotEmpty).length;
+    final narrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: null,
@@ -156,24 +157,31 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
         // ── Header ──────────────────────────────────────────────────────────
         Container(
           color: Theme.of(context).scaffoldBackgroundColor,
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          padding: EdgeInsets.fromLTRB(narrow ? 12 : 24, narrow ? 16 : 24, narrow ? 12 : 24, 16),
           child: Row(children: [
             const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+            SizedBox(width: narrow ? 4 : 8),
+            if (!narrow) ...[
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: _color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.account_balance_wallet_rounded, color: _color, size: 26),
               ),
-              child: Icon(Icons.account_balance_wallet_rounded, color: _color, size: 26),
+              const SizedBox(width: 16),
+            ],
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Payroll Management',
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium),
+                if (!narrow) ...[
+                  const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                ],
+              ]),
             ),
-            const SizedBox(width: 16),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Payroll Management', style: Theme.of(context).textTheme.headlineMedium),
-              const Text('HR Management', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-            ]),
-            const Spacer(),
             IconButton(
               tooltip: 'Refresh',
               icon: Icon(Icons.refresh_rounded, color: _color),
@@ -1278,7 +1286,9 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Generate Payslip', style: Theme.of(context).textTheme.headlineMedium),
+                      Text('Generate Payslip',
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium),
                       Text('${widget.user.name} · ${_payslipMonthLabel(_monthYear)}',
                           style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                     ]),

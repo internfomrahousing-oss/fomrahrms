@@ -135,7 +135,10 @@ class _KraApprovalsPageState extends State<KraApprovalsPage> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('KRA Approvals', style: Theme.of(context).textTheme.headlineMedium),
+                  Text('KRA Approvals',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium),
                   const SizedBox(height: 2),
                   Text('HR-uploaded KRA documents awaiting your review',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),

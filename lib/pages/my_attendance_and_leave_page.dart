@@ -37,6 +37,8 @@ class MyAttendanceAndLeavePage extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Text('My Attendance and Leaves',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineMedium),
             ),
           ]),
