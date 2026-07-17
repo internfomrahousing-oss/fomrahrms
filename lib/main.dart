@@ -81,8 +81,8 @@ void main() async {
     NotificationStore.recomputeUnread();
     NotificationService.checkDailyReminders();
     NotificationService.checkDailyTaskReminders();
-    for (var i = 0; i < newArrivals.length; i++) {
-      showNotificationPopup(newArrivals[i], stackIndex: i);
+    for (final arrival in newArrivals) {
+      showNotificationPopup(arrival);
     }
   });
 }

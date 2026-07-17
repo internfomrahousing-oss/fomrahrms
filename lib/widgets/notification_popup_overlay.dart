@@ -9,27 +9,52 @@ import '../theme/app_theme.dart';
 /// background poll timer in main.dart) without needing a BuildContext.
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-const _popupDuration = Duration(seconds: 6);
+const _popupDuration = Duration(seconds: 10);
+
+// Tracks which vertical slots are currently occupied by an on-screen popup,
+// across *all* calls — not just notifications arriving in the same poll
+// batch — so a popup that arrives while an earlier one is still visible
+// takes the next free slot instead of landing on top of it.
+final Set<int> _occupiedPopupSlots = {};
+
+int _claimPopupSlot() {
+  var i = 0;
+  while (_occupiedPopupSlots.contains(i)) {
+    i++;
+  }
+  _occupiedPopupSlots.add(i);
+  return i;
+}
 
 /// Shows a transient card near the top-right (below the bell icon, which
 /// sits top-right in every shell's top bar) for a newly-arrived
 /// notification. Auto-dismisses; tapping it marks the notification read
 /// and navigates to its route.
-void showNotificationPopup(AppNotification n, {int stackIndex = 0}) {
+void showNotificationPopup(AppNotification n) {
   final overlay = rootNavigatorKey.currentState?.overlay;
   if (overlay == null) return;
+
+  final slot = _claimPopupSlot();
+  var released = false;
+  void releaseSlot() {
+    if (released) return;
+    released = true;
+    _occupiedPopupSlots.remove(slot);
+  }
 
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (context) => _PopupPositioned(
-      stackIndex: stackIndex,
+      stackIndex: slot,
       child: _PopupCard(
         notification: n,
         onDismiss: () {
           if (entry.mounted) entry.remove();
+          releaseSlot();
         },
         onTap: () {
           if (entry.mounted) entry.remove();
+          releaseSlot();
           NotificationService.markRead(n);
           final routeContext = rootNavigatorKey.currentContext;
           if (n.route.isNotEmpty && routeContext != null) {
@@ -42,6 +67,7 @@ void showNotificationPopup(AppNotification n, {int stackIndex = 0}) {
   overlay.insert(entry);
   Future.delayed(_popupDuration, () {
     if (entry.mounted) entry.remove();
+    releaseSlot();
   });
 }
 
