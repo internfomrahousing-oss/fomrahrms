@@ -312,7 +312,14 @@ class _UsersTab extends StatelessWidget {
                         name: u.name,
                         mobile: u.mobile,
                       );
-                      await EmailService.sendEmployeeActivation(u, personalEmail: personalEmail);
+                      final error = await EmailService.sendEmployeeActivation(u, personalEmail: personalEmail);
+                      if (context.mounted && error != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Failed to send activation email: $error'),
+                          backgroundColor: Colors.red.shade700,
+                        ));
+                        return;
+                      }
                       u.active = false; // stays locked until the token is used
                     } else {
                       u.active = !u.active;

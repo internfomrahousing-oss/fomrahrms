@@ -99,11 +99,20 @@ class EmailService {
   static Future<String?> sendEmployeeActivation(AppUser user, {String? personalEmail}) async {
     final recipient = (personalEmail != null && personalEmail.isNotEmpty) ? personalEmail : user.email;
     final token = TokenUtil.generate();
-    await SupabaseService.setAppUserActivationToken(
-      user.email,
-      token: token,
-      expiresAt: TokenUtil.expiresInHours(24),
-    );
+    // setAppUserActivationToken throws if the save didn't actually take
+    // effect (see its doc comment) — caught here and returned as an error
+    // string so every caller's existing "show $error in a snackbar" code
+    // still works, instead of an unhandled exception making the button
+    // that triggered this look like it does nothing at all.
+    try {
+      await SupabaseService.setAppUserActivationToken(
+        user.email,
+        token: token,
+        expiresAt: TokenUtil.expiresInHours(24),
+      );
+    } catch (e) {
+      return e.toString();
+    }
     return sendEmail(
       templateName: 'employee_activation',
       recipient: recipient,

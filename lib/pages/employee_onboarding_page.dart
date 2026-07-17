@@ -1581,7 +1581,10 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         name: (d['name'] as String?) ?? '',
         mobile: (d['phone_number'] as String?) ?? '',
       );
-      await _sendActivationEmail(user, personalEmail: personalEmail);
+      final activationError = await _sendActivationEmail(user, personalEmail: personalEmail);
+      if (activationError != null) {
+        throw Exception('Account created, but the activation email failed: $activationError');
+      }
       await Supabase.instance.client
           .from('onboarding_forms')
           .update({
