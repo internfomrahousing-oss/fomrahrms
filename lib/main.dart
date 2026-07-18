@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'models/color_theme_notifier.dart';
@@ -46,6 +47,22 @@ void main() async {
       // genuine Supabase Auth session (see lib/utils/secure_local_storage.dart).
       authOptions: FlutterAuthClientOptions(localStorage: platformLocalStorage()),
     );
+    // SessionStorage.restore() (above) trusts a locally-cached "logged in"
+    // flag with its own 10h/180d expiry, entirely separate from Supabase's
+    // real Auth session (the JWT every RLS policy actually keys off). If
+    // that real session failed to restore/refresh here — expired refresh
+    // token, cleared storage, etc. — every authenticated request from this
+    // point on runs as anon and gets silently empty-filtered by RLS instead
+    // of erroring, which used to look like "no data" bugs rather than what
+    // it is: not actually logged in. Catch that mismatch once at startup
+    // and force a real logout instead of leaving the app in a half-signed-in
+    // state.
+    if (restored && Supabase.instance.client.auth.currentSession == null) {
+      await SessionStorage.clear();
+      UserSession.clear();
+      final context = rootNavigatorKey.currentContext;
+      if (context != null) GoRouter.of(context).go('/login');
+    }
     // Chained via .then() rather than awaited outright — daily-reminder
     // checks below read the global TaskStore/UserStore that loadAll()
     // populates, so they must run after it, but the app itself shouldn't
@@ -67,7 +84,11 @@ void main() async {
         if (url != null) UserSession.photoUrl = url;
       });
     }
-  } catch (_) {}
+  } catch (_) {
+  } finally {
+    // Settled one way or another — safe for early queries to stop waiting.
+    SupabaseService.markReady();
+  }
 
   // Keep the notification bell fresh without a full realtime subscription —
   // re-poll periodically for as long as the app is open. Also doubles as

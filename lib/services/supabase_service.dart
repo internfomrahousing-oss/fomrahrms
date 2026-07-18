@@ -1,4 +1,5 @@
 // ignore_for_file: avoid_catches_without_on_clauses
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -600,6 +601,22 @@ class SupabaseService {
     }
   }
 
+  // main.dart deliberately renders the app before Supabase.initialize()
+  // finishes (so the splash screen clears instantly), which leaves a short
+  // window where _db is null and any query silently comes back empty
+  // instead of erroring — e.g. a fast click into "Forward to Management"
+  // right after a page load could see an empty reporting-managers list for
+  // no visible reason. main() completes this once initialize() settles
+  // (success or failure); [awaitReady] lets a handful of early, easy-to-hit
+  // queries wait that out instead of racing it.
+  static final Completer<void> _readyCompleter = Completer<void>();
+  static void markReady() {
+    if (!_readyCompleter.isCompleted) _readyCompleter.complete();
+  }
+
+  static Future<void> awaitReady() =>
+      _readyCompleter.future.timeout(const Duration(seconds: 8), onTimeout: () {});
+
   // ── Leave Applications ────────────────────────────────────────────────
 
   static Future<void> saveLeaveApplication(LeaveApplication app) async {
@@ -1111,6 +1128,7 @@ class SupabaseService {
 
   static Future<List<AppUser>> fetchAppUsers() async {
     try {
+      await awaitReady();
       final data = await _db?.from('app_users').select(_appUserColumns).order('name');
       if (data == null) return [];
       return (data as List).map((row) => AppUser(
