@@ -4,6 +4,7 @@ import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../utils/checkin_status.dart';
@@ -14,10 +15,19 @@ import '../widgets/filter_panel.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
 
-CheckInRowStatus _rowStatus(AttendanceRecord r, List<LeaveApplication> leaveApps) {
+/// Resolves [employeeName]'s designation-based schedule from [users];
+/// falls back to the default timing if the employee isn't found.
+OfficeTiming _scheduleForEmployee(String employeeName, List<AppUser> users) {
+  final n = employeeName.trim().toLowerCase();
+  final user = users.where((u) => u.name.trim().toLowerCase() == n).firstOrNull;
+  return user != null ? OfficeTimingStore.scheduleForUser(user) : OfficeTimingStore.fallback;
+}
+
+CheckInRowStatus _rowStatus(AttendanceRecord r, List<LeaveApplication> leaveApps, List<AppUser> users) {
   final date = parseSlashDate(r.date);
   if (date == null) return const CheckInRowStatus(CheckInStatus.none, 0);
-  return checkInStatusFor(r.checkInTime, date, r.employeeName, leaveApps);
+  return checkInStatusFor(r.checkInTime, date, r.employeeName, leaveApps,
+      _scheduleForEmployee(r.employeeName, users));
 }
 
 /// Formats the gap between "HH:mm" check-in/check-out times as "Xh Ym".
@@ -176,7 +186,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     final rows = _displayRecords.where((r) => _matches(r.employeeName)).toList();
     final buffer = StringBuffer('Employee,Employee ID,Date,Check-In,Check-Out,Status\n');
     for (final r in rows) {
-      final rowStatus = _rowStatus(r, _leaveApps);
+      final rowStatus = _rowStatus(r, _leaveApps, _allUsers);
       final status = r.checkInTime.isEmpty
           ? 'Absent'
           : switch (rowStatus.status) {
@@ -460,6 +470,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                   : _AttendanceTable(
                       records: filtered,
                       leaveApps: _leaveApps,
+                      allUsers: _allUsers,
                       color: _color,
                       onRowTap: _showDetail,
                     ),
@@ -562,8 +573,8 @@ class _AttendanceSummaryCard extends StatelessWidget {
     final absent  = (totalUsers - present).clamp(0, totalUsers);
     final presentNames = presentRecords.map((r) => r.employeeName.trim().toLowerCase()).toSet();
     final absentUsers = allUsers.where((u) => !presentNames.contains(u.name.trim().toLowerCase())).toList();
-    final lateRecords = records.where((r) => _rowStatus(r, leaveApps).status == CheckInStatus.late).toList();
-    final permissionRecords = records.where((r) => _rowStatus(r, leaveApps).status == CheckInStatus.permission).toList();
+    final lateRecords = records.where((r) => _rowStatus(r, leaveApps, allUsers).status == CheckInStatus.late).toList();
+    final permissionRecords = records.where((r) => _rowStatus(r, leaveApps, allUsers).status == CheckInStatus.permission).toList();
     final lateArrivals = lateRecords.length;
     final onPermission = permissionRecords.length;
     final compOff = _compOffCount(selectedDate);
@@ -584,7 +595,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
     final trendDates = List.generate(7, (i) => selectedDate.subtract(Duration(days: 6 - i)));
     final trendDayData = trendDates.map((d) {
       final recs = _forNames(trendByDate[_dateStr(d)] ?? const []);
-      final st = recs.map((r) => _rowStatus(r, leaveApps)).toList();
+      final st = recs.map((r) => _rowStatus(r, leaveApps, allUsers)).toList();
       return (
         present: recs.where((r) => r.checkInTime.isNotEmpty).length,
         late: st.where((s) => s.status == CheckInStatus.late).length,
@@ -629,7 +640,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
           onTap: () => showEmployeeListDialog(context,
               title: 'On Permission', icon: Icons.event_note_rounded, color: _purple,
               items: permissionRecords.map((r) => _item(r.employeeName,
-                  extra: 'Permission (${permLabel(_rowStatus(r, leaveApps).permMinutes)})')).toList(),
+                  extra: 'Permission (${permLabel(_rowStatus(r, leaveApps, allUsers).permMinutes)})')).toList(),
               emptyLabel: 'No one is on permission today')),
       _StatSpec('Comp Off', compOff, pct(compOff), deltaPct((d) => d.compOff),
           Icons.swap_horiz_rounded, _gray,
@@ -663,7 +674,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
           LayoutBuilder(builder: (context, constraints) {
             final cols = constraints.maxWidth > 980 ? 6
                 : constraints.maxWidth > 680 ? 3
-                : constraints.maxWidth > 420 ? 2 : 1;
+                : 2;
             final tileWidth = (constraints.maxWidth - (cols - 1) * 12) / cols;
             return Wrap(
               spacing: 12,
@@ -842,9 +853,6 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = spec.color;
-    final delta = spec.deltaPct;
-    final deltaGlyph = delta > 0.05 ? '↑' : delta < -0.05 ? '↓' : '↔';
-    final deltaText = '$deltaGlyph ${delta.abs().toStringAsFixed(1)}%';
 
     return Container(
       decoration: BoxDecoration(
@@ -857,54 +865,39 @@ class _StatCard extends StatelessWidget {
         onTap: spec.onTap,
         child: IntrinsicHeight(
         child: Row(children: [
-          Container(width: 4, color: color),
+          Container(width: 3, color: color),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Container(
-                    width: 30, height: 30,
+                    width: 24, height: 24,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(7),
                     ),
-                    child: Icon(spec.icon, size: 15, color: color),
+                    child: Icon(spec.icon, size: 13, color: color),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(spec.label,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700,
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700,
                             color: Color(0xFF111827))),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(deltaText,
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+                ]),
+                const SizedBox(height: 6),
+                Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('${spec.value}',
+                      style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: color, height: 1)),
+                  const SizedBox(width: 5),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text('${spec.pctOfTotal.toStringAsFixed(0)}%',
+                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF6B7280))),
                   ),
                 ]),
-                const SizedBox(height: 10),
-                Text('${spec.value}',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: color)),
-                const SizedBox(height: 1),
-                Text(spec.value == 1 ? 'Employee' : 'Employees',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                const SizedBox(height: 10),
-                const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                const SizedBox(height: 8),
-                Row(children: [
-                  const Icon(Icons.people_alt_outlined, size: 12, color: Color(0xFF9CA3AF)),
-                  const SizedBox(width: 5),
-                  Text('${spec.pctOfTotal.toStringAsFixed(1)}% of total workforce',
-                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF6B7280))),
-                ]),
-                const SizedBox(height: 10),
-                _Sparkline(values: spec.trend, color: color),
               ]),
             ),
           ),
@@ -913,81 +906,6 @@ class _StatCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Sparkline ───────────────────────────────────────────────────────────────
-
-class _Sparkline extends StatelessWidget {
-  final List<double> values;
-  final Color color;
-  const _Sparkline({required this.values, required this.color});
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-        height: 34,
-        width: double.infinity,
-        child: CustomPaint(painter: _SparklinePainter(values: values, color: color)),
-      );
-}
-
-class _SparklinePainter extends CustomPainter {
-  final List<double> values;
-  final Color color;
-  const _SparklinePainter({required this.values, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.length < 2 || size.width <= 0) return;
-    final maxV = values.reduce((a, b) => a > b ? a : b);
-    final minV = values.reduce((a, b) => a < b ? a : b);
-    final range = (maxV - minV) == 0 ? 1.0 : (maxV - minV);
-    final dx = size.width / (values.length - 1);
-
-    final points = <Offset>[];
-    for (int i = 0; i < values.length; i++) {
-      final normalized = (values[i] - minV) / range;
-      final y = size.height - (normalized * size.height * 0.75 + size.height * 0.1);
-      points.add(Offset(dx * i, y));
-    }
-
-    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final p in points.skip(1)) {
-      linePath.lineTo(p.dx, p.dy);
-    }
-
-    final fillPath = Path.from(linePath)
-      ..lineTo(points.last.dx, size.height)
-      ..lineTo(points.first.dx, size.height)
-      ..close();
-    canvas.drawPath(
-      fillPath,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0)],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
-    );
-
-    canvas.drawPath(
-      linePath,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-
-    final dotPaint = Paint()..color = color;
-    for (final p in points) {
-      canvas.drawCircle(p, 2, dotPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SparklinePainter oldDelegate) =>
-      oldDelegate.values != values || oldDelegate.color != color;
 }
 
 // ── Footer: total workforce, last updated, view detailed report ───────────────
@@ -1079,11 +997,13 @@ class _SummaryFooter extends StatelessWidget {
 class _AttendanceTable extends StatefulWidget {
   final List<AttendanceRecord> records;
   final List<LeaveApplication> leaveApps;
+  final List<AppUser> allUsers;
   final Color color;
   final void Function(AttendanceRecord) onRowTap;
   const _AttendanceTable({
     required this.records,
     required this.leaveApps,
+    required this.allUsers,
     required this.color,
     required this.onRowTap,
   });
@@ -1164,7 +1084,7 @@ class _AttendanceTableState extends State<_AttendanceTable> {
           final statusText = bothRecorded
               ? 'Checked out'
               : r.checkInTime.isNotEmpty ? 'Checked in' : '—';
-          final rowStatus = _rowStatus(r, leaveApps);
+          final rowStatus = _rowStatus(r, leaveApps, widget.allUsers);
           final initial = r.employeeName.isNotEmpty ? r.employeeName[0].toUpperCase() : '?';
           return DataRow(
             selected: _selected.contains(r.id),

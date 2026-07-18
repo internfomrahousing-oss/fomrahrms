@@ -632,11 +632,13 @@ class _StatCardsRow extends StatelessWidget {
           ],
         ]);
       }
+      final cols = constraints.maxWidth > 480 ? 3 : 2;
+      final tileWidth = (constraints.maxWidth - (cols - 1) * 12) / cols;
       return Wrap(
         spacing: 12,
         runSpacing: 12,
         children: [
-          for (final t in tiles) SizedBox(width: 200, child: t),
+          for (final t in tiles) SizedBox(width: tileWidth, child: t),
         ],
       );
     });

@@ -358,37 +358,38 @@ class _LoginPageState extends State<LoginPage> {
 
   // ── Right panel: the actual sign-in form ───────────────────────────────
   Widget _formColumn({required bool showCompactLogo}) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: showCompactLogo ? 18 : 32),
+      child: Align(
+        alignment: showCompactLogo ? Alignment.topCenter : Alignment.center,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (showCompactLogo) ...[
                 Center(child: _brandBlock(compact: true)),
-                const SizedBox(height: 36),
+                const SizedBox(height: 22),
               ],
 
               if (_pendingUser == null) ...[
                 Center(
                   child: Icon(Icons.spa_rounded, size: 32, color: _navy.withValues(alpha: 0.55)),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Text('Welcome back',
                     style: GoogleFonts.inter(
                         fontSize: 28, fontWeight: FontWeight.w800, color: _textDark)),
                 const SizedBox(height: 6),
                 Text('Sign in to continue to your dashboard.',
                     style: GoogleFonts.inter(fontSize: 14, color: _textMuted)),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
               ],
 
               _pendingUser != null ? _buildSetPasswordCard() : _buildLoginCard(),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 22),
               Text('© 2026 FOMRA. All rights reserved.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(fontSize: 11.5, color: _textMuted)),
