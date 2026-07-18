@@ -1202,8 +1202,7 @@ class SupabaseService {
       // fix the underlying cause, but it means the next occurrence shows up
       // in the browser console instead of just an empty employee list.
       // ignore: avoid_print
-      print('fetchAppUsers failed: $e
-$st');
+      print('fetchAppUsers failed: $e $st');
       return [];
     }
   }
