@@ -219,9 +219,13 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+                24, 24, 24, (_loading || _filtered.isEmpty) ? 24 : 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Header ────────────────────────────────────────────────────
@@ -502,14 +506,28 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
                     ]),
                   ),
                 ),
-              )
-            else
-              ..._filtered.map((u) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _UserCard(user: u, onTap: () => _openProfile(u)),
-                  )),
-          ],
-        ),
+              ),
+            ],
+              ),
+            ),
+          ),
+          if (!_loading && _filtered.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final u = _filtered[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _UserCard(user: u, onTap: () => _openProfile(u)),
+                    );
+                  },
+                  childCount: _filtered.length,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2828,6 +2846,12 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchData() async {

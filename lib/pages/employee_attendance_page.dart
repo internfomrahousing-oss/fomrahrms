@@ -26,7 +26,6 @@ class EmployeeAttendancePage extends StatefulWidget {
 
 class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
   static Color get _blue => AppTheme.primaryBlue;
-  static const _green = Color(0xFF22C55E);
   static const _teal  = Color(0xFF15803D);
 
   bool _loading = true;
@@ -616,8 +615,6 @@ class _DaySummary extends StatelessWidget {
   final AttendanceRecord record;
   final bool isDark;
   const _DaySummary({required this.record, required this.isDark});
-
-  static Color get _blue => AppTheme.primaryBlue;
 
   String? get _duration {
     try {

@@ -1150,12 +1150,12 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
 
         // Status banner
         if (isDone) ...[
-          _doneBanner(rec!, isDark),
+          _doneBanner(rec, isDark),
           const SizedBox(height: 16),
         ] else if (isCheckedIn) ...[
           _statusBanner(
             icon: Icons.check_circle_rounded,
-            text: 'Checked in at ${rec!.checkInTime}',
+            text: 'Checked in at ${rec.checkInTime}',
             fg: isDark ? Colors.green.shade300 : _green,
             bg: isDark ? Colors.green.withValues(alpha: 0.12) : Colors.green.shade50,
             border: isDark ? Colors.green.shade700 : Colors.green.shade200,

@@ -640,7 +640,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
   }
 
-  Future<void> _updateStatus(String id, String status) async {
+  // Reports failures via SnackBar rather than the page-level `_error` —
+  // that field drives the full-page "Could not load submissions" view, and
+  // a failed status update on an already-loaded list isn't a load failure;
+  // hijacking the whole screen for it hid the (already-loaded) list behind
+  // a misleading "run the SQL to add the status column" message.
+  Future<void> _updateStatus(BuildContext context, String id, String status) async {
     try {
       await Supabase.instance.client
           .from('onboarding_forms')
@@ -648,7 +653,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
           .eq('id', id);
       await _load();
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to update status: $e'),
+          backgroundColor: Colors.red.shade700,
+        ));
+      }
     }
   }
 
@@ -691,6 +701,12 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     }
 
     try {
+      // Only name/phone_number/designation are ever written top-level at
+      // submit time (see onboarding_form_page.dart) — everything else the
+      // candidate filled in (DOB, address, ...) lives inside 'form_data'.
+      // Reading straight off `form` for those silently returned '' before this.
+      final fd = form['form_data'];
+      final formData = fd is Map ? Map<String, dynamic>.from(fd) : <String, dynamic>{};
       final user = AppUser(
         name:             (form['name']          as String?) ?? '',
         email:            email,
@@ -700,12 +716,15 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         role:             (role != null && role.isNotEmpty) ? role : 'Employee',
         active:           true,
         reportingManager: manager,
-        dateOfJoining:    (form['date_of_joining'] as String?) ?? '',
-        dateOfBirth:      (form['date_of_birth'] as String?) ?? '',
+        // "Date of joining" is the day account access is actually granted,
+        // not the candidate's self-reported guess on the onboarding form
+        // (filled in before they've started, and often left blank anyway).
+        dateOfJoining:    DateTime.now().toIso8601String(),
+        dateOfBirth:      (formData['date_of_birth'] as String?) ?? '',
         mobile:           (form['phone_number'] as String?) ?? '',
-        address:          ((form['permanent_address'] as String?)?.isNotEmpty ?? false)
-                              ? form['permanent_address'] as String
-                              : (form['postal_address'] as String?) ?? '',
+        address:          ((formData['permanent_address'] as String?)?.isNotEmpty ?? false)
+                              ? formData['permanent_address'] as String
+                              : (formData['postal_address'] as String?) ?? '',
       );
       await UserStore.upsertOne(user);
       await Supabase.instance.client
@@ -729,7 +748,10 @@ class _OnboardingTabState extends State<_OnboardingTab> {
         ));
       }
     } catch (e) {
-      setState(() => _error = 'Failed to create account: $e');
+      // Reported via SnackBar only — setting the page-level `_error` here
+      // used to flip the whole tab over to the full-page "Could not load
+      // submissions" view even though the list itself loaded fine; a failed
+      // approve action isn't a load failure.
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
@@ -1139,7 +1161,7 @@ class _OnboardingTabState extends State<_OnboardingTab> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              onPressed: () => _updateStatus(id, 'mgmt_denied'),
+                              onPressed: () => _updateStatus(context, id, 'mgmt_denied'),
                             ),
                             const SizedBox(width: 10),
                             ElevatedButton.icon(

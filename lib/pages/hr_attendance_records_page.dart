@@ -1615,7 +1615,6 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
   List<AppUser> _all = [];
   List<AppUser> _filtered = [];
   bool _loading = true;
-  String _search = '';
 
   @override
   void initState() {
@@ -1637,7 +1636,6 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
 
   void _filter(String q) {
     setState(() {
-      _search   = q;
       _filtered = _all
           .where((u) => u.name.toLowerCase().contains(q.toLowerCase()) ||
                         u.designation.toLowerCase().contains(q.toLowerCase()))
@@ -1837,45 +1835,3 @@ class _Empty extends StatelessWidget {
   }
 }
 
-class _Table extends StatelessWidget {
-  final List<String> columns;
-  final List<List<String>> rows;
-  final Color color;
-  const _Table(
-      {required this.columns, required this.rows, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor:
-            WidgetStateProperty.all(color.withValues(alpha: 0.06)),
-        border: TableBorder.all(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8)),
-        columns: columns
-            .map((c) => DataColumn(
-                  label: Text(c,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: color)),
-                ))
-            .toList(),
-        rows: rows
-            .map((row) => DataRow(
-                  cells: row
-                      .map((cell) => DataCell(
-                            Text(cell,
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF6B7280))),
-                          ))
-                      .toList(),
-                ))
-            .toList(),
-      ),
-    );
-  }
-}

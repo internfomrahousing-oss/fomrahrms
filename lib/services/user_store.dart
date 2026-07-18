@@ -6,7 +6,24 @@ import 'supabase_service.dart';
 class UserStore {
   static const _key = 'hrms_users';
 
-  static Future<List<AppUser>> load() async {
+  static Future<List<AppUser>>? _inFlight;
+
+  // Coalesces concurrent calls into a single request — sibling widgets on
+  // the same page (e.g. dashboard blocks) each call load() from their own
+  // initState() on the same frame, which used to fire one identical
+  // full-table fetch per widget. The in-flight slot clears as soon as that
+  // fetch resolves, so a later call still fetches fresh — this only removes
+  // duplicate *concurrent* requests, it doesn't add staleness.
+  static Future<List<AppUser>> load() {
+    final existing = _inFlight;
+    if (existing != null) return existing;
+    final future = _loadFresh();
+    _inFlight = future;
+    future.whenComplete(() => _inFlight = null);
+    return future;
+  }
+
+  static Future<List<AppUser>> _loadFresh() async {
     final remote = await SupabaseService.fetchAppUsers();
     if (remote.isNotEmpty) return remote;
 

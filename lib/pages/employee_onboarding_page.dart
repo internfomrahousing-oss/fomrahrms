@@ -1535,6 +1535,12 @@ class _SubmissionCardState extends State<_SubmissionCard> {
 
   Future<void> _approveManagement(BuildContext context) async {
     final d = widget.data;
+    // Only name/phone_number/designation are ever written top-level at
+    // submit time (see onboarding_form_page.dart) — everything else the
+    // candidate filled in (DOB, address, ...) lives inside 'form_data'.
+    // Reading straight off `d` for those silently returned '' before this.
+    final fd = d['form_data'];
+    final formData = fd is Map ? Map<String, dynamic>.from(fd) : <String, dynamic>{};
     final email       = (d['assigned_email']       as String?) ?? '';
     final empId       = (d['assigned_emp_id']      as String?) ?? '';
     final manager     = (d['assigned_manager']     as String?) ?? '';
@@ -1561,12 +1567,15 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         role:             (role != null && role.isNotEmpty) ? role : 'Employee',
         active:           true,
         reportingManager: manager,
-        dateOfBirth:      (d['date_of_birth'] as String?) ?? '',
-        dateOfJoining:    (d['date_of_joining'] as String?) ?? '',
+        // "Date of joining" is the day account access is actually granted,
+        // not the candidate's self-reported guess on the onboarding form
+        // (filled in before they've started, and often left blank anyway).
+        dateOfJoining:    DateTime.now().toIso8601String(),
+        dateOfBirth:      (formData['date_of_birth'] as String?) ?? '',
         mobile:           (d['phone_number'] as String?) ?? '',
-        address:          ((d['permanent_address'] as String?)?.isNotEmpty ?? false)
-                              ? d['permanent_address'] as String
-                              : (d['postal_address'] as String?) ?? '',
+        address:          ((formData['permanent_address'] as String?)?.isNotEmpty ?? false)
+                              ? formData['permanent_address'] as String
+                              : (formData['postal_address'] as String?) ?? '',
       );
       await UserStore.upsertOne(user);
       await Supabase.instance.client

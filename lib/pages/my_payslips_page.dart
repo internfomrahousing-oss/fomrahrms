@@ -18,7 +18,6 @@ class MyPayslipsPage extends StatefulWidget {
 
 class _MyPayslipsPageState extends State<MyPayslipsPage> {
   static Color get _color => AppTheme.primaryBlue;
-  static Color get _purple => AppTheme.primaryBlue;
 
   bool _loading = false;
   bool _elAvailLoading = false;

@@ -773,7 +773,6 @@ class _TodayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs  = Theme.of(context).colorScheme;
     final rec = record;
 
     if (rec == null || rec.checkInTime.isEmpty) {
