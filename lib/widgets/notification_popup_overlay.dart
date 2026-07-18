@@ -58,7 +58,10 @@ void showNotificationPopup(AppNotification n) {
           NotificationService.markRead(n);
           final routeContext = rootNavigatorKey.currentContext;
           if (n.route.isNotEmpty && routeContext != null) {
-            GoRouter.of(routeContext).go(n.route);
+            final router = GoRouter.of(routeContext);
+            if (!router.configuration.findMatch(n.route).isError) {
+              router.go(n.route);
+            }
           }
         },
       ),

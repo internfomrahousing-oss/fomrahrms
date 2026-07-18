@@ -57,7 +57,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
     await NotificationService.markRead(n);
     if (!mounted) return;
     setState(() {});
-    if (n.route.isNotEmpty) context.go(n.route);
+    // Only navigate if the route actually resolves to a registered page —
+    // a stale/misrouted notification should do nothing rather than land on
+    // the router's "Page not found" screen.
+    if (n.route.isNotEmpty &&
+        !GoRouter.of(context).configuration.findMatch(n.route).isError) {
+      context.go(n.route);
+    }
   }
 
   void _togglePreferences() {

@@ -1218,12 +1218,7 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
       NotificationService.payslipReady(
         employeeEmail: widget.user.email,
         monthYear: _monthYear,
-        employeeRoutePrefix: switch (widget.user.role) {
-          'Manager' => '/manager',
-          'Management' => '/management',
-          'HR' => '',
-          _ => '/employee',
-        },
+        employeeRoutePrefix: NotificationService.routePrefixForRole(AppUser.userRoleFor(widget.user.role)),
       );
     }
     if (widget.request != null) {

@@ -61,7 +61,11 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
               onOpen: (n) async {
                 Navigator.of(dialogContext).pop();
                 await NotificationService.markRead(n);
-                if (n.route.isNotEmpty && mounted) context.go(n.route);
+                if (n.route.isNotEmpty &&
+                    mounted &&
+                    !GoRouter.of(context).configuration.findMatch(n.route).isError) {
+                  context.go(n.route);
+                }
               },
               onShowAll: () {
                 Navigator.of(dialogContext).pop();

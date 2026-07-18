@@ -274,7 +274,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
     switch (role) {
       case 'Manager':    return '/manager';
       case 'Management': return '/management';
-      case 'HR':         return '';
+      case 'HR':         return '/hr';
       default:           return '/employee';
     }
   }

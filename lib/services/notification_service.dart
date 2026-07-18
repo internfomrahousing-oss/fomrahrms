@@ -18,7 +18,7 @@ class NotificationService {
   /// Shared '' / '/employee' / '/manager' / '/management' route-prefix
   /// mapping — several call sites already duplicated this switch inline.
   static String routePrefixForRole(UserRole role) => switch (role) {
-        UserRole.hr => '',
+        UserRole.hr => '/hr',
         UserRole.employee => '/employee',
         UserRole.reportingManager => '/manager',
         UserRole.management => '/management',
@@ -28,6 +28,12 @@ class NotificationService {
   /// `prefix + '/profile'` (see UserSession.profileRoute, which is the same
   /// mapping for the *current* session; this is for looking up someone
   /// else's route from their AppUser.role string).
+  /// The "My Tasks" route for a role's route prefix — irregular for
+  /// employees, whose tasks page is `/employee/tasks`, not `/employee/my-tasks`
+  /// like every other role.
+  static String _myTasksRoute(String routePrefix) =>
+      routePrefix == '/employee' ? '/employee/tasks' : '$routePrefix/my-tasks';
+
   static String profileRouteForRole(UserRole role) => switch (role) {
         UserRole.hr => '/hr/my-profile',
         UserRole.reportingManager => '/manager/my-profile',
@@ -227,7 +233,7 @@ class NotificationService {
       type: 'task_assigned',
       title: 'New task assigned',
       body: taskName,
-      route: '$assigneeRoutePrefix/my-tasks',
+      route: _myTasksRoute(assigneeRoutePrefix),
       targetEmail: assigneeEmail,
     );
     await _create(
@@ -807,7 +813,7 @@ class NotificationService {
   }) => _create(
         type: 'task_pending_reminder',
         title: 'Task still pending: $taskName',
-        route: '$assigneeRoutePrefix/my-tasks',
+        route: _myTasksRoute(assigneeRoutePrefix),
         targetEmail: assigneeEmail,
         sourceId: sourceId,
       );
@@ -821,7 +827,7 @@ class NotificationService {
   }) => _create(
         type: 'task_due_soon',
         title: 'Task due $dueLabel: $taskName',
-        route: '$assigneeRoutePrefix/my-tasks',
+        route: _myTasksRoute(assigneeRoutePrefix),
         targetEmail: assigneeEmail,
         sourceId: sourceId,
       );

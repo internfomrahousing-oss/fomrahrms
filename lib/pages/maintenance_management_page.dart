@@ -240,12 +240,6 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
     _notifyReporterStatusChanged(t);
   }
 
-  static const _routePrefixByRole = {
-    UserRole.hr:               '',
-    UserRole.employee:         '/employee',
-    UserRole.reportingManager: '/manager',
-    UserRole.management:       '/management',
-  };
 
   // Fire-and-forget: resolves the reporter's email from their name and lets
   // them know their ticket's status changed.
@@ -263,7 +257,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       reporterEmail: reporter.email,
       issueType: t.issueType,
       status: t.status.label,
-      reporterRoutePrefix: _routePrefixByRole[t.reportedByRole] ?? '',
+      reporterRoutePrefix: NotificationService.routePrefixForRole(t.reportedByRole),
     );
   }
 

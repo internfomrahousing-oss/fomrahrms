@@ -244,12 +244,7 @@ void _pickTeam() {
       if (user.email.trim().toLowerCase() == UserSession.email.trim().toLowerCase()) {
         continue; // don't notify the assigner about their own assignment
       }
-      final routePrefix = switch (AppUser.userRoleFor(user.role)) {
-        UserRole.hr               => '',
-        UserRole.employee         => '/employee',
-        UserRole.reportingManager => '/manager',
-        UserRole.management       => '/management',
-      };
+      final routePrefix = NotificationService.routePrefixForRole(AppUser.userRoleFor(user.role));
       NotificationService.taskAssigned(
         taskName: task.name,
         assigneeEmail: user.email,
