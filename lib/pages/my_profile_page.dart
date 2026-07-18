@@ -191,6 +191,16 @@ class _MyProfilePageState extends State<MyProfilePage> {
     }
   }
 
+  // dateOfJoining/dateOfBirth are stored as either ISO or dd/MM/yyyy (see
+  // tenure.dart's parseFlexibleDate) — normalize to dd/MM/yyyy for display,
+  // falling back to the raw value if it doesn't parse rather than hiding it.
+  String _fmtDate(String value) {
+    if (value.isEmpty) return '';
+    final d = parseFlexibleDate(value);
+    if (d == null) return value;
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
   String _grossPayLabel(AppUser? user) {
     if (user == null || user.grossPay <= 0) return 'Not set';
     final base = '₹${user.grossPay.toStringAsFixed(0)}/month';
@@ -528,9 +538,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         Expanded(
                           child: Column(children: [
                             _Row(Icons.manage_accounts_rounded,  'Reporting Manager', _user?.reportingManager ?? ''),
-                            _Row(Icons.calendar_today_rounded,   'Date of Joining',   _user?.dateOfJoining ?? ''),
+                            _Row(Icons.calendar_today_rounded,   'Date of Joining',   _fmtDate(_user?.dateOfJoining ?? '')),
                             _Row(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user?.dateOfJoining ?? '')),
-                            _Row(Icons.cake_rounded,             'Date of Birth',     _user?.dateOfBirth ?? ''),
+                            _Row(Icons.cake_rounded,             'Date of Birth',     _fmtDate(_user?.dateOfBirth ?? '')),
+                            _Row(Icons.home_rounded,             'Address',           _user?.address ?? ''),
                             _Row(Icons.currency_rupee_rounded,   'Gross Pay',         _grossPayLabel(_user)),
                           ]),
                         ),

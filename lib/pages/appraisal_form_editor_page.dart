@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/appraisal_pdf_service.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/tenure.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -51,6 +52,33 @@ class _AppraisalFormEditorPageState extends State<AppraisalFormEditorPage> {
           employeeName: fallbackEmployee?.name ?? UserSession.name,
           reportingManager: fallbackEmployee?.reportingManager ?? UserSession.reportingManager,
         );
+    _autoFillFromProfile();
+  }
+
+  // AppraisalForm.newRequest deliberately leaves Designation/Department/Date
+  // of Joining blank for HR to fill in at setup — but that data already
+  // lives on the employee's own account, so retyping it was pure duplicate
+  // data entry. Prefill (still editable) from the matching profile in
+  // [widget.allUsers], only at the setup stage and only where blank, so
+  // this never overwrites anything HR/the employee already entered.
+  void _autoFillFromProfile() {
+    if (!_form.hrCanSetup) return;
+    AppUser? match;
+    for (final u in widget.allUsers) {
+      final idMatch = u.employeeId.isNotEmpty && u.employeeId == _form.employeeId;
+      final emailMatch = u.email.trim().toLowerCase() == _form.employeeEmail.trim().toLowerCase();
+      if (idMatch || emailMatch) { match = u; break; }
+    }
+    if (match == null) return;
+    if (_form.designation.isEmpty) _form.designation = match.designation;
+    if (_form.department.isEmpty) _form.department = match.department;
+    if (_form.dateOfJoining.isEmpty) {
+      final d = parseFlexibleDate(match.dateOfJoining);
+      if (d != null) {
+        _form.dateOfJoining =
+            '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+      }
+    }
   }
 
   bool get _hrSetup => _form.hrCanSetup;
