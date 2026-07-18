@@ -87,7 +87,7 @@ import 'pages/edit_form_page.dart';
 import 'pages/edit_leave_form_page.dart';
 import 'pages/edit_onboarding_form_page.dart';
 import 'pages/edit_maintenance_form_page.dart';
-import 'pages/edit_office_timings_page.dart';
+import 'pages/location_management_page.dart';
 import 'pages/form_approvals_page.dart';
 import 'pages/my_journey_page.dart';
 import 'pages/employee_attendance_calendar_page.dart';
@@ -289,7 +289,7 @@ final _router = GoRouter(
         GoRoute(path: '/edit-leave-form',                 builder: (_, __) => const EditLeaveFormPage()),
         GoRoute(path: '/edit-onboarding-form',            builder: (_, __) => const EditOnboardingFormPage()),
         GoRoute(path: '/edit-maintenance-form',           builder: (_, __) => const EditMaintenanceFormPage()),
-        GoRoute(path: '/edit-office-timings',             builder: (_, __) => const EditOfficeTimingsPage()),
+        GoRoute(path: '/location-management',             builder: (_, __) => const LocationManagementPage()),
         GoRoute(path: '/candidate-detail',                builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee-onboarding',             builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/lead-management',
@@ -544,7 +544,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/employee-onboarding',    builder: (_, __) => const EmployeeOnboardingPage()),
         GoRoute(path: '/management/edit-onboarding-form',   builder: (_, __) => const EditOnboardingFormPage()),
         GoRoute(path: '/management/edit-maintenance-form',  builder: (_, __) => const EditMaintenanceFormPage()),
-        GoRoute(path: '/management/edit-office-timings',    builder: (_, __) => const EditOfficeTimingsPage()),
+        GoRoute(path: '/management/location-management',    builder: (_, __) => const LocationManagementPage()),
         GoRoute(path: '/management/lead-management',
             builder: (_, __) => const LeadManagementHubPage(basePath: '/management/lead-management')),
         GoRoute(path: '/management/lead-management/leads', builder: (_, s) {

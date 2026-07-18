@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../models/appraisal_store.dart';
+import '../models/attendance_location.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
@@ -1202,7 +1203,7 @@ class SupabaseService {
       // fix the underlying cause, but it means the next occurrence shows up
       // in the browser console instead of just an empty employee list.
       // ignore: avoid_print
-      print('fetchAppUsers failed: $e $st');
+      print('fetchAppUsers failed: $e\n$st');
       return [];
     }
   }
@@ -1872,6 +1873,227 @@ class SupabaseService {
     await db.from('designation_office_timings').delete().eq('designation', designation);
   }
 
+  // ── Location Management (Locations + Attendance Policies) ───────────────
+  /*
+    See supabase/migrations/20260718030000_location_management.sql for the
+    full schema: locations, attendance_policies, attendance_policy_fallbacks,
+    attendance_policy_department_assignments,
+    attendance_policy_employee_overrides, employee_locations, plus new
+    check_in_lat/lng/within_radius, check_out_lat/lng/within_radius, and
+    location_policy_name columns on attendance_records.
+  */
+
+  static Future<List<OfficeLocation>> fetchLocations() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db.from('locations').select().order('created_at');
+      return (data as List)
+          .map((row) => OfficeLocation.fromJson(row as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<String?> saveLocation(OfficeLocation location) async {
+    final db = _db;
+    if (db == null) return 'Database not initialized.';
+    try {
+      await db.from('locations').upsert(location.toJson());
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  static Future<String?> deleteLocation(String id) async {
+    final db = _db;
+    if (db == null) return 'Database not initialized.';
+    try {
+      await db.from('locations').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  static Future<List<AttendancePolicy>> fetchAttendancePolicies() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db.from('attendance_policies').select().order('created_at');
+      return (data as List)
+          .map((row) => AttendancePolicy.fromJson(row as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<String?> saveAttendancePolicy(AttendancePolicy policy) async {
+    final db = _db;
+    if (db == null) return 'Database not initialized.';
+    try {
+      await db.from('attendance_policies').upsert(policy.toJson());
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Fails (with a readable error) if this policy is still referenced by a
+  /// fallback, department assignment, or employee override — `on delete
+  /// restrict` in the schema surfaces as a Postgres foreign-key error here.
+  static Future<String?> deleteAttendancePolicy(String id) async {
+    final db = _db;
+    if (db == null) return 'Database not initialized.';
+    try {
+      await db.from('attendance_policies').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// work_location ('Office'/'Onsite') → policy id, used when an employee
+  /// has no department assignment or individual override.
+  static Future<Map<String, String>> fetchFallbackPolicies() async {
+    final db = _db;
+    if (db == null) return {};
+    try {
+      final data = await db.from('attendance_policy_fallbacks').select();
+      return {
+        for (final row in (data as List))
+          (row as Map<String, dynamic>)['work_location'] as String: row['policy_id'] as String,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> setFallbackPolicy(String workLocation, String policyId) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('attendance_policy_fallbacks').upsert({
+      'work_location': workLocation,
+      'policy_id': policyId,
+    });
+  }
+
+  static Future<Map<String, String>> fetchDepartmentPolicyAssignments() async {
+    final db = _db;
+    if (db == null) return {};
+    try {
+      final data = await db.from('attendance_policy_department_assignments').select();
+      return {
+        for (final row in (data as List))
+          (row as Map<String, dynamic>)['department'] as String: row['policy_id'] as String,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> assignDepartmentPolicy(String department, String policyId) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('attendance_policy_department_assignments').upsert({
+      'department': department,
+      'policy_id': policyId,
+    });
+  }
+
+  static Future<void> unassignDepartmentPolicy(String department) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('attendance_policy_department_assignments').delete().eq('department', department);
+  }
+
+  static Future<Map<String, String>> fetchEmployeePolicyOverrides() async {
+    final db = _db;
+    if (db == null) return {};
+    try {
+      final data = await db.from('attendance_policy_employee_overrides').select();
+      return {
+        for (final row in (data as List))
+          (row as Map<String, dynamic>)['employee_id'] as String: row['policy_id'] as String,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> setEmployeePolicyOverride(String employeeId, String policyId) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('attendance_policy_employee_overrides').upsert({
+      'employee_id': employeeId,
+      'policy_id': policyId,
+    });
+  }
+
+  static Future<void> clearEmployeePolicyOverride(String employeeId) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('attendance_policy_employee_overrides').delete().eq('employee_id', employeeId);
+  }
+
+  /// employee_id → list of assigned location ids.
+  static Future<Map<String, List<String>>> fetchEmployeeLocations() async {
+    final db = _db;
+    if (db == null) return {};
+    try {
+      final data = await db.from('employee_locations').select();
+      final map = <String, List<String>>{};
+      for (final row in (data as List)) {
+        final r = row as Map<String, dynamic>;
+        final empId = r['employee_id'] as String;
+        (map[empId] ??= []).add(r['location_id'] as String);
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Replaces every Location assigned to [employeeId] with [locationIds] in
+  /// one call — diffs against the current assignment so unrelated rows for
+  /// other employees are untouched.
+  static Future<String?> setEmployeeLocations(String employeeId, List<String> locationIds) async {
+    final db = _db;
+    if (db == null) return 'Database not initialized.';
+    try {
+      final current = await db
+          .from('employee_locations')
+          .select('location_id')
+          .eq('employee_id', employeeId);
+      final currentIds = (current as List)
+          .map((r) => (r as Map<String, dynamic>)['location_id'] as String)
+          .toSet();
+      final newIds = locationIds.toSet();
+
+      final toAdd = newIds.difference(currentIds);
+      final toRemove = currentIds.difference(newIds);
+
+      if (toAdd.isNotEmpty) {
+        await db.from('employee_locations').insert([
+          for (final locId in toAdd) {'employee_id': employeeId, 'location_id': locId},
+        ]);
+      }
+      for (final locId in toRemove) {
+        await db
+            .from('employee_locations')
+            .delete()
+            .eq('employee_id', employeeId)
+            .eq('location_id', locId);
+      }
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
   // ── Attendance Records ────────────────────────────────────────────────
 
   static String _attendanceId(String employeeId, String date) =>
@@ -1885,19 +2107,27 @@ class SupabaseService {
     String location = '',
     String note = '',
     String selfiePath = '',
+    double? lat,
+    double? lng,
+    bool? withinRadius,
+    String policyName = '',
   }) async {
     try {
       if (_db == null) return 'Database not connected';
       await _db!.from('attendance_records').upsert({
-        'id':                    _attendanceId(employeeId, date),
-        'employee_name':         employeeName,
-        'employee_id':           employeeId,
-        'date':                  date,
-        'check_in_time':         time,
-        'check_out_time':        '',
-        'location':              location,
-        'check_in_note':         note,
-        'check_in_selfie_path':  selfiePath,
+        'id':                      _attendanceId(employeeId, date),
+        'employee_name':           employeeName,
+        'employee_id':             employeeId,
+        'date':                    date,
+        'check_in_time':           time,
+        'check_out_time':          '',
+        'location':                location,
+        'check_in_note':           note,
+        'check_in_selfie_path':    selfiePath,
+        'check_in_lat':            lat,
+        'check_in_lng':            lng,
+        'check_in_within_radius':  withinRadius,
+        'location_policy_name':    policyName,
       });
       logAuditEvent('attendance_check_in', targetType: 'attendance_records', targetId: employeeId);
       return null;
@@ -1969,14 +2199,20 @@ class SupabaseService {
     required String time,
     String note = '',
     String selfiePath = '',
+    double? lat,
+    double? lng,
+    bool? withinRadius,
   }) async {
     try {
       await _db
           ?.from('attendance_records')
           .update({
-            'check_out_time':        time,
-            'check_out_note':        note,
-            'check_out_selfie_path': selfiePath,
+            'check_out_time':          time,
+            'check_out_note':          note,
+            'check_out_selfie_path':   selfiePath,
+            'check_out_lat':           lat,
+            'check_out_lng':           lng,
+            'check_out_within_radius': withinRadius,
           })
           .eq('id', _attendanceId(employeeId, date));
       logAuditEvent('attendance_check_out', targetType: 'attendance_records', targetId: employeeId);
@@ -2004,6 +2240,13 @@ class SupabaseService {
         checkOutNote: (row['check_out_note'] as String?) ?? '',
         checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
         checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+        checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
+        checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
+        checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
+        checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
+        checkOutWithinRadius: row['check_out_within_radius'] as bool?,
+        locationPolicyName:   (row['location_policy_name'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -2034,6 +2277,13 @@ class SupabaseService {
         checkOutNote: (row['check_out_note'] as String?) ?? '',
         checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
         checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+        checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
+        checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
+        checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
+        checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
+        checkOutWithinRadius: row['check_out_within_radius'] as bool?,
+        locationPolicyName:   (row['location_policy_name'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -2065,6 +2315,13 @@ class SupabaseService {
         checkOutNote: (row['check_out_note'] as String?) ?? '',
         checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
         checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+        checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
+        checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
+        checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
+        checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
+        checkOutWithinRadius: row['check_out_within_radius'] as bool?,
+        locationPolicyName:   (row['location_policy_name'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];
@@ -2097,6 +2354,13 @@ class SupabaseService {
         checkOutNote: (row['check_out_note'] as String?) ?? '',
         checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
         checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+        checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
+        checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
+        checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
+        checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
+        checkOutWithinRadius: row['check_out_within_radius'] as bool?,
+        locationPolicyName:   (row['location_policy_name'] as String?) ?? '',
       );
     } catch (_) {
       return null;
@@ -2127,6 +2391,13 @@ class SupabaseService {
         checkOutNote: (row['check_out_note'] as String?) ?? '',
         checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
         checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+        checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
+        checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
+        checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
+        checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
+        checkOutWithinRadius: row['check_out_within_radius'] as bool?,
+        locationPolicyName:   (row['location_policy_name'] as String?) ?? '',
       )).toList();
     } catch (_) {
       return [];

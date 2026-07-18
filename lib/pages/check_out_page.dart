@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/attendance_policy_store.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/office_timing.dart';
@@ -8,7 +9,7 @@ import '../services/notification_service.dart';
 import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/checkin_status.dart';
-import '../utils/office_geofence.dart';
+import '../utils/geofence.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
@@ -48,6 +49,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   AttendanceRecord? _record;
   int _permissionMinutes = 0;
   bool _outsideOffice = false;
+  String _nearestLocationName = '';
   bool _locatingForCheckOut = false;
 
   final _timeController = TextEditingController();
@@ -91,25 +93,37 @@ class _CheckOutPageState extends State<CheckOutPage> {
   Future<void> _onCheckOut() async {
     setState(() => _locatingForCheckOut = true);
     final pos = await GpsTrackingService.getCurrentLocation();
+    final policy = AttendancePolicyStore.policyForEmployee(
+      employeeId: UserSession.employeeId,
+      department: UserSession.department,
+      workLocation: UserSession.workLocation,
+    );
+    final locations = AttendancePolicyStore.locationsForEmployee(UserSession.employeeId);
     // A failed location lookup (denied permission, GPS off, etc.) is treated
-    // the same as being outside the office — Office employees still get a
-    // check-out, just with a required reason, rather than silently skipping
-    // the geofence check whenever the position can't be read.
-    final outsideOffice = UserSession.workLocation == 'Office' &&
-        (pos == null || !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude));
+    // the same as being outside every assigned location — employees whose
+    // policy requires one still get a check-out, just with a required
+    // reason, rather than silently skipping the geofence check.
+    final geofence = evaluateGeofence(
+      policy: policy, locations: locations, lat: pos?.latitude, lng: pos?.longitude,
+    );
+    final outsideOffice = geofence.outsideAllowedLocation;
     if (!mounted) return;
     setState(() {
       _locatingForCheckOut = false;
       _outsideOffice = outsideOffice;
+      _nearestLocationName = geofence.nearestLocation?.name ?? '';
     });
 
     if (outsideOffice && _noteController.text.trim().isEmpty) {
+      final locationPhrase = _nearestLocationName.isNotEmpty
+          ? "outside $_nearestLocationName"
+          : 'outside your assigned location';
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('You Are Not In Office Location'),
-          content: const Text(
-            "You're outside the office premises. Please enter a reason "
+          title: const Text('You Are Not At Your Assigned Location'),
+          content: Text(
+            "You're $locationPhrase. Please enter a reason "
             'below to check out from this location.',
           ),
           actions: [
@@ -169,6 +183,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
       time: _timeController.text,
       note: _noteController.text.trim(),
       selfiePath: selfiePath,
+      lat: pos?.latitude,
+      lng: pos?.longitude,
+      withinRadius: geofence.requiresLocation ? geofence.isWithinAnyLocation : null,
     );
 
     if (!mounted) return;
@@ -259,7 +276,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "You're not in office location. Please give a reason to check out from here.",
+                      "You're not at ${_nearestLocationName.isNotEmpty ? _nearestLocationName : 'your assigned location'}. "
+                      'Please give a reason to check out from here.',
                       style: TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w600,
                           color: isDark ? Colors.red.shade300 : Colors.red.shade800),
@@ -279,10 +297,12 @@ class _CheckOutPageState extends State<CheckOutPage> {
                         OfficeTimingStore.scheduleForDesignation(UserSession.designation),
                         _permissionMinutes);
                     final showNote = isEarly || _outsideOffice;
+                    final outLocationLabel =
+                        _nearestLocationName.isNotEmpty ? _nearestLocationName : 'your assigned location';
                     final noteLabel = _outsideOffice && isEarly
-                        ? 'Reason for early & outside-office check-out (required)'
+                        ? 'Reason for early & outside-location check-out (required)'
                         : _outsideOffice
-                            ? 'Reason for checking out outside office (required)'
+                            ? 'Reason for checking out outside $outLocationLabel (required)'
                             : 'Reason for early check-out (required)';
                     return Column(children: [
                       TextField(

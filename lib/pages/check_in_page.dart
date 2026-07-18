@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../models/attendance_policy_store.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/office_timing.dart';
@@ -10,8 +11,8 @@ import '../services/notification_service.dart';
 import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/checkin_status.dart';
+import '../utils/geofence.dart';
 import '../utils/location_consent.dart';
-import '../utils/office_geofence.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
@@ -49,6 +50,7 @@ class _CheckInPageState extends State<CheckInPage> {
   AttendanceRecord? _record; // today's record from Supabase
   bool _onPermission = false;
   bool _outsideOffice = false;
+  String _nearestLocationName = '';
   bool _locatingForCheckIn = false;
 
   final _timeController = TextEditingController();
@@ -106,25 +108,37 @@ class _CheckInPageState extends State<CheckInPage> {
 
     setState(() => _locatingForCheckIn = true);
     final pos = await GpsTrackingService.getCurrentLocation();
+    final policy = AttendancePolicyStore.policyForEmployee(
+      employeeId: UserSession.employeeId,
+      department: UserSession.department,
+      workLocation: UserSession.workLocation,
+    );
+    final locations = AttendancePolicyStore.locationsForEmployee(UserSession.employeeId);
     // A failed location lookup (denied permission, GPS off, etc.) is treated
-    // the same as being outside the office — Office employees still get a
-    // check-in, just with a required reason, rather than silently skipping
-    // the geofence check whenever the position can't be read.
-    final outsideOffice = UserSession.workLocation == 'Office' &&
-        (pos == null || !OfficeGeofence.isWithinOffice(pos.latitude, pos.longitude));
+    // the same as being outside every assigned location — employees whose
+    // policy requires one still get a check-in, just with a required
+    // reason, rather than silently skipping the geofence check.
+    final geofence = evaluateGeofence(
+      policy: policy, locations: locations, lat: pos?.latitude, lng: pos?.longitude,
+    );
+    final outsideOffice = geofence.outsideAllowedLocation;
     if (!mounted) return;
     setState(() {
       _locatingForCheckIn = false;
       _outsideOffice = outsideOffice;
+      _nearestLocationName = geofence.nearestLocation?.name ?? '';
     });
 
     if (outsideOffice && _noteController.text.trim().isEmpty) {
+      final locationPhrase = _nearestLocationName.isNotEmpty
+          ? "outside $_nearestLocationName"
+          : 'outside your assigned location';
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('You Are Not In Office Location'),
-          content: const Text(
-            "You're outside the office premises. Please enter a reason "
+          title: const Text('You Are Not At Your Assigned Location'),
+          content: Text(
+            "You're $locationPhrase. Please enter a reason "
             'below to check in from this location.',
           ),
           actions: [
@@ -191,6 +205,10 @@ class _CheckInPageState extends State<CheckInPage> {
       location: loc,
       note: _noteController.text.trim(),
       selfiePath: selfiePath,
+      lat: pos?.latitude,
+      lng: pos?.longitude,
+      withinRadius: geofence.requiresLocation ? geofence.isWithinAnyLocation : null,
+      policyName: policy.name,
     );
 
     if (!mounted) return;
@@ -263,6 +281,7 @@ class _CheckInPageState extends State<CheckInPage> {
               noteController: _noteController,
               onPermission: _onPermission,
               outsideOffice: _outsideOffice,
+              nearestLocationName: _nearestLocationName,
               locating: _locatingForCheckIn,
               color: _color,
               cs: cs,
@@ -433,6 +452,7 @@ class _CheckInForm extends StatelessWidget {
   final TextEditingController noteController;
   final bool onPermission;
   final bool outsideOffice;
+  final String nearestLocationName;
   final bool locating;
   final Color color;
   final ColorScheme cs;
@@ -440,13 +460,14 @@ class _CheckInForm extends StatelessWidget {
   final VoidCallback onCheckIn;
   const _CheckInForm({
     required this.timeController, required this.noteController, required this.onPermission,
-    required this.outsideOffice, required this.locating,
+    required this.outsideOffice, required this.nearestLocationName, required this.locating,
     required this.color, required this.cs, required this.onRefreshTime, required this.onCheckIn,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final locationLabel = nearestLocationName.isNotEmpty ? nearestLocationName : 'your assigned location';
     return Column(children: [
       if (outsideOffice) ...[
         Container(
@@ -463,7 +484,7 @@ class _CheckInForm extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                "You're not in office location. Please give a reason to check in from here.",
+                "You're not at $locationLabel. Please give a reason to check in from here.",
                 style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600,
                     color: isDark ? Colors.red.shade300 : Colors.red.shade800),
@@ -484,9 +505,9 @@ class _CheckInForm extends StatelessWidget {
                       OfficeTimingStore.scheduleForDesignation(UserSession.designation));
               final showNote = isLate || outsideOffice;
               final noteLabel = outsideOffice && isLate
-                  ? 'Reason for late & outside-office check-in (required)'
+                  ? 'Reason for late & outside-location check-in (required)'
                   : outsideOffice
-                      ? 'Reason for checking in outside office (required)'
+                      ? 'Reason for checking in outside $locationLabel (required)'
                       : 'Reason for late check-in (required)';
               return Column(children: [
                 TextField(

@@ -6,6 +6,7 @@ import 'app.dart';
 import 'models/color_theme_notifier.dart';
 import 'models/language_notifier.dart';
 import 'models/notification_store.dart';
+import 'models/attendance_policy_store.dart';
 import 'models/office_timing.dart';
 import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
@@ -78,6 +79,7 @@ void main() async {
     });
     SupabaseService.restoreCheckInState();
     OfficeTimingStore.ensureLoaded();
+    AttendancePolicyStore.ensureLoaded();
     colorThemeNotifier.loadInitial();
     if (restored && UserSession.employeeId.isNotEmpty) {
       SupabaseService.fetchCurrentUserPhotoUrl(UserSession.employeeId).then((url) {

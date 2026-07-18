@@ -3,23 +3,25 @@ import '../constants/org_lists.dart';
 import '../models/office_timing.dart';
 import '../services/supabase_service.dart';
 import '../utils/token_util.dart';
-import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
 
-/// HR/Management admin page: create, edit, and assign designation-based
-/// working-hours schedules ("Office Timings"). Direct-edit, no
-/// approval workflow — every save takes effect immediately, and every
-/// attendance calculation (late/early/overtime) resolves an employee's
-/// schedule live from their current designation, so a reassignment here
-/// or a designation change takes effect on the very next check-in.
-class EditOfficeTimingsPage extends StatefulWidget {
-  const EditOfficeTimingsPage({super.key});
+/// Create, edit, and assign designation-based working-hours schedules
+/// ("Office Timings"). Direct-edit, no approval workflow — every save
+/// takes effect immediately, and every attendance calculation (late/early/
+/// overtime) resolves an employee's schedule live from their current
+/// designation, so a reassignment here or a designation change takes
+/// effect on the very next check-in.
+///
+/// Embedded as a tab inside LocationManagementPage — no Scaffold/back
+/// button of its own, since the host page provides those.
+class OfficeTimingsPanel extends StatefulWidget {
+  const OfficeTimingsPanel({super.key});
 
   @override
-  State<EditOfficeTimingsPage> createState() => _EditOfficeTimingsPageState();
+  State<OfficeTimingsPanel> createState() => _OfficeTimingsPanelState();
 }
 
-class _EditOfficeTimingsPageState extends State<EditOfficeTimingsPage> {
+class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
   bool _loading = true;
   List<OfficeTiming> _timings = [];
 
@@ -108,57 +110,43 @@ class _EditOfficeTimingsPageState extends State<EditOfficeTimingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const NavBackButton(),
-            const SizedBox(width: 8),
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.schedule_rounded, color: AppTheme.primaryBlue, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Text('Office Timings',
-                style: Theme.of(context).textTheme.headlineMedium)),
-            ElevatedButton.icon(
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add Office Timing'),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          Text(
-            'Each designation is assigned one Office Timing, which drives late-arrival, '
-            'early-checkout, and overtime calculations across the app. Designations with no '
-            'explicit assignment use the default timing.',
-            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65)),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text('Office Timings',
+              style: Theme.of(context).textTheme.titleLarge)),
+          ElevatedButton.icon(
+            onPressed: () => _openEditor(),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Add Office Timing'),
           ),
-          const SizedBox(height: 20),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 60),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            for (final t in _timings)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _TimingCard(
-                  timing: t,
-                  assignedDesignations: OfficeTimingStore.designationsFor(t.id),
-                  onEdit: () => _openEditor(existing: t),
-                  onDelete: t.isDefault ? null : () => _delete(t),
-                ),
-              ),
         ]),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          'Each designation is assigned one Office Timing, which drives late-arrival, '
+          'early-checkout, and overtime calculations across the app. Designations with no '
+          'explicit assignment use the default timing.',
+          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65)),
+        ),
+        const SizedBox(height: 20),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 60),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          for (final t in _timings)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _TimingCard(
+                timing: t,
+                assignedDesignations: OfficeTimingStore.designationsFor(t.id),
+                onEdit: () => _openEditor(existing: t),
+                onDelete: t.isDefault ? null : () => _delete(t),
+              ),
+            ),
+      ]),
     );
   }
 }

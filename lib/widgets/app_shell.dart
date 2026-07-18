@@ -33,7 +33,7 @@ const _editFormItems = <_SubItem>[
   (label: 'Edit Interview Form',  icon: Icons.assignment_rounded,       route: '/edit-form'),
   (label: 'Edit Onboarding Form', icon: Icons.how_to_reg_rounded,       route: '/edit-onboarding-form'),
   (label: 'Edit Maintenance Form', icon: Icons.build_rounded,           route: '/edit-maintenance-form'),
-  (label: 'Office Timings',        icon: Icons.schedule_rounded,        route: '/edit-office-timings'),
+  (label: 'Location Management',   icon: Icons.location_on_rounded,     route: '/location-management'),
 ];
 
 const _navItems = [

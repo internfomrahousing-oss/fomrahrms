@@ -1228,12 +1228,20 @@ class _AttendanceDetailDialog extends StatelessWidget {
               _InfoRow(Icons.calendar_today_rounded, 'Date', r.date),
               const SizedBox(height: 10),
               _InfoRow(Icons.login_rounded, 'Check-In', r.checkInTime.isNotEmpty ? r.checkInTime : '—'),
+              if (r.checkInTime.isNotEmpty && r.checkInWithinRadius != null) ...[
+                const SizedBox(height: 6),
+                _GeofenceBadge(withinRadius: r.checkInWithinRadius!, policyName: r.locationPolicyName),
+              ],
               if (r.checkInNote.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _NoteBlock(label: 'Check-in note', text: r.checkInNote),
               ],
               const SizedBox(height: 10),
               _InfoRow(Icons.logout_rounded, 'Check-Out', hasCheckOut ? r.checkOutTime : '—'),
+              if (hasCheckOut && r.checkOutWithinRadius != null) ...[
+                const SizedBox(height: 6),
+                _GeofenceBadge(withinRadius: r.checkOutWithinRadius!, policyName: r.locationPolicyName),
+              ],
               if (r.checkOutNote.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _NoteBlock(label: 'Check-out note', text: r.checkOutNote),
@@ -1469,6 +1477,37 @@ class _NoteBlock extends StatelessWidget {
                 color: Color(0xFF9CA3AF))),
         const SizedBox(height: 2),
         Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF374151))),
+      ]),
+    );
+  }
+}
+
+/// Whether a check-in/check-out fell inside the employee's assigned
+/// location radius, per the resolved Attendance Policy at the time — see
+/// lib/models/attendance_policy_store.dart and location_management_page.dart.
+class _GeofenceBadge extends StatelessWidget {
+  final bool withinRadius;
+  final String policyName;
+  const _GeofenceBadge({required this.withinRadius, required this.policyName});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = withinRadius ? Colors.green.shade600 : Colors.orange.shade700;
+    final label = withinRadius ? 'Within assigned location' : 'Outside assigned location';
+    return Container(
+      margin: const EdgeInsets.only(left: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(withinRadius ? Icons.check_circle_rounded : Icons.location_off_rounded, size: 12, color: color),
+        const SizedBox(width: 4),
+        Text(
+          policyName.isNotEmpty ? '$label · $policyName' : label,
+          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: color),
+        ),
       ]),
     );
   }

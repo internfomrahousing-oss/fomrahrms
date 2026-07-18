@@ -47,6 +47,17 @@ class AttendanceRecord {
   // short-lived signed URL on demand via SupabaseService.attendanceSelfieUrl.
   final String checkInSelfiePath;
   final String checkOutSelfiePath;
+  // Structured GPS + geofence outcome, recorded separately for check-in and
+  // check-out so checking out doesn't overwrite the check-in point (unlike
+  // the legacy `location` string, which is a single shared field). Null
+  // withinRadius means the employee's policy didn't require a location.
+  final double? checkInLat;
+  final double? checkInLng;
+  final bool? checkInWithinRadius;
+  final double? checkOutLat;
+  final double? checkOutLng;
+  final bool? checkOutWithinRadius;
+  final String locationPolicyName;
 
   const AttendanceRecord({
     required this.id,
@@ -61,5 +72,12 @@ class AttendanceRecord {
     this.checkOutNote = '',
     this.checkInSelfiePath = '',
     this.checkOutSelfiePath = '',
+    this.checkInLat,
+    this.checkInLng,
+    this.checkInWithinRadius,
+    this.checkOutLat,
+    this.checkOutLng,
+    this.checkOutWithinRadius,
+    this.locationPolicyName = '',
   });
 }
