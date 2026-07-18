@@ -24,6 +24,8 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
   bool _loading = true;
 
   String get _employeeName => UserSession.name.isEmpty ? 'Employee' : UserSession.name;
+  int get _usedThisMonth => LeaveStore.staffLeaveCountThisMonth(_employeeName);
+  bool get _limitReached => _usedThisMonth >= LeaveStore.staffMonthlyHolidayAllowance;
 
   List<LeaveApplication> get _history {
     final list = LeaveStore.applications
@@ -67,6 +69,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
   }
 
   Future<void> _submit() async {
+    if (_limitReached) return;
     if (_date == null) {
       _snack(st('select_leave_date_err'));
       return;
@@ -117,9 +120,37 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
           const SizedBox(height: 12),
           Text(st('apply_leave'),
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 28),
+          const SizedBox(height: 8),
+          Text(
+            st('leave_allowance_note').replaceFirst(
+                '{used}', '$_usedThisMonth/${LeaveStore.staffMonthlyHolidayAllowance}'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 20),
+
+          if (_limitReached)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.orange.shade300),
+              ),
+              child: Row(children: [
+                Icon(Icons.error_outline_rounded, color: Colors.orange.shade700, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(st('leave_limit_reached'),
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
+                ),
+              ]),
+            ),
+
           GestureDetector(
-            onTap: _pickDate,
+            onTap: _limitReached ? null : _pickDate,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
@@ -153,10 +184,11 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
+              onPressed: (_submitting || _limitReached) ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _color,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               child: _submitting

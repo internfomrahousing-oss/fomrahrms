@@ -3426,9 +3426,14 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
               },
             ),
 
-            _field(_leaveCtrl, 'Leave Allocation (days / year)',
-                Icons.event_note_rounded,
-                keyboard: TextInputType.number),
+            // Housekeeping/Support Staff don't have a CL/ML/EL-style annual
+            // allocation — they get a fixed 1-holiday-per-month allowance
+            // that doesn't carry over, shown read-only in the Staff Portal
+            // instead of set here.
+            if (!kStaffPortalDepartments.contains(_department))
+              _field(_leaveCtrl, 'Leave Allocation (days / year)',
+                  Icons.event_note_rounded,
+                  keyboard: TextInputType.number),
 
             // Only offered here for the initial entry; once set, further changes
             // must go through the Compensation approval flow on the profile page.

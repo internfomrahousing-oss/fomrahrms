@@ -119,4 +119,21 @@ class LeaveStore {
             a.managerStatus != LeaveApprovalStatus.denied)
         .length;
   }
+
+  /// Staff Portal holiday allowance: 1 per calendar month, fixed (no
+  /// HR-configurable "days / year" allocation like regular employees, and
+  /// unused days don't carry over) — a fresh count each month.
+  static const int staffMonthlyHolidayAllowance = 1;
+
+  static int staffLeaveCountThisMonth(String employeeName) {
+    final now = DateTime.now();
+    return applications
+        .where((a) =>
+            a.leaveType == 'Leave' &&
+            a.employeeName == employeeName &&
+            a.from.year == now.year &&
+            a.from.month == now.month &&
+            a.managerStatus != LeaveApprovalStatus.denied)
+        .length;
+  }
 }

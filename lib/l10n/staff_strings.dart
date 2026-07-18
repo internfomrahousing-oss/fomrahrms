@@ -45,6 +45,12 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
   'leave_submitted':        {AppLanguage.en: 'Leave Request Submitted Successfully.',
                               AppLanguage.hi: 'छुट्टी का अनुरोध सफलतापूर्वक भेजा गया।',
                               AppLanguage.ta: 'விடுப்பு கோரிக்கை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது.'},
+  'leave_allowance_note':   {AppLanguage.en: '{used} holidays used this month · resets monthly',
+                              AppLanguage.hi: 'इस महीने {used} छुट्टियाँ उपयोग की गईं · हर महीने रीसेट होता है',
+                              AppLanguage.ta: 'இந்த மாதம் {used} விடுப்புகள் பயன்படுத்தப்பட்டன · ஒவ்வொரு மாதமும் மீட்டமைக்கப்படும்'},
+  'leave_limit_reached':    {AppLanguage.en: 'You have already used your 1 holiday for this month.',
+                              AppLanguage.hi: 'आपने इस महीने अपनी 1 छुट्टी का उपयोग कर लिया है।',
+                              AppLanguage.ta: 'இந்த மாதத்திற்கான உங்கள் 1 விடுப்பை ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.'},
 
   // ── Permission ───────────────────────────────────────────────────────
   'apply_permission':       {AppLanguage.en: 'Apply Permission', AppLanguage.hi: 'अनुमति के लिए आवेदन करें', AppLanguage.ta: 'அனுமதிக்கு விண்ணப்பிக்கவும்'},
@@ -83,6 +89,9 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
   'manager':       {AppLanguage.en: 'Manager',       AppLanguage.hi: 'प्रबंधक',            AppLanguage.ta: 'மேலாளர்'},
   'phone_number':  {AppLanguage.en: 'Phone Number',  AppLanguage.hi: 'फ़ोन नंबर',          AppLanguage.ta: 'தொலைபேசி எண்'},
   'joining_date':  {AppLanguage.en: 'Joining Date',  AppLanguage.hi: 'शामिल होने की तारीख', AppLanguage.ta: 'சேர்ந்த தேதி'},
+  'holiday_allowance': {AppLanguage.en: 'Holiday Allowance',
+                         AppLanguage.hi: 'छुट्टी भत्ता',
+                         AppLanguage.ta: 'விடுப்பு கொடையளவு'},
 };
 
 /// Looks up [key] in the current staff-portal language; falls back to

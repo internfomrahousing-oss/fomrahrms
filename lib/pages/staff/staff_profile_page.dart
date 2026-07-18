@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../l10n/staff_strings.dart';
 import '../../models/app_user.dart';
 import '../../models/language_notifier.dart';
+import '../../models/leave_store.dart';
 import '../../models/user_session.dart';
+import '../../services/supabase_service.dart';
 import '../../services/user_store.dart';
 import '../../theme/app_theme.dart';
 
@@ -27,8 +29,17 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
   }
 
   Future<void> _load() async {
-    final users = await UserStore.load();
+    final results = await Future.wait([
+      UserStore.load(),
+      SupabaseService.fetchLeaveApplications(),
+    ]);
     if (!mounted) return;
+    final users = results[0] as List<AppUser>;
+    final apps = results[1] as List<LeaveApplication>;
+    if (apps.isNotEmpty) {
+      LeaveStore.applications..clear()..addAll(apps);
+      LeaveStore.syncCounter();
+    }
     final match = users.where((u) => u.name == UserSession.name).toList();
     setState(() {
       _user = match.isNotEmpty ? match.first : null;
@@ -62,6 +73,9 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
     final manager     = u?.reportingManager.isNotEmpty == true ? u!.reportingManager : UserSession.reportingManager;
     final phone       = u?.mobile ?? '';
     final joining     = u != null ? _fmtDate(u.dateOfJoining) : '—';
+    final usedThisMonth = LeaveStore.staffLeaveCountThisMonth(name);
+    final holidayValue = st('leave_allowance_note')
+        .replaceFirst('{used}', '$usedThisMonth/${LeaveStore.staffMonthlyHolidayAllowance}');
 
     return ValueListenableBuilder<AppLanguage>(
       valueListenable: staffLanguageNotifier,
@@ -89,6 +103,7 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
           _InfoTile(icon: Icons.supervisor_account_rounded, label: st('manager'), value: manager.isEmpty ? '—' : manager),
           _InfoTile(icon: Icons.phone_rounded, label: st('phone_number'), value: phone.isEmpty ? '—' : phone),
           _InfoTile(icon: Icons.calendar_today_rounded, label: st('joining_date'), value: joining),
+          _InfoTile(icon: Icons.event_available_rounded, label: st('holiday_allowance'), value: holidayValue),
         ]),
       ),
     );
