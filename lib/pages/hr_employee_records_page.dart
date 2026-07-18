@@ -29,6 +29,17 @@ const _sortLabels = {
   _SortOrder.joinNewOld:   'Join Date ↓',
 };
 
+// dateOfJoining/dateOfBirth are stored as either ISO or dd/MM/yyyy (see
+// tenure.dart's parseFlexibleDate) — normalize to dd/MM/yyyy for display so
+// a raw ISO timestamp never shows up unformatted. Falls back to the raw
+// value if it doesn't parse, rather than hiding it.
+String _fmtDate(String value) {
+  if (value.isEmpty) return '';
+  final d = parseFlexibleDate(value);
+  if (d == null) return value;
+  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+}
+
 class HrEmployeeRecordsPage extends StatefulWidget {
   const HrEmployeeRecordsPage({super.key});
 
@@ -100,10 +111,14 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   // HR/Management see everyone; anyone flagged as a reporting manager (any
   // role) sees only the employees assigned to them. Housekeeping/Support
   // Staff (Staff Portal accounts) are managed from Staff Portal Approvals
-  // instead, so they're excluded from this list entirely.
+  // instead, so they're excluded from this list entirely — and Management
+  // (e.g. Director) accounts aren't employees at all (see role_hierarchy
+  // notes: Management manages/decides but doesn't participate in
+  // employee-level flows), so they don't belong in Employee Management either.
   List<AppUser> _baseList(List<AppUser> users) {
-    final withoutStaffPortal =
-        users.where((u) => !kStaffPortalDepartments.contains(u.department)).toList();
+    final withoutStaffPortal = users
+        .where((u) => !kStaffPortalDepartments.contains(u.department) && u.role != 'Management')
+        .toList();
     final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
     if (isHrOrMgmt) return withoutStaffPortal;
     if (!UserSession.isReportingManager) return const [];
@@ -114,13 +129,12 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
         .toList();
   }
 
-  static DateTime _parseJoin(AppUser u) {
-    try {
-      final p = u.dateOfJoining.split('/');
-      if (p.length == 3) return DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
-    } catch (_) {}
-    return DateTime(2099); // unknown → sort to end
-  }
+  // dateOfJoining is stored as either ISO or dd/MM/yyyy (see tenure.dart's
+  // parseFlexibleDate) — this used to only handle dd/MM/yyyy, so every
+  // account created after the ISO-format switch sorted to the very end
+  // regardless of its actual join date.
+  static DateTime _parseJoin(AppUser u) =>
+      parseFlexibleDate(u.dateOfJoining) ?? DateTime(2099); // unknown → sort to end
 
   void _applyFilter() {
     List<AppUser> list = List.from(_all);
@@ -671,7 +685,7 @@ class _UserCard extends StatelessWidget {
                 Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey.shade500),
                 const SizedBox(width: 5),
                 Flexible(child: Text(
-                    user.dateOfJoining.isNotEmpty ? user.dateOfJoining : '—',
+                    user.dateOfJoining.isNotEmpty ? _fmtDate(user.dateOfJoining) : '—',
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
                         color: Color(0xFF111827)))),
@@ -2406,8 +2420,8 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
             _InfoRow(Icons.alternate_email_rounded, 'Company Mail',      _user.companyEmail),
             _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
             _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
-            _InfoRow(Icons.cake_rounded,            'Date of Birth',     _user.dateOfBirth),
-            _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   _user.dateOfJoining),
+            _InfoRow(Icons.cake_rounded,            'Date of Birth',     _fmtDate(_user.dateOfBirth)),
+            _InfoRow(Icons.calendar_today_rounded,  'Date of Joining',   _fmtDate(_user.dateOfJoining)),
             _InfoRow(Icons.hourglass_bottom_rounded, 'Time with Company', tenureLabel(_user.dateOfJoining)),
             _InfoRow(Icons.manage_accounts_rounded, 'Reporting Manager', _user.reportingManager),
 
@@ -3046,8 +3060,8 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
     _mobileCtrl  = TextEditingController(text: u?.mobile ?? '');
     _addressCtrl = TextEditingController(text: u?.address ?? '');
     _companyEmailCtrl = TextEditingController(text: u?.companyEmail ?? '');
-    _dobCtrl     = TextEditingController(text: u?.dateOfBirth ?? '');
-    _joiningCtrl = TextEditingController(text: u?.dateOfJoining ?? '');
+    _dobCtrl     = TextEditingController(text: _fmtDate(u?.dateOfBirth ?? ''));
+    _joiningCtrl = TextEditingController(text: _fmtDate(u?.dateOfJoining ?? ''));
     _leaveCtrl   = TextEditingController(
         text: (u?.leaveAllocation ?? 21).toString());
     _grossPayCtrl = TextEditingController(
@@ -3096,7 +3110,7 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
     final today =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
     final joiningVal = _joiningCtrl.text.trim();
-    final existingJoining = widget.user?.dateOfJoining ?? '';
+    final existingJoining = _fmtDate(widget.user?.dateOfJoining ?? '');
 
     // Reporting manager: a brand-new employee, or a first-time assignment
     // (currently empty), saves directly. Changing an already-set value
