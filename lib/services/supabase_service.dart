@@ -2577,11 +2577,29 @@ class SupabaseService {
 
   // ── Notifications ─────────────────────────────────────────────────────
 
+  // PostgREST .or() syntax needs values quoted if they might contain a
+  // comma/paren; cheap to always quote rather than sniff for it.
+  static String _orQuoted(String value) => '"${value.replaceAll('"', '\\"')}"';
+
   static Future<List<AppNotification>> fetchNotifications() async {
     try {
+      // Filtered server-side to just what's addressed to the signed-in user
+      // (mirrors NotificationStore.isForCurrentUser) — the poll loop in
+      // main.dart hits this every 45s, and an unfiltered fetch means every
+      // client downloads the whole company's notification feed each cycle.
+      final email = UserSession.email.trim();
+      final role = currentRoleLabel();
+      final name = UserSession.name.trim();
+      final orFilter = [
+        if (email.isNotEmpty) 'target_email.eq.${_orQuoted(email)}',
+        'target_role.eq.${_orQuoted(role)}',
+        'target_role.eq.ALL',
+        if (name.isNotEmpty) 'target_reporting_manager.eq.${_orQuoted(name)}',
+      ].join(',');
       final data = await _db
           ?.from('notifications')
           .select()
+          .or(orFilter)
           .order('created_at', ascending: false)
           .limit(500);
       if (data == null) return [];

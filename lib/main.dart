@@ -94,7 +94,7 @@ void main() async {
   // re-poll periodically for as long as the app is open. Also doubles as
   // the retry path for the once-a-day reminder checks (cheap to call
   // repeatedly — each no-ops after its first run each calendar day).
-  Timer.periodic(const Duration(seconds: 45), (_) async {
+  Timer.periodic(const Duration(seconds: 20), (_) async {
     if (!UserSession.loggedIn) return;
     final list = await SupabaseService.fetchNotifications();
     final newArrivals = NotificationStore.diffNewArrivals(list);
