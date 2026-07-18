@@ -1126,6 +1126,18 @@ class SupabaseService {
       'permission_minutes_quota, permission_minutes_quota_pending, permission_minutes_quota_requested_at, '
       'company_email';
 
+  // Postgres `numeric` columns (gross_pay, gross_pay_pending, ...) come back
+  // from PostgREST as JSON strings, not numbers — it does this to avoid
+  // silently losing precision, since JSON numbers are doubles. `as num?`
+  // throws on a String, which used to take down this entire row-mapping
+  // pass (and, via the catch-all below, made the whole employee list
+  // silently vanish) the moment any employee had a non-null gross pay.
+  static double? _numFromJson(dynamic v) => switch (v) {
+        num n => n.toDouble(),
+        String s => double.tryParse(s),
+        _ => null,
+      };
+
   static Future<List<AppUser>> fetchAppUsers() async {
     try {
       await awaitReady();
@@ -1171,8 +1183,8 @@ class SupabaseService {
         elEligibleAt:         (row['el_eligible_at']          as String?) ?? '',
         elAvailRequestedAt:   (row['el_avail_requested_at']   as String?) ?? '',
         elLastAvailedAt:      (row['el_last_availed_at']      as String?) ?? '',
-        grossPay:             (row['gross_pay'] as num?)?.toDouble() ?? 0,
-        grossPayPending:      (row['gross_pay_pending'] as num?)?.toDouble() ?? 0,
+        grossPay:             _numFromJson(row['gross_pay']) ?? 0,
+        grossPayPending:      _numFromJson(row['gross_pay_pending']) ?? 0,
         grossPayRequestedAt:  (row['gross_pay_requested_at'] as String?) ?? '',
         workLocation:            (row['work_location']             as String?) ?? '',
         workLocationPending:     (row['work_location_pending']     as String?) ?? '',
@@ -1182,7 +1194,16 @@ class SupabaseService {
         permissionMinutesQuotaRequestedAt: (row['permission_minutes_quota_requested_at'] as String?) ?? '',
         companyEmail:         (row['company_email']           as String?) ?? '',
       )).toList();
-    } catch (_) {
+    } catch (e, st) {
+      // This used to fail totally silently — any parse/network/RLS error
+      // here looked identical to "the company genuinely has zero
+      // employees" everywhere that reads UserStore.load(), which made a
+      // real bug indistinguishable from an empty result. Logging it doesn't
+      // fix the underlying cause, but it means the next occurrence shows up
+      // in the browser console instead of just an empty employee list.
+      // ignore: avoid_print
+      print('fetchAppUsers failed: $e
+$st');
       return [];
     }
   }

@@ -35,13 +35,22 @@ class OfficeTiming {
   int get checkOutMinutes => _minutesOf(checkOutTime) ?? 0;
   int get graceEndMinutes => checkInMinutes + graceMinutes;
 
+  // office_timings.working_hours is a Postgres `numeric` column, which
+  // PostgREST serializes as a JSON string, not a number — `as num?` throws
+  // on that. See the matching note on SupabaseService._numFromJson.
+  static double? _numFromJson(dynamic v) => switch (v) {
+        num n => n.toDouble(),
+        String s => double.tryParse(s),
+        _ => null,
+      };
+
   factory OfficeTiming.fromJson(Map<String, dynamic> j) => OfficeTiming(
         id: j['id'] as String,
         name: j['name'] as String? ?? '',
         checkInTime: j['check_in_time'] as String? ?? '09:30',
         checkOutTime: j['check_out_time'] as String? ?? '18:30',
         graceMinutes: (j['grace_minutes'] as num?)?.toInt() ?? 10,
-        workingHours: (j['working_hours'] as num?)?.toDouble() ?? 8,
+        workingHours: _numFromJson(j['working_hours']) ?? 8,
         isDefault: j['is_default'] as bool? ?? false,
       );
 

@@ -192,7 +192,16 @@ class Payslip {
       return [];
     }
 
-    double numOf(String key) => (j[key] as num?)?.toDouble() ?? 0;
+    // payslips' salary-component columns are Postgres `numeric`, which
+    // PostgREST serializes as a JSON string rather than a number — `as
+    // num?` throws on that (see SupabaseService._numFromJson for the same
+    // fix applied to app_users.gross_pay).
+    double numOf(String key) {
+      final v = j[key];
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0;
+      return 0;
+    }
 
     return Payslip(
       id: (j['id'] as String?) ?? '',
