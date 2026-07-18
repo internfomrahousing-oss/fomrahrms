@@ -14,7 +14,10 @@ class SessionStorage {
   static const _kWorkLocation     = 'fomra_work_location';
   static const _kPermissionQuota  = 'fomra_permission_minutes_quota';
 
-  static const _duration = Duration(hours: 8);
+  static const _duration = Duration(hours: 10);
+  // Housekeeping/Support Staff stay logged in far longer — they share
+  // devices and re-entering credentials each shift is impractical.
+  static const _staffPortalDuration = Duration(days: 180);
 
   static Future<void> save() async {
     await kvSetString(_kRole, UserSession.role.name);
@@ -27,8 +30,10 @@ class SessionStorage {
     await kvSetString(_kIsReportingManager, UserSession.isReportingManager ? '1' : '0');
     await kvSetString(_kWorkLocation, UserSession.workLocation);
     await kvSetString(_kPermissionQuota, UserSession.permissionMinutesQuota.toString());
+    final duration =
+        UserSession.isStaffPortal ? _staffPortalDuration : _duration;
     await kvSetString(_kExpiry,
-        DateTime.now().add(_duration).millisecondsSinceEpoch.toString());
+        DateTime.now().add(duration).millisecondsSinceEpoch.toString());
   }
 
   static Future<bool> restore() async {
