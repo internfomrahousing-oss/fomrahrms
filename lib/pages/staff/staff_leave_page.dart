@@ -7,8 +7,14 @@ import '../../services/supabase_service.dart';
 import '../../theme/app_theme.dart';
 import 'staff_history.dart';
 
-/// Staff Portal leave application: just a date and an Apply button — no
-/// leave type, reason, or half-day picker, per the simplified spec.
+const _leaveTypeKeys = {
+  'Casual Leave':  'leave_type_casual',
+  'Medical Leave': 'leave_type_medical',
+};
+
+/// Staff Portal leave application: a date, one of two leave types (Casual /
+/// Medical — both draw from the same single monthly holiday slot, there's
+/// no separate CL/ML/EL balance for staff), and an Apply button.
 class StaffLeavePage extends StatefulWidget {
   const StaffLeavePage({super.key});
 
@@ -20,6 +26,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
   static Color get _color => AppTheme.primaryBlue;
 
   DateTime? _date;
+  String? _leaveType;
   bool _submitting = false;
   bool _loading = true;
 
@@ -29,7 +36,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
 
   List<LeaveApplication> get _history {
     final list = LeaveStore.applications
-        .where((a) => a.employeeName == _employeeName && a.leaveType == 'Leave')
+        .where((a) => a.employeeName == _employeeName && LeaveStore.isStaffLeaveType(a.leaveType))
         .toList();
     list.sort((a, b) => b.appliedOn.compareTo(a.appliedOn));
     return list;
@@ -74,13 +81,17 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
       _snack(st('select_leave_date_err'));
       return;
     }
+    if (_leaveType == null) {
+      _snack(st('select_leave_type_err'));
+      return;
+    }
     setState(() => _submitting = true);
 
     final app = LeaveApplication(
       id:           LeaveStore.generateId(),
       employeeName: _employeeName,
       department:   UserSession.department,
-      leaveType:    'Leave',
+      leaveType:    _leaveType!,
       from:         _date!,
       to:           _date!,
       days:         1,
@@ -92,7 +103,7 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
     await SupabaseService.saveLeaveApplication(app);
 
     if (!mounted) return;
-    setState(() { _submitting = false; _date = null; });
+    setState(() { _submitting = false; _date = null; _leaveType = null; });
     _snack(st('leave_submitted'));
   }
 
@@ -114,92 +125,165 @@ class _StaffLeavePageState extends State<StaffLeavePage> {
       valueListenable: staffLanguageNotifier,
       builder: (context, _, __) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(children: [
-          const SizedBox(height: 8),
-          Icon(Icons.event_busy_rounded, size: 48, color: _color),
-          const SizedBox(height: 12),
-          Text(st('apply_leave'),
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        child: LayoutBuilder(builder: (context, c) {
+          final wide = c.maxWidth >= 760;
+          final form = _ApplyLeaveForm(
+            date: _date,
+            leaveType: _leaveType,
+            usedThisMonth: _usedThisMonth,
+            limitReached: _limitReached,
+            submitting: _submitting,
+            onPickDate: _pickDate,
+            onLeaveTypeChanged: (v) => setState(() => _leaveType = v),
+            onSubmit: _submit,
+            fmt: _fmt,
+          );
+          final history = Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: StaffHistorySection(
+                title: st('leave_history'),
+                items: _history,
+                emptyKey: 'no_leave_history',
+                subtitleOf: (a) => _leaveTypeKeys[a.leaveType] != null ? st(_leaveTypeKeys[a.leaveType]!) : null,
+              ),
+            ),
+          );
+
+          if (!wide) {
+            return Column(children: [form, const SizedBox(height: 20), history]);
+          }
+          return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 5, child: form),
+            const SizedBox(width: 20),
+            Expanded(flex: 6, child: history),
+          ]);
+        }),
+      ),
+    );
+  }
+}
+
+class _ApplyLeaveForm extends StatelessWidget {
+  final DateTime? date;
+  final String? leaveType;
+  final int usedThisMonth;
+  final bool limitReached;
+  final bool submitting;
+  final VoidCallback onPickDate;
+  final ValueChanged<String?> onLeaveTypeChanged;
+  final VoidCallback onSubmit;
+  final String Function(DateTime) fmt;
+  const _ApplyLeaveForm({
+    required this.date, required this.leaveType, required this.usedThisMonth,
+    required this.limitReached, required this.submitting,
+    required this.onPickDate, required this.onLeaveTypeChanged, required this.onSubmit, required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppTheme.primaryBlue;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(st('apply_leave'), style: AppTheme.cardHeading),
+          const SizedBox(height: 4),
+          Text(st('fill_leave_details'), style: AppTheme.captionText),
           const SizedBox(height: 8),
           Text(
             st('leave_allowance_note').replaceFirst(
-                '{used}', '$_usedThisMonth/${LeaveStore.staffMonthlyHolidayAllowance}'),
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                '{used}', '$usedThisMonth/${LeaveStore.staffMonthlyHolidayAllowance}'),
+            style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          if (_limitReached)
+          if (limitReached)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
                 color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                 border: Border.all(color: Colors.orange.shade300),
               ),
               child: Row(children: [
-                Icon(Icons.error_outline_rounded, color: Colors.orange.shade700, size: 22),
-                const SizedBox(width: 12),
+                Icon(Icons.error_outline_rounded, color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(st('leave_limit_reached'),
-                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
                 ),
               ]),
             ),
 
-          GestureDetector(
-            onTap: _limitReached ? null : _pickDate,
+          Text(st('leave_date'), style: AppTheme.captionText.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: limitReached ? null : onPickDate,
+            borderRadius: BorderRadius.circular(AppTheme.controlRadius),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: _date != null ? _color.withValues(alpha: 0.06) : Colors.white,
-                border: Border.all(
-                    color: _date != null ? _color.withValues(alpha: 0.5) : const Color(0xFFE5E7EB),
-                    width: _date != null ? 1.5 : 1),
-                borderRadius: BorderRadius.circular(14),
+                color: AppTheme.pageBackground,
+                border: Border.all(color: date != null ? color.withValues(alpha: 0.5) : AppTheme.borderSubtle,
+                    width: date != null ? 1.5 : 1),
+                borderRadius: BorderRadius.circular(AppTheme.controlRadius),
               ),
               child: Row(children: [
-                Icon(Icons.calendar_today_rounded, size: 24, color: _color),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(st('leave_date'),
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text(_date != null ? _fmt(_date!) : st('select_date'),
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: _date != null ? const Color(0xFF111827) : const Color(0xFF9CA3AF))),
-                  ]),
-                ),
+                Icon(Icons.calendar_today_rounded, size: 18, color: color),
+                const SizedBox(width: 12),
+                Text(date != null ? fmt(date!) : st('select_date'),
+                    style: TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w600,
+                        color: date != null ? AppTheme.textPrimary : AppTheme.textSecondary)),
               ]),
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
+
+          Text(st('leave_type'), style: AppTheme.captionText.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.borderSubtle),
+              borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+            ),
+            child: Column(children: [
+              for (final entry in _leaveTypeKeys.entries) ...[
+                if (entry.key != _leaveTypeKeys.keys.first) const Divider(height: 1),
+                RadioListTile<String>(
+                  value: entry.key,
+                  groupValue: leaveType,
+                  onChanged: limitReached ? null : onLeaveTypeChanged,
+                  activeColor: color,
+                  title: Text(st(entry.value), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 24),
+
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: 52,
             child: ElevatedButton(
-              onPressed: (_submitting || _limitReached) ? null : _submit,
+              onPressed: (submitting || limitReached) ? null : onSubmit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _color,
+                backgroundColor: color,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.grey.shade300,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: _submitting
+              child: submitting
                   ? const SizedBox(
-                      width: 22, height: 22,
+                      width: 20, height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                  : Text(st('apply'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  : Text(st('apply'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),
-          const SizedBox(height: 32),
-          StaffHistorySection(items: _history, emptyKey: 'no_leave_history'),
         ]),
       ),
     );

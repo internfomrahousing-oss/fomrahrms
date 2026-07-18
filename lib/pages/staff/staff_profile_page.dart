@@ -10,7 +10,7 @@ import '../../theme/app_theme.dart';
 
 /// Staff Portal profile: read-only display of the essentials. No editing,
 /// no photo upload, no payslips/on-roll workflow — those belong to the
-/// regular employee portal only.
+/// regular employee portal only; Staff Portal data is HR-owned.
 class StaffProfilePage extends StatefulWidget {
   const StaffProfilePage({super.key});
 
@@ -81,68 +81,111 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
       valueListenable: staffLanguageNotifier,
       builder: (context, _, __) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(children: [
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: color.withValues(alpha: 0.12),
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-          if (designation.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(designation, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-          ],
-          const SizedBox(height: 28),
-          _InfoTile(icon: Icons.badge_rounded, label: st('employee_id'), value: employeeId.isEmpty ? '—' : employeeId),
-          _InfoTile(icon: Icons.apartment_rounded, label: st('department'), value: department.isEmpty ? '—' : department),
-          _InfoTile(icon: Icons.work_rounded, label: st('designation'), value: designation.isEmpty ? '—' : designation),
-          _InfoTile(icon: Icons.supervisor_account_rounded, label: st('manager'), value: manager.isEmpty ? '—' : manager),
-          _InfoTile(icon: Icons.phone_rounded, label: st('phone_number'), value: phone.isEmpty ? '—' : phone),
-          _InfoTile(icon: Icons.calendar_today_rounded, label: st('joining_date'), value: joining),
-          _InfoTile(icon: Icons.event_available_rounded, label: st('holiday_allowance'), value: holidayValue),
-        ]),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: LayoutBuilder(builder: (context, c) {
+            final wide = c.maxWidth >= 640;
+
+            final avatarCard = Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                child: Column(children: [
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: color.withValues(alpha: 0.12),
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(name, textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  if (designation.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(designation, textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondary)),
+                  ],
+                  if (department.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+                      ),
+                      child: Text(department,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+                    ),
+                  ],
+                ]),
+              ),
+            );
+
+            final detailsCard = Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(st('my_profile'), style: AppTheme.cardHeading),
+                  const SizedBox(height: 16),
+                  _DetailRow(icon: Icons.badge_rounded, label: st('employee_id'), value: employeeId.isEmpty ? '—' : employeeId),
+                  _DetailRow(icon: Icons.apartment_rounded, label: st('department'), value: department.isEmpty ? '—' : department),
+                  _DetailRow(icon: Icons.work_rounded, label: st('designation'), value: designation.isEmpty ? '—' : designation),
+                  _DetailRow(icon: Icons.supervisor_account_rounded, label: st('manager'), value: manager.isEmpty ? '—' : manager),
+                  _DetailRow(icon: Icons.phone_rounded, label: st('phone_number'), value: phone.isEmpty ? '—' : phone),
+                  _DetailRow(icon: Icons.calendar_today_rounded, label: st('joining_date'), value: joining),
+                  _DetailRow(icon: Icons.event_available_rounded, label: st('holiday_allowance'), value: holidayValue, isLast: true),
+                ]),
+              ),
+            );
+
+            if (!wide) {
+              return Column(children: [avatarCard, const SizedBox(height: 20), detailsCard]);
+            }
+            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(width: 260, child: avatarCard),
+              const SizedBox(width: 20),
+              Expanded(child: detailsCard),
+            ]);
+          }),
+        ),
       ),
     );
   }
 }
 
-class _InfoTile extends StatelessWidget {
+class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoTile({required this.icon, required this.label, required this.value});
+  final bool isLast;
+  const _DetailRow({required this.icon, required this.label, required this.value, this.isLast = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: isLast ? null : Border(bottom: BorderSide(color: AppTheme.borderSubtle)),
       ),
       child: Row(children: [
         Container(
-          width: 40, height: 40,
+          width: 36, height: 36,
           decoration: BoxDecoration(
             color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
           ),
-          child: Icon(icon, color: AppTheme.primaryBlue, size: 20),
+          child: Icon(icon, color: AppTheme.primaryBlue, size: 18),
         ),
         const SizedBox(width: 14),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 3),
-            Text(value, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
-          ]),
+          child: Text(label, style: AppTheme.captionText.copyWith(fontWeight: FontWeight.w600)),
+        ),
+        Flexible(
+          flex: 2,
+          child: Text(value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
         ),
       ]),
     );

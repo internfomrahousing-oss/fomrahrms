@@ -127,120 +127,159 @@ class _StaffPermissionPageState extends State<StaffPermissionPage> {
       valueListenable: staffLanguageNotifier,
       builder: (context, _, __) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(children: [
-          const SizedBox(height: 8),
-          Icon(Icons.access_time_rounded, size: 48, color: _color),
-          const SizedBox(height: 12),
-          Text(st('apply_permission'),
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 24),
+        child: LayoutBuilder(builder: (context, c) {
+          final wide = c.maxWidth >= 760;
+          final form = _ApplyPermissionForm(
+            date: _date,
+            duration: _duration,
+            usedThisMonth: _usedThisMonth,
+            limitReached: _limitReached,
+            submitting: _submitting,
+            onPickDate: _pickDate,
+            onDurationChanged: (v) => setState(() => _duration = v),
+            onSubmit: _submit,
+            fmt: _fmt,
+          );
+          final history = Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: StaffHistorySection(
+                title: st('permission_history'),
+                items: _history,
+                emptyKey: 'no_permission_history',
+                subtitleOf: (a) => st(_durationKeys[a.reason] ?? a.reason),
+              ),
+            ),
+          );
 
-          if (_limitReached)
+          if (!wide) {
+            return Column(children: [form, const SizedBox(height: 20), history]);
+          }
+          return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 5, child: form),
+            const SizedBox(width: 20),
+            Expanded(flex: 6, child: history),
+          ]);
+        }),
+      ),
+    );
+  }
+}
+
+class _ApplyPermissionForm extends StatelessWidget {
+  final DateTime? date;
+  final String duration;
+  final int usedThisMonth;
+  final bool limitReached;
+  final bool submitting;
+  final VoidCallback onPickDate;
+  final ValueChanged<String> onDurationChanged;
+  final VoidCallback onSubmit;
+  final String Function(DateTime) fmt;
+  const _ApplyPermissionForm({
+    required this.date, required this.duration, required this.usedThisMonth,
+    required this.limitReached, required this.submitting,
+    required this.onPickDate, required this.onDurationChanged, required this.onSubmit, required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppTheme.accentBlue;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(st('apply_permission'), style: AppTheme.cardHeading),
+          const SizedBox(height: 4),
+          Text(st('fill_permission_details'), style: AppTheme.captionText),
+          const SizedBox(height: 18),
+
+          if (limitReached)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
                 color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                 border: Border.all(color: Colors.orange.shade300),
               ),
               child: Row(children: [
-                Icon(Icons.error_outline_rounded, color: Colors.orange.shade700, size: 22),
-                const SizedBox(width: 12),
+                Icon(Icons.error_outline_rounded, color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(st('permission_limit_reached'),
-                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
                 ),
               ]),
             ),
 
-          GestureDetector(
-            onTap: _limitReached ? null : _pickDate,
+          Text(st('permission_date'), style: AppTheme.captionText.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: limitReached ? null : onPickDate,
+            borderRadius: BorderRadius.circular(AppTheme.controlRadius),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: _date != null ? _color.withValues(alpha: 0.06) : Colors.white,
-                border: Border.all(
-                    color: _date != null ? _color.withValues(alpha: 0.5) : const Color(0xFFE5E7EB),
-                    width: _date != null ? 1.5 : 1),
-                borderRadius: BorderRadius.circular(14),
+                color: AppTheme.pageBackground,
+                border: Border.all(color: date != null ? color.withValues(alpha: 0.5) : AppTheme.borderSubtle,
+                    width: date != null ? 1.5 : 1),
+                borderRadius: BorderRadius.circular(AppTheme.controlRadius),
               ),
               child: Row(children: [
-                Icon(Icons.calendar_today_rounded, size: 24, color: _color),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(st('permission_date'),
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text(_date != null ? _fmt(_date!) : st('select_date'),
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: _date != null ? const Color(0xFF111827) : const Color(0xFF9CA3AF))),
-                  ]),
-                ),
+                Icon(Icons.calendar_today_rounded, size: 18, color: color),
+                const SizedBox(width: 12),
+                Text(date != null ? fmt(date!) : st('select_date'),
+                    style: TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w600,
+                        color: date != null ? AppTheme.textPrimary : AppTheme.textSecondary)),
               ]),
             ),
           ),
           const SizedBox(height: 20),
 
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(st('permission_duration'),
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
-          ),
+          Text(st('permission_duration'), style: AppTheme.captionText.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Container(
-            width: double.infinity,
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.borderSubtle),
+              borderRadius: BorderRadius.circular(AppTheme.controlRadius),
             ),
-            child: Column(
-              children: [
-                for (var i = 0; i < _durations.length; i++) ...[
-                  if (i > 0) const Divider(height: 1),
-                  RadioListTile<String>(
-                    value: _durations[i],
-                    groupValue: _duration,
-                    onChanged: _limitReached ? null : (v) { if (v != null) setState(() => _duration = v); },
-                    activeColor: _color,
-                    title: Text(st(_durationKeys[_durations[i]]!),
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ],
+            child: Column(children: [
+              for (var i = 0; i < _durations.length; i++) ...[
+                if (i > 0) const Divider(height: 1),
+                RadioListTile<String>(
+                  value: _durations[i],
+                  groupValue: duration,
+                  onChanged: limitReached ? null : (v) { if (v != null) onDurationChanged(v); },
+                  activeColor: color,
+                  title: Text(st(_durationKeys[_durations[i]]!),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
               ],
-            ),
+            ]),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
 
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: 52,
             child: ElevatedButton(
-              onPressed: (_submitting || _limitReached) ? null : _submit,
+              onPressed: (submitting || limitReached) ? null : onSubmit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _color,
+                backgroundColor: color,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.grey.shade300,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: _submitting
+              child: submitting
                   ? const SizedBox(
-                      width: 22, height: 22,
+                      width: 20, height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                  : Text(st('apply'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  : Text(st('apply'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
-          ),
-          const SizedBox(height: 32),
-          StaffHistorySection(
-            items: _history,
-            emptyKey: 'no_permission_history',
-            subtitleOf: (a) => st(_durationKeys[a.reason] ?? a.reason),
           ),
         ]),
       ),

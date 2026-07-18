@@ -33,6 +33,15 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
                               AppLanguage.ta: 'ஷிஃப்ட் வெற்றிகரமாக முடிந்தது'},
   'checked_in_at':          {AppLanguage.en: 'Checked in at',  AppLanguage.hi: 'चेक इन समय',   AppLanguage.ta: 'செக் இன் நேரம்'},
   'checked_out_at':         {AppLanguage.en: 'Checked out at', AppLanguage.hi: 'चेक आउट समय',  AppLanguage.ta: 'செக் அவுட் நேரம்'},
+  'greeting_morning':       {AppLanguage.en: 'Good Morning',   AppLanguage.hi: 'सुप्रभात',            AppLanguage.ta: 'காலை வணக்கம்'},
+  'greeting_afternoon':     {AppLanguage.en: 'Good Afternoon', AppLanguage.hi: 'शुभ दोपहर',           AppLanguage.ta: 'மதிய வணக்கம்'},
+  'greeting_evening':       {AppLanguage.en: 'Good Evening',   AppLanguage.hi: 'शुभ संध्या',          AppLanguage.ta: 'மாலை வணக்கம்'},
+  'todays_status':          {AppLanguage.en: "Today's Status", AppLanguage.hi: 'आज की स्थिति',        AppLanguage.ta: 'இன்றைய நிலை'},
+  'not_checked_in':         {AppLanguage.en: 'Not Checked In', AppLanguage.hi: 'चेक इन नहीं किया',    AppLanguage.ta: 'செக் இன் செய்யவில்லை'},
+  'status_checked_in':      {AppLanguage.en: 'Checked In',     AppLanguage.hi: 'चेक इन किया गया',     AppLanguage.ta: 'செக் இன் செய்யப்பட்டது'},
+  'status_shift_completed': {AppLanguage.en: 'Shift Completed',AppLanguage.hi: 'शिफ्ट पूरी हुई',      AppLanguage.ta: 'ஷிஃப்ட் முடிந்தது'},
+  'working_hours':          {AppLanguage.en: 'Working Hours',  AppLanguage.hi: 'कार्य के घंटे',       AppLanguage.ta: 'பணி நேரம்'},
+  'quick_actions':          {AppLanguage.en: 'Quick Actions',  AppLanguage.hi: 'त्वरित कार्रवाइयाँ',  AppLanguage.ta: 'விரைவு செயல்கள்'},
 
   // ── Leave ────────────────────────────────────────────────────────────
   'apply_leave':            {AppLanguage.en: 'Apply Leave', AppLanguage.hi: 'छुट्टी के लिए आवेदन करें', AppLanguage.ta: 'விடுப்புக்கு விண்ணப்பிக்கவும்'},
@@ -51,6 +60,17 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
   'leave_limit_reached':    {AppLanguage.en: 'You have already used your 1 holiday for this month.',
                               AppLanguage.hi: 'आपने इस महीने अपनी 1 छुट्टी का उपयोग कर लिया है।',
                               AppLanguage.ta: 'இந்த மாதத்திற்கான உங்கள் 1 விடுப்பை ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.'},
+  'fill_leave_details':     {AppLanguage.en: 'Fill in the details to apply for leave',
+                              AppLanguage.hi: 'छुट्टी के लिए विवरण भरें',
+                              AppLanguage.ta: 'விடுப்புக்கான விவரங்களை நிரப்பவும்'},
+  'leave_type':             {AppLanguage.en: 'Leave Type',       AppLanguage.hi: 'छुट्टी का प्रकार',        AppLanguage.ta: 'விடுப்பு வகை'},
+  'select_leave_type':      {AppLanguage.en: 'Select leave type',AppLanguage.hi: 'छुट्टी का प्रकार चुनें', AppLanguage.ta: 'விடுப்பு வகையைத் தேர்ந்தெடுக்கவும்'},
+  'leave_type_casual':      {AppLanguage.en: 'Casual Leave',     AppLanguage.hi: 'आकस्मिक छुट्टी',          AppLanguage.ta: 'சாதாரண விடுப்பு'},
+  'leave_type_medical':     {AppLanguage.en: 'Medical Leave',    AppLanguage.hi: 'चिकित्सा छुट्टी',         AppLanguage.ta: 'மருத்துவ விடுப்பு'},
+  'select_leave_type_err':  {AppLanguage.en: 'Please select a leave type.',
+                              AppLanguage.hi: 'कृपया छुट्टी का प्रकार चुनें।',
+                              AppLanguage.ta: 'தயவுசெய்து விடுப்பு வகையைத் தேர்ந்தெடுக்கவும்.'},
+  'leave_history':          {AppLanguage.en: 'Leave History', AppLanguage.hi: 'छुट्टी का इतिहास', AppLanguage.ta: 'விடுப்பு வரலாறு'},
 
   // ── Permission ───────────────────────────────────────────────────────
   'apply_permission':       {AppLanguage.en: 'Apply Permission', AppLanguage.hi: 'अनुमति के लिए आवेदन करें', AppLanguage.ta: 'அனுமதிக்கு விண்ணப்பிக்கவும்'},
@@ -69,6 +89,10 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
   'permission_limit_reached': {AppLanguage.en: 'You have already used your maximum 2 permissions for this month.',
                               AppLanguage.hi: 'आपने इस महीने अपनी अधिकतम 2 अनुमतियों का उपयोग कर लिया है।',
                               AppLanguage.ta: 'இந்த மாதத்திற்கான உங்கள் அதிகபட்ச 2 அனுமதிகளை ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.'},
+  'fill_permission_details': {AppLanguage.en: 'Fill in the details to apply for permission',
+                              AppLanguage.hi: 'अनुमति के लिए विवरण भरें',
+                              AppLanguage.ta: 'அனுமதிக்கான விவரங்களை நிரப்பவும்'},
+  'permission_history':     {AppLanguage.en: 'Permission History', AppLanguage.hi: 'अनुमति का इतिहास', AppLanguage.ta: 'அனுமதி வரலாறு'},
 
   // ── History (leave/permission status) ───────────────────────────────
   'history':                {AppLanguage.en: 'History',   AppLanguage.hi: 'इतिहास',        AppLanguage.ta: 'வரலாறு'},
@@ -81,6 +105,7 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
   'no_permission_history':  {AppLanguage.en: 'No permission requests yet',
                               AppLanguage.hi: 'अभी तक कोई अनुमति अनुरोध नहीं',
                               AppLanguage.ta: 'இதுவரை அனுமதி கோரிக்கைகள் இல்லை'},
+  'filter_all':              {AppLanguage.en: 'All', AppLanguage.hi: 'सभी', AppLanguage.ta: 'அனைத்தும்'},
 
   // ── Profile ──────────────────────────────────────────────────────────
   'employee_id':   {AppLanguage.en: 'Employee ID',   AppLanguage.hi: 'कर्मचारी आईडी',      AppLanguage.ta: 'பணியாளர் அடையாள எண்'},
@@ -92,6 +117,7 @@ const Map<String, Map<AppLanguage, String>> _staffStrings = {
   'holiday_allowance': {AppLanguage.en: 'Holiday Allowance',
                          AppLanguage.hi: 'छुट्टी भत्ता',
                          AppLanguage.ta: 'விடுப்பு கொடையளவு'},
+  'my_profile':    {AppLanguage.en: 'My Profile', AppLanguage.hi: 'मेरी प्रोफ़ाइल', AppLanguage.ta: 'எனது சுயவிவரம்'},
 };
 
 /// Looks up [key] in the current staff-portal language; falls back to

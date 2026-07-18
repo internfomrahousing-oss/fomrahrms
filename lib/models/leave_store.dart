@@ -122,14 +122,22 @@ class LeaveStore {
 
   /// Staff Portal holiday allowance: 1 per calendar month, fixed (no
   /// HR-configurable "days / year" allocation like regular employees, and
-  /// unused days don't carry over) — a fresh count each month.
+  /// unused days don't carry over) — a fresh count each month. Staff still
+  /// pick which of these two it's for (shown to HR), but both draw from the
+  /// same single monthly slot — there's no separate CL/ML bucket for staff.
   static const int staffMonthlyHolidayAllowance = 1;
+  static const staffLeaveTypes = ['Casual Leave', 'Medical Leave'];
+
+  /// True for staff-portal leave applications — the plain 'Leave' label from
+  /// before staff had a type picker, plus the current Casual/Medical labels.
+  static bool isStaffLeaveType(String leaveType) =>
+      leaveType == 'Leave' || staffLeaveTypes.contains(leaveType);
 
   static int staffLeaveCountThisMonth(String employeeName) {
     final now = DateTime.now();
     return applications
         .where((a) =>
-            a.leaveType == 'Leave' &&
+            isStaffLeaveType(a.leaveType) &&
             a.employeeName == employeeName &&
             a.from.year == now.year &&
             a.from.month == now.month &&
