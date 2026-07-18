@@ -33,6 +33,7 @@ const _editFormItems = <_SubItem>[
   (label: 'Edit Interview Form',  icon: Icons.assignment_rounded,       route: '/management/edit-form'),
   (label: 'Edit Onboarding Form', icon: Icons.how_to_reg_rounded,       route: '/management/edit-onboarding-form'),
   (label: 'Edit Maintenance Form', icon: Icons.build_rounded,          route: '/management/edit-maintenance-form'),
+  (label: 'Office Timings',        icon: Icons.schedule_rounded,       route: '/management/edit-office-timings'),
 ];
 
 Color get _mgmtColor => AppTheme.primaryBlueDark;

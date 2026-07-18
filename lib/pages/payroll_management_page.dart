@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../models/payslip_store.dart';
 import '../models/user_session.dart';
 import '../services/notification_service.dart';
@@ -1066,16 +1067,17 @@ class _GeneratePayslipPageState extends State<GeneratePayslipPage> {
     // permission. Split into the forgivable 09:31–09:41 grace window (a few
     // free passes a month) vs. genuinely severe (09:42+, always deducted) —
     // see PayslipCalc.lateDeduction.
+    final schedule = OfficeTimingStore.scheduleForUser(widget.user);
     var graceLateDays = 0;
     var severeLateDays = 0;
     for (final r in attendance) {
       final date = parseSlashDate(r.date);
       if (date == null) continue;
-      final status = checkInStatusFor(r.checkInTime, date, widget.user.name, leaves);
+      final status = checkInStatusFor(r.checkInTime, date, widget.user.name, leaves, schedule);
       if (status.status != CheckInStatus.late) continue;
-      if (isSevereLate(r.checkInTime)) {
+      if (isSevereLate(r.checkInTime, schedule)) {
         severeLateDays++;
-      } else if (isGraceLate(r.checkInTime)) {
+      } else if (isGraceLate(r.checkInTime, schedule)) {
         graceLateDays++;
       }
     }

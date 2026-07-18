@@ -1,5 +1,6 @@
 import '../models/app_user.dart';
 import '../models/notification_store.dart';
+import '../models/office_timing.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
 import '../utils/checkin_status.dart';
@@ -784,9 +785,10 @@ class NotificationService {
     required String employeeName,
     required String checkInTime,
     required DateTime date,
+    required OfficeTiming schedule,
   }) async {
     final leaves = await SupabaseService.fetchLeaveApplications();
-    final status = checkInStatusFor(checkInTime, date, employeeName, leaves);
+    final status = checkInStatusFor(checkInTime, date, employeeName, leaves, schedule);
     if (status.status != CheckInStatus.late) return;
 
     final hadApprovedPermissionToday =

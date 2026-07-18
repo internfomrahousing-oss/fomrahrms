@@ -1,30 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/checkin_status.dart';
 import '../utils/office_geofence.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
-
-const int _normalCheckOutMinutes = 18 * 60 + 30;
-
-// Note box only needs to appear for an early check-out (before the cutoff).
-// An approved same-day Permission pushes the cutoff earlier by its minutes —
-// e.g. a 1-hour permission allows checking out at 5:30 PM instead of 6:30 PM,
-// the same way permission extends the late-check-in cutoff (see
-// checkInStatusFor in checkin_status.dart).
-bool _isEarlyCheckOut(String hhmm, int permissionMinutes) {
-  final parts = hhmm.split(':');
-  if (parts.length != 2) return false;
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return false;
-  return (h * 60 + m) < (_normalCheckOutMinutes - permissionMinutes);
-}
 
 // Minutes granted by an approved 'Permission' leave application covering
 // today; 0 if none. Same pool of minutes checkInStatusFor uses for a late
@@ -137,8 +123,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
       return;
     }
 
+    final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
     if (!outsideOffice &&
-        _isEarlyCheckOut(_timeController.text, _permissionMinutes) &&
+        isEarlyCheckOut(_timeController.text, schedule, _permissionMinutes) &&
         _noteController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -288,7 +275,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 child: ListenableBuilder(
                   listenable: _timeController,
                   builder: (context, _) {
-                    final isEarly = _isEarlyCheckOut(_timeController.text, _permissionMinutes);
+                    final isEarly = isEarlyCheckOut(_timeController.text,
+                        OfficeTimingStore.scheduleForDesignation(UserSession.designation),
+                        _permissionMinutes);
                     final showNote = isEarly || _outsideOffice;
                     final noteLabel = _outsideOffice && isEarly
                         ? 'Reason for early & outside-office check-out (required)'

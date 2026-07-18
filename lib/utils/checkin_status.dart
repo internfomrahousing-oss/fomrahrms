@@ -1,14 +1,5 @@
 import '../models/leave_store.dart';
-
-/// Shared late-check-in threshold: 09:30 AM.
-const int lateCutoffMinutes = 9 * 60 + 30;
-
-/// End of the forgivable grace window for late arrivals: 09:41 AM. A late
-/// check-in between [lateCutoffMinutes] (exclusive) and this (inclusive) is
-/// "grace late" — the first few each month are excused, see
-/// [PayslipCalc.lateGraceExcuses]/[PayslipCalc.lateDeduction]. Anything after
-/// this is never excused, no matter how many grace passes remain.
-const int lateGraceEndMinutes = 9 * 60 + 41;
+import '../models/office_timing.dart';
 
 enum CheckInStatus { none, onTime, permission, late }
 
@@ -44,36 +35,54 @@ int? _minutesOf(String time) {
 
 /// Determines whether [checkInTime] (a "HH:mm" string) on [date] for
 /// [employeeName] is on time, late-but-covered-by-approved-permission, or
-/// genuinely late, checking [leaveApps] for a same-day approved Permission.
+/// genuinely late against [schedule] (the employee's designation-based
+/// office timing), checking [leaveApps] for a same-day approved Permission.
 CheckInRowStatus checkInStatusFor(String checkInTime, DateTime date, String employeeName,
-    List<LeaveApplication> leaveApps) {
+    List<LeaveApplication> leaveApps, OfficeTiming schedule) {
   final minutes = _minutesOf(checkInTime);
   if (minutes == null) return const CheckInRowStatus(CheckInStatus.none, 0);
-  if (minutes <= lateCutoffMinutes) return const CheckInRowStatus(CheckInStatus.onTime, 0);
+  if (minutes <= schedule.checkInMinutes) return const CheckInRowStatus(CheckInStatus.onTime, 0);
 
   final permMinutes = approvedPermissionMinutesFor(leaveApps, employeeName, date);
-  if (permMinutes > 0 && minutes <= lateCutoffMinutes + permMinutes) {
+  if (permMinutes > 0 && minutes <= schedule.checkInMinutes + permMinutes) {
     return CheckInRowStatus(CheckInStatus.permission, permMinutes);
   }
   return const CheckInRowStatus(CheckInStatus.late, 0);
 }
 
-/// True when a genuinely-late [checkInTime] ("HH:mm") still falls within the
-/// forgivable grace window (09:31–09:41 inclusive) — only meaningful for
-/// records where [checkInStatusFor] already returned [CheckInStatus.late].
-bool isGraceLate(String checkInTime) {
+/// True when [checkInTime] ("HH:mm") is past [schedule]'s check-in time at
+/// all — used for the compulsory-note prompt on check-in, before permission
+/// is factored in.
+bool isLateCheckIn(String checkInTime, OfficeTiming schedule) {
   final minutes = _minutesOf(checkInTime);
   if (minutes == null) return false;
-  return minutes > lateCutoffMinutes && minutes <= lateGraceEndMinutes;
+  return minutes > schedule.checkInMinutes;
 }
 
-/// True when a late [checkInTime] ("HH:mm") is past the grace window
-/// (after 09:41) — always incurs the compulsory half-day deduction, no
-/// matter how many grace excuses the employee has left that month.
-bool isSevereLate(String checkInTime) {
+/// True when [checkOutTime] ("HH:mm") is earlier than [schedule]'s
+/// check-out time, adjusted by any same-day approved Permission minutes.
+bool isEarlyCheckOut(String checkOutTime, OfficeTiming schedule, int permissionMinutes) {
+  final minutes = _minutesOf(checkOutTime);
+  if (minutes == null) return false;
+  return minutes < (schedule.checkOutMinutes - permissionMinutes);
+}
+
+/// True when a genuinely-late [checkInTime] ("HH:mm") still falls within
+/// [schedule]'s forgivable grace window — only meaningful for records where
+/// [checkInStatusFor] already returned [CheckInStatus.late].
+bool isGraceLate(String checkInTime, OfficeTiming schedule) {
   final minutes = _minutesOf(checkInTime);
   if (minutes == null) return false;
-  return minutes > lateGraceEndMinutes;
+  return minutes > schedule.checkInMinutes && minutes <= schedule.graceEndMinutes;
+}
+
+/// True when a late [checkInTime] ("HH:mm") is past [schedule]'s grace
+/// window — always incurs the compulsory half-day deduction, no matter how
+/// many grace excuses the employee has left that month.
+bool isSevereLate(String checkInTime, OfficeTiming schedule) {
+  final minutes = _minutesOf(checkInTime);
+  if (minutes == null) return false;
+  return minutes > schedule.graceEndMinutes;
 }
 
 /// Parses a "dd/MM/yyyy" date string (the format used by [AttendanceRecord.date]).

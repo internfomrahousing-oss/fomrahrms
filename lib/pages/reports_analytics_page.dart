@@ -3,6 +3,7 @@ import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../models/payslip_store.dart';
 import '../models/user_session.dart';
 import '../services/report_pdf_service.dart';
@@ -169,11 +170,20 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
       .where((r) => _filteredNames.contains(r.employeeName.toLowerCase()))
       .toList();
 
+  /// Resolves [employeeName]'s designation-based schedule from [_users];
+  /// falls back to the default timing if the employee isn't found.
+  OfficeTiming _scheduleForEmployee(String employeeName) {
+    final n = employeeName.trim().toLowerCase();
+    final user = _users.where((u) => u.name.trim().toLowerCase() == n).firstOrNull;
+    return user != null ? OfficeTimingStore.scheduleForUser(user) : OfficeTimingStore.fallback;
+  }
+
   bool _isLate(AttendanceRecord r) {
     if (r.checkInTime.isEmpty) return false;
     final date = parseSlashDate(r.date);
     if (date == null) return false;
-    return checkInStatusFor(r.checkInTime, date, r.employeeName, _leaveApps).status ==
+    return checkInStatusFor(r.checkInTime, date, r.employeeName, _leaveApps,
+                _scheduleForEmployee(r.employeeName)).status ==
         CheckInStatus.late;
   }
 
@@ -195,8 +205,10 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
 
   double get _overtimeHoursInRange => _rangeFiltered.fold(0.0, (sum, r) {
         final hrs = _workedHours(r);
-        if (hrs == null || hrs <= 8) return sum;
-        return sum + (hrs - 8);
+        if (hrs == null) return sum;
+        final targetHours = _scheduleForEmployee(r.employeeName).workingHours;
+        if (hrs <= targetHours) return sum;
+        return sum + (hrs - targetHours);
       });
 
   static DateTime? _parseJoin(AppUser u) {

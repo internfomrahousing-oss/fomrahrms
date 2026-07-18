@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
+import '../models/office_timing.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
@@ -12,32 +13,6 @@ import '../utils/location_consent.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart' show InfoCard;
 import 'hover_lift.dart';
-
-// Note is compulsory once check-in slips past the grace time (and isn't
-// covered by a same-day approved Permission) — same 09:30 cutoff as
-// check_in_page.dart.
-bool _isLateCheckIn(String hhmm) {
-  final parts = hhmm.split(':');
-  if (parts.length != 2) return false;
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return false;
-  return (h * 60 + m) > (9 * 60 + 30);
-}
-
-const int _normalCheckOutMinutes = 18 * 60 + 30;
-
-// Note is compulsory for an early check-out — an approved same-day
-// Permission pushes the cutoff earlier by its minutes, same as
-// check_out_page.dart.
-bool _isEarlyCheckOut(String hhmm, int permissionMinutes) {
-  final parts = hhmm.split(':');
-  if (parts.length != 2) return false;
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return false;
-  return (h * 60 + m) < (_normalCheckOutMinutes - permissionMinutes);
-}
 
 /// One extra static tile shown in the unified Quick Access grid, alongside
 /// the built-in Check In/Out and HR Policy tiles.
@@ -962,7 +937,8 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    if (_isLateCheckIn(_timeCtrl.text) && _permissionMinutes == 0 &&
+    if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForDesignation(UserSession.designation)) &&
+        _permissionMinutes == 0 &&
         _noteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking in late.'),
@@ -1032,6 +1008,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
         employeeName: empName,
         checkInTime: _timeCtrl.text,
         date: now,
+        schedule: OfficeTimingStore.scheduleForDesignation(UserSession.designation),
       );
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1044,7 +1021,8 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
   }
 
   Future<void> _checkOut() async {
-    if (_isEarlyCheckOut(_timeCtrl.text, _permissionMinutes) &&
+    if (isEarlyCheckOut(_timeCtrl.text,
+            OfficeTimingStore.scheduleForDesignation(UserSession.designation), _permissionMinutes) &&
         _noteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -1199,9 +1177,10 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
           ListenableBuilder(
             listenable: _timeCtrl,
             builder: (context, _) {
+              final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
               final showNote = isCheckedIn
-                  ? _isEarlyCheckOut(_timeCtrl.text, _permissionMinutes)
-                  : (_isLateCheckIn(_timeCtrl.text) && _permissionMinutes == 0);
+                  ? isEarlyCheckOut(_timeCtrl.text, schedule, _permissionMinutes)
+                  : (isLateCheckIn(_timeCtrl.text, schedule) && _permissionMinutes == 0);
               return Column(children: [
                 TextField(
                   controller: _timeCtrl,

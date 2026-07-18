@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
@@ -13,30 +14,6 @@ import '../utils/location_consent.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
-
-// Note box only needs to appear once check-in slips past the grace time.
-bool _isLateCheckIn(String hhmm) {
-  final parts = hhmm.split(':');
-  if (parts.length != 2) return false;
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return false;
-  return (h * 60 + m) > (9 * 60 + 30);
-}
-
-const int _normalCheckOutMinutes = 18 * 60 + 30;
-
-// Note box only needs to appear for an early check-out (before the cutoff).
-// An approved same-day Permission pushes the cutoff earlier by its minutes —
-// same convention as check_out_page.dart.
-bool _isEarlyCheckOut(String hhmm, int permissionMinutes) {
-  final parts = hhmm.split(':');
-  if (parts.length != 2) return false;
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return false;
-  return (h * 60 + m) < (_normalCheckOutMinutes - permissionMinutes);
-}
 
 class EmployeeAttendancePage extends StatefulWidget {
   // prefix kept for router compatibility; not used internally
@@ -118,7 +95,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    final needsNote = _isLateCheckIn(_checkInCtrl.text) && _permissionMinutes == 0;
+    final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
+    final needsNote = isLateCheckIn(_checkInCtrl.text, schedule) && _permissionMinutes == 0;
     if (needsNote && _checkInNoteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking in late.'),
@@ -192,6 +170,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
         employeeName: empName,
         checkInTime: _checkInCtrl.text,
         date: now,
+        schedule: schedule,
       );
     }
 
@@ -200,7 +179,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
   }
 
   Future<void> _checkOut() async {
-    final needsNote = _isEarlyCheckOut(_checkOutCtrl.text, _permissionMinutes);
+    final needsNote = isEarlyCheckOut(_checkOutCtrl.text,
+        OfficeTimingStore.scheduleForDesignation(UserSession.designation), _permissionMinutes);
     if (needsNote && _checkOutNoteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -395,7 +375,8 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
             ListenableBuilder(
               listenable: _checkOutCtrl,
               builder: (context, _) {
-                final showNote = _isEarlyCheckOut(_checkOutCtrl.text, _permissionMinutes);
+                final showNote = isEarlyCheckOut(_checkOutCtrl.text,
+                    OfficeTimingStore.scheduleForDesignation(UserSession.designation), _permissionMinutes);
                 return Column(children: [
                   _TimeField(
                     controller: _checkOutCtrl,
@@ -454,7 +435,9 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               listenable: _checkInCtrl,
               builder: (context, _) {
                 final showNote =
-                    _isLateCheckIn(_checkInCtrl.text) && _permissionMinutes == 0;
+                    isLateCheckIn(_checkInCtrl.text,
+                        OfficeTimingStore.scheduleForDesignation(UserSession.designation)) &&
+                    _permissionMinutes == 0;
                 return Column(children: [
                   _TimeField(
                     controller: _checkInCtrl,

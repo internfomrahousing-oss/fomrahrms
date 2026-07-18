@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
 import '../models/attendance_store.dart';
@@ -66,6 +67,7 @@ class _EmployeeAttendanceCalendarPageState
   int? _selectedDay;
   int _offWeekday = DateTime.sunday;
   DateTime? _joiningDate;
+  OfficeTiming _schedule = OfficeTimingStore.fallback;
 
   // ── Summary / export range (independent of the calendar month above —
   // lets HR pull a custom cycle like "25th to 26th") ─────────────────────
@@ -104,6 +106,9 @@ class _EmployeeAttendanceCalendarPageState
     final leaveApps = results[2] as List<LeaveApplication>;
     final users      = results[3] as List<AppUser>;
     final emp = users.where((u) => u.name == widget.employeeName).firstOrNull;
+    final schedule = emp != null
+        ? OfficeTimingStore.scheduleForUser(emp)
+        : OfficeTimingStore.fallback;
     final offWeekday = weeklyOffWeekdayFor(emp?.effectiveWeeklyOffDay ?? 'Sunday');
     final joiningDate = parseFlexibleDate(emp?.dateOfJoining ?? '');
 
@@ -164,6 +169,7 @@ class _EmployeeAttendanceCalendarPageState
       _leaveApps      = leaveApps;
       _offWeekday     = offWeekday;
       _joiningDate    = joiningDate;
+      _schedule       = schedule;
       _loading        = false;
       _selectedDay    = null;
     });
@@ -205,6 +211,9 @@ class _EmployeeAttendanceCalendarPageState
 
     final rangeUsers = results[3] as List<AppUser>;
     final rangeEmp = rangeUsers.where((u) => u.name == widget.employeeName).firstOrNull;
+    final rangeSchedule = rangeEmp != null
+        ? OfficeTimingStore.scheduleForUser(rangeEmp)
+        : OfficeTimingStore.fallback;
     final rangeOffWeekday = weeklyOffWeekdayFor(rangeEmp?.effectiveWeeklyOffDay ?? 'Sunday');
     final rangeJoiningDate = parseFlexibleDate(rangeEmp?.dateOfJoining ?? '');
 
@@ -251,7 +260,7 @@ class _EmployeeAttendanceCalendarPageState
       final ds = _fmtSlash(d);
       final rec = byDate[ds];
       if (rec != null && rec.checkInTime.isNotEmpty) {
-        final st = checkInStatusFor(rec.checkInTime, d, widget.employeeName, leaveApps);
+        final st = checkInStatusFor(rec.checkInTime, d, widget.employeeName, leaveApps, rangeSchedule);
         rows.add(_RangeDay(
             d, st.status == CheckInStatus.late ? 'Late Coming' : 'Present',
             rec.checkInTime, rec.checkOutTime));
@@ -319,7 +328,7 @@ class _EmployeeAttendanceCalendarPageState
     final r = _attendance[day];
     if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
     final date = DateTime(_month.year, _month.month, day);
-    return checkInStatusFor(r.checkInTime, date, widget.employeeName, _leaveApps);
+    return checkInStatusFor(r.checkInTime, date, widget.employeeName, _leaveApps, _schedule);
   }
 
   // True when a day has no check-in, no approved leave/permission/comp-off,

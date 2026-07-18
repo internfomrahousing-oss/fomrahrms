@@ -8,6 +8,7 @@ import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
 import '../models/maintenance_store.dart';
 import '../models/notification_store.dart';
+import '../models/office_timing.dart';
 import '../models/payslip_store.dart';
 import '../models/profile_store.dart';
 import '../models/employee_store.dart';
@@ -1746,6 +1747,91 @@ class SupabaseService {
     } catch (_) {
       return 1;
     }
+  }
+
+  // ── Office Timings (designation-based working hours) ───────────────────
+  /*
+    create table if not exists office_timings (
+      id uuid default gen_random_uuid() primary key,
+      name text not null,
+      check_in_time text not null,
+      check_out_time text not null,
+      grace_minutes integer not null default 10,
+      working_hours numeric not null default 8,
+      is_default boolean not null default false,
+      created_at timestamptz default now()
+    );
+    create table if not exists designation_office_timings (
+      designation text primary key,
+      office_timing_id uuid not null references office_timings(id) on delete cascade
+    );
+  */
+
+  static Future<List<OfficeTiming>> fetchOfficeTimings() async {
+    final db = _db;
+    if (db == null) return [];
+    try {
+      final data = await db.from('office_timings').select().order('created_at');
+      return (data as List)
+          .map((row) => OfficeTiming.fromJson(row as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// designation → office_timing_id, for every designation HR has
+  /// explicitly assigned (anything absent uses the default timing).
+  static Future<Map<String, String>> fetchDesignationOfficeTimingMap() async {
+    final db = _db;
+    if (db == null) return {};
+    try {
+      final data = await db.from('designation_office_timings').select();
+      return {
+        for (final row in (data as List))
+          (row as Map<String, dynamic>)['designation'] as String:
+              row['office_timing_id'] as String,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<String?> saveOfficeTiming(OfficeTiming timing) async {
+    final db = _db;
+    if (db == null) return 'Database not initialized.';
+    try {
+      await db.from('office_timings').upsert(timing.toJson());
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  static Future<void> deleteOfficeTiming(String id) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('office_timings').delete().eq('id', id);
+  }
+
+  /// Assigns [designation] to [timingId] — an upsert keyed on the
+  /// designation, so it automatically moves off whatever timing it was
+  /// previously assigned to.
+  static Future<void> assignDesignationToTiming(String designation, String timingId) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('designation_office_timings').upsert({
+      'designation': designation,
+      'office_timing_id': timingId,
+    });
+  }
+
+  /// Removes any explicit assignment for [designation], reverting it to the
+  /// default timing.
+  static Future<void> unassignDesignationTiming(String designation) async {
+    final db = _db;
+    if (db == null) return;
+    await db.from('designation_office_timings').delete().eq('designation', designation);
   }
 
   // ── Attendance Records ────────────────────────────────────────────────

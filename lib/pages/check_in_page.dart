@@ -3,26 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../models/user_session.dart';
 import '../services/gps_tracking_service.dart';
 import '../services/notification_service.dart';
 import '../services/selfie_capture_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/checkin_status.dart';
 import '../utils/location_consent.dart';
 import '../utils/office_geofence.dart';
 import '../widgets/back_button.dart';
 import '../widgets/route_map_view.dart';
 import '../theme/app_theme.dart';
-
-// Note box only needs to appear once check-in slips past the grace time.
-bool _isLateCheckIn(String hhmm) {
-  final parts = hhmm.split(':');
-  if (parts.length != 2) return false;
-  final h = int.tryParse(parts[0]);
-  final m = int.tryParse(parts[1]);
-  if (h == null || m == null) return false;
-  return (h * 60 + m) > (9 * 60 + 30);
-}
 
 // An approved Permission application already covering today explains the
 // late arrival, so the note box shouldn't nag for one on top of it.
@@ -146,7 +138,8 @@ class _CheckInPageState extends State<CheckInPage> {
       return;
     }
 
-    if (!_onPermission && !outsideOffice && _isLateCheckIn(_timeController.text) &&
+    final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
+    if (!_onPermission && !outsideOffice && isLateCheckIn(_timeController.text, schedule) &&
         _noteController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking in late.'),
@@ -221,6 +214,7 @@ class _CheckInPageState extends State<CheckInPage> {
         employeeName: empName,
         checkInTime: _timeController.text,
         date: now,
+        schedule: schedule,
       );
       // Re-fetch to get the saved record
       final rec = await SupabaseService.fetchTodayAttendance(UserSession.employeeId);
@@ -485,7 +479,9 @@ class _CheckInForm extends StatelessWidget {
           child: ListenableBuilder(
             listenable: timeController,
             builder: (context, _) {
-              final isLate = !onPermission && _isLateCheckIn(timeController.text);
+              final isLate = !onPermission &&
+                  isLateCheckIn(timeController.text,
+                      OfficeTimingStore.scheduleForDesignation(UserSession.designation));
               final showNote = isLate || outsideOffice;
               final noteLabel = outsideOffice && isLate
                   ? 'Reason for late & outside-office check-in (required)'

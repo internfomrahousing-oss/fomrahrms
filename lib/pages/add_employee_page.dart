@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../constants/org_lists.dart';
 import '../models/employee_store.dart';
 import '../services/supabase_service.dart';
 import '../widgets/back_button.dart';
@@ -23,6 +24,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
   final _addressCtrl       = TextEditingController();
   final _departmentCtrl    = TextEditingController();
   final _designationCtrl   = TextEditingController();
+  String? _designation;
   final _managerCtrl       = TextEditingController();
   final _joiningDateCtrl   = TextEditingController();
   final _salaryCtrl        = TextEditingController();
@@ -96,6 +98,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
     ]) {
       c.clear();
     }
+    setState(() => _designation = null);
   }
 
   @override
@@ -156,7 +159,36 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                   padding: const EdgeInsets.all(20),
                   child: Column(children: [
                     _Field(_departmentCtrl,  'Department',      Icons.account_tree_rounded,          required: true),
-                    _Field(_designationCtrl, 'Designation',     Icons.work_outline_rounded,          required: true),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: DropdownButtonFormField<String>(
+                        // Designation drives the employee's assigned Office
+                        // Timing (see edit_office_timings_page.dart), so it's
+                        // constrained to the fixed list rather than free text.
+                        value: _designation,
+                        validator: (v) => (v == null || v.isEmpty) ? 'Designation is required' : null,
+                        decoration: InputDecoration(
+                          labelText: 'Designation',
+                          prefixIcon: Icon(Icons.work_outline_rounded, color: AppTheme.primaryBlue, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                          ),
+                        ),
+                        items: kDesignations
+                            .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                            .toList(),
+                        onChanged: (v) => setState(() {
+                          _designation = v;
+                          _designationCtrl.text = v ?? '';
+                        }),
+                      ),
+                    ),
                     _Field(_managerCtrl,     'Reporting Manager', Icons.manage_accounts_rounded),
                     _DateField(_joiningDateCtrl, 'Date of Joining', context),
                     _Field(_salaryCtrl,      'Salary (CTC)',    Icons.account_balance_wallet_rounded, keyboard: TextInputType.number),

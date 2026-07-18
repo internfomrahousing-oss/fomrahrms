@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
+import '../models/office_timing.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/user_store.dart';
@@ -157,7 +158,8 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final r = _attendance[day];
     if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
     final date = DateTime(_month.year, _month.month, day);
-    return checkInStatusFor(r.checkInTime, date, UserSession.name, _leaveApps);
+    return checkInStatusFor(r.checkInTime, date, UserSession.name, _leaveApps,
+        OfficeTimingStore.scheduleForDesignation(UserSession.designation));
   }
 
   // True when a day has no check-in, no approved leave/permission/comp-off,
