@@ -311,7 +311,7 @@ class _SidebarHeader extends StatelessWidget {
               width: double.infinity,
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Image.asset('assets/images/fomra_logo.png', height: 90, fit: BoxFit.contain),
+                child: Image.asset('assets/images/fomra_logo.png', height: 110, fit: BoxFit.contain, filterQuality: FilterQuality.high),
               ),
             ),
           ),
