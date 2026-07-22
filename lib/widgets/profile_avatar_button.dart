@@ -121,6 +121,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
                 AuditLogService.log('logout');
                 themeNotifier.reset();
                 PushNotificationService.unregister();
+                SupabaseService.signOut();
                 SessionStorage.clear();
                 UserSession.clear();
                 context.go('/login');

@@ -756,8 +756,8 @@ class SupabaseService {
         'attachment_name':      ticket.attachmentName,
       });
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not save the maintenance ticket. Please try again.';
     }
   }
 
@@ -1842,8 +1842,8 @@ class SupabaseService {
     try {
       await db.from('office_timings').upsert(timing.toJson());
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not save office timings. Please try again.';
     }
   }
 
@@ -1902,8 +1902,8 @@ class SupabaseService {
     try {
       await db.from('locations').upsert(location.toJson());
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not save location. Please try again.';
     }
   }
 
@@ -1913,8 +1913,8 @@ class SupabaseService {
     try {
       await db.from('locations').delete().eq('id', id);
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not delete location. Please try again.';
     }
   }
 
@@ -1937,8 +1937,8 @@ class SupabaseService {
     try {
       await db.from('attendance_policies').upsert(policy.toJson());
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not save attendance policy. Please try again.';
     }
   }
 
@@ -1951,8 +1951,8 @@ class SupabaseService {
     try {
       await db.from('attendance_policies').delete().eq('id', id);
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not delete this policy — it may still be assigned to a location.';
     }
   }
 
@@ -2089,8 +2089,8 @@ class SupabaseService {
             .eq('location_id', locId);
       }
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not update employee locations. Please try again.';
     }
   }
 
@@ -2131,8 +2131,8 @@ class SupabaseService {
       });
       logAuditEvent('attendance_check_in', targetType: 'attendance_records', targetId: employeeId);
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not save check-in. Please try again.';
     }
   }
 
@@ -2504,8 +2504,8 @@ class SupabaseService {
         'target_employee_name': targetEmployeeName,
       });
       return null; // null = success
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not post announcement. Please try again.';
     }
   }
 
@@ -2714,8 +2714,8 @@ class SupabaseService {
         }
       }
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not save Employee of the Month. Please try again.';
     }
   }
 
@@ -2991,15 +2991,15 @@ class SupabaseService {
         if (html != null) 'html': html,
         if (attachments != null && attachments.isNotEmpty) 'attachments': attachments,
       });
-      if (res == null) return 'Not connected';
+      if (res == null) return 'Could not send email. Please try again.';
       if (res.status != 200) {
         final data = res.data;
-        final err = data is Map ? data['error'] : null;
-        return err?.toString() ?? 'Failed to send (status ${res.status})';
+        final err = data is Map && data['error'] is String ? data['error'] as String : null;
+        return err ?? 'Could not send email. Please try again.';
       }
       return null;
-    } catch (e) {
-      return e.toString();
+    } catch (_) {
+      return 'Could not send email. Please try again.';
     }
   }
 
@@ -3310,8 +3310,33 @@ class SupabaseService {
         return LoginResult(error: data['error'] as String);
       }
       return const LoginResult(error: 'Invalid email or password.');
-    } catch (e) {
-      return LoginResult(error: e.toString());
+    } on FunctionException catch (e) {
+      // supabase_flutter throws instead of returning a handled `res.status`
+      // for some non-2xx codes (e.g. 401) — surface the Edge Function's own
+      // message when it sent one, never the raw "FunctionException(status:
+      // ...)" wrapper, which reads as a crash to a non-technical user.
+      final details = e.details;
+      final message = details is Map && details['error'] is String
+          ? details['error'] as String
+          : null;
+      return LoginResult(error: message ?? 'Invalid email or password.');
+    } catch (_) {
+      return const LoginResult(error: 'Something went wrong. Please try again.');
+    }
+  }
+
+  // Revokes the real Supabase Auth session (refresh token) and clears it
+  // from local storage. Every "Sign Out" button only clears UserSession /
+  // SessionStorage (the app's own logged-in flag) — without this, the
+  // underlying auth session stays valid in secure storage, so it gets
+  // silently restored by Supabase.initialize() the next time the app
+  // launches on this device even though the user "signed out".
+  static Future<void> signOut() async {
+    try {
+      await _db?.auth.signOut();
+    } catch (_) {
+      // Best-effort — local session/UI state is already being cleared by
+      // the caller regardless of whether the network call succeeds.
     }
   }
 

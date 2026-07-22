@@ -8,6 +8,7 @@ import '../models/user_session.dart';
 import '../services/audit_log_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_storage.dart';
+import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'fomra_logo.dart';
 
@@ -51,6 +52,7 @@ class StaffShell extends StatelessWidget {
     staffLanguageNotifier.reset();
     NotificationStore.reset();
     PushNotificationService.unregister();
+    SupabaseService.signOut();
     SessionStorage.clear();
     UserSession.clear();
     context.go('/login');

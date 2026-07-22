@@ -6,6 +6,7 @@ import '../models/user_session.dart';
 import '../services/push_notification_service.dart';
 import '../services/audit_log_service.dart';
 import '../services/session_storage.dart';
+import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../models/color_theme_notifier.dart';
 import '../models/theme_notifier.dart';
@@ -370,7 +371,7 @@ class _SidebarFooter extends StatelessWidget {
           border: Border(top: BorderSide(color: Colors.white12))),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () { AuditLogService.log('logout'); themeNotifier.reset(); NotificationStore.reset(); PushNotificationService.unregister(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
+        onTap: () { AuditLogService.log('logout'); themeNotifier.reset(); NotificationStore.reset(); PushNotificationService.unregister(); SupabaseService.signOut(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
