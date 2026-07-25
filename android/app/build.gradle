@@ -39,7 +39,7 @@ android {
 
     defaultConfig {
         applicationId "in.fomrahousing.hrms"
-        minSdkVersion flutter.minSdkVersion
+        minSdkVersion 23
         targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

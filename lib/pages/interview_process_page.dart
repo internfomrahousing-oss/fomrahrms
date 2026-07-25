@@ -379,7 +379,7 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
   Future<List<String>> _loadManagers() async {
     final users = await UserStore.load();
     final names = users
-        .where((u) => u.role == 'Manager' && u.active)
+        .where((u) => u.isReportingManager && u.active)
         .map((u) => u.name)
         .toList();
     if (!names.contains('Manager')) names.insert(0, 'Manager');
@@ -1425,11 +1425,6 @@ class _ApplicationCard extends StatelessWidget {
   Color _avatarColor(String name) =>
       _avatarPalette[name.isEmpty ? 0 : name.codeUnitAt(0) % _avatarPalette.length];
 
-  void _quickEmail(String email) {
-    if (email.isEmpty) return;
-    launchUrl(Uri.parse('mailto:$email'));
-  }
-
   @override
   Widget build(BuildContext context) {
     final name           = (row['name']            ?? '').toString().trim();
@@ -1513,13 +1508,22 @@ class _ApplicationCard extends StatelessWidget {
         onTap: onView,
       ),
       const SizedBox(width: 6),
-      _ActionButton(
-        label: 'Email',
-        icon: Icons.mail_outline_rounded,
-        color: AppTheme.accentBlue,
-        onTap: isApproved && onSendEmail != null ? onSendEmail! : () => _quickEmail(email),
-      ),
-      const SizedBox(width: 6),
+      if (isPending) ...[
+        _ActionButton(
+          label: 'Accept',
+          icon: Icons.check_circle_outline_rounded,
+          color: const Color(0xFF22C55E),
+          onTap: onAccept,
+        ),
+        const SizedBox(width: 6),
+        _ActionButton(
+          label: 'Reject',
+          icon: Icons.cancel_outlined,
+          color: const Color(0xFFEF4444),
+          onTap: onReject,
+        ),
+        const SizedBox(width: 6),
+      ],
       if (isApproved) ...[
         _ActionButton(
           label: (row['onboarding_link_sent'] == true) ? 'Onboarding Sent' : 'Onboarding',
@@ -1539,43 +1543,39 @@ class _ApplicationCard extends StatelessWidget {
         color: const Color(0xFF6B7280),
         onTap: onComment,
       ),
-      const SizedBox(width: 6),
-      PopupMenuButton<String>(
-        tooltip: 'More',
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        onSelected: (v) {
-          switch (v) {
-            case 'accept': onAccept(); break;
-            case 'reject': onReject(); break;
-            case 'delete': onDelete?.call(); break;
-          }
-        },
-        itemBuilder: (context) => [
-          if (isPending) ...const [
-            PopupMenuItem(value: 'accept', child: Row(children: [
-              Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF22C55E)),
-              SizedBox(width: 10), Text('Accept', style: TextStyle(fontSize: 13)),
-            ])),
-            PopupMenuItem(value: 'reject', child: Row(children: [
-              Icon(Icons.cancel_outlined, size: 16, color: Color(0xFFEF4444)),
-              SizedBox(width: 10), Text('Reject', style: TextStyle(fontSize: 13)),
+      if (onDelete != null) ...[
+        const SizedBox(width: 6),
+        _ActionButton(
+          label: 'Delete',
+          icon: Icons.delete_outline_rounded,
+          color: Colors.red,
+          onTap: onDelete!,
+        ),
+      ],
+      if (isApproved && onSendEmail != null) ...[
+        const SizedBox(width: 6),
+        PopupMenuButton<String>(
+          tooltip: 'More',
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          onSelected: (v) {
+            if (v == 'send_email') onSendEmail!();
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(value: 'send_email', child: Row(children: [
+              Icon(Icons.mail_outline_rounded, size: 16, color: Color(0xFF2563EB)),
+              SizedBox(width: 10), Text('Send Pre-Offer Letter', style: TextStyle(fontSize: 13)),
             ])),
           ],
-          if (onDelete != null)
-            const PopupMenuItem(value: 'delete', child: Row(children: [
-              Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
-              SizedBox(width: 10), Text('Delete', style: TextStyle(fontSize: 13)),
-            ])),
-        ],
-        child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.more_vert_rounded, size: 16, color: Color(0xFF6B7280)),
           ),
-          child: const Icon(Icons.more_vert_rounded, size: 16, color: Color(0xFF6B7280)),
         ),
-      ),
+      ],
     ]);
 
     final comments = (hrComment.isNotEmpty || managerComment.isNotEmpty || mgmtComment.isNotEmpty)
