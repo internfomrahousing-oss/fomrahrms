@@ -55,7 +55,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
 
-  # ── Build & deploy to Vercel (main branch only) ─────────────────────────────
+  # ── Deploy to Vercel (main branch only) ──────────────────────────────────────
+  # Vercel ignores any locally-built artifacts unless you pass --prebuilt, so
+  # this intentionally skips building Flutter here — vercel.json's
+  # buildCommand (vercel-build.sh) does the real build remotely. Building
+  # twice here was wasting several minutes of CI time per push for nothing.
   deploy-vercel:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -63,16 +67,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build web
-        run: flutter build web --release --no-tree-shake-icons
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
