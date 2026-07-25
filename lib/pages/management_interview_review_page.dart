@@ -34,6 +34,223 @@ class _ManagementInterviewReviewPageState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  bool get _isRm => UserSession.isReportingManager;
+  int get _rmTabIndex => _isRm ? 0 : -1;
+  int get _candidatesTabIndex => _isRm ? 1 : 0;
+
+  // ── Tab 0 (RM only): requests assigned to you as Reporting Manager ─
+  List<Map<String, dynamic>> _rmItems = [];
+  bool _rmLoading = false;
+  String? _rmError;
+  String _rmSearch = '';
+  _MgmtReviewFilter _rmFilter = _MgmtReviewFilter.all;
+
+  String _rmStatusOf(Map<String, dynamic> row) =>
+      (row['manager_status'] as String?) ?? 'pending';
+
+  int get _rmCountPending  => _rmItems.where((r) => _rmStatusOf(r) == 'pending').length;
+  int get _rmCountAccepted => _rmItems.where((r) => _rmStatusOf(r) == 'accepted').length;
+  int get _rmCountRejected => _rmItems.where((r) => _rmStatusOf(r) == 'rejected').length;
+
+  List<Map<String, dynamic>> get _filteredRmItems {
+    final q = _rmSearch.trim().toLowerCase();
+    return _rmItems.where((r) {
+      final status = _rmStatusOf(r);
+      final matchesFilter = switch (_rmFilter) {
+        _MgmtReviewFilter.all => true,
+        _MgmtReviewFilter.pending => status == 'pending',
+        _MgmtReviewFilter.accepted => status == 'accepted',
+        _MgmtReviewFilter.rejected => status == 'rejected',
+      };
+      if (!matchesFilter) return false;
+      if (q.isEmpty) return true;
+      return r.values.any((v) => v.toString().toLowerCase().contains(q));
+    }).toList();
+  }
+
+  Future<void> _fetchRmItems() async {
+    setState(() { _rmLoading = true; _rmError = null; });
+    try {
+      final all    = await SupabaseService.fetchCandidateApplications();
+      final myName = UserSession.name.trim().toLowerCase();
+      final filtered = all.where((r) {
+        final hrStatus = ((r['hr_status'] as String?) ?? '').trim().toLowerCase();
+        if (hrStatus != 'accepted') return false;
+        final assigned = ((r['assigned_manager'] as String?) ?? '').trim().toLowerCase();
+        return assigned.isNotEmpty && assigned == myName;
+      }).toList();
+      setState(() { _rmItems = filtered; _rmLoading = false; });
+    } catch (e) {
+      setState(() { _rmError = e.toString(); _rmLoading = false; });
+    }
+  }
+
+  Widget _rmStatusBadge(String status) {
+    switch (status) {
+      case 'accepted':
+        return _badge('Accepted', Icons.check_circle_rounded,
+            const Color(0xFF22C55E), const Color(0xFFDCFCE7));
+      case 'rejected':
+        return _badge('Rejected', Icons.cancel_rounded,
+            const Color(0xFFEF4444), const Color(0xFFFEE2E2));
+      default:
+        return _badge('Pending Review', Icons.hourglass_empty_rounded,
+            const Color(0xFFF59E0B), const Color(0xFFFEF3C7));
+    }
+  }
+
+  Future<void> _showRmAcceptDialog(Map<String, dynamic> row) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Accept & Forward to Management',
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: _mgmtColor)),
+        content: const Text(
+            'This will forward the candidate to Management for final approval.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF22C55E),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Accept & Forward'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _updateRmStatus(row, 'accepted', null);
+    }
+  }
+
+  Future<void> _showRmRejectDialog(Map<String, dynamic> row) async {
+    final commentCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject Application',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFEF4444))),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Add a comment (optional):',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+          const SizedBox(height: 12),
+          TextField(
+            controller: commentCtrl,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Reason for rejection…',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _updateRmStatus(row, 'rejected', commentCtrl.text.trim());
+            },
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showRmCommentDialog(Map<String, dynamic> row) async {
+    final commentCtrl = TextEditingController(
+        text: (row['manager_comment'] as String?) ?? '');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Manager Comment',
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: _mgmtColor)),
+        content: TextField(
+          controller: commentCtrl,
+          maxLines: 4,
+          decoration: InputDecoration(
+            hintText: 'Add or update your comment…',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _mgmtColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final id = row['id']?.toString() ?? '';
+              if (id.isEmpty) return;
+              try {
+                await SupabaseService.updateCandidateStatus(
+                    id, {'manager_comment': commentCtrl.text.trim()});
+                await _fetchRmItems();
+              } catch (_) {}
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateRmStatus(
+      Map<String, dynamic> row, String status, String? comment) async {
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    try {
+      final fields = <String, dynamic>{
+        'manager_status':    status,
+        'manager_status_at': DateTime.now().toUtc().toIso8601String(),
+      };
+      if (comment != null) fields['manager_comment'] = comment;
+      await SupabaseService.updateCandidateStatus(id, fields);
+      final candidateName = (row['name'] ?? '').toString();
+      if (status == 'accepted') {
+        NotificationService.candidateReadyForManagement(candidateName: candidateName);
+      }
+      NotificationService.interviewDecided(
+        candidateName: candidateName, stage: 'Manager', accepted: status == 'accepted',
+      );
+      await _fetchRmItems();
+      await _fetchCandidates();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
   // ── Tab 1: Candidate Reviews ──────────────────────────────────────
   List<Map<String, dynamic>> _candidates = [];
   bool _candidatesLoading = false;
@@ -73,8 +290,9 @@ class _ManagementInterviewReviewPageState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _isRm ? 3 : 2, vsync: this);
     _tabController.addListener(() => setState(() {}));
+    if (_isRm) _fetchRmItems();
     _fetchCandidates();
     _fetchFormVersions();
   }
@@ -566,13 +784,14 @@ class _ManagementInterviewReviewPageState
                 ),
                 IconButton(
                   tooltip: 'Refresh',
-                  onPressed: (_candidatesLoading || _formLoading)
+                  onPressed: (_candidatesLoading || _formLoading || _rmLoading)
                       ? null
                       : () {
+                          if (_isRm) _fetchRmItems();
                           _fetchCandidates();
                           _fetchFormVersions();
                         },
-                  icon: (_candidatesLoading || _formLoading)
+                  icon: (_candidatesLoading || _formLoading || _rmLoading)
                       ? SizedBox(
                           width: 18, height: 18,
                           child: CircularProgressIndicator(
@@ -586,7 +805,18 @@ class _ManagementInterviewReviewPageState
                 labelColor: _mgmtColor,
                 unselectedLabelColor: const Color(0xFF6B7280),
                 indicatorColor: _mgmtColor,
+                isScrollable: _isRm,
                 tabs: [
+                  if (_isRm)
+                    Tab(
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.assignment_ind_rounded, size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                            'Assigned to You (RM) (${_rmItems.length})',
+                            style: const TextStyle(fontSize: 13)),
+                      ]),
+                    ),
                   Tab(
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.people_rounded, size: 16),
@@ -619,8 +849,94 @@ class _ManagementInterviewReviewPageState
         ),
 
         // ── Tab Body ─────────────────────────────────────────────────
-        if (_tabController.index == 0)
-              // Tab 1: Candidate Reviews
+        if (_isRm && _tabController.index == _rmTabIndex)
+              // Tab 0: Assigned to You (RM)
+              Column(children: [
+                if (_rmItems.isNotEmpty)
+                  Container(
+                    color: Colors.white,
+                    padding: EdgeInsets.fromLTRB(pad, 12, pad, 12),
+                    child: Column(children: [
+                      _ReviewStatsRow(
+                        total: _rmItems.length,
+                        pending: _rmCountPending,
+                        accepted: _rmCountAccepted,
+                        rejected: _rmCountRejected,
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(builder: (context, constraints) {
+                        final narrowRow = constraints.maxWidth < 560;
+                        final search = TextField(
+                          onChanged: (v) => setState(() => _rmSearch = v),
+                          decoration: InputDecoration(
+                            hintText: 'Search candidates…',
+                            prefixIcon: Icon(Icons.search_rounded, color: _mgmtColor, size: 20),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          ),
+                        );
+                        final filterBtn = FilterTriggerButton(
+                          hasActiveFilters: _rmFilter != _MgmtReviewFilter.all,
+                          onTap: () {
+                            _MgmtReviewFilter draft = _rmFilter;
+                            showFilterPanel(
+                              context,
+                              title: 'Filters',
+                              onReset: () => draft = _MgmtReviewFilter.all,
+                              onApply: () => setState(() => _rmFilter = draft),
+                              builder: (context, setPanelState) => FilterChipGroup<_MgmtReviewFilter>(
+                                label: 'Status',
+                                value: draft == _MgmtReviewFilter.all ? null : draft,
+                                options: const [_MgmtReviewFilter.pending, _MgmtReviewFilter.accepted,
+                                    _MgmtReviewFilter.rejected],
+                                labelOf: (f) => switch (f) {
+                                  _MgmtReviewFilter.all => 'All (${_rmItems.length})',
+                                  _MgmtReviewFilter.pending => 'Pending ($_rmCountPending)',
+                                  _MgmtReviewFilter.accepted => 'Accepted ($_rmCountAccepted)',
+                                  _MgmtReviewFilter.rejected => 'Rejected ($_rmCountRejected)',
+                                },
+                                onChanged: (v) => setPanelState(() => draft = v ?? _MgmtReviewFilter.all),
+                              ),
+                            );
+                          },
+                        );
+                        return narrowRow
+                            ? Column(children: [search, const SizedBox(height: 10), filterBtn])
+                            : Row(children: [Expanded(child: search), const SizedBox(width: 10), filterBtn]);
+                      }),
+                    ]),
+                  ),
+                _rmLoading
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60),
+                        child: Center(child: CircularProgressIndicator(color: _mgmtColor)),
+                      )
+                    : _rmError != null
+                        ? _ErrorView(
+                            error: _rmError!,
+                            onRetry: _fetchRmItems)
+                        : _rmItems.isEmpty
+                            ? const _EmptyRmItems()
+                            : _filteredRmItems.isEmpty
+                                ? const _EmptyFilterState()
+                                : _RmCandidateList(
+                                    items: _filteredRmItems,
+                                    cellFn: _cell,
+                                    statusBadgeFn: _rmStatusBadge,
+                                    onAccept: _showRmAcceptDialog,
+                                    onReject: _showRmRejectDialog,
+                                    onComment: _showRmCommentDialog,
+                                    onView: (row) {
+                                      CandidateStore.selected = row;
+                                      context.push('/management/candidate-detail');
+                                    },
+                                  ),
+              ])
+        else if (_tabController.index == _candidatesTabIndex)
+              // Tab: Candidate Reviews (final Management approval)
               Column(children: [
                 if (_candidates.isNotEmpty)
                   Container(
@@ -914,6 +1230,152 @@ class _CandidateList extends StatelessWidget {
                     icon: Icons.delete_forever_rounded,
                     color: Colors.red.shade700,
                     onTap: () => onDelete(context, row),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        );
+      }).toList()),
+    );
+  }
+}
+
+// ── RM candidate list (requests assigned to you as Reporting Manager) ──────────
+
+class _RmCandidateList extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+  final String Function(Map<String, dynamic>, String) cellFn;
+  final Widget Function(String) statusBadgeFn;
+  final void Function(Map<String, dynamic>) onAccept;
+  final void Function(Map<String, dynamic>) onReject;
+  final void Function(Map<String, dynamic>) onComment;
+  final void Function(Map<String, dynamic>) onView;
+
+  const _RmCandidateList({
+    required this.items,
+    required this.cellFn,
+    required this.statusBadgeFn,
+    required this.onAccept,
+    required this.onReject,
+    required this.onComment,
+    required this.onView,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items.map((row) {
+        final status = (row['manager_status'] as String?) ?? 'pending';
+        final isPending = status == 'pending';
+        final name = (row['name'] ?? '').toString().trim();
+        final date = cellFn(row, 'submitted_at');
+        final post = (row['post_applied'] ?? '').toString().trim();
+        final hrComment = (row['hr_comment'] ?? '').toString().trim();
+        final managerComment = (row['manager_comment'] ?? '').toString().trim();
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: status == 'accepted'
+                  ? const Color(0xFF86EFAC)
+                  : status == 'rejected'
+                      ? const Color(0xFFFCA5A5)
+                      : const Color(0xFFE5E7EB),
+              width: status != 'pending' ? 1.5 : 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: _avatarColor(name).withValues(alpha: 0.15),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                            color: _avatarColor(name),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name.isEmpty ? 'Unknown' : name,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: _mgmtColor)),
+                            const SizedBox(height: 3),
+                            Text('Submitted: $date',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF6B7280))),
+                            if (post.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(post,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF6B7280))),
+                            ],
+                          ]),
+                    ),
+                    const SizedBox(width: 8),
+                    statusBadgeFn(status),
+                  ],
+                ),
+
+                if (hrComment.isNotEmpty || managerComment.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  const SizedBox(height: 6),
+                  if (hrComment.isNotEmpty)
+                    _CommentRow(label: 'HR', text: hrComment),
+                  if (managerComment.isNotEmpty)
+                    _CommentRow(label: 'My Comment', text: managerComment),
+                ],
+
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 6, children: [
+                  if (isPending) ...[
+                    _ActionBtn(
+                      label: 'Accept',
+                      icon: Icons.check_circle_outline_rounded,
+                      color: const Color(0xFF22C55E),
+                      onTap: () => onAccept(row),
+                    ),
+                    _ActionBtn(
+                      label: 'Reject',
+                      icon: Icons.cancel_outlined,
+                      color: const Color(0xFFEF4444),
+                      onTap: () => onReject(row),
+                    ),
+                  ],
+                  _ActionBtn(
+                    label: 'Comment',
+                    icon: Icons.comment_outlined,
+                    color: const Color(0xFF6B7280),
+                    onTap: () => onComment(row),
+                  ),
+                  _ActionBtn(
+                    label: 'View',
+                    icon: Icons.open_in_new_rounded,
+                    color: _mgmtColor,
+                    onTap: () => onView(row),
                   ),
                 ]),
               ],
@@ -1610,6 +2072,26 @@ class _EmptyCandidates extends StatelessWidget {
                 fontSize: 15, fontWeight: FontWeight.w600, color: _mgmtColor)),
         SizedBox(height: 6),
         Text('Candidates accepted by a Manager will appear here.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+      ]),
+    );
+  }
+}
+
+class _EmptyRmItems extends StatelessWidget {
+  const _EmptyRmItems();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.inbox_rounded, size: 52, color: AppTheme.accentBlue),
+        SizedBox(height: 12),
+        Text('No candidates assigned to you',
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600, color: _mgmtColor)),
+        SizedBox(height: 6),
+        Text('HR will assign candidates here for your review as Reporting Manager.',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
       ]),
     );
