@@ -908,6 +908,62 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
     _load();
   }
 
+  Future<void> _showAllBirthdays() async {
+    final all = await SupabaseService.fetchAllBirthdays();
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        title: const Text('All Birthdays'),
+        content: SizedBox(
+          width: 340,
+          child: all.isEmpty
+              ? const Text('No birthdays on file.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: all.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final item = all[i];
+                    final date = DateTime.tryParse(
+                            item['birthday_date'] as String? ?? '') ??
+                        DateTime.now();
+                    final name = item['name'] as String? ?? '';
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: _purple.withValues(alpha: 0.18),
+                          child: Text(_initials(name),
+                              style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: _purple)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(name,
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w500)),
+                        ),
+                        Text(_fmtDate(date),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade600)),
+                      ]),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dlgCtx),
+              child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
   static String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length >= 2) {
@@ -925,7 +981,25 @@ class _BirthdaysBlockState extends State<BirthdaysBlock> {
       accentColor: const Color(0xFFEC4899),
       canEdit: widget.canEdit,
       showIcon: widget.showIcon,
-      onAdd: _showAdd,
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        GestureDetector(
+          onTap: _showAllBirthdays,
+          child: const Tooltip(
+            message: 'View all birthdays',
+            child: Icon(Icons.list_alt_rounded, color: Color(0xFFEC4899), size: 20),
+          ),
+        ),
+        if (widget.canEdit) ...[
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _showAdd,
+            child: const Tooltip(
+              message: 'Add',
+              child: Icon(Icons.add_circle_outline_rounded, color: Color(0xFFEC4899), size: 20),
+            ),
+          ),
+        ],
+      ]),
       child: _loading
           ? const _Loader()
           : _items.isEmpty

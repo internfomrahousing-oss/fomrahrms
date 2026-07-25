@@ -2644,6 +2644,47 @@ class SupabaseService {
     }
   }
 
+  /// Every birthday across the year (auto-derived + manual), for the "view
+  /// full list" dialog — unlike [fetchBirthdaysForMonth] this isn't
+  /// filtered down to one month.
+  static Future<List<Map<String, dynamic>>> fetchAllBirthdays() async {
+    final auto = <Map<String, dynamic>>[];
+    for (var month = 1; month <= 12; month++) {
+      auto.addAll(await fetchOnboardingBirthdaysForMonth(month));
+    }
+    try {
+      final data = await _db
+          ?.from('birthdays')
+          .select()
+          .order('birthday_date', ascending: true);
+      final manual = data == null
+          ? <Map<String, dynamic>>[]
+          : List<Map<String, dynamic>>.from(data as List);
+      final autoNames =
+          auto.map((r) => (r['name'] as String).trim().toLowerCase()).toSet();
+      final merged = [
+        ...auto,
+        ...manual.where((r) =>
+            !autoNames.contains((r['name'] as String? ?? '').trim().toLowerCase())),
+      ];
+      merged.sort((a, b) {
+        final da = DateTime.tryParse(a['birthday_date'] as String? ?? '') ?? DateTime.now();
+        final db = DateTime.tryParse(b['birthday_date'] as String? ?? '') ?? DateTime.now();
+        if (da.month != db.month) return da.month.compareTo(db.month);
+        return da.day.compareTo(db.day);
+      });
+      return merged;
+    } catch (_) {
+      auto.sort((a, b) {
+        final da = DateTime.tryParse(a['birthday_date'] as String? ?? '') ?? DateTime.now();
+        final db = DateTime.tryParse(b['birthday_date'] as String? ?? '') ?? DateTime.now();
+        if (da.month != db.month) return da.month.compareTo(db.month);
+        return da.day.compareTo(db.day);
+      });
+      return auto;
+    }
+  }
+
   static Future<void> addBirthday(String name, DateTime date) async {
     try {
       await _db?.from('birthdays').insert({
