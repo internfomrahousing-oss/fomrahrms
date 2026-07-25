@@ -3679,7 +3679,12 @@ class _StatCardsRow extends StatelessWidget {
       total == 0 ? '0%' : '${(count / total * 100).toStringAsFixed(1)}%';
 
   List<EmployeeListItem> _items(List<AppUser> users) => users
-      .map((u) => EmployeeListItem(name: u.name, subtitle: u.designation))
+      .map((u) => EmployeeListItem(
+            name: u.name,
+            subtitle: u.designation,
+            workLocation: u.workLocation,
+            businessUnit: u.businessUnit,
+          ))
       .toList();
 
   @override
