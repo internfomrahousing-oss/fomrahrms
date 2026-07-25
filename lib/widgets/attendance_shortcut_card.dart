@@ -937,7 +937,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForDesignation(UserSession.designation)) &&
+    if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForDepartment(UserSession.department)) &&
         _permissionMinutes == 0 &&
         _noteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1008,7 +1008,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
         employeeName: empName,
         checkInTime: _timeCtrl.text,
         date: now,
-        schedule: OfficeTimingStore.scheduleForDesignation(UserSession.designation),
+        schedule: OfficeTimingStore.scheduleForDepartment(UserSession.department),
       );
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1022,7 +1022,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
 
   Future<void> _checkOut() async {
     if (isEarlyCheckOut(_timeCtrl.text,
-            OfficeTimingStore.scheduleForDesignation(UserSession.designation), _permissionMinutes) &&
+            OfficeTimingStore.scheduleForDepartment(UserSession.department), _permissionMinutes) &&
         _noteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -1177,7 +1177,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
           ListenableBuilder(
             listenable: _timeCtrl,
             builder: (context, _) {
-              final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
+              final schedule = OfficeTimingStore.scheduleForDepartment(UserSession.department);
               final showNote = isCheckedIn
                   ? isEarlyCheckOut(_timeCtrl.text, schedule, _permissionMinutes)
                   : (isLateCheckIn(_timeCtrl.text, schedule) && _permissionMinutes == 0);

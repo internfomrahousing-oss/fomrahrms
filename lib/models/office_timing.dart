@@ -65,11 +65,11 @@ class OfficeTiming {
       };
 }
 
-/// In-memory cache of every [OfficeTiming] and which designation each one is
+/// In-memory cache of every [OfficeTiming] and which department each one is
 /// assigned to. Every attendance calculation (late/early/overtime) resolves
-/// an employee's schedule live from their *current* designation through
+/// an employee's schedule live from their *current* department through
 /// here — nothing is ever cached on the employee or attendance record
-/// itself, so a designation change takes effect on the very next check-in.
+/// itself, so a department change takes effect on the very next check-in.
 class OfficeTimingStore {
   /// Safety net so calculations never misbehave before the first fetch
   /// completes (or if Supabase is unreachable) — matches today's real
@@ -85,7 +85,7 @@ class OfficeTimingStore {
   );
 
   static List<OfficeTiming> _timings = [];
-  static Map<String, String> _designationToTimingId = {};
+  static Map<String, String> _departmentToTimingId = {};
   static bool _loaded = false;
 
   static List<OfficeTiming> get all => List.unmodifiable(_timings);
@@ -93,7 +93,7 @@ class OfficeTimingStore {
   static OfficeTiming get _defaultTiming =>
       _timings.firstWhere((t) => t.isDefault, orElse: () => fallback);
 
-  /// Fetches timings + designation assignments once; safe to call from
+  /// Fetches timings + department assignments once; safe to call from
   /// every consuming page's init — later calls are a no-op until
   /// [invalidate] is called.
   static Future<void> ensureLoaded() async {
@@ -103,9 +103,9 @@ class OfficeTimingStore {
 
   static Future<void> refresh() async {
     final timings = await SupabaseService.fetchOfficeTimings();
-    final map = await SupabaseService.fetchDesignationOfficeTimingMap();
+    final map = await SupabaseService.fetchDepartmentOfficeTimingMap();
     _timings = timings;
-    _designationToTimingId = map;
+    _departmentToTimingId = map;
     _loaded = true;
   }
 
@@ -113,8 +113,8 @@ class OfficeTimingStore {
 
   /// Synchronous resolver: explicit assignment → default timing → hardcoded
   /// [fallback]. Safe to call before [ensureLoaded] finishes.
-  static OfficeTiming scheduleForDesignation(String designation) {
-    final timingId = _designationToTimingId[designation];
+  static OfficeTiming scheduleForDepartment(String department) {
+    final timingId = _departmentToTimingId[department];
     if (timingId != null) {
       final match = _timings.where((t) => t.id == timingId);
       if (match.isNotEmpty) return match.first;
@@ -122,10 +122,10 @@ class OfficeTimingStore {
     return _timings.isEmpty ? fallback : _defaultTiming;
   }
 
-  static OfficeTiming scheduleForUser(AppUser u) => scheduleForDesignation(u.designation);
+  static OfficeTiming scheduleForUser(AppUser u) => scheduleForDepartment(u.department);
 
-  /// Designations currently assigned to [timingId] (for the admin UI).
-  static List<String> designationsFor(String timingId) => _designationToTimingId.entries
+  /// Departments currently assigned to [timingId] (for the admin UI).
+  static List<String> departmentsFor(String timingId) => _departmentToTimingId.entries
       .where((e) => e.value == timingId)
       .map((e) => e.key)
       .toList();

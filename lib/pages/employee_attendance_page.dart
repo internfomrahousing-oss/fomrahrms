@@ -94,7 +94,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
+    final schedule = OfficeTimingStore.scheduleForDepartment(UserSession.department);
     final needsNote = isLateCheckIn(_checkInCtrl.text, schedule) && _permissionMinutes == 0;
     if (needsNote && _checkInNoteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -179,7 +179,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
 
   Future<void> _checkOut() async {
     final needsNote = isEarlyCheckOut(_checkOutCtrl.text,
-        OfficeTimingStore.scheduleForDesignation(UserSession.designation), _permissionMinutes);
+        OfficeTimingStore.scheduleForDepartment(UserSession.department), _permissionMinutes);
     if (needsNote && _checkOutNoteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -375,7 +375,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               listenable: _checkOutCtrl,
               builder: (context, _) {
                 final showNote = isEarlyCheckOut(_checkOutCtrl.text,
-                    OfficeTimingStore.scheduleForDesignation(UserSession.designation), _permissionMinutes);
+                    OfficeTimingStore.scheduleForDepartment(UserSession.department), _permissionMinutes);
                 return Column(children: [
                   _TimeField(
                     controller: _checkOutCtrl,
@@ -435,7 +435,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
               builder: (context, _) {
                 final showNote =
                     isLateCheckIn(_checkInCtrl.text,
-                        OfficeTimingStore.scheduleForDesignation(UserSession.designation)) &&
+                        OfficeTimingStore.scheduleForDepartment(UserSession.department)) &&
                     _permissionMinutes == 0;
                 return Column(children: [
                   _TimeField(

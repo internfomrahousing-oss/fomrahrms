@@ -5,11 +5,11 @@ import '../services/supabase_service.dart';
 import '../utils/token_util.dart';
 import '../theme/app_theme.dart';
 
-/// Create, edit, and assign designation-based working-hours schedules
+/// Create, edit, and assign department-based working-hours schedules
 /// ("Office Timings"). Direct-edit, no approval workflow — every save
 /// takes effect immediately, and every attendance calculation (late/early/
 /// overtime) resolves an employee's schedule live from their current
-/// designation, so a reassignment here or a designation change takes
+/// department, so a reassignment here or a department change takes
 /// effect on the very next check-in.
 ///
 /// Embedded as a tab inside LocationManagementPage — no Scaffold/back
@@ -43,7 +43,7 @@ class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
 
   Future<void> _openEditor({OfficeTiming? existing}) async {
     final assigned = existing != null
-        ? OfficeTimingStore.designationsFor(existing.id).toSet()
+        ? OfficeTimingStore.departmentsFor(existing.id).toSet()
         : <String>{};
     final result = await showDialog<_TimingDraft>(
       context: context,
@@ -71,13 +71,13 @@ class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
       return;
     }
 
-    // Reconcile designation assignments: newly checked → assign, unchecked
+    // Reconcile department assignments: newly checked → assign, unchecked
     // (that were previously assigned to this timing) → revert to default.
-    for (final d in result.assignedDesignations.difference(assigned)) {
-      await SupabaseService.assignDesignationToTiming(d, id);
+    for (final d in result.assignedDepartments.difference(assigned)) {
+      await SupabaseService.assignDepartmentToTiming(d, id);
     }
-    for (final d in assigned.difference(result.assignedDesignations)) {
-      await SupabaseService.unassignDesignationTiming(d);
+    for (final d in assigned.difference(result.assignedDepartments)) {
+      await SupabaseService.unassignDepartmentTiming(d);
     }
 
     OfficeTimingStore.invalidate();
@@ -91,7 +91,7 @@ class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Office Timing'),
         content: Text(
-            'Delete "${t.name}"? Any designation assigned to it will revert to the default timing.'),
+            'Delete "${t.name}"? Any department assigned to it will revert to the default timing.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -124,8 +124,8 @@ class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
         ]),
         const SizedBox(height: 8),
         Text(
-          'Each designation is assigned one Office Timing, which drives late-arrival, '
-          'early-checkout, and overtime calculations across the app. Designations with no '
+          'Each department is assigned one Office Timing, which drives late-arrival, '
+          'early-checkout, and overtime calculations across the app. Departments with no '
           'explicit assignment use the default timing.',
           style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65)),
         ),
@@ -141,7 +141,7 @@ class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
               padding: const EdgeInsets.only(bottom: 12),
               child: _TimingCard(
                 timing: t,
-                assignedDesignations: OfficeTimingStore.designationsFor(t.id),
+                assignedDepartments: OfficeTimingStore.departmentsFor(t.id),
                 onEdit: () => _openEditor(existing: t),
                 onDelete: t.isDefault ? null : () => _delete(t),
               ),
@@ -153,12 +153,12 @@ class _OfficeTimingsPanelState extends State<OfficeTimingsPanel> {
 
 class _TimingCard extends StatelessWidget {
   final OfficeTiming timing;
-  final List<String> assignedDesignations;
+  final List<String> assignedDepartments;
   final VoidCallback onEdit;
   final VoidCallback? onDelete;
   const _TimingCard({
     required this.timing,
-    required this.assignedDesignations,
+    required this.assignedDepartments,
     required this.onEdit,
     this.onDelete,
   });
@@ -216,9 +216,9 @@ class _TimingCard extends StatelessWidget {
             _stat(context, Icons.timer_outlined, '${timing.graceMinutes}m grace'),
             _stat(context, Icons.hourglass_bottom_rounded, '${timing.workingHours}h working'),
           ]),
-          if (assignedDesignations.isNotEmpty) ...[
+          if (assignedDepartments.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Wrap(spacing: 6, runSpacing: 6, children: assignedDesignations
+            Wrap(spacing: 6, runSpacing: 6, children: assignedDepartments
                 .map((d) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -230,7 +230,7 @@ class _TimingCard extends StatelessWidget {
                 .toList()),
           ] else if (!timing.isDefault) ...[
             const SizedBox(height: 10),
-            Text('No designations assigned yet',
+            Text('No departments assigned yet',
                 style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic,
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
           ],
@@ -246,14 +246,14 @@ class _TimingDraft {
   final String checkOutTime;
   final int graceMinutes;
   final double workingHours;
-  final Set<String> assignedDesignations;
+  final Set<String> assignedDepartments;
   const _TimingDraft({
     required this.name,
     required this.checkInTime,
     required this.checkOutTime,
     required this.graceMinutes,
     required this.workingHours,
-    required this.assignedDesignations,
+    required this.assignedDepartments,
   });
 }
 
@@ -272,7 +272,7 @@ class _OfficeTimingDialogState extends State<_OfficeTimingDialog> {
   late final TextEditingController _hoursCtrl;
   late TimeOfDay _checkIn;
   late TimeOfDay _checkOut;
-  late Set<String> _selectedDesignations;
+  late Set<String> _selectedDepartments;
   String? _error;
 
   @override
@@ -284,7 +284,7 @@ class _OfficeTimingDialogState extends State<_OfficeTimingDialog> {
     _hoursCtrl = TextEditingController(text: (t?.workingHours ?? 8).toString());
     _checkIn = _parseTime(t?.checkInTime) ?? const TimeOfDay(hour: 9, minute: 30);
     _checkOut = _parseTime(t?.checkOutTime) ?? const TimeOfDay(hour: 18, minute: 30);
-    _selectedDesignations = Set<String>.from(widget.initialAssigned);
+    _selectedDepartments = Set<String>.from(widget.initialAssigned);
   }
 
   @override
@@ -339,7 +339,7 @@ class _OfficeTimingDialogState extends State<_OfficeTimingDialog> {
       checkOutTime: _fmtTime(_checkOut),
       graceMinutes: grace,
       workingHours: hours,
-      assignedDesignations: _selectedDesignations,
+      assignedDepartments: _selectedDepartments,
     ));
   }
 
@@ -393,22 +393,22 @@ class _OfficeTimingDialogState extends State<_OfficeTimingDialog> {
               ),
             ]),
             const SizedBox(height: 18),
-            Text('Assign to designations',
+            Text('Assign to departments',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text('Checking a designation moves it off any other timing it was assigned to.',
+            Text('Checking a department moves it off any other timing it was assigned to.',
                 style: TextStyle(fontSize: 11.5, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 6, children: kDesignations.map((d) {
-              final selected = _selectedDesignations.contains(d);
+            Wrap(spacing: 6, runSpacing: 6, children: kDepartments.map((d) {
+              final selected = _selectedDepartments.contains(d);
               return FilterChip(
                 label: Text(d, style: const TextStyle(fontSize: 12.5)),
                 selected: selected,
                 onSelected: (v) => setState(() {
                   if (v) {
-                    _selectedDesignations.add(d);
+                    _selectedDepartments.add(d);
                   } else {
-                    _selectedDesignations.remove(d);
+                    _selectedDepartments.remove(d);
                   }
                 }),
               );

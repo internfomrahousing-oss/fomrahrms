@@ -1788,7 +1788,7 @@ class SupabaseService {
     }
   }
 
-  // ── Office Timings (designation-based working hours) ───────────────────
+  // ── Office Timings (department-based working hours) ────────────────────
   /*
     create table if not exists office_timings (
       id uuid default gen_random_uuid() primary key,
@@ -1800,8 +1800,8 @@ class SupabaseService {
       is_default boolean not null default false,
       created_at timestamptz default now()
     );
-    create table if not exists designation_office_timings (
-      designation text primary key,
+    create table if not exists department_office_timings (
+      department text primary key,
       office_timing_id uuid not null references office_timings(id) on delete cascade
     );
   */
@@ -1819,16 +1819,16 @@ class SupabaseService {
     }
   }
 
-  /// designation → office_timing_id, for every designation HR has
-  /// explicitly assigned (anything absent uses the default timing).
-  static Future<Map<String, String>> fetchDesignationOfficeTimingMap() async {
+  /// department → office_timing_id, for every department HR has explicitly
+  /// assigned (anything absent uses the default timing).
+  static Future<Map<String, String>> fetchDepartmentOfficeTimingMap() async {
     final db = _db;
     if (db == null) return {};
     try {
-      final data = await db.from('designation_office_timings').select();
+      final data = await db.from('department_office_timings').select();
       return {
         for (final row in (data as List))
-          (row as Map<String, dynamic>)['designation'] as String:
+          (row as Map<String, dynamic>)['department'] as String:
               row['office_timing_id'] as String,
       };
     } catch (_) {
@@ -1853,24 +1853,24 @@ class SupabaseService {
     await db.from('office_timings').delete().eq('id', id);
   }
 
-  /// Assigns [designation] to [timingId] — an upsert keyed on the
-  /// designation, so it automatically moves off whatever timing it was
+  /// Assigns [department] to [timingId] — an upsert keyed on the
+  /// department, so it automatically moves off whatever timing it was
   /// previously assigned to.
-  static Future<void> assignDesignationToTiming(String designation, String timingId) async {
+  static Future<void> assignDepartmentToTiming(String department, String timingId) async {
     final db = _db;
     if (db == null) return;
-    await db.from('designation_office_timings').upsert({
-      'designation': designation,
+    await db.from('department_office_timings').upsert({
+      'department': department,
       'office_timing_id': timingId,
     });
   }
 
-  /// Removes any explicit assignment for [designation], reverting it to the
+  /// Removes any explicit assignment for [department], reverting it to the
   /// default timing.
-  static Future<void> unassignDesignationTiming(String designation) async {
+  static Future<void> unassignDepartmentTiming(String department) async {
     final db = _db;
     if (db == null) return;
-    await db.from('designation_office_timings').delete().eq('designation', designation);
+    await db.from('department_office_timings').delete().eq('department', department);
   }
 
   // ── Location Management (Locations + Attendance Policies) ───────────────

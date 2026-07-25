@@ -137,7 +137,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
       return;
     }
 
-    final schedule = OfficeTimingStore.scheduleForDesignation(UserSession.designation);
+    final schedule = OfficeTimingStore.scheduleForDepartment(UserSession.department);
     if (!outsideOffice &&
         isEarlyCheckOut(_timeController.text, schedule, _permissionMinutes) &&
         _noteController.text.trim().isEmpty) {
@@ -294,7 +294,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                   listenable: _timeController,
                   builder: (context, _) {
                     final isEarly = isEarlyCheckOut(_timeController.text,
-                        OfficeTimingStore.scheduleForDesignation(UserSession.designation),
+                        OfficeTimingStore.scheduleForDepartment(UserSession.department),
                         _permissionMinutes);
                     final showNote = isEarly || _outsideOffice;
                     final outLocationLabel =
