@@ -22,7 +22,7 @@ class AttendancePolicyStore {
   );
   static const fallbackPolicy = AttendancePolicy(
     id: '',
-    name: 'Standard Office',
+    name: 'Office',
     policyType: AttendancePolicyType.singleLocation,
     noteRequiredOutsideRadius: true,
   );

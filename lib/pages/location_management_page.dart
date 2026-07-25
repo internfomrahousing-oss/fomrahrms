@@ -616,7 +616,7 @@ class _PoliciesTab extends StatelessWidget {
                   Expanded(
                     child: _FallbackDropdown(
                       label: 'Office employees',
-                      policies: policies,
+                      policies: _policiesForWorkLocation(policies, office: true),
                       selectedId: _fallbackFor(policies, 'Office'),
                       onChanged: (id) => _setFallback('Office', id),
                     ),
@@ -625,7 +625,7 @@ class _PoliciesTab extends StatelessWidget {
                   Expanded(
                     child: _FallbackDropdown(
                       label: 'Onsite employees',
-                      policies: policies,
+                      policies: _policiesForWorkLocation(policies, office: false),
                       selectedId: _fallbackFor(policies, 'Onsite'),
                       onChanged: (id) => _setFallback('Onsite', id),
                     ),
@@ -664,6 +664,17 @@ class _PoliciesTab extends StatelessWidget {
     final match = policies.where((p) => AttendancePolicyStore.fallbackWorkLocationsFor(p.id).contains(workLocation));
     return match.isEmpty ? null : match.first.id;
   }
+
+  // Office employees only ever need a single fixed point (the "Office"
+  // policy); onsite/field employees choose between Restricted and
+  // Unrestricted Check-in. Scoping each dropdown to just its relevant
+  // policies keeps the two from mixing — picking "Office" for a field
+  // employee (or vice versa) never made sense anyway.
+  List<AttendancePolicy> _policiesForWorkLocation(List<AttendancePolicy> policies, {required bool office}) {
+    final scoped = policies.where((p) =>
+        office == (p.policyType == AttendancePolicyType.singleLocation)).toList();
+    return scoped.isEmpty ? policies : scoped;
+  }
 }
 
 class _FallbackDropdown extends StatelessWidget {
@@ -677,9 +688,15 @@ class _FallbackDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Guards against a DropdownButtonFormField assertion crash if the
+    // currently-selected policy isn't in this (possibly scoped) list.
+    final value = policies.any((p) => p.id == selectedId) ? selectedId : null;
     return DropdownButtonFormField<String>(
-      value: selectedId,
+      value: value,
       decoration: InputDecoration(labelText: label, isDense: true),
+      borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+      dropdownColor: AppTheme.white,
+      elevation: 3,
       items: [
         for (final p in policies)
           DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)),
@@ -1143,6 +1160,9 @@ class _EmployeePolicyDialogState extends State<_EmployeePolicyDialog> {
             DropdownButtonFormField<String?>(
               value: _overridePolicyId,
               decoration: const InputDecoration(isDense: true),
+              borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+              dropdownColor: AppTheme.white,
+              elevation: 3,
               items: [
                 DropdownMenuItem<String?>(value: null, child: Text('Inherit (${inheritedPolicy.name})')),
                 for (final p in policies)
