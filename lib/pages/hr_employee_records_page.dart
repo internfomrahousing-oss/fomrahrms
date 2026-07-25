@@ -50,6 +50,11 @@ class HrEmployeeRecordsPage extends StatefulWidget {
 class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   static Color get _color => AppTheme.primaryBlue;
   List<AppUser> _all = [];
+  // Same population as _all but without the role != 'Management' exclusion —
+  // Management accounts aren't employees so they stay out of the Employee
+  // Management table/stats, but they (like HR) can always be picked as
+  // someone's Reporting Manager, so the manager-picker dropdown needs them.
+  List<AppUser> _managerPool = [];
   List<AppUser> _filtered = [];
   List<LeaveApplication> _leaveApps = [];
   bool _loading = true;
@@ -100,8 +105,10 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
       SupabaseService.fetchLeaveApplications(),
     ]);
     if (!mounted) return;
+    final raw = results[0] as List<AppUser>;
     setState(() {
-      _all = _baseList(results[0] as List<AppUser>);
+      _all = _baseList(raw);
+      _managerPool = _managerCandidatesList(raw);
       _leaveApps = results[1] as List<LeaveApplication>;
       _applyFilter();
       _loading = false;
@@ -119,6 +126,23 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
     final withoutStaffPortal = users
         .where((u) => !kStaffPortalDepartments.contains(u.department) && u.role != 'Management')
         .toList();
+    final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
+    if (isHrOrMgmt) return withoutStaffPortal;
+    if (!UserSession.isReportingManager) return const [];
+    final me = UserSession.name.trim().toLowerCase();
+    if (me.isEmpty) return const [];
+    return withoutStaffPortal
+        .where((u) => u.reportingManager.trim().toLowerCase() == me)
+        .toList();
+  }
+
+  // Same viewer-scoping as _baseList, but keeps Management accounts in —
+  // they're not employees, but (like HR) are always valid Reporting Manager
+  // choices. Feeds visibleManagersForPicker() via EmployeeEditDialog instead
+  // of the Management-free _all.
+  List<AppUser> _managerCandidatesList(List<AppUser> users) {
+    final withoutStaffPortal =
+        users.where((u) => !kStaffPortalDepartments.contains(u.department)).toList();
     final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
     if (isHrOrMgmt) return withoutStaffPortal;
     if (!UserSession.isReportingManager) return const [];
@@ -218,14 +242,17 @@ class _HrEmployeeRecordsPageState extends State<HrEmployeeRecordsPage> {
   void _openProfile(AppUser user) {
     showDialog(
       context: context,
-      builder: (_) => EmployeeProfileDialog(user: user, allUsers: _all, onSave: _saveUser, onDelete: _deleteUser),
+      builder: (_) => EmployeeProfileDialog(
+          user: user, allUsers: _all, managerCandidates: _managerPool,
+          onSave: _saveUser, onDelete: _deleteUser),
     );
   }
 
   void _openCreate() {
     showDialog(
       context: context,
-      builder: (_) => EmployeeEditDialog(user: null, allUsers: _all, onSave: _saveUser),
+      builder: (_) => EmployeeEditDialog(
+          user: null, allUsers: _all, managerCandidates: _managerPool, onSave: _saveUser),
     );
   }
 
@@ -716,10 +743,17 @@ class _UserCard extends StatelessWidget {
 class EmployeeProfileDialog extends StatefulWidget {
   final AppUser user;
   final List<AppUser> allUsers;
+  // Pool the Reporting Manager picker chooses from, forwarded to the Edit
+  // dialog it opens. Defaults to allUsers when the caller doesn't supply a
+  // separate pool (e.g. Staff Portal, whose allUsers already includes
+  // Management) — see HrEmployeeRecordsPage._managerPool for why Employee
+  // Management needs a distinct one.
+  final List<AppUser>? managerCandidates;
   final Future<void> Function(AppUser) onSave;
   final Future<void> Function(AppUser)? onDelete;
   const EmployeeProfileDialog(
-      {required this.user, required this.allUsers, required this.onSave, this.onDelete});
+      {required this.user, required this.allUsers, this.managerCandidates,
+       required this.onSave, this.onDelete});
 
   @override
   State<EmployeeProfileDialog> createState() => EmployeeProfileDialogState();
@@ -2759,6 +2793,7 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
                       builder: (_) => EmployeeEditDialog(
                         user: _user,
                         allUsers: widget.allUsers,
+                        managerCandidates: widget.managerCandidates,
                         onSave: widget.onSave,
                       ),
                     );
@@ -3011,9 +3046,12 @@ class _FullProfileDialogState extends State<_FullProfileDialog>
 class EmployeeEditDialog extends StatefulWidget {
   final AppUser? user; // null = creating new
   final List<AppUser> allUsers;
+  // See EmployeeProfileDialog.managerCandidates.
+  final List<AppUser>? managerCandidates;
   final Future<void> Function(AppUser) onSave;
   const EmployeeEditDialog(
-      {required this.user, required this.allUsers, required this.onSave});
+      {required this.user, required this.allUsers, this.managerCandidates,
+       required this.onSave});
 
   @override
   State<EmployeeEditDialog> createState() => EmployeeEditDialogState();
@@ -3215,9 +3253,10 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
     }
   }
 
-  List<String> get _managerNames => visibleManagersForPicker(widget.allUsers)
-      .map((u) => u.name)
-      .toList();
+  List<String> get _managerNames =>
+      visibleManagersForPicker(widget.managerCandidates ?? widget.allUsers)
+          .map((u) => u.name)
+          .toList();
 
   Widget _field(TextEditingController ctrl, String label, IconData icon, {
     TextInputType keyboard = TextInputType.text,
