@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/user_session.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import 'change_password_dialog.dart';
 import 'logout_action.dart';
 
 /// Circular avatar + name/ID that opens a profile dropdown on tap.
@@ -112,6 +113,10 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
               onNavigate: (route) {
                 Navigator.of(context).pop();
                 context.go(route);
+              },
+              onChangePassword: () {
+                Navigator.of(context).pop();
+                showChangePasswordDialog(context);
               },
               onSignOut: () {
                 Navigator.of(context).pop();
@@ -239,10 +244,12 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
 // ── Dropdown card ─────────────────────────────────────────────────────────────
 class _ProfileDropdown extends StatelessWidget {
   final void Function(String route) onNavigate;
+  final VoidCallback onChangePassword;
   final VoidCallback onSignOut;
 
   const _ProfileDropdown({
     required this.onNavigate,
+    required this.onChangePassword,
     required this.onSignOut,
   });
 
@@ -339,6 +346,18 @@ class _ProfileDropdown extends StatelessWidget {
             title: const Text('My Profile',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             onTap: () => onNavigate(UserSession.profileRoute),
+          ),
+
+          const Divider(height: 1),
+
+          // ── Change Password ─────────────────────────────────────────────
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.lock_outline_rounded, size: 18,
+                color: AppTheme.primaryBlue),
+            title: const Text('Change Password',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            onTap: onChangePassword,
           ),
 
           const Divider(height: 1),

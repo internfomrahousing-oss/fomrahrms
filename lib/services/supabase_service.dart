@@ -3333,6 +3333,27 @@ class SupabaseService {
     return email;
   }
 
+  /// Self-service password change for an already-logged-in user — via
+  /// change_own_password(), which re-verifies [currentPassword] server-side
+  /// before setting [newPassword]; see
+  /// supabase/migrations/20260725070000_change_own_password_rpc.sql. Returns
+  /// true on success, false if the current password didn't match, null if
+  /// the call itself failed (network/RPC error).
+  static Future<bool?> changeOwnPassword(String currentPassword, String newPassword) async {
+    try {
+      final ok = await _db?.rpc('change_own_password', params: {
+        'p_current_password': currentPassword,
+        'p_new_password': newPassword,
+      }) as bool?;
+      if (ok == true) {
+        logAuditEvent('password_changed', targetType: 'app_users', targetId: UserSession.email);
+      }
+      return ok;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Server-side login (Edge Function) ───────────────────────────────────
   // See supabase/functions/login/index.ts. Replaces fetching the whole
   // app_users table and comparing passwords client-side.
