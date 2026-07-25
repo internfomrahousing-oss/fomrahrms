@@ -8,6 +8,7 @@ import '../services/email_service.dart';
 import '../constants/org_lists.dart';
 import '../widgets/back_button.dart';
 import '../theme/app_theme.dart';
+import 'employee_onboarding_page.dart' show OnboardingFormReadOnlyBody;
 
 Color get _mgmtColor => AppTheme.sidebarSelectedBg;
 Color get _mgmtLight => AppTheme.lightBlue;
@@ -922,49 +923,15 @@ class _OnboardingTabState extends State<_OnboardingTab> {
     );
   }
 
+  // Only name/phone_number/designation are ever written top-level at submit
+  // time (see onboarding_form_page.dart) — everything else the candidate
+  // filled in (family, education, emergency contact, attachments, ...)
+  // lives inside 'form_data'. Reading straight off the row silently showed
+  // near-empty sections before this.
   Widget _buildDetails(Map<String, dynamic> d) {
-    Widget row(String label, dynamic value) {
-      final v = (value?.toString() ?? '').trim();
-      if (v.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(width: 180, child: Text(label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)))),
-          Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: Color(0xFF111827)))),
-        ]),
-      );
-    }
-    Widget section(String title, List<Widget> rows) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _mgmtColor)),
-        const Divider(height: 10),
-        ...rows,
-      ],
-    );
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      section('Basic Information', [
-        row('Name', d['name']), row('Phone', d['phone_number']),
-        row('Father Name', d['father_name']), row('Designation', d['designation']),
-        row('Date of Joining', d['date_of_joining']),
-      ]),
-      section('Personal', [
-        row('Full Name', d['full_name']), row('Date of Birth', d['date_of_birth']),
-        row('Postal Address', d['postal_address']), row('Permanent Address', d['permanent_address']),
-      ]),
-      section('Emergency', [
-        row('Blood Group', d['blood_group']), row('Allergic To', d['allergic_to']),
-        row('Emergency Contact', d['emergency_contact_name']),
-        row('Emergency Number', d['emergency_contact_number']),
-        row('Aadhar Number', d['aadhar_number']),
-      ]),
-      section('Additional', [
-        row('ESI Number', d['esi_number']), row('PF Number', d['pf_number']),
-        row('Languages', d['languages_known']), row('Hobbies', d['hobbies']),
-      ]),
-    ]);
+    final fd = d['form_data'];
+    final formData = fd is Map ? Map<String, dynamic>.from(fd) : <String, dynamic>{};
+    return OnboardingFormReadOnlyBody(data: {...d, ...formData});
   }
 
   @override
