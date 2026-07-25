@@ -3223,6 +3223,13 @@ class SupabaseService {
           .eq('assigned_email', email)
           .eq('status', 'activation_sent');
     } catch (_) {}
+    // "Date of joining" (if not already set) is stamped server-side inside
+    // complete_account_activation() itself — see
+    // supabase/migrations/20260725010000_stamp_date_of_joining_on_activation.sql.
+    // A follow-up client call here would run as anon (no session exists yet
+    // at this point in the flow) and get silently rejected by app_users'
+    // "to authenticated" RLS policy, same bug class as the password_hash/
+    // active-reverting issue fixed in the last few migrations.
     logAuditEvent('account_activated', targetType: 'app_users', targetId: email);
     return email;
   }

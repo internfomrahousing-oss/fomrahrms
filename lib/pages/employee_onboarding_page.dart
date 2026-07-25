@@ -1567,10 +1567,11 @@ class _SubmissionCardState extends State<_SubmissionCard> {
         role:             (role != null && role.isNotEmpty) ? role : 'Employee',
         active:           true,
         reportingManager: manager,
-        // "Date of joining" is the day account access is actually granted,
-        // not the candidate's self-reported guess on the onboarding form
-        // (filled in before they've started, and often left blank anyway).
-        dateOfJoining:    DateTime.now().toIso8601String(),
+        // Left blank here deliberately — this only fires when the account is
+        // *created* and the activation email goes out, which can be days
+        // before the employee actually gets in. The real "date of joining"
+        // is stamped in SupabaseService.completeAccountActivation() at the
+        // moment they actually set their password and gain access.
         dateOfBirth:      (formData['date_of_birth'] as String?) ?? '',
         mobile:           (d['phone_number'] as String?) ?? '',
         address:          ((formData['permanent_address'] as String?)?.isNotEmpty ?? false)
