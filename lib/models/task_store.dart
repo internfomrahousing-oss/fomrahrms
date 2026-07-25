@@ -125,6 +125,36 @@ class Task {
   }
 }
 
+/// One comment posted against a task on a given day — see task_updates
+/// table. Multiple rows can exist per (task, employee, day); "did they
+/// already update today" is just "does at least one row exist".
+class TaskUpdate {
+  final int id;
+  final String taskId;
+  final String employeeName;
+  final DateTime updateDate;
+  final String comment;
+  final DateTime createdAt;
+
+  const TaskUpdate({
+    required this.id,
+    required this.taskId,
+    required this.employeeName,
+    required this.updateDate,
+    required this.comment,
+    required this.createdAt,
+  });
+
+  factory TaskUpdate.fromJson(Map<String, dynamic> j) => TaskUpdate(
+        id:           (j['id'] as num?)?.toInt() ?? 0,
+        taskId:       (j['task_id'] as String?) ?? '',
+        employeeName: (j['employee_name'] as String?) ?? '',
+        updateDate:   DateTime.tryParse((j['update_date'] as String?) ?? '') ?? DateTime.now(),
+        comment:      (j['comment'] as String?) ?? '',
+        createdAt:    DateTime.tryParse((j['created_at'] as String?) ?? '') ?? DateTime.now(),
+      );
+}
+
 class TaskStore {
   static final List<Task> tasks = [];
   static const _counterKey = 'task_id_counter';

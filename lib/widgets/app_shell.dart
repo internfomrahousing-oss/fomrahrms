@@ -1,16 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../models/notification_store.dart';
 import '../models/user_session.dart';
-import '../services/audit_log_service.dart';
-import '../services/push_notification_service.dart';
-import '../services/session_storage.dart';
-import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../models/color_theme_notifier.dart';
-import '../models/theme_notifier.dart';
 import 'breadcrumb_bar.dart';
+import 'logout_action.dart';
 import 'shell_top_bar.dart';
 import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
@@ -451,7 +446,7 @@ class _SidebarFooter extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () { AuditLogService.log('logout'); themeNotifier.reset(); NotificationStore.reset(); PushNotificationService.unregister(); SupabaseService.signOut(); SessionStorage.clear(); UserSession.clear(); context.go('/login'); },
+        onTap: () => performLogout(context),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [

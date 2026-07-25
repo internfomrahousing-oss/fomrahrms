@@ -386,6 +386,57 @@ class _MyTaskCard extends StatefulWidget {
 
 class _MyTaskCardState extends State<_MyTaskCard> {
   bool _expanded = false;
+  List<TaskUpdate>? _updates;
+  bool _loadingUpdates = false;
+  bool _postingUpdate = false;
+  final TextEditingController _updateCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _updateCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _updatedToday {
+    final list = _updates;
+    if (list == null) return false;
+    final now = DateTime.now();
+    final name = UserSession.name.trim();
+    return list.any((u) =>
+        u.employeeName == name &&
+        u.updateDate.year == now.year &&
+        u.updateDate.month == now.month &&
+        u.updateDate.day == now.day);
+  }
+
+  Future<void> _loadUpdates() async {
+    setState(() => _loadingUpdates = true);
+    final list = await SupabaseService.fetchTaskUpdates(widget.task.id);
+    if (!mounted) return;
+    setState(() {
+      _updates = list;
+      _loadingUpdates = false;
+    });
+  }
+
+  Future<void> _postUpdate() async {
+    final text = _updateCtrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() => _postingUpdate = true);
+    final ok = await SupabaseService.addTaskUpdate(
+        widget.task.id, UserSession.name.trim(), text);
+    if (!mounted) return;
+    if (ok) {
+      _updateCtrl.clear();
+      await _loadUpdates();
+    }
+    if (!mounted) return;
+    setState(() => _postingUpdate = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save update — try again.')));
+    }
+  }
 
   static Color get _color => AppTheme.accentBlue;
 
@@ -485,7 +536,10 @@ class _MyTaskCardState extends State<_MyTaskCard> {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => setState(() => _expanded = !_expanded),
+        onTap: () {
+          setState(() => _expanded = !_expanded);
+          if (_expanded && _updates == null && !_loadingUpdates) _loadUpdates();
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -594,7 +648,115 @@ class _MyTaskCardState extends State<_MyTaskCard> {
                   if (t.teamMembers.isNotEmpty)
                     _DetailItem('Team', t.teamMembers.join(', ')),
                 ]),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                Row(children: [
+                  Icon(Icons.forum_rounded, size: 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
+                  const Text('Daily Updates',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6B7280))),
+                  const Spacer(),
+                  if (ds != TaskStatus.completed && _updatedToday)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Text('Updated today',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade700)),
+                    ),
+                ]),
+                const SizedBox(height: 8),
+
+                if (_loadingUpdates)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                        child: SizedBox(
+                            width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))),
+                  )
+                else if ((_updates ?? const []).isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('No updates yet',
+                        style: TextStyle(fontSize: 11.5, color: Colors.grey.shade400)),
+                  )
+                else
+                  ...(_updates!.reversed.map((u) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 6, height: 6,
+                              margin: const EdgeInsets.only(top: 5, right: 8),
+                              decoration: BoxDecoration(
+                                  color: AppTheme.accentBlue, shape: BoxShape.circle),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(_fmtDateTime(u.createdAt),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey.shade500)),
+                                  const SizedBox(height: 2),
+                                  Text(u.comment,
+                                      style: const TextStyle(
+                                          fontSize: 12.5, color: Color(0xFF111827))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))),
+
+                if (ds != TaskStatus.completed) ...[
+                  const SizedBox(height: 4),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _updateCtrl,
+                        enabled: !_postingUpdate,
+                        maxLines: 2,
+                        style: const TextStyle(fontSize: 12.5),
+                        decoration: const InputDecoration(
+                          hintText: "Add today's update...",
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _postingUpdate
+                        ? const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: SizedBox(
+                                width: 18, height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : IconButton(
+                            onPressed: _postUpdate,
+                            icon: const Icon(Icons.send_rounded, size: 18),
+                            tooltip: 'Post update',
+                          ),
+                  ]),
+                ],
+
+                const SizedBox(height: 12),
 
                 // Action buttons based on current status
                 if (ds == TaskStatus.assigned && !t.isSelfAssigned)
@@ -715,3 +877,9 @@ class _DetailItem extends StatelessWidget {
 
 String _fmt(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+String _fmtDateTime(DateTime d) {
+  final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final ampm = d.hour < 12 ? 'AM' : 'PM';
+  return '${_fmt(d)}, $h:${d.minute.toString().padLeft(2, '0')} $ampm';
+}

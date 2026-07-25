@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/user_session.dart';
-import '../models/theme_notifier.dart';
-import '../services/audit_log_service.dart';
-import '../services/push_notification_service.dart';
-import '../services/session_storage.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import 'logout_action.dart';
 
 /// Circular avatar + name/ID that opens a profile dropdown on tap.
 /// Use [large] = true for the welcome banner (bigger avatar, vertical layout).
@@ -118,13 +115,7 @@ class _ProfileAvatarButtonState extends State<ProfileAvatarButton> {
               },
               onSignOut: () {
                 Navigator.of(context).pop();
-                AuditLogService.log('logout');
-                themeNotifier.reset();
-                PushNotificationService.unregister();
-                SupabaseService.signOut();
-                SessionStorage.clear();
-                UserSession.clear();
-                context.go('/login');
+                performLogout(context);
               },
             ),
           ),

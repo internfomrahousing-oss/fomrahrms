@@ -2,15 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../l10n/staff_strings.dart';
 import '../models/language_notifier.dart';
-import '../models/notification_store.dart';
-import '../models/theme_notifier.dart';
 import '../models/user_session.dart';
-import '../services/audit_log_service.dart';
-import '../services/push_notification_service.dart';
-import '../services/session_storage.dart';
-import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'fomra_logo.dart';
+import 'logout_action.dart';
 
 class _StaffTab {
   final String labelKey;   // sidebar / bottom-nav label
@@ -46,17 +41,8 @@ class StaffShell extends StatelessWidget {
     return i == -1 ? 0 : i;
   }
 
-  static void _logout(BuildContext context) {
-    AuditLogService.log('logout');
-    themeNotifier.reset();
-    staffLanguageNotifier.reset();
-    NotificationStore.reset();
-    PushNotificationService.unregister();
-    SupabaseService.signOut();
-    SessionStorage.clear();
-    UserSession.clear();
-    context.go('/login');
-  }
+  static Future<void> _logout(BuildContext context) =>
+      performLogout(context, extraReset: staffLanguageNotifier.reset);
 
   static Future<void> _confirmLogout(BuildContext context) async {
     final ok = await showDialog<bool>(

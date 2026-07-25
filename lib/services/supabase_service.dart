@@ -1361,6 +1361,53 @@ class SupabaseService {
     }
   }
 
+  // ── Task Updates (daily comment log — see task_updates migration) ──────
+
+  static String _isoDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static Future<List<TaskUpdate>> fetchTaskUpdates(String taskId) async {
+    try {
+      final data = await _db?.from('task_updates').select()
+          .eq('task_id', taskId).order('created_at');
+      if (data == null) return [];
+      return (data as List)
+          .map((row) => TaskUpdate.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // IDs of [employeeName]'s tasks that already have a comment dated [day] —
+  // used by the logout gate to find which active tasks still need one.
+  static Future<Set<String>> fetchTaskUpdateTaskIdsFor(String employeeName, DateTime day) async {
+    try {
+      final data = await _db?.from('task_updates').select('task_id')
+          .eq('employee_name', employeeName).eq('update_date', _isoDate(day));
+      if (data == null) return {};
+      return (data as List)
+          .map((row) => (row as Map)['task_id'] as String)
+          .toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<bool> addTaskUpdate(String taskId, String employeeName, String comment) async {
+    try {
+      await _db?.from('task_updates').insert({
+        'task_id':       taskId,
+        'employee_name': employeeName,
+        'update_date':   _isoDate(DateTime.now()),
+        'comment':       comment,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── Appraisal Forms ──────────────────────────────────────────────────
 
   // Unlike most save*() methods here, this one does NOT swallow errors —
