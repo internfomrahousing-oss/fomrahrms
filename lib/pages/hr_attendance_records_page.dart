@@ -152,6 +152,15 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
       _search.isEmpty ||
       employee.toLowerCase().contains(_search.toLowerCase());
 
+  // AttendanceRecord has no department of its own — resolved via _allUsers,
+  // same name-matching _scheduleForEmployee already relies on above.
+  bool _matchesDepartment(String employeeName) {
+    if (_departmentFilter == null) return true;
+    final n = employeeName.trim().toLowerCase();
+    final user = _allUsers.where((u) => u.name.trim().toLowerCase() == n).firstOrNull;
+    return user?.department == _departmentFilter;
+  }
+
   String _fmtDate(DateTime d) {
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -183,7 +192,9 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   }
 
   Future<void> _exportCsv() async {
-    final rows = _displayRecords.where((r) => _matches(r.employeeName)).toList();
+    final rows = _displayRecords
+        .where((r) => _matches(r.employeeName) && _matchesDepartment(r.employeeName))
+        .toList();
     final buffer = StringBuffer('Employee,Employee ID,Date,Check-In,Check-Out,Status\n');
     for (final r in rows) {
       final rowStatus = _rowStatus(r, _leaveApps, _allUsers);
@@ -287,7 +298,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
   @override
   Widget build(BuildContext context) {
     final filtered = _displayRecords
-        .where((r) => _matches(r.employeeName))
+        .where((r) => _matches(r.employeeName) && _matchesDepartment(r.employeeName))
         .toList();
     final narrow = MediaQuery.of(context).size.width < 600;
 
