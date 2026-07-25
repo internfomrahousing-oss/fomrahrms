@@ -37,6 +37,15 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   bool _submitted = false;
   bool _saving = false;
 
+  // Minimum mandatory entries — the first N rows of each section can't be
+  // removed and all their fields are required.
+  static const int _requiredFamilyRows    = 2;
+  static const int _requiredEducationRows = 3;
+
+  // Attachment doc types that must have at least one file (all except
+  // #4 Experience/Relieving letters and #5 Pay Slips/Bank Statement).
+  static const _requiredDocIndices = {0, 1, 2, 5};
+
   // ── Section 1: Basic Info
   final _name        = TextEditingController();
   final _phone       = TextEditingController();
@@ -124,8 +133,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   @override
   void initState() {
     super.initState();
-    _addFamilyRow();
-    _addEducationRow();
+    for (int i = 0; i < _requiredFamilyRows; i++) { _addFamilyRow(); }
+    for (int i = 0; i < _requiredEducationRows; i++) { _addEducationRow(); }
     _addExperienceRow();
     _loadConfig();
     _resolveCandidateToken();
@@ -741,6 +750,45 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_cfgEnabled('family_details')) {
+      final missing = <int>[];
+      for (int i = 0; i < _requiredFamilyRows && i < _familyAadhars.length; i++) {
+        if (_familyAadhars[i] == null) missing.add(i + 1);
+      }
+      if (missing.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Please upload the Aadhar copy for family member${missing.length > 1 ? 's' : ''} ${missing.join(', ')}.'),
+          backgroundColor: Colors.red,
+        ));
+        return;
+      }
+    }
+
+    if (_cfgEnabled('emergency_details') && _emergencyAadharFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please upload the Aadhar copy in the Emergency Details section.'),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+
+    if (_cfgEnabled('attachments')) {
+      final missingDocs = _requiredDocIndices
+          .where((i) => _attachments[i].isEmpty)
+          .map((i) => _docLabels[i])
+          .toList();
+      if (missingDocs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Please upload: ${missingDocs.join(', ')}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+        ));
+        return;
+      }
+    }
+
     if (_cfgEnabled('hr_policy') && !_policyAgreed) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please read and agree to the HR Policy before submitting.'),
@@ -1064,12 +1112,13 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       _field(_phone, 'Phone Number *', required: true,
           keyboardType: TextInputType.phone, maxLength: 10,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
-      _field(_fatherName, 'Father Name'),
-      _field(_motherName, 'Mother Name'),
-      _field(_designation, 'Designation'),
+      _field(_fatherName, 'Father Name *', required: true),
+      _field(_motherName, 'Mother Name *', required: true),
+      _field(_designation, 'Designation *', required: true),
       _dateField(
-        label: 'Date of Joining',
+        label: 'Date of Joining *',
         value: _fmt(_dateJoiningDate),
+        required: true,
         onTap: () async {
           final d = await _pickDate(initial: _dateJoiningDate);
           if (d != null) setState(() => _dateJoiningDate = d);
@@ -1085,10 +1134,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     title: _cfgTitle('personal_data', 'Personal Data Form'),
     icon: Icons.assignment_ind_rounded,
     child: Column(children: [
-      _field(_fullName, 'Full Name'),
+      _field(_fullName, 'Full Name *', required: true),
       _dateField(
-        label: 'Date of Birth',
+        label: 'Date of Birth *',
         value: _fmt(_dobDate),
+        required: true,
         onTap: () async {
           final d = await _pickDate(
               initial: _dobDate,
@@ -1097,8 +1147,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
           if (d != null) setState(() => _dobDate = d);
         },
       ),
-      _field(_postalAddress,    'Postal Address',    maxLines: 3),
-      _field(_permanentAddress, 'Permanent Address', maxLines: 3),
+      _field(_postalAddress,    'Postal Address *',    required: true, maxLines: 3),
+      _field(_permanentAddress, 'Permanent Address *', required: true, maxLines: 3),
       ..._renderCustomFields(_cfgCustomFields('personal_data')),
     ]),
   );
@@ -1108,6 +1158,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Widget _buildFamilySection() => _card(
     title: _cfgTitle('family_details', 'Family Details'),
     icon: Icons.family_restroom_rounded,
+    subtitle: 'First $_requiredFamilyRows members are mandatory',
     child: Column(children: [
       ..._familyRows.asMap().entries.map((e) => _buildFamilyRow(e.key, e.value)),
       const SizedBox(height: 8),
@@ -1116,8 +1167,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
-  Widget _buildFamilyRow(int i, Map<String, TextEditingController> row) =>
-      Container(
+  Widget _buildFamilyRow(int i, Map<String, TextEditingController> row) {
+    final req = i < _requiredFamilyRows;
+    return Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
@@ -1127,11 +1179,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text('Member ${i + 1}',
+        Text('Member ${i + 1}${req ? ' *' : ''}',
             style: TextStyle(
                 fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
-        if (i > 0)
+        if (i >= _requiredFamilyRows)
           IconButton(
             icon: const Icon(Icons.remove_circle_outline,
                 color: Colors.red, size: 20),
@@ -1142,10 +1194,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ]),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: _field(row['name']!, 'Name', compact: true)),
+        Expanded(child: _field(row['name']!, req ? 'Name *' : 'Name',
+            compact: true, required: req)),
         const SizedBox(width: 8),
         Expanded(
-          child: _field(row['age']!, 'Age', compact: true,
+          child: _field(row['age']!, req ? 'Age *' : 'Age', compact: true,
+              required: req,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
         ),
@@ -1153,7 +1207,8 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         Expanded(
           child: _dropdownField(
             value: _familyGenders[i],
-            label: 'Gender',
+            label: req ? 'Gender *' : 'Gender',
+            required: req,
             items: const ['Male', 'Female'],
             onChanged: (v) => setState(() => _familyGenders[i] = v),
           ),
@@ -1164,17 +1219,19 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         Expanded(
           child: _dropdownField(
             value: _familyRelations[i],
-            label: 'Relation',
+            label: req ? 'Relation *' : 'Relation',
+            required: req,
             items: const ['Mother', 'Father', 'Child', 'Spouse'],
             onChanged: (v) => setState(() => _familyRelations[i] = v),
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['occupation']!, 'Occupation', compact: true)),
+        Expanded(child: _field(row['occupation']!, req ? 'Occupation *' : 'Occupation',
+            compact: true, required: req)),
         const SizedBox(width: 8),
         Expanded(
           child: _fileUploadTile(
-            label: 'Aadhar Copy',
+            label: req ? 'Aadhar Copy *' : 'Aadhar Copy',
             file: _familyAadhars[i],
             onRawFile: (rawFile) async {
               final f = await _processRawFile(rawFile);
@@ -1186,13 +1243,15 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ]),
     ]),
   );
+  }
 
   // ── Education section ─────────────────────────────────────────────────────
 
   Widget _buildEducationSection() => _card(
     title: _cfgTitle('education', 'Education Qualification'),
     icon: Icons.school_rounded,
-    subtitle: 'Start with School, College, Any Certification Course',
+    subtitle: 'Start with School, College, Any Certification Course · '
+        'First $_requiredEducationRows entries are mandatory',
     child: Column(children: [
       ..._educationRows.asMap().entries.map((e) => _buildEducationRow(e.key, e.value)),
       const SizedBox(height: 8),
@@ -1201,8 +1260,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ]),
   );
 
-  Widget _buildEducationRow(int i, Map<String, TextEditingController> row) =>
-      Container(
+  Widget _buildEducationRow(int i, Map<String, TextEditingController> row) {
+    final req = i < _requiredEducationRows;
+    return Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
@@ -1212,11 +1272,11 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text('Entry ${i + 1}',
+        Text('Entry ${i + 1}${req ? ' *' : ''}',
             style: TextStyle(
                 fontWeight: FontWeight.w600, color: _primary, fontSize: 13)),
         const Spacer(),
-        if (i > 0)
+        if (i >= _requiredEducationRows)
           IconButton(
             icon: const Icon(Icons.remove_circle_outline,
                 color: Colors.red, size: 20),
@@ -1227,28 +1287,33 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
       ]),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: _field(row['qualification']!, 'Qualification', compact: true)),
+        Expanded(child: _field(row['qualification']!, req ? 'Qualification *' : 'Qualification',
+            compact: true, required: req)),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['university']!, 'University / Institute', compact: true)),
+        Expanded(child: _field(row['university']!, req ? 'University / Institute *' : 'University / Institute',
+            compact: true, required: req)),
       ]),
       const SizedBox(height: 8),
       Row(children: [
         Expanded(
-          child: _field(row['year']!, 'Year of Passing', compact: true,
-              hint: 'MM/YYYY', readOnly: true,
+          child: _field(row['year']!, req ? 'Year of Passing *' : 'Year of Passing', compact: true,
+              required: req, hint: 'MM/YYYY', readOnly: true,
               onTap: () => _pickMonthYearInto(row['year']!, '/')),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _field(row['marks']!, '% Marks', compact: true,
+          child: _field(row['marks']!, req ? '% Marks *' : '% Marks', compact: true,
+              required: req,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]),
         ),
         const SizedBox(width: 8),
-        Expanded(child: _field(row['subject']!, 'Major Subject', compact: true)),
+        Expanded(child: _field(row['subject']!, req ? 'Major Subject *' : 'Major Subject',
+            compact: true, required: req)),
       ]),
     ]),
   );
+  }
 
   // ── Experience section ────────────────────────────────────────────────────
 
@@ -1375,26 +1440,27 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
         Expanded(
           child: _dropdownField(
             value: _bloodGroupValue,
-            label: 'Blood Group',
+            label: 'Blood Group *',
+            required: true,
             items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
             onChanged: (v) => setState(() => _bloodGroupValue = v),
             bottomPad: 12,
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(child: _field(_allergicTo, 'Allergic To')),
+        Expanded(child: _field(_allergicTo, 'Allergic To *', required: true)),
       ]),
-      _field(_majorIllness,    'Any Major Illness', maxLines: 2),
-      _field(_emergencyName,   'Emergency Contact Person Name'),
-      _field(_emergencyNumber, 'Emergency Contact Person Number',
+      _field(_majorIllness,    'Any Major Illness *', required: true, maxLines: 2),
+      _field(_emergencyName,   'Emergency Contact Person Name *', required: true),
+      _field(_emergencyNumber, 'Emergency Contact Person Number *', required: true,
           keyboardType: TextInputType.phone, maxLength: 10,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
-      _field(_emergencyAddress,'Emergency Contact Person Address', maxLines: 2),
+      _field(_emergencyAddress,'Emergency Contact Person Address *', required: true, maxLines: 2),
       // Aadhar Copy upload
       Padding(
         padding: const EdgeInsets.only(top: 4, bottom: 4),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Aadhar Copy',
+          const Text('Aadhar Copy *',
               style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
           const SizedBox(height: 6),
           _fileUploadTile(
@@ -1418,10 +1484,12 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
   Widget _buildAttachmentsSection() => _card(
     title: _cfgTitle('attachments', 'Attachments'),
     icon: Icons.attach_file_rounded,
-    subtitle: 'PDF / image · Images > 1 MB are auto-compressed · To be given as hard copy also',
+    subtitle: 'PDF / image · Images > 1 MB are auto-compressed · To be given as hard copy also · '
+        '* Required (except items 4 & 5)',
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       ...List.generate(_docLabels.length, (i) {
         final files = _attachments[i];
+        final req = _requiredDocIndices.contains(i);
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
@@ -1455,7 +1523,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(_docLabels[i],
+                  child: Text(req ? '${_docLabels[i]} *' : _docLabels[i],
                       style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF6B7280),
@@ -1845,6 +1913,7 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     required String value,
     required VoidCallback onTap,
     bool compact = false,
+    bool required = false,
   }) =>
       Padding(
         padding: EdgeInsets.only(bottom: compact ? 0 : 12),
@@ -1855,6 +1924,9 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
               readOnly: true,
               controller: TextEditingController(text: value),
               style: const TextStyle(fontSize: 13),
+              validator: required
+                  ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+                  : null,
               decoration: InputDecoration(
                 labelText: label,
                 suffixIcon: Icon(Icons.calendar_today_rounded,
@@ -1888,12 +1960,16 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
     double bottomPad = 0,
+    bool required = false,
   }) =>
       Padding(
         padding: EdgeInsets.only(bottom: bottomPad),
         child: DropdownButtonFormField<String>(
           value: value,
           isExpanded: true,
+          validator: required
+              ? (v) => (v == null || v.isEmpty) ? 'Required' : null
+              : null,
           decoration: InputDecoration(
             labelText: label,
             filled: true,
