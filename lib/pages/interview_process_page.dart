@@ -1552,26 +1552,11 @@ class _ApplicationCard extends StatelessWidget {
       ],
       if (isApproved && onSendEmail != null) ...[
         const SizedBox(width: 6),
-        PopupMenuButton<String>(
-          tooltip: 'More',
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          onSelected: (v) {
-            if (v == 'send_email') onSendEmail!();
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'send_email', child: Row(children: [
-              Icon(Icons.mail_outline_rounded, size: 16, color: Color(0xFF2563EB)),
-              SizedBox(width: 10), Text('Send Pre-Offer Letter', style: TextStyle(fontSize: 13)),
-            ])),
-          ],
-          child: Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.more_vert_rounded, size: 16, color: Color(0xFF6B7280)),
-          ),
+        _ActionButton(
+          label: 'Send Pre-Offer Letter',
+          icon: Icons.mail_outline_rounded,
+          color: const Color(0xFF2563EB),
+          onTap: onSendEmail!,
         ),
       ],
     ]);
