@@ -12,12 +12,6 @@ import '../theme/app_theme.dart';
 Color get _mgmtColor => AppTheme.sidebarSelectedBg;
 Color get _mgmtLight => AppTheme.lightBlue;
 
-class _Role {
-  String name;
-  String description;
-  _Role({required this.name, required this.description});
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 class AdministrationPage extends StatefulWidget {
@@ -34,35 +28,10 @@ class _AdministrationPageState extends State<AdministrationPage>
   List<AppUser> _users = [];
   bool _saving = false;
 
-  final List<_Role> _roles = [
-    _Role(name: 'Employee',   description: 'Personal attendance, leave, tasks and payslips'),
-    _Role(name: 'Manager',    description: 'Team leave approvals, performance, task assignment'),
-    _Role(name: 'HR',         description: 'Employee records, payroll, recruitment, reporting'),
-    _Role(name: 'Management', description: 'Full system access — overruling authority'),
-  ];
-
-  final Map<String, bool> _access = {
-    'Employees':   true,
-    'Attendance':  true,
-    'Payroll':     true,
-    'GPS Tracking':true,
-    'Reports':     true,
-    'Approvals':   true,
-  };
-
-  static const _accessIcons = {
-    'Employees':    Icons.people_rounded,
-    'Attendance':   Icons.access_time_rounded,
-    'Payroll':      Icons.account_balance_wallet_rounded,
-    'GPS Tracking': Icons.location_on_rounded,
-    'Reports':      Icons.bar_chart_rounded,
-    'Approvals':    Icons.approval_rounded,
-  };
-
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 2, vsync: this);
     _tabs.addListener(() => setState(() {}));
     _loadUsers();
   }
@@ -147,10 +116,8 @@ class _AdministrationPageState extends State<AdministrationPage>
                   indicatorColor: _mgmtColor,
                   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   tabs: const [
-                    Tab(icon: Icon(Icons.group_add_rounded, size: 18), text: 'Users'),
                     Tab(icon: Icon(Icons.how_to_reg_rounded, size: 18), text: 'Onboarding'),
-                    Tab(icon: Icon(Icons.shield_rounded, size: 18), text: 'Roles'),
-                    Tab(icon: Icon(Icons.lock_open_rounded, size: 18), text: 'Access Control'),
+                    Tab(icon: Icon(Icons.group_add_rounded, size: 18), text: 'Users'),
                   ],
                 ),
               ],
@@ -159,10 +126,8 @@ class _AdministrationPageState extends State<AdministrationPage>
 
           // ── Tab body ────────────────────────────────────────────────────
           switch (_tabs.index) {
-            0 => _UsersTab(users: _users, roles: _roles, onUpsert: _upsertUser, onDelete: _deleteUser),
-            1 => const _OnboardingTab(),
-            2 => _RolesTab(roles: _roles, onChange: () => setState(() {})),
-            _ => _AccessTab(access: _access, icons: _accessIcons, onChange: () => setState(() {})),
+            0 => const _OnboardingTab(),
+            _ => _UsersTab(users: _users, onUpsert: _upsertUser, onDelete: _deleteUser),
           },
         ],
       )),
@@ -174,10 +139,9 @@ class _AdministrationPageState extends State<AdministrationPage>
 
 class _UsersTab extends StatelessWidget {
   final List<AppUser> users;
-  final List<_Role> roles;
   final Future<void> Function(AppUser) onUpsert;
   final Future<void> Function(AppUser) onDelete;
-  const _UsersTab({required this.users, required this.roles, required this.onUpsert, required this.onDelete});
+  const _UsersTab({required this.users, required this.onUpsert, required this.onDelete});
 
   Color _roleColor(String role) {
     switch (role) {
@@ -1217,210 +1181,6 @@ class _DetailRow extends StatelessWidget {
         const SizedBox(width: 5),
         Text('$label: ', style: TextStyle(fontSize: 11, color: _mgmtColor, fontWeight: FontWeight.w600)),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF111827)))),
-      ]),
-    );
-  }
-}
-
-// ── Roles tab ─────────────────────────────────────────────────────────────────
-
-class _RolesTab extends StatelessWidget {
-  final List<_Role> roles;
-  final VoidCallback onChange;
-  const _RolesTab({required this.roles, required this.onChange});
-
-  Color _color(String name) {
-    switch (name) {
-      case 'HR':         return const Color(0xFF2563EB);
-      case 'Manager':    return const Color(0xFF111827);
-      case 'Management': return _mgmtColor;
-      default:           return const Color(0xFF22C55E);
-    }
-  }
-
-  IconData _icon(String name) {
-    switch (name) {
-      case 'HR':         return Icons.admin_panel_settings_rounded;
-      case 'Manager':    return Icons.supervisor_account_rounded;
-      case 'Management': return Icons.manage_accounts_rounded;
-      default:           return Icons.person_rounded;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final narrow = MediaQuery.of(context).size.width < 700;
-    final hPad = narrow ? 16.0 : 24.0;
-
-    return Padding(
-      padding: EdgeInsets.all(hPad),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('System Roles',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
-        const SizedBox(height: 4),
-        const Text('Edit role names and descriptions as needed.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-        const SizedBox(height: 16),
-        ...roles.map((r) {
-          final c = _color(r.name);
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    color: c.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(_icon(r.name), color: c, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(r.name,
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700, color: c)),
-                    const SizedBox(height: 3),
-                    Text(r.description,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                  ]),
-                ),
-                IconButton(
-                  tooltip: 'Edit Role',
-                  onPressed: () => _showEditDialog(context, r),
-                  icon: Icon(Icons.edit_rounded, size: 18, color: _mgmtColor),
-                ),
-              ]),
-            ),
-          );
-        }),
-      ]),
-    );
-  }
-
-  void _showEditDialog(BuildContext context, _Role role) {
-    final nameCtrl = TextEditingController(text: role.name);
-    final descCtrl = TextEditingController(text: role.description);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Edit Role',
-            style: TextStyle(color: _mgmtColor, fontWeight: FontWeight.bold)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          _DialogField(controller: nameCtrl, label: 'Role Name',   icon: Icons.shield_rounded),
-          const SizedBox(height: 12),
-          _DialogField(controller: descCtrl, label: 'Description', icon: Icons.description_rounded, maxLines: 2),
-        ]),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameCtrl.text.trim().isEmpty) return;
-              role.name        = nameCtrl.text.trim();
-              role.description = descCtrl.text.trim();
-              onChange();
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _mgmtColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Access Control tab ────────────────────────────────────────────────────────
-
-class _AccessTab extends StatelessWidget {
-  final Map<String, bool> access;
-  final Map<String, IconData?> icons;
-  final VoidCallback onChange;
-  const _AccessTab({required this.access, required this.icons, required this.onChange});
-
-  @override
-  Widget build(BuildContext context) {
-    final narrow = MediaQuery.of(context).size.width < 700;
-    final hPad = narrow ? 16.0 : 24.0;
-    final keys = access.keys.toList();
-
-    return Padding(
-      padding: EdgeInsets.all(hPad),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Control Access',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _mgmtColor)),
-        const SizedBox(height: 4),
-        const Text('Enable or disable module access across the system.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-        const SizedBox(height: 16),
-        ...keys.map((key) {
-          final enabled = access[key] ?? true;
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: ListTile(
-              leading: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: enabled
-                      ? _mgmtColor.withValues(alpha: 0.1)
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icons[key] ?? Icons.settings_rounded,
-                  color: enabled ? _mgmtColor : Colors.grey.shade400,
-                  size: 20,
-                ),
-              ),
-              title: Text(key,
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: enabled ? const Color(0xFF111827) : Colors.grey.shade500)),
-              subtitle: Text(
-                enabled ? 'Access enabled for all roles' : 'Access currently disabled',
-                style: TextStyle(
-                    fontSize: 11,
-                    color: enabled ? const Color(0xFF6B7280) : Colors.grey.shade400),
-              ),
-              trailing: Switch(
-                value: enabled,
-                activeColor: _mgmtColor,
-                onChanged: (v) { access[key] = v; onChange(); },
-              ),
-            ),
-          );
-        }),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: _mgmtLight,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _mgmtColor.withValues(alpha: 0.2)),
-          ),
-          child: Row(children: [
-            Icon(Icons.info_outline_rounded, size: 16, color: _mgmtColor),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Management always retains full access regardless of these settings.',
-                style: TextStyle(fontSize: 12, color: _mgmtColor),
-              ),
-            ),
-          ]),
-        ),
       ]),
     );
   }
