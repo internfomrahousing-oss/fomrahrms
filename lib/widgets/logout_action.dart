@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/notification_store.dart';
-import '../models/theme_notifier.dart';
 import '../models/user_session.dart';
 import '../services/audit_log_service.dart';
 import '../services/push_notification_service.dart';
@@ -26,7 +25,6 @@ Future<void> performLogout(BuildContext context, {VoidCallback? extraReset}) asy
     if (proceed != true) return;
   }
   AuditLogService.log('logout');
-  themeNotifier.reset();
   extraReset?.call();
   NotificationStore.reset();
   PushNotificationService.unregister();

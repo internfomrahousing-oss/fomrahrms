@@ -6,7 +6,6 @@ import '../models/user_session.dart';
 import '../models/app_user.dart';
 import '../models/language_notifier.dart';
 import '../models/notification_store.dart';
-import '../models/theme_notifier.dart';
 import '../services/notification_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_store.dart';
@@ -192,7 +191,6 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.workLocation     = workLocation;
     UserSession.permissionMinutesQuota = permissionMinutesQuota;
     SessionStorage.save();
-    themeNotifier.loadForUser(employeeId);
     staffLanguageNotifier.loadForUser(employeeId);
     // Fetch photo URL in background — widgets listen via ValueNotifier pattern
     SupabaseService.fetchCurrentUserPhotoUrl(employeeId).then((url) {

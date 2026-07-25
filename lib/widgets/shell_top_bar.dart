@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/color_theme_notifier.dart';
 import '../theme/app_theme.dart';
-import 'theme_toggle.dart';
 import 'profile_avatar_button.dart';
 import 'quick_actions_bar.dart';
 import 'notification_bell_button.dart';
@@ -99,9 +98,6 @@ class ShellTopBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        const SizedBox(width: 8),
-        // Theme toggle
-        const ThemeToggle(),
         const SizedBox(width: 8),
         // Profile avatar + dropdown
         if (!hideProfile) const ProfileAvatarButton(),

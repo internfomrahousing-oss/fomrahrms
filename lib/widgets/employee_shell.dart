@@ -7,7 +7,6 @@ import '../models/color_theme_notifier.dart';
 import 'breadcrumb_bar.dart';
 import 'logout_action.dart';
 import 'shell_top_bar.dart';
-import 'theme_toggle.dart';
 import 'quick_actions_bar.dart';
 import 'notification_bell_button.dart';
 import 'profile_avatar_button.dart';
@@ -204,8 +203,6 @@ class _NarrowLayout extends StatelessWidget {
           flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.headerGradient)),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
-            const ThemeToggle(),
-            const SizedBox(width: 4),
             const NotificationBellButton(
               notificationsRoute: '/employee/notifications',
               color: Colors.white,

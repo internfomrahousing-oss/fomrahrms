@@ -4,9 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Languages offered in the Staff Portal (Housekeeping/Support Staff).
 enum AppLanguage { en, hi, ta }
 
-/// Per-user persisted language preference for the Staff Portal — mirrors
-/// ThemeNotifier's pattern (load by employeeId on login/restore, reset on
-/// logout) so a chosen language survives across logins without asking again.
+/// Per-user persisted language preference for the Staff Portal — loads by
+/// employeeId on login/restore and resets on logout, so a chosen language
+/// survives across logins without asking again.
 class LanguageNotifier extends ValueNotifier<AppLanguage> {
   static const _kPrefix = 'fomra_staff_language';
   static String _userId = '';

@@ -8,7 +8,6 @@ import 'models/language_notifier.dart';
 import 'models/notification_store.dart';
 import 'models/attendance_policy_store.dart';
 import 'models/office_timing.dart';
-import 'models/theme_notifier.dart';
 import 'models/user_session.dart';
 import 'services/notification_service.dart';
 import 'services/push_notification_service.dart';
@@ -25,9 +24,7 @@ void main() async {
   // Restore persisted login before the router guard runs — must be awaited
   // since the router reads UserSession synchronously at first build.
   final restored = await SessionStorage.restore();
-  // Load theme preference for the restored user so dark/light persists after refresh.
   if (restored) {
-    themeNotifier.loadForUser(UserSession.employeeId);
     staffLanguageNotifier.loadForUser(UserSession.employeeId);
   }
 

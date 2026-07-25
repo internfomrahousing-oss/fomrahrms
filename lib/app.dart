@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'models/color_theme_notifier.dart';
 import 'models/user_session.dart';
-import 'models/theme_notifier.dart';
 import 'models/task_store.dart';
-import 'pages/settings_page.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/employee_shell.dart';
 import 'widgets/notification_popup_overlay.dart';
@@ -332,7 +330,6 @@ final _router = GoRouter(
           final extra = state.extra as Map<String, dynamic>;
           return AppraisalFormEditorPage(existing: extra['existing'] as AppraisalForm?);
         }),
-        GoRoute(path: '/settings',                  builder: (_, __) => const SettingsPage()),
       ],
     ),
 
@@ -374,7 +371,6 @@ final _router = GoRouter(
         GoRoute(path: '/employee/interview-form',           builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/employee/my-journey',               builder: (_, __) => const MyJourneyPage()),
         GoRoute(path: '/employee/notifications',            builder: (_, __) => const NotificationsPage()),
-        GoRoute(path: '/employee/settings',                 builder: (_, __) => const SettingsPage()),
         // "My Team" — reachable by anyone flagged isReportingManager, even
         // if their role isn't Manager (see reporting-manager-overhaul).
         GoRoute(path: '/employee/my-team/records',          builder: (_, __) => const HrEmployeeRecordsPage()),
@@ -468,7 +464,6 @@ final _router = GoRouter(
         GoRoute(path: '/manager/my-profile',              builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/manager/interview-form',          builder: (_, __) => const CandidateDetailPage()),
         GoRoute(path: '/manager/my-journey',              builder: (_, __) => const MyJourneyPage()),
-        GoRoute(path: '/manager/settings',                builder: (_, __) => const SettingsPage()),
       ],
     ),
     // ── Management Shell ──────────────────────────────────────────────────────
@@ -569,7 +564,6 @@ final _router = GoRouter(
         GoRoute(path: '/management/my-payslips',            builder: (_, __) => const MyPayslipsPage()),
         GoRoute(path: '/management/my-profile',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/management/my-maintenance',         builder: (_, __) => const MaintenanceManagementPage()),
-        GoRoute(path: '/management/settings',               builder: (_, __) => const SettingsPage()),
       ],
     ),
     // ── Staff Portal Shell (Housekeeping / Support Staff) ──────────────────
@@ -592,13 +586,11 @@ class FomraHrmsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([themeNotifier, colorThemeNotifier]),
+      listenable: colorThemeNotifier,
       builder: (_, __) => MaterialApp.router(
         title: 'FOMRA HRMS',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: themeNotifier.value,
         routerConfig: _router,
       ),
     );
