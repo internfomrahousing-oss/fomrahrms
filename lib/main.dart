@@ -64,6 +64,34 @@ void main() async {
       final context = rootNavigatorKey.currentContext;
       if (context != null) GoRouter.of(context).go('/login');
     }
+    // supabase_flutter persists the Auth session in localStorage on web,
+    // which every tab on this origin shares. Logging into a *different*
+    // account in one tab silently rewrites that shared session — every
+    // other already-open tab then starts running its queries as the new
+    // account, RLS quietly narrows what comes back (e.g. an HR dashboard
+    // dropping to "1 employee"), and nothing in the UI ever explains why.
+    // onAuthStateChange fires in every tab when that swap happens, so catch
+    // it here: if the session that just landed belongs to someone other
+    // than who this tab thinks is logged in, this tab's identity is stale —
+    // force it back to login with an explanation instead of silently
+    // continuing to render as the wrong (or now-ambiguous) user.
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final incomingEmail = data.session?.user.email?.toLowerCase();
+      if (!UserSession.loggedIn ||
+          incomingEmail == null ||
+          UserSession.email.isEmpty ||
+          incomingEmail == UserSession.email.toLowerCase()) {
+        return;
+      }
+      SessionStorage.clear();
+      UserSession.clear();
+      final context = rootNavigatorKey.currentContext;
+      if (context != null) {
+        GoRouter.of(context).go('/login',
+            extra: 'You were signed out because a different account '
+                'logged in on this browser.');
+      }
+    });
     // Chained via .then() rather than awaited outright — daily-reminder
     // checks below read the global TaskStore/UserStore that loadAll()
     // populates, so they must run after it, but the app itself shouldn't

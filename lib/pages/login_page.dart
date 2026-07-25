@@ -15,7 +15,12 @@ import '../services/supabase_service.dart';
 import '../services/email_service.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.flashMessage});
+
+  // Shown once as the error banner — e.g. "signed out because a different
+  // account logged in on this browser". Set by the router when it redirects
+  // here for a reason the user didn't initiate themselves.
+  final String? flashMessage;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -44,6 +49,12 @@ class _LoginPageState extends State<LoginPage> {
 
   // When non-null, this user needs to set their password for the first time
   ({String name, String email})? _pendingUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _error = widget.flashMessage;
+  }
 
   @override
   void dispose() {

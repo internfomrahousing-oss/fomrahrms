@@ -159,7 +159,10 @@ final _router = GoRouter(
   ),
   routes: [
     // ── Public routes (no login required) ─────────────────────────────────
-    GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+    GoRoute(
+      path: '/login',
+      builder: (_, state) => LoginPage(flashMessage: state.extra as String?),
+    ),
     GoRoute(
       path: '/candidate-application',
       builder: (_, state) => CandidateApplicationFormPage(
