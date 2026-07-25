@@ -378,12 +378,10 @@ class _InterviewProcessPageState extends State<InterviewProcessPage> {
 
   Future<List<String>> _loadManagers() async {
     final users = await UserStore.load();
-    final names = users
+    return users
         .where((u) => u.isReportingManager && u.active)
         .map((u) => u.name)
         .toList();
-    if (!names.contains('Manager')) names.insert(0, 'Manager');
-    return names;
   }
 
   Future<void> _doAccept(Map<String, dynamic> row, String managerName) async {
