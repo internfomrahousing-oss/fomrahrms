@@ -228,13 +228,9 @@ Deno.serve(async (req) => {
     let authUserId = entry.auth_user_id as string | null;
     if (!authUserId) {
       try {
-        const { data: existingId, error: lookupError } = await getSupabase().rpc(
-          "auth_user_id_by_email",
-          { p_email: loginEmail },
-        );
-        if (lookupError) {
-          console.error("auth_user_id_by_email lookup failed", lookupError);
-        }
+        const { data: existingId } = await getSupabase().rpc("auth_user_id_by_email", {
+          p_email: loginEmail,
+        });
         if (existingId) {
           authUserId = existingId as string;
         } else {
@@ -244,26 +240,10 @@ Deno.serve(async (req) => {
             password: crypto.randomUUID() + crypto.randomUUID(),
           });
           if (createError || !created?.user) {
-            // createUser fails with "already registered" when an auth.users
-            // row exists for this email but app_users.auth_user_id never got
-            // linked to it (e.g. the row predates the auth_user_id_by_email
-            // lookup above, or a rehired employee reuses their old email).
-            // Without this fallback that employee could never log in again —
-            // every future attempt would hit this same "already registered"
-            // error. Re-resolve the existing id directly instead of failing.
-            const { data: retryId, error: retryError } = await getSupabase().rpc(
-              "auth_user_id_by_email",
-              { p_email: loginEmail },
-            );
-            if (retryId) {
-              authUserId = retryId as string;
-            } else {
-              console.error("createUser failed", createError, retryError);
-              return json({ error: "Could not start session" }, 500);
-            }
-          } else {
-            authUserId = created.user.id;
+            console.error("createUser failed", createError);
+            return json({ error: "Could not start session" }, 500);
           }
+          authUserId = created.user.id;
         }
         await getSupabase().from("app_users").update({ auth_user_id: authUserId }).eq("email", loginEmail);
       } catch (createErr) {
