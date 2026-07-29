@@ -204,8 +204,16 @@ Deno.serve(async (req) => {
           "verify_app_user_password",
           { p_email: loginEmail, p_password: password },
         );
+        if (error) {
+          // Previously swallowed silently, indistinguishable from a genuine
+          // wrong-password result — every failed login looked identical
+          // whether the RPC itself errored (missing function, permissions,
+          // schema issue) or the password was actually just wrong.
+          console.error("verify_app_user_password RPC failed", error);
+        }
         verified = !error && Boolean(data);
-      } catch {
+      } catch (err) {
+        console.error("verify_app_user_password threw", err);
         verified = false;
       }
     } else if (legacyPassword === password) {
