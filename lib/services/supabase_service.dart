@@ -1125,7 +1125,7 @@ class SupabaseService {
       'gross_pay, gross_pay_pending, gross_pay_requested_at, '
       'work_location, work_location_pending, work_location_requested_at, '
       'permission_minutes_quota, permission_minutes_quota_pending, permission_minutes_quota_requested_at, '
-      'company_email';
+      'company_email, email_pending, email_requested_at';
 
   // Postgres `numeric` columns (gross_pay, gross_pay_pending, ...) come back
   // from PostgREST as JSON strings, not numbers — it does this to avoid
@@ -1194,6 +1194,8 @@ class SupabaseService {
         permissionMinutesQuotaPending:   (row['permission_minutes_quota_pending'] as num?)?.toInt() ?? 0,
         permissionMinutesQuotaRequestedAt: (row['permission_minutes_quota_requested_at'] as String?) ?? '',
         companyEmail:         (row['company_email']           as String?) ?? '',
+        emailPending:         (row['email_pending']           as String?) ?? '',
+        emailRequestedAt:     (row['email_requested_at']      as String?) ?? '',
       )).toList();
     } catch (e, st) {
       // This used to fail totally silently — any parse/network/RLS error
@@ -1258,6 +1260,9 @@ class SupabaseService {
       'permission_minutes_quota_pending':    u.permissionMinutesQuotaPending,
       'permission_minutes_quota_requested_at': u.permissionMinutesQuotaRequestedAt,
       'company_email':            u.companyEmail,
+      // email / email_pending / email_requested_at are deliberately NOT written
+      // here. trg_protect_login_email raises on any direct change to `email`,
+      // and the pending columns are owned by the request/approve RPCs below.
     });
   }
 
@@ -3216,6 +3221,73 @@ class SupabaseService {
   static Future<Map<String, dynamic>?> fetchEmailLog(String id) async {
     final data = await _db?.from('email_logs').select().eq('id', id).maybeSingle();
     return data;
+  }
+
+  // ── Login email change (Management-approved) ───────────────────────────
+  // `email` is the credential the login function verifies against, so unlike
+  // the other Chain C fields it is enforced in the database — a direct write
+  // raises rather than being silently pinned. See
+  // supabase/migrations/20260731000200_email_change_requires_approval.sql.
+
+  /// HR (or Management) proposes a new login address. Returns null on
+  /// success, or a message to show the user.
+  static Future<String?> requestLoginEmailChange(
+    String employeeEmail, {
+    required String newEmail,
+  }) async {
+    try {
+      final ok = await _db?.rpc('request_login_email_change', params: {
+        'p_employee_email': employeeEmail.trim().toLowerCase(),
+        'p_new_email': newEmail.trim().toLowerCase(),
+      });
+      if (ok != true) return 'No account found with that email address.';
+      logAuditEvent('login_email_change_requested',
+          targetType: 'app_users', targetId: employeeEmail);
+      return null;
+    } catch (e) {
+      return _rpcMessage(e);
+    }
+  }
+
+  /// Management only. Returns the newly-active address, or an error message.
+  static Future<({String? newEmail, String? error})> approveLoginEmailChange(
+      String employeeEmail) async {
+    try {
+      final v = await _db?.rpc('approve_login_email_change',
+          params: {'p_employee_email': employeeEmail.trim().toLowerCase()});
+      if (v is! String || v.isEmpty) {
+        return (newEmail: null, error: 'There is no pending email change for this employee.');
+      }
+      logAuditEvent('login_email_change_approved',
+          targetType: 'app_users', targetId: v);
+      return (newEmail: v, error: null);
+    } catch (e) {
+      return (newEmail: null, error: _rpcMessage(e));
+    }
+  }
+
+  /// Management only. Returns null on success, or a message to show.
+  static Future<String?> rejectLoginEmailChange(String employeeEmail) async {
+    try {
+      await _db?.rpc('reject_login_email_change',
+          params: {'p_employee_email': employeeEmail.trim().toLowerCase()});
+      logAuditEvent('login_email_change_rejected',
+          targetType: 'app_users', targetId: employeeEmail);
+      return null;
+    } catch (e) {
+      return _rpcMessage(e);
+    }
+  }
+
+  /// The RPCs raise with human-readable messages ("Only Management can
+  /// approve…", "Another account already uses that email address."), so
+  /// surface those rather than a raw PostgrestException dump.
+  static String _rpcMessage(Object e) {
+    if (e is PostgrestException) {
+      final m = e.message.trim();
+      if (m.isNotEmpty) return m;
+    }
+    return 'Something went wrong. Please try again.';
   }
 
   // ── Account activation tokens (Set Your Password flow) ─────────────────

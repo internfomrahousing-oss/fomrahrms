@@ -72,6 +72,15 @@ class AppUser {
   // personal email, and never the @fomrahousing.in login username itself.
   String companyEmail;
 
+  // The login credential itself. HR requests a change — Management approves
+  // or denies it — same pattern as workLocation. Enforced in the database by
+  // trg_protect_login_email (see
+  // supabase/migrations/20260731000200_email_change_requires_approval.sql),
+  // NOT just here: unlike the other Chain C fields, a direct write to `email`
+  // raises rather than being silently pinned.
+  String emailPending;             // proposed new address awaiting Management approval; empty = none
+  String emailRequestedAt;         // ISO datetime the change was requested
+
   AppUser({
     required this.name,
     required this.email,
@@ -122,11 +131,14 @@ class AppUser {
     this.permissionMinutesQuotaPending = 0,
     this.permissionMinutesQuotaRequestedAt = '',
     this.companyEmail = '',
+    this.emailPending = '',
+    this.emailRequestedAt = '',
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
   bool get isElEligible => elEligibleAt.isNotEmpty;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
+  bool get hasPendingEmailChange => emailPending.isNotEmpty;
   bool get hasPendingBusinessUnitChange => businessUnitPending.isNotEmpty;
   bool get hasPendingWeeklyOffChange => weeklyOffDayRequestedAt.isNotEmpty;
   /// The weekday this employee is off every week; defaults to Sunday.
@@ -277,6 +289,8 @@ class AppUser {
     'permissionMinutesQuotaPending':   permissionMinutesQuotaPending,
     'permissionMinutesQuotaRequestedAt': permissionMinutesQuotaRequestedAt,
     'companyEmail':          companyEmail,
+    'emailPending':          emailPending,
+    'emailRequestedAt':      emailRequestedAt,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
@@ -329,5 +343,7 @@ class AppUser {
     permissionMinutesQuotaPending:   (j['permissionMinutesQuotaPending'] as num?)?.toInt() ?? 0,
     permissionMinutesQuotaRequestedAt: j['permissionMinutesQuotaRequestedAt'] as String? ?? '',
     companyEmail:           j['companyEmail']          as String? ?? '',
+    emailPending:           j['emailPending']          as String? ?? '',
+    emailRequestedAt:       j['emailRequestedAt']      as String? ?? '',
   );
 }

@@ -2195,6 +2195,191 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
     );
   }
 
+  // ── Login email (Management-approved) ────────────────────────────────────
+  // Unlike the other Chain C fields, this one is enforced by the database:
+  // trg_protect_login_email raises on any direct write to `email`, so the
+  // request/approve RPCs are the only route. See
+  // supabase/migrations/20260731000200_email_change_requires_approval.sql.
+
+  Future<void> _requestEmailChange() async {
+    final ctrl = TextEditingController(text: _user.email);
+    final newEmail = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change Login Email'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text(
+            'This is the address the employee signs in with, and where password '
+            'reset links are sent. The change takes effect only once Management '
+            'approves it — the current address keeps working until then.',
+            style: TextStyle(fontSize: 12.5),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: ctrl,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'New login email',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: const Text('Send Request'),
+          ),
+        ],
+      ),
+    );
+    if (newEmail == null || newEmail.isEmpty) return;
+    if (newEmail.toLowerCase() == _user.email.toLowerCase()) {
+      _snack('That is already the login email.', error: true);
+      return;
+    }
+    setState(() => _saving = true);
+    final err = await SupabaseService.requestLoginEmailChange(
+      _user.email,
+      newEmail: newEmail,
+    );
+    if (!mounted) return;
+    if (err != null) {
+      setState(() => _saving = false);
+      _snack(err, error: true);
+      return;
+    }
+    setState(() {
+      _user.emailPending = newEmail.toLowerCase();
+      _user.emailRequestedAt = DateTime.now().toIso8601String();
+      _saving = false;
+    });
+    _snack('Request sent to Management for approval.');
+  }
+
+  Future<void> _decideEmailChange(bool approve) async {
+    setState(() => _saving = true);
+    if (approve) {
+      final r = await SupabaseService.approveLoginEmailChange(_user.email);
+      if (!mounted) return;
+      if (r.error != null) {
+        setState(() => _saving = false);
+        _snack(r.error!, error: true);
+        return;
+      }
+      setState(() {
+        _user.email = r.newEmail!;
+        _user.companyEmail = r.newEmail!;
+        _user.emailPending = '';
+        _user.emailRequestedAt = '';
+        _saving = false;
+      });
+      _snack('Login email updated. The employee must use the new address to sign in.');
+    } else {
+      final err = await SupabaseService.rejectLoginEmailChange(_user.email);
+      if (!mounted) return;
+      if (err != null) {
+        setState(() => _saving = false);
+        _snack(err, error: true);
+        return;
+      }
+      setState(() {
+        _user.emailPending = '';
+        _user.emailRequestedAt = '';
+        _saving = false;
+      });
+      _snack('Request denied. The current login email is unchanged.');
+    }
+  }
+
+  void _snack(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  Widget _loginEmailBlock({required bool isHr, required bool isManagement}) {
+    final rows = <Widget>[
+      _InfoRow(Icons.email_rounded, 'Login ID', _user.email),
+    ];
+
+    if (_user.hasPendingEmailChange) {
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(children: [
+            Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.orange.shade700),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Change requested → ${_user.emailPending} (awaiting Management approval)',
+                style: TextStyle(
+                    fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.orange.shade800),
+              ),
+            ),
+          ]),
+        ),
+      ));
+
+      if (isManagement) {
+        rows.add(Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _saving ? null : () => _decideEmailChange(false),
+              icon: const Icon(Icons.close_rounded, size: 16),
+              label: const Text('Deny'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade400,
+                side: BorderSide(color: Colors.red.shade300),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _saving ? null : () => _decideEmailChange(true),
+              icon: const Icon(Icons.check_rounded, size: 16),
+              label: const Text('Approve'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ]));
+      }
+    } else if (isHr || isManagement) {
+      rows.add(Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: _saving ? null : _requestEmailChange,
+          icon: const Icon(Icons.edit_rounded, size: 15),
+          label: Text(isManagement ? 'Change login email' : 'Request login email change',
+              style: const TextStyle(fontSize: 12.5)),
+        ),
+      ));
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
+  }
+
   Widget _workLocationBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
     if (_user.workLocation.isEmpty) {
       if (!canEdit) {
@@ -2450,8 +2635,7 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
             const SizedBox(height: 8),
 
             _InfoRow(Icons.badge_rounded,           'Employee ID',       _user.employeeId),
-            _InfoRow(Icons.email_rounded,           'Login ID',          _user.email),
-            _InfoRow(Icons.alternate_email_rounded, 'Company Mail',      _user.companyEmail),
+            _loginEmailBlock(isHr: isHr, isManagement: isManagement),
             _InfoRow(Icons.phone_rounded,           'Mobile',            _user.mobile),
             _InfoRow(Icons.location_on_rounded,     'Address',           _user.address),
             _InfoRow(Icons.cake_rounded,            'Date of Birth',     _fmtDate(_user.dateOfBirth)),
@@ -3435,9 +3619,11 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
                 keyboard: TextInputType.phone),
             _field(_addressCtrl, 'Address',                   Icons.location_on_rounded,
                 maxLines: 2),
-            if (!isNew)
-              _field(_companyEmailCtrl, 'Company Mail (Microsoft/Office 365)', Icons.alternate_email_rounded,
-                  keyboard: TextInputType.emailAddress),
+            // The Company Mail free-text field was removed here. It wrote
+            // company_email directly, and company_email is now kept in step
+            // with the login email by approve_login_email_change(). Editing
+            // the address goes through Request → Management approval on the
+            // employee's detail view instead.
 
             // Date of birth — usually carried over from the onboarding form,
             // but HR can set/correct it here too.
