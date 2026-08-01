@@ -126,23 +126,40 @@ class EmailService {
     );
   }
 
-  /// "Forgot Password" for an already-active account — always goes to the
-  /// employee's company (Microsoft/Office 365) mailbox HR entered, never
-  /// the login email or any personal address. Doesn't touch `active`, so
-  /// the old password keeps working until the employee actually resets it.
+  /// "Forgot Password" for an already-active account.
+  ///
+  /// This originally required companyEmail and refused outright when it was
+  /// blank ("No company mail on file"), on the assumption that companyEmail
+  /// was a separate Microsoft/365 mailbox distinct from the login address.
+  /// In practice HR enters the same @fomrahousing.in address in both fields —
+  /// where companyEmail is populated at all it is byte-identical to email —
+  /// so that assumption only ever produced a dead end: 3 of 5 live accounts
+  /// had a blank companyEmail and could not reset their password at all.
+  ///
+  /// Falls back to the login email so a reset is always possible. Doesn't
+  /// touch `active`, so the old password keeps working until the employee
+  /// actually completes the reset.
   static Future<String?> sendPasswordReset(AppUser user) async {
-    if (user.companyEmail.isEmpty) {
-      return 'No company mail on file for this account — contact HR to add one.';
+    final recipient =
+        user.companyEmail.trim().isNotEmpty ? user.companyEmail.trim() : user.email.trim();
+    if (recipient.isEmpty) {
+      return 'No email address on file for this account — contact HR.';
     }
     final token = TokenUtil.generate();
-    await SupabaseService.setPasswordResetToken(
-      user.email,
-      token: token,
-      expiresAt: TokenUtil.expiresInHours(24),
-    );
+    // Throws if the save didn't affect any row, rather than sending a reset
+    // link that could never work — same guard as the activation flow.
+    try {
+      await SupabaseService.setPasswordResetToken(
+        user.email,
+        token: token,
+        expiresAt: TokenUtil.expiresInHours(24),
+      );
+    } catch (e) {
+      return 'Could not start the password reset: $e';
+    }
     return sendEmail(
       templateName: 'password_reset',
-      recipient: user.companyEmail,
+      recipient: recipient,
       data: {
         'name': user.name,
         'resetLink': 'https://fomrahrms-zeta.vercel.app/#/reset-password/$token',

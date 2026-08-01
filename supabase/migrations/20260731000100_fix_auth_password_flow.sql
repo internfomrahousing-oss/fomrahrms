@@ -215,6 +215,36 @@ update app_users
  where coalesce(company_email, '') <> ''
    and company_email is distinct from lower(btrim(company_email));
 
+-- ── 7. Harden the reset-token lookup ────────────────────────────────────────
+-- The twin of app_user_by_activation_token above; it was left on the old
+-- unguarded form.
+create or replace function public.app_user_by_reset_token(p_token text)
+returns table(email text, name text, reset_password_token_expires_at text)
+language sql
+stable
+security definer
+set search_path to 'public'
+as $function$
+  select email, name, reset_password_token_expires_at
+    from app_users
+   where reset_password_token is not null
+     and reset_password_token <> ''
+     and lower(reset_password_token) = lower(coalesce(p_token, ''))
+     and coalesce(p_token, '') <> '';
+$function$;
+
+-- ── 8. Backfill company_email ───────────────────────────────────────────────
+-- sendPasswordReset() sent only to company_email and refused when it was
+-- blank, so 3 of 5 live accounts could never reset their password. In
+-- practice HR enters the same address in both fields — where company_email
+-- is populated it is identical to email — so the two are one concept, and
+-- the code now falls back to email. Backfill so existing rows match.
+update app_users
+   set company_email = lower(btrim(email))
+ where coalesce(company_email, '') = ''
+   and coalesce(email, '')         <> '';
+
+-- ── 9. Normalise the login email itself ─────────────────────────────────────
 create unique index if not exists app_users_email_lower_idx
   on app_users (lower(email));
 
