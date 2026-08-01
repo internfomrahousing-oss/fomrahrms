@@ -3573,7 +3573,42 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
                 ]),
               ),
             ],
-            _field(_empIdCtrl,   'Employee ID',               Icons.badge_rounded),
+            // Employee ID is generated, not typed. It was previously a plain
+            // free-text box with no uniqueness check on either side, which is
+            // how two employees ended up sharing FHIPL-08. The database now
+            // enforces uniqueness and fills a blank ID in automatically
+            // (assign_employee_id / next_employee_id).
+            if (isNew)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: TextField(
+                  controller: _empIdCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Employee ID',
+                    prefixIcon: const Icon(Icons.badge_rounded),
+                    border: const OutlineInputBorder(),
+                    helperText: _empIdCtrl.text.trim().isEmpty
+                        ? 'Leave blank to assign the next ID automatically'
+                        : 'Must be unique',
+                    suffixIcon: IconButton(
+                      tooltip: 'Suggest next available ID',
+                      icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                      onPressed: () async {
+                        final next = await SupabaseService.nextEmployeeId(
+                          businessUnit: _businessUnit ?? '',
+                        );
+                        if (next != null && mounted) {
+                          setState(() => _empIdCtrl.text = next);
+                        }
+                      },
+                    ),
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (_) => setState(() {}),
+                ),
+              )
+            else
+              _field(_empIdCtrl, 'Employee ID', Icons.badge_rounded),
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: DropdownButtonFormField<String>(

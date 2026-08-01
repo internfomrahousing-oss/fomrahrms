@@ -3223,6 +3223,21 @@ class SupabaseService {
     return data;
   }
 
+  /// Next unused employee ID for the business unit, e.g. FHIPL-10 / FD-02.
+  /// Advisory only — the database assigns one anyway if the field is left
+  /// blank, and rejects a duplicate outright via app_users_employee_id_uidx.
+  static Future<String?> nextEmployeeId({String businessUnit = ''}) async {
+    try {
+      final v = await _db?.rpc('next_employee_id', params: {
+        'p_prefix': businessUnit.trim() == 'FOMRA Developers' ? 'FD' : 'FHIPL',
+      });
+      return v is String && v.isNotEmpty ? v : null;
+    } catch (e) {
+      // Non-fatal: HR can still type one, and the DB fills a blank itself.
+      return null;
+    }
+  }
+
   // ── Login email change (Management-approved) ───────────────────────────
   // `email` is the credential the login function verifies against, so unlike
   // the other Chain C fields it is enforced in the database — a direct write
