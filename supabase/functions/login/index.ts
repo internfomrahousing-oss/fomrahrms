@@ -53,7 +53,14 @@ function getSupabase() {
 // Same allow-list approach as send-email — CORS is a browser-side check
 // only (a non-browser caller ignores it), so this is defense-in-depth,
 // not the real security boundary (password verification is).
-const ALLOWED_ORIGINS = ["https://fomrahrms-zeta.vercel.app"];
+// Must list every origin the app is actually served from. The GitHub Pages
+// build published by .github/workflows/flutter.yml was missing here, so
+// logging in from that deployment failed at the browser before the request
+// ever reached password verification.
+const ALLOWED_ORIGINS = [
+  "https://fomrahrms-zeta.vercel.app",
+  "https://internfomrahousing-oss.github.io",
+];
 
 function corsHeadersFor(req: Request) {
   const origin = req.headers.get("Origin") ?? "";
@@ -185,39 +192,49 @@ Deno.serve(async (req) => {
       return json({ error: "not_activated" }, 403);
     }
 
-    const legacyPassword = typeof entry.password === "string" ? entry.password : "";
+    // password_hash was stored as '' (empty string, NOT null) for every user
+    // in production. '' is falsy in JS, so the old `if (passwordHash)` test
+    // was false and control fell through to the plaintext `legacyPassword`
+    // comparison below — which became the ONLY working login path, and is why
+    // a password had to be typed into Supabase by hand for each employee.
+    //
+    // Guard on hash *shape* instead of truthiness. A bcrypt hash is 60 chars;
+    // anything under 20 is empty, truncated or otherwise unusable, and would
+    // make crypt(p_password, '') raise `ERROR: 22023: invalid salt` inside
+    // verify_app_user_password().
     const passwordHash = typeof entry.password_hash === "string" ? entry.password_hash : "";
-    const hasPasswordMaterial = (passwordHash || legacyPassword).trim().length > 0;
-    if (!hasPasswordMaterial) {
-      // Matches the old "first login, no password set yet" branch — the
-      // client shows the Set Password card. Whatever the caller typed as a
-      // password is irrelevant here, same as before.
+    const hasUsableHash = passwordHash.trim().length >= 20;
+
+    if (!hasUsableHash) {
+      // No password set yet -> the client shows the Set Password card.
+      //
+      // The plaintext `entry.password` fallback that used to live here has
+      // been REMOVED. Existing plaintext passwords are migrated to bcrypt by
+      // supabase/migrations/20260731000100_fix_auth_password_flow.sql, so no
+      // account should reach this point still holding one. Deploy this
+      // function only AFTER that migration has been applied.
       return json({ needsPasswordSetup: true, profile: buildProfile(entry) });
     }
 
     const loginEmail = String(entry.email ?? "").trim();
     let verified = false;
 
-    if (passwordHash) {
-      try {
-        const { data, error } = await getSupabase().rpc(
-          "verify_app_user_password",
-          { p_email: loginEmail, p_password: password },
-        );
-        if (error) {
-          // Previously swallowed silently, indistinguishable from a genuine
-          // wrong-password result — every failed login looked identical
-          // whether the RPC itself errored (missing function, permissions,
-          // schema issue) or the password was actually just wrong.
-          console.error("verify_app_user_password RPC failed", error);
-        }
-        verified = !error && Boolean(data);
-      } catch (err) {
-        console.error("verify_app_user_password threw", err);
-        verified = false;
+    try {
+      const { data, error } = await getSupabase().rpc(
+        "verify_app_user_password",
+        { p_email: loginEmail, p_password: password },
+      );
+      if (error) {
+        // Previously swallowed silently, indistinguishable from a genuine
+        // wrong-password result — every failed login looked identical
+        // whether the RPC itself errored (missing function, permissions,
+        // schema issue) or the password was actually just wrong.
+        console.error("verify_app_user_password RPC failed", error);
       }
-    } else if (legacyPassword === password) {
-      verified = true;
+      verified = !error && Boolean(data);
+    } catch (err) {
+      console.error("verify_app_user_password threw", err);
+      verified = false;
     }
 
     if (!verified) {
