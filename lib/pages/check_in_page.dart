@@ -130,16 +130,24 @@ class _CheckInPageState extends State<CheckInPage> {
     });
 
     if (outsideOffice && _noteController.text.trim().isEmpty) {
+      // Distinguish "we couldn't read your location at all" from "we read it
+      // and you're genuinely elsewhere". Both used to show the same message,
+      // which made a GPS failure look like the employee was in the wrong place.
+      final gpsError = pos == null ? GpsTrackingService.lastLocationError : null;
       final locationPhrase = _nearestLocationName.isNotEmpty
           ? "outside $_nearestLocationName"
           : 'outside your assigned location';
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('You Are Not At Your Assigned Location'),
+          title: Text(gpsError != null
+              ? 'Could Not Check Your Location'
+              : 'You Are Not At Your Assigned Location'),
           content: Text(
-            "You're $locationPhrase. Please enter a reason "
-            'below to check in from this location.',
+            gpsError != null
+                ? '$gpsError\n\nYou can still check in — please enter a reason below.'
+                : "You're $locationPhrase. Please enter a reason "
+                    'below to check in from this location.',
           ),
           actions: [
             ElevatedButton(
