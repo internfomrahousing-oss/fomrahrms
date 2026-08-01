@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/el_accrual.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/payslip_store.dart';
@@ -99,17 +100,7 @@ class _MyPayslipsPageState extends State<MyPayslipsPage> {
   }
 
   // EL accrued = whole months since (elLastAvailedAt ?? elEligibleAt) × 1/month
-  int _elAccrued(AppUser user) {
-    final refStr = user.elLastAvailedAt.isNotEmpty
-        ? user.elLastAvailedAt
-        : user.elEligibleAt;
-    if (refStr.isEmpty) return 0;
-    final ref = DateTime.tryParse(refStr);
-    if (ref == null) return 0;
-    final now = DateTime.now();
-    final months = (now.year - ref.year) * 12 + (now.month - ref.month);
-    return (months * user.monthlyEl).clamp(0, 9999);
-  }
+  int _elAccrued(AppUser user) => elAccruedFor(user);
 
   // EL used = approved EL leaves since the same reference date
   double _elUsed(AppUser user) {
