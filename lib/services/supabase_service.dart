@@ -3231,11 +3231,16 @@ class SupabaseService {
   }) async {
     final db = _db;
     if (db == null) return;
+    // Emails are stored normalised (lowercased + trimmed) by
+    // 20260731000100_fix_auth_password_flow.sql, and every server-side RPC
+    // matches on lower(email). Normalise here too: a single capital letter
+    // used to make this UPDATE match zero rows while the activation email
+    // still went out, leaving a permanently dead "Set Your Password" link.
     final rows = await db.from('app_users').update({
       'activation_token': token,
       'activation_token_expires_at': expiresAt,
       'active': false,
-    }).eq('email', email).select();
+    }).eq('email', email.trim().toLowerCase()).select();
     if (rows.isEmpty) {
       throw Exception('Could not save the activation token for $email — check permissions and that the account exists.');
     }
@@ -3307,10 +3312,18 @@ class SupabaseService {
     required String token,
     required String expiresAt,
   }) async {
-    await _db?.from('app_users').update({
+    final db = _db;
+    if (db == null) return;
+    // Same normalisation + rows-affected guard as the activation-token
+    // writer above: a silently-zero-row UPDATE here sent a reset email whose
+    // link could never work, which is why "forgot password" never helped.
+    final rows = await db.from('app_users').update({
       'reset_password_token': token,
       'reset_password_token_expires_at': expiresAt,
-    }).eq('email', email);
+    }).eq('email', email.trim().toLowerCase()).select();
+    if (rows.isEmpty) {
+      throw Exception('Could not save the password-reset token for $email — check permissions and that the account exists.');
+    }
   }
 
   static Future<Map<String, dynamic>?> fetchAppUserByResetToken(String token) async {
