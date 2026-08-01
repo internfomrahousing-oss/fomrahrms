@@ -15,25 +15,61 @@ class GpsTrackingService {
 
   static bool get isTracking => _subscription != null;
 
+  /// Why a location fix failed, so the cause is visible instead of every
+  /// failure collapsing into a bare `null`. Production had GPS null on 100%
+  /// of attendance records with no way to tell whether location services were
+  /// off, permission was denied, or the call threw.
+  static String? lastLocationError;
+
   /// One-shot fix for check-in: fetch a fresh position directly instead of
   /// relying on the position stream (which may not have emitted yet). Unlike
   /// [start], this runs before tracking has ever been started this session —
   /// e.g. the very first check-in on a fresh install — so it must request
   /// permission itself rather than assume [start] already did.
+  ///
+  /// Returns null on failure, with [lastLocationError] set to a message that
+  /// can be shown to the employee and logged.
   static Future<Position?> getCurrentLocation() async {
+    lastLocationError = null;
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        lastLocationError =
+            'Location services are turned off on this device. Turn on GPS / Location and try again.';
+        return null;
+      }
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+      if (perm == LocationPermission.denied) {
+        lastLocationError =
+            'Location permission was not granted. Allow location access to record your check-in position.';
         return null;
       }
+      if (perm == LocationPermission.deniedForever) {
+        lastLocationError =
+            'Location permission is blocked for this app. Enable it in your browser or device settings, then try again.';
+        return null;
+      }
+      // Without a timeout this can hang indefinitely on a weak signal, leaving
+      // the employee on a spinner with no idea anything is wrong.
       return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
       );
-    } catch (_) {
+    } on TimeoutException {
+      lastLocationError =
+          'Could not get a GPS fix in time. Move somewhere with a clearer view of the sky and try again.';
+      return null;
+    } catch (e) {
+      // Previously `catch (_) { return null; }` — three different causes all
+      // collapsed to null, which is why the production failure was
+      // undiagnosable.
+      lastLocationError = 'Could not read your location: $e';
+      // ignore: avoid_print
+      print('getCurrentLocation failed: $e');
       return null;
     }
   }
