@@ -8,6 +8,7 @@ import 'widgets/app_shell.dart';
 import 'widgets/employee_shell.dart';
 import 'widgets/notification_popup_overlay.dart';
 import 'pages/login_page.dart';
+import 'pages/settings_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/summary_detail_page.dart';
 import 'pages/employee_profile_page.dart';
@@ -592,6 +593,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/notifications',          builder: (_, __) => const NotificationsPage()),
         GoRoute(path: '/management/reports-analytics',      builder: (_, __) => const ReportsAnalyticsPage()),
         GoRoute(path: '/management/administration',         builder: (_, __) => const AdministrationPage()),
+        GoRoute(path: '/management/settings',               builder: (_, __) => const SettingsPage()),
         GoRoute(path: '/management/my-details',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/management/my-attendance',               builder: (_, __) => const MyAttendancePage(checkInRoute: '/management/attendance/check-in-out')),
         GoRoute(path: '/management/attendance/check-in-out',     builder: (_, __) => const EmployeeAttendancePage()),

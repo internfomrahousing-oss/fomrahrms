@@ -53,6 +53,7 @@ const _navItems = [
   _NavItem('Notifications',          Icons.notifications_rounded,          '/management/notifications'),
   _NavItem('Reports & Analytics',    Icons.bar_chart_rounded,              '/management/reports-analytics'),
   _NavItem('Administration',         Icons.admin_panel_settings_rounded,   '/management/administration'),
+  _NavItem('Settings',               Icons.settings_rounded,               '/management/settings'),
 ];
 
 List<BreadcrumbSection> get _breadcrumbSections =>

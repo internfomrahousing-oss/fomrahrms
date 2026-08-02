@@ -163,19 +163,28 @@ class OfficeTimingStore {
     return scheduleForDepartment(department);
   }
 
-  /// Schedule for the SIGNED-IN user, honouring their timing exemption.
+  /// Schedule for the SIGNED-IN user.
   ///
-  /// The 13 attendance call sites previously used
-  /// scheduleForDepartment(UserSession.department) directly, which ignores the
-  /// exemption entirely — so an exempt user with no department (Management)
-  /// fell through to the 09:30 default and was asked for a late reason.
+  /// Management works to no fixed hours — check in and out at any time, with
+  /// no late-reason prompt. That is derived from the ROLE, not only from the
+  /// exempt_from_timing flag.
+  ///
+  /// The distinction matters: the flag travels login -> UserSession -> local
+  /// storage, so a session created before the flag existed carries a stale
+  /// `false` until the user signs out. Role has always been part of the
+  /// session, so keying on it as well makes the exemption immediate and
+  /// immune to that staleness. The flag still applies to non-Management users
+  /// who are individually exempt.
   static OfficeTiming scheduleForCurrentUser() => scheduleFor(
-        exemptFromTiming: UserSession.exemptFromTiming,
+        exemptFromTiming:
+            UserSession.exemptFromTiming || UserSession.role == UserRole.management,
         department: UserSession.department,
       );
 
-  static OfficeTiming scheduleForUser(AppUser u) =>
-      scheduleFor(exemptFromTiming: u.exemptFromTiming, department: u.department);
+  static OfficeTiming scheduleForUser(AppUser u) => scheduleFor(
+        exemptFromTiming: u.exemptFromTiming || u.isManagement,
+        department: u.department,
+      );
 
   /// Departments currently assigned to [timingId] (for the admin UI).
   static List<String> departmentsFor(String timingId) => _departmentToTimingId.entries
