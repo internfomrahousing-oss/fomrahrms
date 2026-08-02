@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/attendance_day.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
@@ -95,6 +96,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
       UserStore.load(),
       SupabaseService.fetchLeaveApplications(),
       SupabaseService.fetchAttendanceForDates(trendDateStrs),
+      SupabaseService.fetchHolidays(_selectedDate.year),
     ]);
     if (mounted) setState(() {
       _records = results[0] as List<AttendanceRecord>;
@@ -104,6 +106,13 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
       _trendByDate = {
         for (final d in trendDateStrs)
           d: trendRecords.where((r) => r.date == d).toList(),
+      };
+      // Public holidays are not absences. Without these the screen counted
+      // Diwali, Independence Day and the rest as absent for everyone.
+      _holidayDates = {
+        for (final h in (results[4] as List<Map<String, dynamic>>))
+          if ((h['holiday_date'] as String?)?.isNotEmpty ?? false)
+            (h['holiday_date'] as String).substring(0, 10),
       };
       _lastUpdated = DateTime.now();
       _isLoading = false;
@@ -124,20 +133,48 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
     }
   }
 
-  /// Attendance rows plus one synthetic "Absent" row for every active
-  /// employee who has no attendance record for the selected date.
+  /// Public holidays for the selected year, as 'yyyy-MM-dd'. Empty until
+  /// loaded; classifyMissingAttendance() degrades gracefully if so.
+  Set<String> _holidayDates = {};
+
+  /// Why each employee has no record today. "No record" is not "absent": a
+  /// weekly off, a public holiday, approved leave, or being exempt from
+  /// attendance altogether all produce no record and none of them is an
+  /// absence. Without this, Sundays showed five people absent and the CEO
+  /// appeared absent every day.
+  Map<String, NonWorkingReason> get _missingReasons {
+    final present = _records.map((r) => r.employeeName.toLowerCase()).toSet();
+    final out = <String, NonWorkingReason>{};
+    for (final u in _allUsers) {
+      if (present.contains(u.name.toLowerCase())) continue;
+      out[u.name] = classifyMissingAttendance(
+        employee: u,
+        date: _selectedDate,
+        holidayDates: _holidayDates,
+        leaveApps: _leaveApps,
+      );
+    }
+    return out;
+  }
+
+  /// Attendance rows plus a synthetic row for every active employee with no
+  /// record — labelled with the REASON, not blanket "Absent". Employees who
+  /// are not tracked at all are omitted entirely.
   List<AttendanceRecord> get _displayRecords {
     final present = _records.map((r) => r.employeeName.toLowerCase()).toSet();
-    final absentees = _allUsers.where((u) => !present.contains(u.name.toLowerCase()));
+    final reasons = _missingReasons;
     final dateStr = _dateToStr(_selectedDate);
     return [
       ..._records,
-      ...absentees.map((u) => AttendanceRecord(
-            id: 'absent_${u.employeeId}',
-            employeeName: u.name,
-            employeeId: u.employeeId,
-            date: dateStr,
-          )),
+      ..._allUsers
+          .where((u) => !present.contains(u.name.toLowerCase()))
+          .where((u) => reasons[u.name] != NonWorkingReason.notTracked)
+          .map((u) => AttendanceRecord(
+                id: 'absent_${u.employeeId}',
+                employeeName: u.name,
+                employeeId: u.employeeId,
+                date: dateStr,
+              )),
     ];
   }
 
@@ -484,6 +521,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                       allUsers: _allUsers,
                       color: _color,
                       onRowTap: _showDetail,
+                      missingReasons: _missingReasons,
                     ),
             ),
           ],
@@ -1011,12 +1049,16 @@ class _AttendanceTable extends StatefulWidget {
   final List<AppUser> allUsers;
   final Color color;
   final void Function(AttendanceRecord) onRowTap;
+  /// employeeName -> why they have no record. Lets a row show 'Weekly Off',
+  /// 'Holiday' or 'On Leave' instead of a blanket 'Absent'.
+  final Map<String, NonWorkingReason> missingReasons;
   const _AttendanceTable({
     required this.records,
     required this.leaveApps,
     required this.allUsers,
     required this.color,
     required this.onRowTap,
+    this.missingReasons = const {},
   });
 
   @override
@@ -1032,8 +1074,16 @@ class _AttendanceTableState extends State<_AttendanceTable> {
     final String label;
     final Color chipColor;
     if (r.checkInTime.isEmpty) {
-      label = 'Absent';
-      chipColor = _red;
+      // Not every missing record is an absence.
+      final reason = widget.missingReasons[r.employeeName] ?? NonWorkingReason.absent;
+      label = reason.label;
+      chipColor = switch (reason) {
+        NonWorkingReason.absent     => _red,
+        NonWorkingReason.weeklyOff  => const Color(0xFF6B7280),
+        NonWorkingReason.holiday    => const Color(0xFFEDA100),
+        NonWorkingReason.onLeave    => AppTheme.accentBlue,
+        NonWorkingReason.notTracked => const Color(0xFF9CA3AF),
+      };
     } else {
       switch (rs.status) {
         case CheckInStatus.permission:
