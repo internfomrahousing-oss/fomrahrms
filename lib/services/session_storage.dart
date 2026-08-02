@@ -13,6 +13,9 @@ class SessionStorage {
   static const _kIsReportingManager = 'fomra_is_reporting_manager';
   static const _kWorkLocation     = 'fomra_work_location';
   static const _kPermissionQuota  = 'fomra_permission_minutes_quota';
+  static const _kIsOnroll         = 'fomra_is_onroll';
+  static const _kExemptAttendance = 'fomra_exempt_attendance';
+  static const _kOversightOnly    = 'fomra_oversight_only';
 
   static const _duration = Duration(hours: 10);
   // Housekeeping/Support Staff stay logged in far longer — they share
@@ -30,6 +33,9 @@ class SessionStorage {
     await kvSetString(_kIsReportingManager, UserSession.isReportingManager ? '1' : '0');
     await kvSetString(_kWorkLocation, UserSession.workLocation);
     await kvSetString(_kPermissionQuota, UserSession.permissionMinutesQuota.toString());
+    await kvSetString(_kIsOnroll, UserSession.isOnroll ? '1' : '0');
+    await kvSetString(_kExemptAttendance, UserSession.exemptFromAttendance ? '1' : '0');
+    await kvSetString(_kOversightOnly, UserSession.oversightOnly ? '1' : '0');
     final duration =
         UserSession.isStaffPortal ? _staffPortalDuration : _duration;
     await kvSetString(_kExpiry,
@@ -64,6 +70,9 @@ class SessionStorage {
       UserSession.workLocation     = await kvGetString(_kWorkLocation) ?? '';
       UserSession.permissionMinutesQuota =
           int.tryParse(await kvGetString(_kPermissionQuota) ?? '') ?? 120;
+      UserSession.isOnroll = (await kvGetString(_kIsOnroll)) == '1';
+      UserSession.exemptFromAttendance = (await kvGetString(_kExemptAttendance)) == '1';
+      UserSession.oversightOnly = (await kvGetString(_kOversightOnly)) == '1';
       // Photo URL is fetched from main() once Supabase has finished
       // initializing (fetching it here would race Supabase.initialize()
       // and silently fail every time).
@@ -85,5 +94,8 @@ class SessionStorage {
     await kvRemove(_kIsReportingManager);
     await kvRemove(_kWorkLocation);
     await kvRemove(_kPermissionQuota);
+    await kvRemove(_kIsOnroll);
+    await kvRemove(_kExemptAttendance);
+    await kvRemove(_kOversightOnly);
   }
 }

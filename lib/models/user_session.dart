@@ -14,7 +14,36 @@ class UserSession {
   static String   reportingManager= '';
   static bool     isReportingManager = false;
   static String   workLocation    = ''; // 'Office' | 'Onsite' | ''
-  static int      permissionMinutesQuota = 120; // monthly Permission-leave allowance
+  static int      permissionMinutesQuota = 120; // Permission allowance per attendance cycle
+
+  /// True once Management has confirmed employment (onroll_confirmed_at set).
+  /// While false the employee is on probation: ONE leave per attendance cycle
+  /// of any type, and no permission at all. Enforced authoritatively by
+  /// enforce_probation_leave_rules() in the database; held here so the UI can
+  /// explain the limit instead of letting a request be rejected.
+  static bool     isOnroll        = false;
+
+  /// Outside attendance entirely — no check-in, and excluded from attendance
+  /// dashboards and reports. True for the CEO. Per-employee rather than
+  /// per-role, so a Head of Operations at Management level is still tracked.
+  static bool     exemptFromAttendance = false;
+
+  /// Full administrative rights, but no personal HR record: no check-in/out,
+  /// no own leave or permission, no payslips or personal tasks. Reports, data,
+  /// analysis and configuration only. True for the CEO.
+  ///
+  /// Deliberately its own flag rather than inferred from the exemptions above —
+  /// "exempt from attendance and leave and payroll" is true of the CEO today
+  /// by coincidence of three unrelated settings, and a future auditor or
+  /// consultant could match that pattern without being oversight-only.
+  static bool     oversightOnly = false;
+
+  /// Management is an oversight role, exempt from the leave cycle, permission
+  /// limits, fixed timings and payroll. Derived from [role].
+  static bool get isManagement => role == UserRole.management;
+
+  /// Not subject to probation limits: confirmed employees, and Management.
+  static bool get hasFullLeaveEntitlement => isManagement || isOnroll;
 
   /// Housekeeping/Support Staff employees use a separate, simplified
   /// "Staff Portal" shell instead of the regular employee shell — same

@@ -91,11 +91,24 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
       _snack('Please specify the reason.'); return;
     }
 
-    // Monthly permission limit — per-employee quota (HR default: 120 min / 2 hours)
+    // Permission is a confirmed-employee benefit. The database refuses these
+    // outright (enforce_probation_leave_rules), so catch it here to give a
+    // clear reason rather than a rejected request.
+    if (!UserSession.hasFullLeaveEntitlement) {
+      _snack('Permission is not available during probation. '
+             'It becomes available once your employment is confirmed.');
+      return;
+    }
+
+    // Permission limit per ATTENDANCE CYCLE (26th -> 25th), not calendar month
     final name  = UserSession.name.isEmpty ? 'Employee' : UserSession.name;
     final quota = UserSession.permissionMinutesQuota;
-    final used  = LeaveStore.permUsedThisMonth(name);
+    final used  = LeaveStore.permUsedThisCycle(name);
     final want  = LeaveStore.permMinutesFromReason(_duration);
+    if (want == 0) {
+      _snack('Permission must be 30 minutes, 1 hour or 2 hours.');
+      return;
+    }
     if (used + want > quota) {
       final left = (quota - used).clamp(0, quota);
       _snack(left == 0

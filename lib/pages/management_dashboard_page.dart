@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/user_session.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
@@ -110,7 +111,13 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                   ),
                   SizedBox(height: narrow ? 24 : 32),
 
-                  AttendanceShortcutCard(
+                  // Oversight-only users (the CEO) have no personal HR record:
+                  // no check-in/out, no leave of their own, no payslips or
+                  // personal tasks. The card's remaining tiles are all
+                  // oversight actions, so keep it for everyone else and drop
+                  // it entirely for them. The router blocks the underlying
+                  // routes too, so a typed URL cannot reach them either.
+                  if (!UserSession.oversightOnly) AttendanceShortcutCard(
                     attendanceRoute: '/management/my-attendance',
                     accentColor: AppTheme.accentBlue,
                     extraTiles: [
@@ -124,7 +131,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                           color: AppTheme.pink, onTap: () => showHelpCenterDialog(context)),
                     ],
                   ),
-                  SizedBox(height: narrow ? 24 : 32),
+                  if (!UserSession.oversightOnly) SizedBox(height: narrow ? 24 : 32),
 
                   const DashboardInfoBlocks(canEdit: true),
                   SizedBox(height: narrow ? 24 : 32),

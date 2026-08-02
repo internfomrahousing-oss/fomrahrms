@@ -113,6 +113,13 @@ function buildProfile(row: Record<string, unknown>) {
     is_reporting_manager: row.is_reporting_manager,
     work_location: row.work_location,
     permission_minutes_quota: row.permission_minutes_quota,
+    // Drives probation rules in the client: while empty the employee gets one
+    // leave per attendance cycle and no permission at all.
+    onroll_confirmed_at: row.onroll_confirmed_at,
+    // Hides Check In/Out and excludes the user from attendance reporting.
+    exempt_from_attendance: row.exempt_from_attendance,
+    // Full admin rights, no personal HR record — hides self-service entirely.
+    oversight_only: row.oversight_only,
   };
 }
 
@@ -141,6 +148,9 @@ export async function findAppUserByLoginIdentifier(
     "password_hash",
     "auth_user_id",
     "company_email",
+    "onroll_confirmed_at",
+    "exempt_from_attendance",
+    "oversight_only",
   ].join(", ");
 
   const columns = ["email", "company_email", "employee_id"] as const;

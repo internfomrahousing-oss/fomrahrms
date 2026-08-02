@@ -141,18 +141,29 @@ class OfficeTimingStore {
   /// Management has no department and no fixed hours, so resolve by ROLE
   /// first. Falling through to scheduleForDepartment('') would land them on
   /// the 09:30 default and flag them late.
-  static OfficeTiming scheduleForRole(String role, String department) {
-    if (role == 'Management') {
+  /// Per-employee exemption takes precedence over the department lookup.
+  static OfficeTiming scheduleFor({
+    required bool exemptFromTiming,
+    required String department,
+  }) {
+    if (exemptFromTiming) {
       final t = _noFixedTiming;
       if (t != null) return t;
     }
     return scheduleForDepartment(department);
   }
 
-  // AppUser.role is a plain string ('Employee' | 'Manager' | 'HR' |
-  // 'Management'), not the UserRole enum used by UserSession.
+  @Deprecated('Use scheduleFor(exemptFromTiming:, department:) — exemption is per employee, not per role')
+  static OfficeTiming scheduleForRole(String role, String department) {
+    if (role == 'Management' || role == 'CEO') {
+      final t = _noFixedTiming;
+      if (t != null) return t;
+    }
+    return scheduleForDepartment(department);
+  }
+
   static OfficeTiming scheduleForUser(AppUser u) =>
-      scheduleForRole(u.role, u.department);
+      scheduleFor(exemptFromTiming: u.exemptFromTiming, department: u.department);
 
   /// Departments currently assigned to [timingId] (for the admin UI).
   static List<String> departmentsFor(String timingId) => _departmentToTimingId.entries

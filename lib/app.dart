@@ -96,6 +96,36 @@ import 'pages/staff/staff_permission_page.dart';
 import 'pages/staff/staff_profile_page.dart';
 import 'constants/org_lists.dart';
 
+/// Personal, self-service pages — the things an employee does about their own
+/// employment, as opposed to overseeing everyone else's.
+///
+/// Deliberately a suffix match on the segment after the role prefix, so it
+/// applies whichever shell the path sits in and a new role shell inherits it.
+/// `/management/leave-management` and `/management/attendance-management` are
+/// NOT here: those are the oversight screens the CEO should keep.
+bool _isSelfServicePath(String path) {
+  const selfService = <String>[
+    '/attendance/check-in',
+    '/attendance/check-out',
+    '/attendance/check-in-out',
+    '/my-attendance',
+    '/attendance-leaves',
+    '/my-leave',
+    '/leave/apply',
+    '/leave/permission',
+    '/leave/compoff',
+    '/leave/balance',
+    '/my-payslips',
+    '/my-tasks',
+    '/my-maintenance',
+    '/my-details',
+  ];
+  for (final s in selfService) {
+    if (path.endsWith(s)) return true;
+  }
+  return false;
+}
+
 String? _guard(GoRouterState state) {
   final path = state.uri.path;
   if (path == '/login') return null;
@@ -125,6 +155,14 @@ String? _guard(GoRouterState state) {
   // Housekeeping/Support Staff (role == employee, isStaff == true) get the
   // simplified Staff Portal shell instead of the regular employee shell.
   if (path.startsWith('/management/') && role != UserRole.management) return home();
+
+  // Oversight-only users (the CEO) hold every administrative right but have no
+  // personal HR record: no check-in/out, no leave or permission of their own,
+  // no payslips or personal tasks. Reports, data, analysis and configuration
+  // only. Enforced here rather than only by hiding tiles, so a bookmarked or
+  // hand-typed URL cannot reach a page that would create a personal record the
+  // rest of the system deliberately excludes them from.
+  if (UserSession.oversightOnly && _isSelfServicePath(path)) return home();
   if (path.startsWith('/staff/') && !isStaff) return home();
   if (path.startsWith('/employee/') && (role != UserRole.employee || isStaff)) return home();
   if (path.startsWith('/manager/') && role != UserRole.reportingManager) return home();

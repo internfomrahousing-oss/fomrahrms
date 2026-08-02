@@ -453,17 +453,23 @@ Approved by: Sharad Fomra, CEO & MD
     }
 
     final tiles = <Widget>[
-      Tooltip(
-        message: statusText,
-        child: _QuickTileView(
-          icon: statusIcon,
-          color: statusColor,
-          label: tileLabel,
-          loading: _loading,
-          showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
-          onTap: _loading ? null : _openSheet,
+      // The CEO is outside attendance entirely — excluded from dashboards and
+      // reports (v_attendance_tracked_employees) — so offering Check In/Out
+      // would invite records that the rest of the system deliberately ignores.
+      // Driven by the per-employee exemption rather than the role, so a future
+      // exempt user is covered without another code change.
+      if (!UserSession.exemptFromAttendance)
+        Tooltip(
+          message: statusText,
+          child: _QuickTileView(
+            icon: statusIcon,
+            color: statusColor,
+            label: tileLabel,
+            loading: _loading,
+            showLiveDot: !_loading && rec != null && rec.checkInTime.isNotEmpty && rec.checkOutTime.isEmpty,
+            onTap: _loading ? null : _openSheet,
+          ),
         ),
-      ),
       _QuickTileView(
         icon: Icons.policy_rounded,
         color: hrBlue,
