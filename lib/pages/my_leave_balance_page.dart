@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/attendance_cycle.dart';
+import '../utils/el_accrual.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
 import '../models/user_session.dart';
@@ -100,19 +101,7 @@ class _MyLeaveBalancePage extends State<MyLeaveBalancePage> {
   }
 
   // Months since last avail (or since becoming EL eligible) × 1/month
-  int _elAccrued() {
-    final user = _appUser;
-    if (user == null) return 0;
-    final refStr = user.elLastAvailedAt.isNotEmpty
-        ? user.elLastAvailedAt
-        : user.elEligibleAt;
-    if (refStr.isEmpty) return 0;
-    final ref = DateTime.tryParse(refStr);
-    if (ref == null) return 0;
-    final now = DateTime.now();
-    final months = (now.year - ref.year) * 12 + (now.month - ref.month);
-    return (months * user.monthlyEl).clamp(0, 9999);
-  }
+  int _elAccrued() => elAccruedFor(_appUser);
 
   static String _monthName(int m) => const [
     '', 'January', 'February', 'March', 'April', 'May', 'June',

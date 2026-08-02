@@ -87,13 +87,47 @@ class LeaveStore {
     return 'CL'; // Casual, Personal, To Vote, Funeral, Maternity, Paternity…
   }
 
+  /// Minutes charged for a Permission request.
+  ///
+  /// Only 30, 60 and 120 are permitted — the 120-minute monthly allowance is
+  /// availed as 4x30, 2x60 or 1x120. Returns 0 for anything else, and the
+  /// database rejects such a row outright
+  /// (set_and_check_permission_minutes).
+  ///
+  /// Two things this deliberately does differently from the old version:
+  ///
+  ///  * It reads the DURATION SEGMENT ONLY — the text before the first '|'.
+  ///    The stored string is 'Permission: $duration | $reason | $description'
+  ///    and contains the employee's own free text, so the previous whole
+  ///    string match let a 2-hour permission described as "back in 30 Minutes"
+  ///    be charged 30 — under-spending quota and, worse, under-crediting an
+  ///    approved permission so the arrival counted as late and cost half a
+  ///    day's pay.
+  ///
+  ///  * Retired 90-minute phrasings are rejected BEFORE the substring tests.
+  ///    '1 Hour 30 Minutes' contains '1 Hour', and the old order matched
+  ///    '30 Minutes' first, so the Staff Portal's 1h30m option was charged 30.
   static int permMinutesFromReason(String reason) {
-    if (reason.contains('30 Minutes')) return 30;
-    if (reason.contains('1½ Hours')) return 90;
-    if (reason.contains('2 Hours')) return 120;
-    if (reason.contains('1 Hour')) return 60;
-    return 60;
+    final duration = reason.split('|').first;
+    final r = duration.toLowerCase();
+
+    // Withdrawn slot — reject rather than round to a neighbouring value.
+    if (r.contains('1½') ||
+        r.contains('1 1/2') ||
+        r.contains('90') ||
+        r.contains('1 hour 30') ||
+        r.contains('1 hr 30')) {
+      return 0;
+    }
+
+    if (r.contains('2 hours') || r.contains('2 hrs') || r.contains('120')) return 120;
+    if (r.contains('1 hour') || r.contains('1 hr') || r.contains('60')) return 60;
+    if (r.contains('30 minutes') || r.contains('30 mins') || r.contains('30')) return 30;
+    return 0;
   }
+
+  /// The three permitted permission durations, in minutes.
+  static const permittedPermissionMinutes = [30, 60, 120];
 
   /// Minutes used in the CURRENT ATTENDANCE CYCLE (26th -> 25th), not the
   /// calendar month. Comparing calendar months put 26 July and 3 August in

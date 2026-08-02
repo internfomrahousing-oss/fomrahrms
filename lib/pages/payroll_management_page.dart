@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/el_accrual.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/leave_store.dart';
@@ -131,15 +132,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
     .fold(0.0, (s, a) => s + a.effectiveDays);
   }
 
-  int _elAccrued(AppUser u) {
-    final refStr = u.elLastAvailedAt.isNotEmpty ? u.elLastAvailedAt : u.elEligibleAt;
-    if (refStr.isEmpty) return 0;
-    final ref = DateTime.tryParse(refStr);
-    if (ref == null) return 0;
-    final now = DateTime.now();
-    final months = (now.year - ref.year) * 12 + (now.month - ref.month);
-    return (months * u.monthlyEl).clamp(0, 9999);
-  }
+  int _elAccrued(AppUser u) => elAccruedFor(u);
 
   Future<void> _confirmAvail(AppUser user) async {
     await SupabaseService.confirmElAvail(user.email);
