@@ -121,6 +121,18 @@ void main() async {
   // re-poll periodically for as long as the app is open. Also doubles as
   // the retry path for the once-a-day reminder checks (cheap to call
   // repeatedly — each no-ops after its first run each calendar day).
+  // On the FIRST poll after opening the app, every stored notification counts
+  // as a "new arrival" — the store starts empty — so a popup was shown for
+  // each one and they stacked across the screen at login. Nothing is lost by
+  // suppressing them: they are all in the bell, and the badge shows the unread
+  // count. Popups are for things that arrive WHILE you are working.
+  var isFirstNotificationPoll = true;
+
+  // A burst can still occur later (the daily reminder sweep raises several at
+  // once). Cap what is shown on screen so a batch cannot cover the UI; the
+  // rest remain in the bell.
+  const maxPopupsPerPoll = 3;
+
   Timer.periodic(const Duration(seconds: 20), (_) async {
     if (!UserSession.loggedIn) return;
     final list = await SupabaseService.fetchNotifications();
@@ -131,8 +143,13 @@ void main() async {
     NotificationStore.recomputeUnread();
     NotificationService.checkDailyReminders();
     NotificationService.checkDailyTaskReminders();
-    for (final arrival in newArrivals) {
-      showNotificationPopup(arrival);
+
+    if (isFirstNotificationPoll) {
+      isFirstNotificationPoll = false;
+    } else {
+      for (final arrival in newArrivals.take(maxPopupsPerPoll)) {
+        showNotificationPopup(arrival);
+      }
     }
   });
 }

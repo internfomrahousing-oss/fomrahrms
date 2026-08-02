@@ -163,14 +163,16 @@ class _CheckOutPageState extends State<CheckOutPage> {
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
 
     setState(() => _locatingForCheckOut = true);
-    final selfiePath = await SelfieCaptureService.captureAndUpload(
+    final selfiePath = !selfieRequiredForCurrentUser
+        ? ''   // Management: no selfie required
+        : await SelfieCaptureService.captureAndUpload(
       employeeId: UserSession.employeeId,
       date: date,
       kind: 'checkout',
       label: 'Check-Out',
     );
     if (!mounted) return;
-    if (selfiePath == null) {
+    if (selfiePath == null && selfieRequiredForCurrentUser) {
       setState(() => _locatingForCheckOut = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('A selfie is required to check out. Please try again.'),

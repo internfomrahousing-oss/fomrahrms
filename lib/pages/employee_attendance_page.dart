@@ -118,13 +118,15 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     final date = _fmtDate(now);
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
 
-    final selfiePath = await SelfieCaptureService.captureAndUpload(
+    final selfiePath = !selfieRequiredForCurrentUser
+        ? ''   // Management: no selfie required
+        : await SelfieCaptureService.captureAndUpload(
       employeeId: UserSession.employeeId,
       date: date,
       kind: 'checkin',
       label: 'Check-In',
     );
-    if (selfiePath == null) {
+    if (selfiePath == null && selfieRequiredForCurrentUser) {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -201,13 +203,15 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     final now  = DateTime.now();
     final date = _fmtDate(now);
 
-    final selfiePath = await SelfieCaptureService.captureAndUpload(
+    final selfiePath = !selfieRequiredForCurrentUser
+        ? ''   // Management: no selfie required
+        : await SelfieCaptureService.captureAndUpload(
       employeeId: UserSession.employeeId,
       date: date,
       kind: 'checkout',
       label: 'Check-Out',
     );
-    if (selfiePath == null) {
+    if (selfiePath == null && selfieRequiredForCurrentUser) {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

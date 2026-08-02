@@ -198,14 +198,16 @@ class _CheckInPageState extends State<CheckInPage> {
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
 
     setState(() => _locatingForCheckIn = true);
-    final selfiePath = await SelfieCaptureService.captureAndUpload(
+    final selfiePath = !selfieRequiredForCurrentUser
+        ? ''   // Management: no selfie required
+        : await SelfieCaptureService.captureAndUpload(
       employeeId: UserSession.employeeId,
       date: date,
       kind: 'checkin',
       label: 'Check-In',
     );
     if (!mounted) return;
-    if (selfiePath == null) {
+    if (selfiePath == null && selfieRequiredForCurrentUser) {
       setState(() => _locatingForCheckIn = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('A selfie is required to check in. Please try again.'),
