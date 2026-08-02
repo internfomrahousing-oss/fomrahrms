@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../models/attendance_policy_store.dart';
 
 import 'package:flutter/material.dart';
 import '../models/attendance_store.dart';
@@ -92,6 +93,12 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
 
   Future<void> _checkIn() async {
     await ensureLocationConsent(context);
+    if (!mounted) return;
+
+    await Future.wait([
+      OfficeTimingStore.ensureLoaded(),
+      AttendancePolicyStore.ensureLoaded(),
+    ]);
     if (!mounted) return;
 
     final schedule = OfficeTimingStore.scheduleForCurrentUser();

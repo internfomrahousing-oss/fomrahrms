@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../models/attendance_policy_store.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/attendance_store.dart';
@@ -941,6 +942,15 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
 
   Future<void> _checkIn() async {
     await ensureLocationConsent(context);
+    if (!mounted) return;
+
+    // Both stores start fire-and-forget in main(); an unloaded timing store
+    // loses the no-fixed-timing row. scheduleFor() now guards against that
+    // too, but awaiting here means the geofence policy is right as well.
+    await Future.wait([
+      OfficeTimingStore.ensureLoaded(),
+      AttendancePolicyStore.ensureLoaded(),
+    ]);
     if (!mounted) return;
 
     if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForCurrentUser()) &&

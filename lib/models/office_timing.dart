@@ -148,11 +148,33 @@ class OfficeTimingStore {
     required String department,
   }) {
     if (exemptFromTiming) {
-      final t = _noFixedTiming;
-      if (t != null) return t;
+      // Never fall through to the department lookup for an exempt user. If the
+      // store has not loaded yet, _noFixedTiming is null and the old code
+      // dropped to scheduleForDepartment() — which for Management (no
+      // department) returns the 09:30 default and produces a late prompt for
+      // someone who has no fixed hours at all.
+      //
+      // That load-order dependency was the real cause of the exemption
+      // "not working": the flag, the role and the data were all correct, and
+      // the store simply had not arrived yet. Returning a synthetic
+      // no-fixed-timing schedule makes the exemption independent of load
+      // order entirely.
+      return _noFixedTiming ?? noFixedTimingFallback;
     }
     return scheduleForDepartment(department);
   }
+
+  /// Used when a user is exempt from fixed timings but the store has not
+  /// loaded. Mirrors the 'Management — No Fixed Timing' row.
+  static const noFixedTimingFallback = OfficeTiming(
+    id: '',
+    name: 'No Fixed Timing',
+    checkInTime: '00:00',
+    checkOutTime: '23:59',
+    graceMinutes: 0,
+    workingHours: 0,
+    noFixedTiming: true,
+  );
 
   @Deprecated('Use scheduleFor(exemptFromTiming:, department:) — exemption is per employee, not per role')
   static OfficeTiming scheduleForRole(String role, String department) {
