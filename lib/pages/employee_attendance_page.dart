@@ -154,7 +154,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       time:     _checkInCtrl.text,
       location: loc,
       note:     _checkInNoteCtrl.text.trim(),
-      selfiePath: selfiePath,
+      selfiePath: selfiePath ?? '',
     );
 
     if (!mounted) return;
@@ -233,7 +233,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       date: date,
       time: _checkOutCtrl.text,
       note: _checkOutNoteCtrl.text.trim(),
-      selfiePath: selfiePath,
+      selfiePath: selfiePath ?? '',
     );
     if (UserSession.email.isNotEmpty) {
       NotificationService.checkOutRecorded(

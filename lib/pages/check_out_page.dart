@@ -192,7 +192,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
       date: date,
       time: _timeController.text,
       note: _noteController.text.trim(),
-      selfiePath: selfiePath,
+      selfiePath: selfiePath ?? '',
       lat: pos?.latitude,
       lng: pos?.longitude,
       withinRadius: geofence.requiresLocation ? geofence.isWithinAnyLocation : null,
