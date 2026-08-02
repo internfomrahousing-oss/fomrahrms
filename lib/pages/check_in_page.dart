@@ -234,7 +234,7 @@ class _CheckInPageState extends State<CheckInPage> {
       time: _timeController.text,
       location: loc,
       note: _noteController.text.trim(),
-      selfiePath: selfiePath,
+      selfiePath: selfiePath ?? '',
       lat: pos?.latitude,
       lng: pos?.longitude,
       withinRadius: geofence.requiresLocation ? geofence.isWithinAnyLocation : null,

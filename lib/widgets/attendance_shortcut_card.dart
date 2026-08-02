@@ -1002,7 +1002,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       time:         _timeCtrl.text,
       location:     loc,
       note:         _noteCtrl.text.trim(),
-      selfiePath:   selfiePath,
+      selfiePath:   selfiePath ?? '',
     );
 
     if (!mounted) return;
@@ -1082,7 +1082,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       date:        _fmtDate(now),
       time:        _timeCtrl.text,
       note:        _noteCtrl.text.trim(),
-      selfiePath:  selfiePath,
+      selfiePath:  selfiePath ?? '',
     );
 
     if (!mounted) return;

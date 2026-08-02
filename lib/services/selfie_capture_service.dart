@@ -2,6 +2,14 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import '../models/user_session.dart';
 
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../utils/image_compress.dart';
+import 'gps_tracking_service.dart';
+import 'supabase_service.dart';
+
 /// Whether the signed-in user must supply a selfie to check in or out.
 ///
 /// Management works to no fixed hours and no fixed location, and their
@@ -11,14 +19,6 @@ import '../models/user_session.dart';
 /// separate files and fixing only one of them cost several rounds.
 bool get selfieRequiredForCurrentUser =>
     UserSession.role != UserRole.management;
-
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
-
-import '../utils/image_compress.dart';
-import 'gps_tracking_service.dart';
-import 'supabase_service.dart';
 
 /// Mandatory attendance selfie: opens the device camera directly (never the
 /// gallery), burns the date/day/time/GPS coordinates into the photo, then
