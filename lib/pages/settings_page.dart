@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/attendance_shortcut_card.dart' show showHelpCenterDialog;
 import '../theme/app_theme.dart';
 import '../widgets/theme_picker_block.dart';
 
@@ -41,6 +42,25 @@ class SettingsPage extends StatelessWidget {
           SizedBox(height: narrow ? 20 : 28),
 
           const ThemePickerBlock(),
+          SizedBox(height: narrow ? 20 : 28),
+
+          // Moved off the dashboard: reference material, not a daily action.
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: Colors.grey.shade200),
+            ),
+            child: ListTile(
+              leading: Icon(Icons.help_rounded, color: AppTheme.pink),
+              title: const Text('Help Center',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              subtitle: Text('Guides and answers to common questions',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => showHelpCenterDialog(context),
+            ),
+          ),
         ],
       ),
     );
