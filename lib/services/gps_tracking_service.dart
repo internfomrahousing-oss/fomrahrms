@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform, kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import '../models/user_session.dart';
 import 'supabase_service.dart';
@@ -32,23 +32,43 @@ class GpsTrackingService {
   static Future<Position?> getCurrentLocation() async {
     lastLocationError = null;
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        lastLocationError =
-            'Location services are turned off on this device. Turn on GPS / Location and try again.';
-        return null;
+      // On web there is no OS-level "location services" toggle to query, and
+      // Geolocator.isLocationServiceEnabled() is unreliable there — in several
+      // browsers it reports false (or throws) even when geolocation works
+      // perfectly. The old code called it first and returned null on false,
+      // which aborted before a position was ever requested. That is the most
+      // likely reason production has null GPS on 100% of attendance records
+      // while running entirely on the web build.
+      //
+      // So: on web, go straight to the permission request, which is the only
+      // gate the browser actually enforces. Keep the check on mobile, where it
+      // is meaningful and where a disabled GPS radio needs a distinct message.
+      if (!kIsWeb) {
+        bool serviceEnabled;
+        try {
+          serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        } catch (_) {
+          serviceEnabled = true;   // never let the probe itself block check-in
+        }
+        if (!serviceEnabled) {
+          lastLocationError =
+              'Location services are turned off on this device. Turn on GPS / Location and try again.';
+          return null;
+        }
       }
+
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied) {
         lastLocationError =
-            'Location permission was not granted. Allow location access to record your check-in position.';
+            'Location permission was not granted. Allow location access when your browser asks, then check in again.';
         return null;
       }
       if (perm == LocationPermission.deniedForever) {
         lastLocationError =
-            'Location permission is blocked for this app. Enable it in your browser or device settings, then try again.';
+            'Location permission is blocked. Enable it for this site in your browser settings (the padlock icon in the address bar), then try again.';
         return null;
       }
       // Without a timeout this can hang indefinitely on a weak signal, leaving
@@ -66,7 +86,7 @@ class GpsTrackingService {
     } catch (e) {
       // Previously `catch (_) { return null; }` — three different causes all
       // collapsed to null, which is why the production failure was
-      // undiagnosable.
+      // undiagnosable for as long as it was.
       lastLocationError = 'Could not read your location: $e';
       // ignore: avoid_print
       print('getCurrentLocation failed: $e');
@@ -90,7 +110,18 @@ class GpsTrackingService {
       routePoints.addAll(existing);
     }
 
-    if (!await Geolocator.isLocationServiceEnabled()) return;
+    // Same web caveat as getCurrentLocation(): there is no OS location-services
+    // toggle on web and this probe is unreliable there, so skipping it is what
+    // lets tracking start at all in a browser.
+    if (!kIsWeb) {
+      bool serviceEnabled;
+      try {
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      } catch (_) {
+        serviceEnabled = true;
+      }
+      if (!serviceEnabled) return;
+    }
     var perm = await Geolocator.checkPermission();
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
