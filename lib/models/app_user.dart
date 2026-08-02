@@ -136,7 +136,9 @@ class AppUser {
   });
 
   bool get isOnroll    => onrollConfirmedAt.isNotEmpty;
-  bool get isElEligible => elEligibleAt.isNotEmpty;
+  // EL accrues only after confirmation; el_eligible_at is cleared while on
+  // probation and set from the joining date when Management confirms.
+  bool get isElEligible => elEligibleAt.isNotEmpty && isOnroll;
   bool get hasPendingWorkLocationChange => workLocationPending.isNotEmpty;
   bool get hasPendingEmailChange => emailPending.isNotEmpty;
   bool get hasPendingBusinessUnitChange => businessUnitPending.isNotEmpty;
@@ -214,16 +216,38 @@ class AppUser {
     return 'pending_both';
   }
 
-  // Monthly leave allocation per type
-  int get monthlyCl => 1;                    // all employees (probation: emergency CL)
-  int get monthlyMl => isOnroll ? 1 : 0;    // on-roll and above
-  int get monthlyEl => isElEligible ? 1 : 0; // EL eligible (cumulative, not monthly reset)
+  // Leave entitlement per ATTENDANCE CYCLE (26th -> 25th).
+  //
+  // CL, ML, EL and every other leave type are for CONFIRMED employees only.
+  // While on probation an employee gets ONE leave per cycle, of any type, and
+  // no permission at all.
+  int get monthlyCl => isOnroll ? 1 : 0;
+  int get monthlyMl => isOnroll ? 1 : 0;
+  int get monthlyEl => (isOnroll && isElEligible) ? 1 : 0;
+
+  /// Total leaves allowed per cycle while on probation, any type.
+  static const probationLeavesPerCycle = 1;
+
+  /// Permission is a confirmed-employee benefit. Enforced in the database by
+  /// enforce_probation_leave_rules(); mirrored here so the UI can disable the
+  /// button rather than let someone fill in a form that will be rejected.
+  bool get canApplyForPermission => isOnroll;
+
+  /// Leaves this employee may take in a cycle, before type-specific limits.
+  int get leavesPerCycle => isOnroll ? monthlyCl + monthlyMl + monthlyEl : probationLeavesPerCycle;
 
   String get leaveStatus {
     if (isElEligible) return 'EL Eligible';
     if (isOnroll)     return 'On-Roll';
     return 'Probation';
   }
+
+  /// Plain-English summary of what this employee is entitled to, for the
+  /// leave screens — so probation staff understand the limit up front rather
+  /// than discovering it when a request is refused.
+  String get entitlementSummary => isOnroll
+      ? 'Confirmed — full leave entitlement and 120 minutes of permission per cycle'
+      : 'On probation — one leave per cycle, and permission is not available until confirmation';
 
   static UserRole userRoleFor(String role) {
     final normalized = role.trim().toLowerCase();

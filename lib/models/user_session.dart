@@ -14,7 +14,14 @@ class UserSession {
   static String   reportingManager= '';
   static bool     isReportingManager = false;
   static String   workLocation    = ''; // 'Office' | 'Onsite' | ''
-  static int      permissionMinutesQuota = 120; // monthly Permission-leave allowance
+  static int      permissionMinutesQuota = 120; // Permission allowance per attendance cycle
+
+  /// True once Management has confirmed employment (onroll_confirmed_at set).
+  /// While false the employee is on probation: ONE leave per attendance cycle
+  /// of any type, and no permission at all. Enforced authoritatively by
+  /// enforce_probation_leave_rules() in the database; held here so the UI can
+  /// explain the limit instead of letting a request be rejected.
+  static bool     isOnroll        = false;
 
   /// Housekeeping/Support Staff employees use a separate, simplified
   /// "Staff Portal" shell instead of the regular employee shell — same

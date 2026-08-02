@@ -113,6 +113,9 @@ function buildProfile(row: Record<string, unknown>) {
     is_reporting_manager: row.is_reporting_manager,
     work_location: row.work_location,
     permission_minutes_quota: row.permission_minutes_quota,
+    // Drives probation rules in the client: while empty the employee gets one
+    // leave per attendance cycle and no permission at all.
+    onroll_confirmed_at: row.onroll_confirmed_at,
   };
 }
 
@@ -141,6 +144,7 @@ export async function findAppUserByLoginIdentifier(
     "password_hash",
     "auth_user_id",
     "company_email",
+    "onroll_confirmed_at",
   ].join(", ");
 
   const columns = ["email", "company_email", "employee_id"] as const;
