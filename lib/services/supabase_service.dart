@@ -1127,7 +1127,7 @@ class SupabaseService {
       'permission_minutes_quota, permission_minutes_quota_pending, permission_minutes_quota_requested_at, '
       'company_email, email_pending, email_requested_at, '
       'exempt_from_timing, exempt_from_geofence, exempt_from_leave_rules, '
-      'exempt_from_attendance, payroll_eligible';
+      'exempt_from_attendance, payroll_eligible, oversight_only';
 
   // Postgres `numeric` columns (gross_pay, gross_pay_pending, ...) come back
   // from PostgREST as JSON strings, not numbers — it does this to avoid
@@ -1201,6 +1201,7 @@ class SupabaseService {
         exemptFromLeaveRules: (row['exempt_from_leave_rules'] as bool?) ?? false,
         exemptFromAttendance: (row['exempt_from_attendance']  as bool?) ?? false,
         payrollEligible:      (row['payroll_eligible']        as bool?) ?? true,
+        oversightOnly:        (row['oversight_only']          as bool?) ?? false,
         emailPending:         (row['email_pending']           as String?) ?? '',
         emailRequestedAt:     (row['email_requested_at']      as String?) ?? '',
       )).toList();

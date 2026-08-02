@@ -87,6 +87,7 @@ class AppUser {
   bool exemptFromLeaveRules;   // no probation cap, no permission quota/durations
   bool exemptFromAttendance;   // excluded from attendance entirely, incl. reports
   bool payrollEligible;        // appears in payroll runs
+  bool oversightOnly;          // full admin rights, but no personal HR record
 
   String emailPending;             // proposed new address awaiting Management approval; empty = none
   String emailRequestedAt;         // ISO datetime the change was requested
@@ -146,6 +147,7 @@ class AppUser {
     this.exemptFromLeaveRules = false,
     this.exemptFromAttendance = false,
     this.payrollEligible = true,
+    this.oversightOnly = false,
     this.emailPending = '',
     this.emailRequestedAt = '',
   });
@@ -357,6 +359,7 @@ class AppUser {
     'exemptFromLeaveRules':  exemptFromLeaveRules,
     'exemptFromAttendance':  exemptFromAttendance,
     'payrollEligible':       payrollEligible,
+    'oversightOnly':         oversightOnly,
     'emailPending':          emailPending,
     'emailRequestedAt':      emailRequestedAt,
   };
@@ -416,6 +419,7 @@ class AppUser {
     exemptFromLeaveRules:   j['exemptFromLeaveRules']  as bool? ?? false,
     exemptFromAttendance:   j['exemptFromAttendance']  as bool? ?? false,
     payrollEligible:        j['payrollEligible']       as bool? ?? true,
+    oversightOnly:          j['oversightOnly']         as bool? ?? false,
     emailPending:           j['emailPending']          as String? ?? '',
     emailRequestedAt:       j['emailRequestedAt']      as String? ?? '',
   );

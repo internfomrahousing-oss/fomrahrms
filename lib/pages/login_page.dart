@@ -169,6 +169,7 @@ class _LoginPageState extends State<LoginPage> {
       permissionMinutesQuota: (profile['permission_minutes_quota'] as num?)?.toInt() ?? 120,
       onrollConfirmedAt: (profile['onroll_confirmed_at'] as String?) ?? '',
       exemptFromAttendance: (profile['exempt_from_attendance'] as bool?) ?? false,
+      oversightOnly: (profile['oversight_only'] as bool?) ?? false,
     );
   }
 
@@ -182,6 +183,7 @@ class _LoginPageState extends State<LoginPage> {
     int permissionMinutesQuota = 120,
     String onrollConfirmedAt = '',
     bool exemptFromAttendance = false,
+    bool oversightOnly = false,
   }) {
     UserSession.loggedIn         = true;
     UserSession.role             = role;
@@ -196,6 +198,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.permissionMinutesQuota = permissionMinutesQuota;
     UserSession.isOnroll = onrollConfirmedAt.trim().isNotEmpty;
     UserSession.exemptFromAttendance = exemptFromAttendance;
+    UserSession.oversightOnly = oversightOnly;
     SessionStorage.save();
     staffLanguageNotifier.loadForUser(employeeId);
     // Fetch photo URL in background — widgets listen via ValueNotifier pattern
