@@ -1549,11 +1549,20 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
     return chip;
   }
 
-  // ── Weekly Off Day (Sales department only) ────────────────────────────
-  // Default is Sunday for everyone; Sales works Sundays and gets Tuesday or
-  // Wednesday off instead. HR sets the first value directly; any change
-  // after that requires Management approval, same pattern as Work Location.
-  static const _weeklyOffChoices = ['Sunday', 'Tuesday', 'Wednesday'];
+  // ── Weekly Off Day ────────────────────────────────────────────────────
+  // Default is Sunday for everyone. Sales works EVERY Sunday, so a Sales
+  // employee must be given an explicit weekly off on another day — decided
+  // per person by the reporting manager and HR. Land Acquisition does not
+  // work Sundays and keeps the default.
+  //
+  // Previously only Tuesday and Wednesday were offered, so a sales person
+  // whose off day was any other weekday could not be configured at all —
+  // weeklyOffWeekdayFor() has always supported all seven. HR sets the first
+  // value directly; any change after that needs Management approval, same
+  // pattern as Work Location.
+  static const _weeklyOffChoices = [
+    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+  ];
 
   Future<String?> _pickWeeklyOffDay(String current) {
     String selected = current;
@@ -1702,36 +1711,45 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
 
   Widget _weeklyOffBlock({required bool canEdit, required bool isHr, required bool isManagement}) {
     if (_user.weeklyOffDay.isEmpty) {
+      final salesNeedsOff = _user.department == 'Sales';
       if (!canEdit) {
-        return Text('Sunday (default)',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic));
+        return Text(
+          salesNeedsOff
+              ? 'Not set — Sales works Sundays, so a weekly off day is required'
+              : 'Sunday (default)',
+          style: TextStyle(
+              fontSize: 12,
+              color: salesNeedsOff ? Colors.red.shade600 : Colors.grey.shade500,
+              fontStyle: FontStyle.italic),
+        );
       }
-      return Row(children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _saving ? null : () => _setWeeklyOffDirect('Tuesday'),
-            icon: const Icon(Icons.event_busy_rounded, size: 16),
-            label: const Text('Tuesday'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.amber.shade800,
-              side: BorderSide(color: Colors.amber.shade300),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      // Was two hardcoded buttons (Tuesday / Wednesday), leaving every other
+      // weekday unreachable — even though weeklyOffWeekdayFor() supports all
+      // seven and the off day is decided per sales person by their reporting
+      // manager and HR.
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (salesNeedsOff)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Sales works every Sunday. Set this employee\'s weekly off day.',
+              style: TextStyle(fontSize: 11.5, color: Colors.red.shade600),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _saving ? null : () => _setWeeklyOffDirect('Wednesday'),
-            icon: const Icon(Icons.event_busy_rounded, size: 16),
-            label: const Text('Wednesday'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.amber.shade800,
-              side: BorderSide(color: Colors.amber.shade300),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+        OutlinedButton.icon(
+          onPressed: _saving
+              ? null
+              : () async {
+                  final picked = await _pickWeeklyOffDay(_user.weeklyOffDay);
+                  if (picked != null) await _setWeeklyOffDirect(picked);
+                },
+          icon: const Icon(Icons.event_busy_rounded, size: 16),
+          label: Text(salesNeedsOff ? 'Set weekly off day' : 'Change weekly off day'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.amber.shade800,
+            side: BorderSide(color: Colors.amber.shade300),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         ),
       ]);
