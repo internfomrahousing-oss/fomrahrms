@@ -1125,7 +1125,9 @@ class SupabaseService {
       'gross_pay, gross_pay_pending, gross_pay_requested_at, '
       'work_location, work_location_pending, work_location_requested_at, '
       'permission_minutes_quota, permission_minutes_quota_pending, permission_minutes_quota_requested_at, '
-      'company_email, email_pending, email_requested_at';
+      'company_email, email_pending, email_requested_at, '
+      'exempt_from_timing, exempt_from_geofence, exempt_from_leave_rules, '
+      'exempt_from_attendance, payroll_eligible';
 
   // Postgres `numeric` columns (gross_pay, gross_pay_pending, ...) come back
   // from PostgREST as JSON strings, not numbers — it does this to avoid
@@ -1194,6 +1196,11 @@ class SupabaseService {
         permissionMinutesQuotaPending:   (row['permission_minutes_quota_pending'] as num?)?.toInt() ?? 0,
         permissionMinutesQuotaRequestedAt: (row['permission_minutes_quota_requested_at'] as String?) ?? '',
         companyEmail:         (row['company_email']           as String?) ?? '',
+        exemptFromTiming:     (row['exempt_from_timing']      as bool?) ?? false,
+        exemptFromGeofence:   (row['exempt_from_geofence']    as bool?) ?? false,
+        exemptFromLeaveRules: (row['exempt_from_leave_rules'] as bool?) ?? false,
+        exemptFromAttendance: (row['exempt_from_attendance']  as bool?) ?? false,
+        payrollEligible:      (row['payroll_eligible']        as bool?) ?? true,
         emailPending:         (row['email_pending']           as String?) ?? '',
         emailRequestedAt:     (row['email_requested_at']      as String?) ?? '',
       )).toList();

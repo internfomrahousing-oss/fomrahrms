@@ -78,6 +78,16 @@ class AppUser {
   // supabase/migrations/20260731000200_email_change_requires_approval.sql),
   // NOT just here: unlike the other Chain C fields, a direct write to `email`
   // raises rather than being silently pinned.
+  // ── Rule applicability, set per employee ──────────────────────────────────
+  // Separate from ROLE, which grants authority. The CEO is exempt from all of
+  // these; a Head of Operations at Management level has leave and salary
+  // applied and is exempt only from timing and geofencing.
+  bool exemptFromTiming;       // never assessed for lateness or early departure
+  bool exemptFromGeofence;     // check-in never assessed against an office radius
+  bool exemptFromLeaveRules;   // no probation cap, no permission quota/durations
+  bool exemptFromAttendance;   // excluded from attendance entirely, incl. reports
+  bool payrollEligible;        // appears in payroll runs
+
   String emailPending;             // proposed new address awaiting Management approval; empty = none
   String emailRequestedAt;         // ISO datetime the change was requested
 
@@ -131,23 +141,31 @@ class AppUser {
     this.permissionMinutesQuotaPending = 0,
     this.permissionMinutesQuotaRequestedAt = '',
     this.companyEmail = '',
+    this.exemptFromTiming = false,
+    this.exemptFromGeofence = false,
+    this.exemptFromLeaveRules = false,
+    this.exemptFromAttendance = false,
+    this.payrollEligible = true,
     this.emailPending = '',
     this.emailRequestedAt = '',
   });
 
-  /// Management is an oversight / super-admin role, not an employee under HR
-  /// rules: no leave cycle, no payroll, no fixed hours, no fixed base, and
-  /// never "on probation". Exempted by ROLE rather than by confirming them,
-  /// because they are not a confirmed employee — they are not an employee for
-  /// these purposes at all. Mirrored in the database by is_management().
-  bool get isManagement => role.trim().toLowerCase() == 'management';
+  /// Management-tier AUTHORITY — can approve at the final stage. Covers both
+  /// 'Management' and 'CEO'.
+  ///
+  /// Authority and rule-applicability are deliberately separate. They used to
+  /// be one thing, which could not express the two real cases:
+  ///   CEO                — full authority, outside attendance, leave and payroll
+  ///   Head of Operations — full authority, but leave and salary DO apply;
+  ///                        only timing and geofencing do not
+  /// Applicability lives in the exempt* flags below, set per employee.
+  bool get isManagement => const ['management', 'ceo'].contains(role.trim().toLowerCase());
 
-  /// Confirmed off probation. Management is treated as confirmed because the
-  /// probation concept does not apply to them.
-  bool get isOnroll    => isManagement || onrollConfirmedAt.isNotEmpty;
+  bool get isCeo => role.trim().toLowerCase() == 'ceo';
 
-  /// Management is not on payroll.
-  bool get isPayrollEligible => !isManagement;
+  /// Confirmed off probation. Anyone exempt from the leave rules is treated as
+  /// confirmed, because probation does not apply to them.
+  bool get isOnroll    => exemptFromLeaveRules || onrollConfirmedAt.isNotEmpty;
   // EL accrues only after confirmation; el_eligible_at is cleared while on
   // probation and set from the joining date when Management confirms.
   bool get isElEligible => elEligibleAt.isNotEmpty && isOnroll;
@@ -233,9 +251,9 @@ class AppUser {
   // CL, ML, EL and every other leave type are for CONFIRMED employees only.
   // While on probation an employee gets ONE leave per cycle, of any type, and
   // no permission at all.
-  int get monthlyCl => isManagement ? 9999 : (isOnroll ? 1 : 0);
-  int get monthlyMl => isManagement ? 9999 : (isOnroll ? 1 : 0);
-  int get monthlyEl => isManagement ? 9999 : ((isOnroll && isElEligible) ? 1 : 0);
+  int get monthlyCl => exemptFromLeaveRules ? 9999 : (isOnroll ? 1 : 0);
+  int get monthlyMl => exemptFromLeaveRules ? 9999 : (isOnroll ? 1 : 0);
+  int get monthlyEl => exemptFromLeaveRules ? 9999 : ((isOnroll && isElEligible) ? 1 : 0);
 
   /// Total leaves allowed per cycle while on probation, any type.
   static const probationLeavesPerCycle = 1;
@@ -243,13 +261,13 @@ class AppUser {
   /// Permission is a confirmed-employee benefit. Enforced in the database by
   /// enforce_probation_leave_rules(); mirrored here so the UI can disable the
   /// button rather than let someone fill in a form that will be rejected.
-  bool get canApplyForPermission => isManagement || isOnroll;
+  bool get canApplyForPermission => exemptFromLeaveRules || isOnroll;
 
   /// Leaves this employee may take in a cycle, before type-specific limits.
   int get leavesPerCycle => isOnroll ? monthlyCl + monthlyMl + monthlyEl : probationLeavesPerCycle;
 
   String get leaveStatus {
-    if (isManagement) return 'Management';
+    if (exemptFromLeaveRules) return isCeo ? 'CEO' : 'Exempt';
     if (isElEligible) return 'EL Eligible';
     if (isOnroll)     return 'On-Roll';
     return 'Probation';
@@ -258,8 +276,8 @@ class AppUser {
   /// Plain-English summary of what this employee is entitled to, for the
   /// leave screens — so probation staff understand the limit up front rather
   /// than discovering it when a request is refused.
-  String get entitlementSummary => isManagement
-      ? 'Management — not subject to the leave cycle, permission limits or payroll'
+  String get entitlementSummary => exemptFromLeaveRules
+      ? '${isCeo ? 'CEO' : 'Exempt'} — not subject to the leave cycle or permission limits'
       : isOnroll
           ? 'Confirmed — full leave entitlement and 120 minutes of permission per cycle'
           : 'On probation — one leave per cycle, and permission is not available until confirmation';
@@ -272,6 +290,12 @@ class AppUser {
       case 'manager':
         return UserRole.reportingManager;
       case 'management':
+      // The CEO carries the same authority as Management. Kept as a distinct
+      // role string so exemptions can differ (see the exempt* flags): the CEO
+      // is outside attendance, leave and payroll, whereas a Head of
+      // Operations at Management level has leave and salary applied and is
+      // exempt only from timing and geofencing.
+      case 'ceo':
         return UserRole.management;
       default:
         return UserRole.employee;
@@ -328,6 +352,11 @@ class AppUser {
     'permissionMinutesQuotaPending':   permissionMinutesQuotaPending,
     'permissionMinutesQuotaRequestedAt': permissionMinutesQuotaRequestedAt,
     'companyEmail':          companyEmail,
+    'exemptFromTiming':      exemptFromTiming,
+    'exemptFromGeofence':    exemptFromGeofence,
+    'exemptFromLeaveRules':  exemptFromLeaveRules,
+    'exemptFromAttendance':  exemptFromAttendance,
+    'payrollEligible':       payrollEligible,
     'emailPending':          emailPending,
     'emailRequestedAt':      emailRequestedAt,
   };
@@ -382,6 +411,11 @@ class AppUser {
     permissionMinutesQuotaPending:   (j['permissionMinutesQuotaPending'] as num?)?.toInt() ?? 0,
     permissionMinutesQuotaRequestedAt: j['permissionMinutesQuotaRequestedAt'] as String? ?? '',
     companyEmail:           j['companyEmail']          as String? ?? '',
+    exemptFromTiming:       j['exemptFromTiming']      as bool? ?? false,
+    exemptFromGeofence:     j['exemptFromGeofence']    as bool? ?? false,
+    exemptFromLeaveRules:   j['exemptFromLeaveRules']  as bool? ?? false,
+    exemptFromAttendance:   j['exemptFromAttendance']  as bool? ?? false,
+    payrollEligible:        j['payrollEligible']       as bool? ?? true,
     emailPending:           j['emailPending']          as String? ?? '',
     emailRequestedAt:       j['emailRequestedAt']      as String? ?? '',
   );
