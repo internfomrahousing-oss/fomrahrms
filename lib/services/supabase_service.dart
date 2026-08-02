@@ -1,5 +1,7 @@
 // ignore_for_file: avoid_catches_without_on_clauses
 import 'dart:async';
+import 'user_store.dart';
+import 'session_storage.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -3603,6 +3605,36 @@ class SupabaseService {
       _loadNotifications(),
       _loadNotificationPreferences(),
     ]);
+    await refreshSessionFlags();
+  }
+
+  /// Re-read the signed-in user's rule flags from their own record.
+  ///
+  /// These flags arrive in the login response and are then cached in local
+  /// storage, so a session created BEFORE a flag existed keeps the stale
+  /// default until the user happens to log out and back in. That is how the
+  /// Head of Operations kept being asked for a late reason after the
+  /// exemption was already set and deployed: correct data, correct code,
+  /// stale session.
+  ///
+  /// Running on every cold start makes it self-healing, and means the next
+  /// flag added does not need anyone to be told to sign out.
+  static Future<void> refreshSessionFlags() async {
+    if (!UserSession.loggedIn || UserSession.email.isEmpty) return;
+    try {
+      final me = await UserStore.findByEmail(UserSession.email);
+      if (me == null) return;
+      UserSession.isOnroll             = me.onrollConfirmedAt.trim().isNotEmpty;
+      UserSession.exemptFromTiming     = me.exemptFromTiming;
+      UserSession.exemptFromAttendance = me.exemptFromAttendance;
+      UserSession.oversightOnly        = me.oversightOnly;
+      UserSession.permissionMinutesQuota = me.permissionMinutesQuota;
+      UserSession.department           = me.department;
+      await SessionStorage.save();
+    } catch (_) {
+      // Never block startup on this — the cached values still work, they may
+      // just be stale.
+    }
   }
 
   static Future<void> _loadNotificationPreferences() async {
