@@ -13,7 +13,6 @@ import '../widgets/fade_in.dart';
 import '../widgets/hover_lift.dart';
 import '../widgets/milestone_confetti.dart';
 import '../widgets/stat_strip.dart';
-import '../widgets/theme_picker_block.dart';
 import '../widgets/welcome_banner.dart';
 
 
@@ -136,7 +135,9 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                   const DashboardInfoBlocks(canEdit: true),
                   SizedBox(height: narrow ? 24 : 32),
 
-                  const ThemePickerBlock(),
+                  // Theme moved to Settings. It is a personal preference, and
+                  // sitting inline here made it the first thing seen on
+                  // opening the app, above the operational content.
                   SizedBox(height: narrow ? 24 : 32),
 
                   _SectionLabel(icon: Icons.business_center_rounded, label: 'Management Overview'),
