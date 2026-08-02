@@ -126,8 +126,9 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                           color: AppTheme.success, route: '/management/employee-management/add'),
                       QuickTile(label: 'Attendance Sheet', icon: Icons.fact_check_rounded,
                           color: AppTheme.warning, route: '/management/attendance-management'),
-                      QuickTile(label: 'Help Center', icon: Icons.help_rounded,
-                          color: AppTheme.pink, onTap: () => showHelpCenterDialog(context)),
+                      // Help Center moved to Settings — reference material
+                      // rather than a daily action, so it does not need a
+                      // dashboard tile.
                     ],
                   ),
                   if (!UserSession.oversightOnly) SizedBox(height: narrow ? 24 : 32),

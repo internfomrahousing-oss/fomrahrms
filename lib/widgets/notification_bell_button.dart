@@ -61,10 +61,17 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
               onOpen: (n) async {
                 Navigator.of(dialogContext).pop();
                 await NotificationService.markRead(n);
-                if (n.route.isNotEmpty &&
-                    mounted &&
-                    !GoRouter.of(context).configuration.findMatch(n.route).isError) {
-                  context.go(n.route);
+                if (n.route.isNotEmpty && mounted) {
+                  // Routes are stored with the role prefix of whoever the
+                  // notification was raised for ('/employee/...', '/hr/...'),
+                  // but the person reading it may be in a different shell —
+                  // Management opening an attendance notification would hit
+                  // the router guard and be bounced to their dashboard.
+                  // Rewrite the prefix to the current viewer's shell.
+                  final target = _routeForCurrentRole(n.route);
+                  if (!GoRouter.of(context).configuration.findMatch(target).isError) {
+                    context.go(target);
+                  }
                 }
               },
               onShowAll: () {
@@ -98,6 +105,27 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
       ),
     );
   }
+}
+
+/// Rewrites a stored notification route into the current user's shell.
+///
+/// Shell prefixes are interchangeable for the shared screens — the page after
+/// the prefix is the same — so swapping the prefix lands the reader on the
+/// right page instead of being redirected home by the guard.
+String _routeForCurrentRole(String route) {
+  const prefixes = ['/employee/', '/hr/', '/manager/', '/management/', '/staff/'];
+  final mine = switch (UserSession.role) {
+    UserRole.management      => '/management/',
+    UserRole.hr              => '/hr/',
+    UserRole.reportingManager => '/manager/',
+    UserRole.employee        => '/employee/',
+  };
+  for (final p in prefixes) {
+    if (route.startsWith(p)) {
+      return p == mine ? route : '$mine${route.substring(p.length)}';
+    }
+  }
+  return route;   // unprefixed routes (e.g. /employee-onboarding) are shared
 }
 
 class _NotificationDropdown extends StatelessWidget {

@@ -107,6 +107,26 @@ class _CheckInPageState extends State<CheckInPage> {
     if (!mounted) return;
 
     setState(() => _locatingForCheckIn = true);
+
+    // Both stores are kicked off fire-and-forget in main(), so on a cold start
+    // or a slow connection they can still be EMPTY here. An empty
+    // AttendancePolicyStore makes policyForEmployee() return the built-in
+    // fallback — Office, single_location — so a user whose real policy is
+    // Unrestricted is geofenced anyway; combined with GPS being unavailable
+    // that produces a location-reason prompt for someone who should never see
+    // one. An empty OfficeTimingStore likewise loses the no-fixed-timing row,
+    // so Management falls through to the 09:30 default and is asked for a late
+    // reason.
+    //
+    // This is why the Management exemption appeared not to work no matter how
+    // the flag was resolved: the flag was right, the code was right, and the
+    // store simply had not loaded yet.
+    await Future.wait([
+      AttendancePolicyStore.ensureLoaded(),
+      OfficeTimingStore.ensureLoaded(),
+    ]);
+    if (!mounted) return;
+
     final pos = await GpsTrackingService.getCurrentLocation();
     final policy = AttendancePolicyStore.policyForEmployee(
       employeeId: UserSession.employeeId,

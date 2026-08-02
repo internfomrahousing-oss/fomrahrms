@@ -91,6 +91,14 @@ class _CheckOutPageState extends State<CheckOutPage> {
   }
 
   Future<void> _onCheckOut() async {
+    // Same race as check-in: an unloaded policy store geofences a user whose
+    // real policy is Unrestricted, and an unloaded timing store loses the
+    // no-fixed-timing row.
+    await Future.wait([
+      AttendancePolicyStore.ensureLoaded(),
+      OfficeTimingStore.ensureLoaded(),
+    ]);
+    if (!mounted) return;
     setState(() => _locatingForCheckOut = true);
     final pos = await GpsTrackingService.getCurrentLocation();
     final policy = AttendancePolicyStore.policyForEmployee(
