@@ -28,6 +28,13 @@ class UserSession {
   /// per-role, so a Head of Operations at Management level is still tracked.
   static bool     exemptFromAttendance = false;
 
+  /// No fixed working hours — never assessed for lateness or early departure.
+  /// True for the CEO and the Head of Operations. Consulted by
+  /// OfficeTimingStore.scheduleForCurrentUser(); without it an exempt user
+  /// with no department falls through to the 09:30 default and is asked for a
+  /// late reason.
+  static bool     exemptFromTiming = false;
+
   /// Full administrative rights, but no personal HR record: no check-in/out,
   /// no own leave or permission, no payslips or personal tasks. Reports, data,
   /// analysis and configuration only. True for the CEO.

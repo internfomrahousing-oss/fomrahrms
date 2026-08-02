@@ -120,6 +120,9 @@ function buildProfile(row: Record<string, unknown>) {
     exempt_from_attendance: row.exempt_from_attendance,
     // Full admin rights, no personal HR record — hides self-service entirely.
     oversight_only: row.oversight_only,
+    // No fixed hours — suppresses the late-reason prompt and the early
+    // check-out prompt for the CEO and the Head of Operations.
+    exempt_from_timing: row.exempt_from_timing,
   };
 }
 
@@ -151,6 +154,7 @@ export async function findAppUserByLoginIdentifier(
     "onroll_confirmed_at",
     "exempt_from_attendance",
     "oversight_only",
+    "exempt_from_timing",
   ].join(", ");
 
   const columns = ["email", "company_email", "employee_id"] as const;

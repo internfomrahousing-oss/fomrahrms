@@ -943,7 +943,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForDepartment(UserSession.department)) &&
+    if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForCurrentUser()) &&
         _permissionMinutes == 0 &&
         _noteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1014,7 +1014,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
         employeeName: empName,
         checkInTime: _timeCtrl.text,
         date: now,
-        schedule: OfficeTimingStore.scheduleForDepartment(UserSession.department),
+        schedule: OfficeTimingStore.scheduleForCurrentUser(),
       );
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1028,7 +1028,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
 
   Future<void> _checkOut() async {
     if (isEarlyCheckOut(_timeCtrl.text,
-            OfficeTimingStore.scheduleForDepartment(UserSession.department), _permissionMinutes) &&
+            OfficeTimingStore.scheduleForCurrentUser(), _permissionMinutes) &&
         _noteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please add a reason for checking out early.'),
@@ -1183,7 +1183,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
           ListenableBuilder(
             listenable: _timeCtrl,
             builder: (context, _) {
-              final schedule = OfficeTimingStore.scheduleForDepartment(UserSession.department);
+              final schedule = OfficeTimingStore.scheduleForCurrentUser();
               final showNote = isCheckedIn
                   ? isEarlyCheckOut(_timeCtrl.text, schedule, _permissionMinutes)
                   : (isLateCheckIn(_timeCtrl.text, schedule) && _permissionMinutes == 0);

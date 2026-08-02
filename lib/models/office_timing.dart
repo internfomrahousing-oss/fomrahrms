@@ -1,4 +1,5 @@
 import 'app_user.dart';
+import 'user_session.dart';
 import '../services/supabase_service.dart';
 
 int? _minutesOf(String time) {
@@ -161,6 +162,17 @@ class OfficeTimingStore {
     }
     return scheduleForDepartment(department);
   }
+
+  /// Schedule for the SIGNED-IN user, honouring their timing exemption.
+  ///
+  /// The 13 attendance call sites previously used
+  /// scheduleForDepartment(UserSession.department) directly, which ignores the
+  /// exemption entirely — so an exempt user with no department (Management)
+  /// fell through to the 09:30 default and was asked for a late reason.
+  static OfficeTiming scheduleForCurrentUser() => scheduleFor(
+        exemptFromTiming: UserSession.exemptFromTiming,
+        department: UserSession.department,
+      );
 
   static OfficeTiming scheduleForUser(AppUser u) =>
       scheduleFor(exemptFromTiming: u.exemptFromTiming, department: u.department);
