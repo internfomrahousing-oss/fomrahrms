@@ -82,3 +82,37 @@ drop trigger if exists trg_start_el_on_confirmation on app_users;
 create trigger trg_start_el_on_confirmation
   before update of onroll_confirmed_at on app_users
   for each row execute function public.start_el_on_confirmation();
+
+-- ── Management is exempt from all of the above ──────────────────────────────
+-- Management is an oversight / super-admin role, not an employee under HR
+-- rules: no leave cycle, no payroll, no fixed hours, no fixed base, and never
+-- "on probation". Sharad Fomra had a blank onroll_confirmed_at only because
+-- the confirmation workflow was never run for him — which under the rules
+-- above would have limited the MD to one leave per cycle and no permission.
+--
+-- Exempting by ROLE rather than by confirming him keeps the distinction
+-- honest: he is not a confirmed employee, he is not an employee for these
+-- purposes at all.
+create or replace function public.is_management(p_employee_id text, p_employee_name text)
+returns boolean language sql stable as $function$
+  select coalesce(lower(btrim(role)), '') = 'management'
+    from app_users
+   where (coalesce(p_employee_id,'') <> '' and employee_id = p_employee_id)
+      or (coalesce(p_employee_id,'') =  '' and lower(btrim(name)) = lower(btrim(p_employee_name)))
+   limit 1;
+$function$;
+
+-- enforce_probation_leave_rules() and set_and_check_permission_minutes() both
+-- return early for Management. See 20260802000600 for the full bodies.
+
+-- Management is not on payroll. Flagged in the data rather than left to
+-- convention, so a payroll run can exclude them by query.
+create or replace view public.v_payroll_eligible_employees as
+  select employee_id, name, email, department, designation, gross_pay,
+         date_of_joining, onroll_confirmed_at
+    from app_users
+   where active
+     and lower(btrim(coalesce(role,''))) <> 'management';
+
+comment on view public.v_payroll_eligible_employees is
+  'Employees who should appear in a payroll run. Management is an oversight role and is excluded — not on payroll, not on the leave cycle, no fixed hours.';

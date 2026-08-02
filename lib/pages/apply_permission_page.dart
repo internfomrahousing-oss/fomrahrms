@@ -94,7 +94,7 @@ class _ApplyPermissionPageState extends State<ApplyPermissionPage> {
     // Permission is a confirmed-employee benefit. The database refuses these
     // outright (enforce_probation_leave_rules), so catch it here to give a
     // clear reason rather than a rejected request.
-    if (!UserSession.isOnroll) {
+    if (!UserSession.hasFullLeaveEntitlement) {
       _snack('Permission is not available during probation. '
              'It becomes available once your employment is confirmed.');
       return;
