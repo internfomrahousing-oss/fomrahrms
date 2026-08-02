@@ -116,6 +116,8 @@ function buildProfile(row: Record<string, unknown>) {
     // Drives probation rules in the client: while empty the employee gets one
     // leave per attendance cycle and no permission at all.
     onroll_confirmed_at: row.onroll_confirmed_at,
+    // Hides Check In/Out and excludes the user from attendance reporting.
+    exempt_from_attendance: row.exempt_from_attendance,
   };
 }
 
@@ -145,6 +147,7 @@ export async function findAppUserByLoginIdentifier(
     "auth_user_id",
     "company_email",
     "onroll_confirmed_at",
+    "exempt_from_attendance",
   ].join(", ");
 
   const columns = ["email", "company_email", "employee_id"] as const;

@@ -168,6 +168,7 @@ class _LoginPageState extends State<LoginPage> {
       workLocation: (profile['work_location'] as String?) ?? '',
       permissionMinutesQuota: (profile['permission_minutes_quota'] as num?)?.toInt() ?? 120,
       onrollConfirmedAt: (profile['onroll_confirmed_at'] as String?) ?? '',
+      exemptFromAttendance: (profile['exempt_from_attendance'] as bool?) ?? false,
     );
   }
 
@@ -180,6 +181,7 @@ class _LoginPageState extends State<LoginPage> {
     String workLocation = '',
     int permissionMinutesQuota = 120,
     String onrollConfirmedAt = '',
+    bool exemptFromAttendance = false,
   }) {
     UserSession.loggedIn         = true;
     UserSession.role             = role;
@@ -193,6 +195,7 @@ class _LoginPageState extends State<LoginPage> {
     UserSession.workLocation     = workLocation;
     UserSession.permissionMinutesQuota = permissionMinutesQuota;
     UserSession.isOnroll = onrollConfirmedAt.trim().isNotEmpty;
+    UserSession.exemptFromAttendance = exemptFromAttendance;
     SessionStorage.save();
     staffLanguageNotifier.loadForUser(employeeId);
     // Fetch photo URL in background — widgets listen via ValueNotifier pattern

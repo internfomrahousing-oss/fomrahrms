@@ -23,6 +23,11 @@ class UserSession {
   /// explain the limit instead of letting a request be rejected.
   static bool     isOnroll        = false;
 
+  /// Outside attendance entirely — no check-in, and excluded from attendance
+  /// dashboards and reports. True for the CEO. Per-employee rather than
+  /// per-role, so a Head of Operations at Management level is still tracked.
+  static bool     exemptFromAttendance = false;
+
   /// Management is an oversight role, exempt from the leave cycle, permission
   /// limits, fixed timings and payroll. Derived from [role].
   static bool get isManagement => role == UserRole.management;
