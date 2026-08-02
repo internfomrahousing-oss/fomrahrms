@@ -59,6 +59,10 @@ CheckInRowStatus checkInStatusFor(String checkInTime, DateTime date, String empl
 /// all — used for the compulsory-note prompt on check-in, before permission
 /// is factored in.
 bool isLateCheckIn(String checkInTime, OfficeTiming schedule) {
+  // No fixed hours -> never late. Without this a no-fixed-timing schedule
+  // (stored as 00:00-23:59) would make EVERY check-in after midnight "late",
+  // which is worse than the default it replaces.
+  if (schedule.noFixedTiming) return false;
   final minutes = _minutesOf(checkInTime);
   if (minutes == null) return false;
   return minutes > schedule.checkInMinutes;
@@ -67,6 +71,7 @@ bool isLateCheckIn(String checkInTime, OfficeTiming schedule) {
 /// True when [checkOutTime] ("HH:mm") is earlier than [schedule]'s
 /// check-out time, adjusted by any same-day approved Permission minutes.
 bool isEarlyCheckOut(String checkOutTime, OfficeTiming schedule, int permissionMinutes) {
+  if (schedule.noFixedTiming) return false;   // no fixed hours -> never early
   final minutes = _minutesOf(checkOutTime);
   if (minutes == null) return false;
   return minutes < (schedule.checkOutMinutes - permissionMinutes);

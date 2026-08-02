@@ -160,7 +160,7 @@ class _CheckInPageState extends State<CheckInPage> {
       return;
     }
 
-    final schedule = OfficeTimingStore.scheduleForDepartment(UserSession.department);
+    final schedule = OfficeTimingStore.scheduleForCurrentUser();
     if (!_onPermission && !outsideOffice && isLateCheckIn(_timeController.text, schedule) &&
         _noteController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -510,7 +510,7 @@ class _CheckInForm extends StatelessWidget {
             builder: (context, _) {
               final isLate = !onPermission &&
                   isLateCheckIn(timeController.text,
-                      OfficeTimingStore.scheduleForDepartment(UserSession.department));
+                      OfficeTimingStore.scheduleForCurrentUser());
               final showNote = isLate || outsideOffice;
               final noteLabel = outsideOffice && isLate
                   ? 'Reason for late & outside-location check-in (required)'
