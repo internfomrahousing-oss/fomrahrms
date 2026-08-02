@@ -13,10 +13,11 @@ select 'Sales', id from office_timings where name = 'Standard Hours'
 on conflict (department) do update set office_timing_id = excluded.office_timing_id;
 
 -- Land Acquisition gets its own 09:00 row. 'housekeeping employee hours' is
--- already 09:00-18:00, but reusing it would couple the two groups — editing
+-- already 09:00-18:00, but Land Acquisition finishes at 18:30 and reusing the
+-- row would couple the two groups anyway — editing
 -- housekeeping hours would move Land Acquisition too.
 insert into office_timings (name, check_in_time, check_out_time, grace_minutes, working_hours, is_default)
-select 'Land Acquisition Hours', '09:00', '18:00', 10, '9', false
+select 'Land Acquisition Hours', '09:00', '18:30', 10, '9.5', false
 where not exists (select 1 from office_timings where name = 'Land Acquisition Hours');
 
 insert into department_office_timings (department, office_timing_id)
