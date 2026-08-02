@@ -21,6 +21,13 @@ class OfficeTiming {
   final double workingHours;
   final bool isDefault;
 
+  /// Management has no fixed hours. When true, a check-in against this timing
+  /// is never assessed for lateness — see checkInStatusFor(). Modelled on the
+  /// timing rather than as a special-case department, because Management has
+  /// no department at all and keying off a blank one would silently exempt any
+  /// future employee whose department had simply not been filled in yet.
+  final bool noFixedTiming;
+
   const OfficeTiming({
     required this.id,
     required this.name,
@@ -29,6 +36,7 @@ class OfficeTiming {
     required this.graceMinutes,
     required this.workingHours,
     this.isDefault = false,
+    this.noFixedTiming = false,
   });
 
   int get checkInMinutes => _minutesOf(checkInTime) ?? 0;
@@ -52,6 +60,7 @@ class OfficeTiming {
         graceMinutes: (j['grace_minutes'] as num?)?.toInt() ?? 10,
         workingHours: _numFromJson(j['working_hours']) ?? 8,
         isDefault: j['is_default'] as bool? ?? false,
+        noFixedTiming: j['no_fixed_timing'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -62,6 +71,7 @@ class OfficeTiming {
         'grace_minutes': graceMinutes,
         'working_hours': workingHours,
         'is_default': isDefault,
+        'no_fixed_timing': noFixedTiming,
       };
 }
 
@@ -122,7 +132,27 @@ class OfficeTimingStore {
     return _timings.isEmpty ? fallback : _defaultTiming;
   }
 
-  static OfficeTiming scheduleForUser(AppUser u) => scheduleForDepartment(u.department);
+  /// The timing that means "no fixed hours", if one is configured.
+  static OfficeTiming? get _noFixedTiming {
+    final m = _timings.where((t) => t.noFixedTiming);
+    return m.isEmpty ? null : m.first;
+  }
+
+  /// Management has no department and no fixed hours, so resolve by ROLE
+  /// first. Falling through to scheduleForDepartment('') would land them on
+  /// the 09:30 default and flag them late.
+  static OfficeTiming scheduleForRole(String role, String department) {
+    if (role == 'Management') {
+      final t = _noFixedTiming;
+      if (t != null) return t;
+    }
+    return scheduleForDepartment(department);
+  }
+
+  // AppUser.role is a plain string ('Employee' | 'Manager' | 'HR' |
+  // 'Management'), not the UserRole enum used by UserSession.
+  static OfficeTiming scheduleForUser(AppUser u) =>
+      scheduleForRole(u.role, u.department);
 
   /// Departments currently assigned to [timingId] (for the admin UI).
   static List<String> departmentsFor(String timingId) => _departmentToTimingId.entries

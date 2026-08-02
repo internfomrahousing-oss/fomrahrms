@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/attendance_cycle.dart';
 import '../utils/el_accrual.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
@@ -166,8 +167,10 @@ class _EmployeeLeavePageState extends State<EmployeeLeavePage> {
 
   // ── Balance helpers ────────────────────────────────────────────────────────
   bool _isThisMonth(LeaveApplication a) {
-    final now = DateTime.now();
-    return a.from.year == now.year && a.from.month == now.month;
+    // Attendance cycle runs 26th -> 25th, so a calendar-month comparison
+    // splits a single cycle across two windows (and merges two cycles into
+    // one) around the boundary.
+    return isInCurrentCycle(a.from);
   }
 
   double _usedBucket(String bucket) => _apps

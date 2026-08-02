@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import '../utils/attendance_cycle.dart';
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../models/leave_form_config.dart';
@@ -157,9 +158,10 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
         if (a.employeeName != UserSession.name ||
             a.managerStatus != LeaveApprovalStatus.approved) continue;
         final bucket = a.bucket;
-        if (bucket == 'CL' && a.from.year == now.year && a.from.month == now.month) {
+        // CL/ML accrue per attendance cycle (26th -> 25th), not calendar month.
+        if (bucket == 'CL' && sameAttendanceCycle(a.from, now)) {
           usedCl += a.effectiveDays;
-        } else if (bucket == 'ML' && a.from.year == now.year && a.from.month == now.month) {
+        } else if (bucket == 'ML' && sameAttendanceCycle(a.from, now)) {
           usedMl += a.effectiveDays;
         } else if (bucket == 'EL' && (elCutoff == null || a.from.isAfter(elCutoff))) {
           usedEl += a.effectiveDays;

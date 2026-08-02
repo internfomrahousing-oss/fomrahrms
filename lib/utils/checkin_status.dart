@@ -39,6 +39,11 @@ int? _minutesOf(String time) {
 /// office timing), checking [leaveApps] for a same-day approved Permission.
 CheckInRowStatus checkInStatusFor(String checkInTime, DateTime date, String employeeName,
     List<LeaveApplication> leaveApps, OfficeTiming schedule) {
+  // Management has no fixed hours, so a check-in is never late. Handled here
+  // rather than at each of the seven call sites, so no view can disagree with
+  // another about whether the same person was late.
+  if (schedule.noFixedTiming) return const CheckInRowStatus(CheckInStatus.onTime, 0);
+
   final minutes = _minutesOf(checkInTime);
   if (minutes == null) return const CheckInRowStatus(CheckInStatus.none, 0);
   if (minutes <= schedule.checkInMinutes) return const CheckInRowStatus(CheckInStatus.onTime, 0);
