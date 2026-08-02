@@ -1,3 +1,5 @@
+import '../utils/attendance_cycle.dart';
+
 enum LeaveApprovalStatus { pending, approved, denied }
 
 class LeaveApplication {
@@ -93,39 +95,50 @@ class LeaveStore {
     return 60;
   }
 
-  static int permUsedThisMonth(String employeeName) {
+  /// Minutes used in the CURRENT ATTENDANCE CYCLE (26th -> 25th), not the
+  /// calendar month. Comparing calendar months put 26 July and 3 August in
+  /// different windows when they are in the same cycle, which let an employee
+  /// spend a full 120-minute allowance twice in eleven days.
+  static int permUsedThisCycle(String employeeName) {
     final now = DateTime.now();
     return applications
         .where((a) =>
             a.leaveType == 'Permission' &&
             a.employeeName == employeeName &&
-            a.from.year == now.year &&
-            a.from.month == now.month &&
+            sameAttendanceCycle(a.from, now) &&
             a.managerStatus != LeaveApprovalStatus.denied)
         .fold<int>(0, (sum, a) => sum + permMinutesFromReason(a.reason));
   }
 
+  @Deprecated('Use permUsedThisCycle — the cycle runs 26th to 25th')
+  static int permUsedThisMonth(String employeeName) => permUsedThisCycle(employeeName);
+
   /// Count-based monthly cap used by the Staff Portal (max 2 permission
   /// requests/month, regardless of duration) — distinct from the regular
   /// employee portal's minute-based cap in [permUsedThisMonth].
-  static int permCountThisMonth(String employeeName) {
+  static int permCountThisCycle(String employeeName) {
     final now = DateTime.now();
     return applications
         .where((a) =>
             a.leaveType == 'Permission' &&
             a.employeeName == employeeName &&
-            a.from.year == now.year &&
-            a.from.month == now.month &&
+            sameAttendanceCycle(a.from, now) &&
             a.managerStatus != LeaveApprovalStatus.denied)
         .length;
   }
+
+  @Deprecated('Use permCountThisCycle — the cycle runs 26th to 25th')
+  static int permCountThisMonth(String employeeName) => permCountThisCycle(employeeName);
 
   /// Staff Portal holiday allowance: 1 per calendar month, fixed (no
   /// HR-configurable "days / year" allocation like regular employees, and
   /// unused days don't carry over) — a fresh count each month. Staff still
   /// pick which of these two it's for (shown to HR), but both draw from the
   /// same single monthly slot — there's no separate CL/ML bucket for staff.
-  static const int staffMonthlyHolidayAllowance = 1;
+  static const int staffCycleHolidayAllowance = 1;
+
+  @Deprecated('Use staffCycleHolidayAllowance — resets per 26th-to-25th cycle')
+  static const int staffMonthlyHolidayAllowance = staffCycleHolidayAllowance;
   static const staffLeaveTypes = ['Casual Leave', 'Medical Leave'];
 
   /// True for staff-portal leave applications — the plain 'Leave' label from
@@ -133,15 +146,18 @@ class LeaveStore {
   static bool isStaffLeaveType(String leaveType) =>
       leaveType == 'Leave' || staffLeaveTypes.contains(leaveType);
 
-  static int staffLeaveCountThisMonth(String employeeName) {
+  static int staffLeaveCountThisCycle(String employeeName) {
     final now = DateTime.now();
     return applications
         .where((a) =>
             isStaffLeaveType(a.leaveType) &&
             a.employeeName == employeeName &&
-            a.from.year == now.year &&
-            a.from.month == now.month &&
+            sameAttendanceCycle(a.from, now) &&
             a.managerStatus != LeaveApprovalStatus.denied)
         .length;
   }
+
+  @Deprecated('Use staffLeaveCountThisCycle — the cycle runs 26th to 25th')
+  static int staffLeaveCountThisMonth(String employeeName) =>
+      staffLeaveCountThisCycle(employeeName);
 }

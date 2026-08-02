@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/attendance_cycle.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
@@ -108,8 +109,10 @@ class _HrLeaveRecordsPageState extends State<HrLeaveRecordsPage>
 
   // Filter to current month only — leaves reset each month, no carry-over
   bool _isThisMonth(LeaveApplication a) {
-    final now = DateTime.now();
-    return a.from.year == now.year && a.from.month == now.month;
+    // Attendance cycle runs 26th -> 25th, so a calendar-month comparison
+    // splits a single cycle across two windows (and merges two cycles into
+    // one) around the boundary.
+    return isInCurrentCycle(a.from);
   }
 
   double _usedBucket(String name, String bucket, {bool monthOnly = true}) =>
