@@ -969,14 +969,16 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     final now = DateTime.now();
     final empName = UserSession.name.isNotEmpty ? UserSession.name : 'Employee';
 
-    final selfiePath = await SelfieCaptureService.captureAndUpload(
+    final selfiePath = !selfieRequiredForCurrentUser
+        ? ''   // Management: no selfie required
+        : await SelfieCaptureService.captureAndUpload(
       employeeId: UserSession.employeeId,
       date: _fmtDate(now),
       kind: 'checkin',
       label: 'Check-In',
     );
     if (!mounted) return;
-    if (selfiePath == null) {
+    if (selfiePath == null && selfieRequiredForCurrentUser) {
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('A selfie is required to check in. Please try again.'),
@@ -1052,14 +1054,16 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     setState(() => _submitting = true);
     final now = DateTime.now();
 
-    final selfiePath = await SelfieCaptureService.captureAndUpload(
+    final selfiePath = !selfieRequiredForCurrentUser
+        ? ''   // Management: no selfie required
+        : await SelfieCaptureService.captureAndUpload(
       employeeId: UserSession.employeeId,
       date: _fmtDate(now),
       kind: 'checkout',
       label: 'Check-Out',
     );
     if (!mounted) return;
-    if (selfiePath == null) {
+    if (selfiePath == null && selfieRequiredForCurrentUser) {
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('A selfie is required to check out. Please try again.'),

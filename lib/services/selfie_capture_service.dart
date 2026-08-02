@@ -1,5 +1,16 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import '../models/user_session.dart';
+
+/// Whether the signed-in user must supply a selfie to check in or out.
+///
+/// Management works to no fixed hours and no fixed location, and their
+/// attendance is oversight rather than a record anyone audits, so the selfie
+/// adds nothing. Derived from the ROLE in ONE place rather than repeated at
+/// each of the six capture sites — the late-reason prompt was raised in three
+/// separate files and fixing only one of them cost several rounds.
+bool get selfieRequiredForCurrentUser =>
+    UserSession.role != UserRole.management;
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
