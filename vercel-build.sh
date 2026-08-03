@@ -20,27 +20,32 @@ flutter pub get
 # any local setup.
 
 echo "==========================================================="
+echo "  flutter test"
+echo "==========================================================="
+# Runs BEFORE analyze so its result is never buried: Vercel truncates the log
+# at 4 MB and a noisy analyze pass previously swallowed it entirely.
+#
+# The suite has never been confirmed green, so a failure must not block
+# deployment yet — an untested assertion breaking a release would be worse
+# than the bug it was meant to catch. Once a build shows it passing, drop the
+# '|| echo' and it becomes a real gate.
+flutter test --reporter compact \
+  || echo ">>> TESTS FAILED - not blocking yet, see note in vercel-build.sh"
+
+echo
+echo "==========================================================="
 echo "  flutter analyze"
 echo "==========================================================="
 # Non-blocking. `flutter build` below already fails the deploy on a genuine
 # compile or type error, so the value here is the lint and warning output,
 # which should not block a deploy on its own.
-flutter analyze --no-fatal-infos --no-fatal-warnings \
+# Scope to OUR code. The Flutter SDK is cloned into _flutter_sdk inside the
+# project, so a bare `flutter analyze` walks the SDK's own packages too — its
+# integration_test package alone emits thousands of errors against this SDK
+# version. That flooded the build log past Vercel's 4 MB limit and buried the
+# test results, which is the whole reason these steps exist.
+flutter analyze lib test 2>&1 | tail -40 \
   || echo ">>> analyze reported issues (not blocking the deploy)"
-
-echo
-echo "==========================================================="
-echo "  flutter test"
-echo "==========================================================="
-# The suite in test/ has NEVER been executed — it was written after CI was
-# removed. Until it is confirmed green, a failure here must not block
-# deployment: an untested assertion breaking a release would be worse than the
-# bug it was meant to catch.
-#
-# Once a build shows the suite passing, drop the `|| echo` so a failure fails
-# the deploy. That is the whole point of having it.
-flutter test --reporter expanded \
-  || echo ">>> TESTS FAILED - not blocking yet, see note in vercel-build.sh"
 
 echo
 echo "==========================================================="
