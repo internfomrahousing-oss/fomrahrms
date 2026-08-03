@@ -492,6 +492,7 @@ class _HrAttendanceRecordsPageState extends State<HrAttendanceRecordsPage> {
                 records: summaryRecords,
                 allUsers: summaryUsers,
                 totalUsers: summaryUsers.length,
+                missingReasons: _missingReasons,
                 leaveApps: _leaveApps,
                 selectedDate: _selectedDate,
                 isToday: _isToday,
@@ -545,6 +546,10 @@ class _AttendanceSummaryCard extends StatelessWidget {
   // Restricts trend/comp-off day math to this set of employee names when a
   // department filter is active; null means "everyone".
   final Set<String>? summaryUserNames;
+  /// employeeName -> why they have no record today. Without this the card
+  /// computed absent as (totalUsers - present), which counts weekly offs,
+  /// public holidays, approved leave and the CEO as absences.
+  final Map<String, NonWorkingReason> missingReasons;
   final List<String> departments;
   final String? departmentFilter;
   final ValueChanged<String?> onDepartmentChanged;
@@ -556,6 +561,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
     required this.records,
     required this.allUsers,
     required this.totalUsers,
+    this.missingReasons = const {},
     required this.leaveApps,
     required this.selectedDate,
     required this.isToday,
@@ -619,9 +625,29 @@ class _AttendanceSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final presentRecords = records.where((r) => r.checkInTime.isNotEmpty).toList();
     final present = presentRecords.length;
-    final absent  = (totalUsers - present).clamp(0, totalUsers);
     final presentNames = presentRecords.map((r) => r.employeeName.trim().toLowerCase()).toSet();
-    final absentUsers = allUsers.where((u) => !presentNames.contains(u.name.trim().toLowerCase())).toList();
+
+    // Only a genuine unexplained absence counts. A weekly off, a public
+    // holiday, approved leave, or being exempt from attendance all produce no
+    // record and none of them is an absence — the old (totalUsers - present)
+    // arithmetic counted all of them, which is why five people showed absent
+    // every Sunday and the CEO showed absent every day.
+    final absentUsers = allUsers
+        .where((u) => !presentNames.contains(u.name.trim().toLowerCase()))
+        .where((u) =>
+            (missingReasons[u.name] ?? NonWorkingReason.absent).countsAsAbsent)
+        .toList();
+    final absent = absentUsers.length;
+
+    // Employees not tracked at all are outside the percentages too, otherwise
+    // "80% present" is measured against a headcount that includes someone who
+    // can never check in.
+    final trackedUsers = (totalUsers -
+            allUsers
+                .where((u) =>
+                    missingReasons[u.name] == NonWorkingReason.notTracked)
+                .length)
+        .clamp(0, totalUsers);
     final lateRecords = records.where((r) => _rowStatus(r, leaveApps, allUsers).status == CheckInStatus.late).toList();
     final permissionRecords = records.where((r) => _rowStatus(r, leaveApps, allUsers).status == CheckInStatus.permission).toList();
     final lateArrivals = lateRecords.length;
@@ -653,7 +679,7 @@ class _AttendanceSummaryCard extends StatelessWidget {
       );
     }).toList();
 
-    double pct(int n) => totalUsers == 0 ? 0 : n / totalUsers * 100;
+    double pct(int n) => trackedUsers == 0 ? 0 : n / trackedUsers * 100;
     double deltaPct(
         int Function(({int present, int late, int permission, int compOff}) d) pick) {
       if (trendDayData.length < 2) return 0;
