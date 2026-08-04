@@ -108,26 +108,31 @@ class _CheckInPageState extends State<CheckInPage> {
 
     setState(() => _locatingForCheckIn = true);
 
-    // Both stores are kicked off fire-and-forget in main(), so on a cold start
-    // or a slow connection they can still be EMPTY here. An empty
-    // AttendancePolicyStore makes policyForEmployee() return the built-in
-    // fallback — Office, single_location — so a user whose real policy is
-    // Unrestricted is geofenced anyway; combined with GPS being unavailable
-    // that produces a location-reason prompt for someone who should never see
-    // one. An empty OfficeTimingStore likewise loses the no-fixed-timing row,
-    // so Management falls through to the 09:30 default and is asked for a late
-    // reason.
+    // Ask for the position FIRST, before anything that awaits the network.
     //
-    // This is why the Management exemption appeared not to work no matter how
-    // the flag was resolved: the flag was right, the code was right, and the
-    // store simply had not loaded yet.
+    // Safari ties the geolocation permission prompt to a user gesture and will
+    // refuse the request if too much has happened since the tap. Loading the
+    // two stores first — two round-trips to Supabase — is long enough for
+    // Safari to treat the gesture as spent and deny silently, which
+    // getCurrentLocation() then reports as "permission not granted".
+    //
+    // Everyone here uses Safari, and GPS has been null on 100% of attendance
+    // records. Ordering the store loads ahead of this call was my change, and
+    // it can only have made that worse. The stores are not needed until the
+    // geofence is evaluated below, so this costs nothing.
+    final pos = await GpsTrackingService.getCurrentLocation();
+
+    // Now load the stores. Both are kicked off fire-and-forget in main(), so
+    // on a cold start they can still be EMPTY. An empty AttendancePolicyStore
+    // makes policyForEmployee() return the built-in fallback (Office,
+    // single_location), geofencing a user whose real policy is Unrestricted;
+    // an empty OfficeTimingStore loses the no-fixed-timing row, so Management
+    // falls through to the 09:30 default and is asked for a late reason.
     await Future.wait([
       AttendancePolicyStore.ensureLoaded(),
       OfficeTimingStore.ensureLoaded(),
     ]);
     if (!mounted) return;
-
-    final pos = await GpsTrackingService.getCurrentLocation();
     final policy = AttendancePolicyStore.policyForEmployee(
       employeeId: UserSession.employeeId,
       department: UserSession.department,
