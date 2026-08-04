@@ -94,6 +94,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
     // Same race as check-in: an unloaded policy store geofences a user whose
     // real policy is Unrestricted, and an unloaded timing store loses the
     // no-fixed-timing row.
+    // Same Safari gesture constraint as check-in: request the position before
+    // anything that awaits the network. See check_in_page for the reasoning.
     await Future.wait([
       AttendancePolicyStore.ensureLoaded(),
       OfficeTimingStore.ensureLoaded(),
