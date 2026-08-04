@@ -628,6 +628,12 @@ class SupabaseService {
       await _db?.from('leave_applications').upsert({
         'id':             app.id,
         'employee_name':  app.employeeName,
+        // Was omitted entirely. RLS on leave_applications gates writes on
+        // employee_id (or the employee's own name), so with this blank an
+        // ordinary employee's insert was REJECTED — and the catch below
+        // swallowed it, so the UI reported success and raised a notification
+        // while nothing was written. Leave requests silently vanished.
+        'employee_id':    UserSession.employeeId,
         'department':     app.department,
         'leave_type':     app.leaveType,
         'from_date':      app.from.toIso8601String().substring(0, 10),
@@ -637,7 +643,18 @@ class SupabaseService {
         'applied_on':     app.appliedOn.toIso8601String(),
         'manager_status': app.managerStatus.name,
       });
-    } catch (_) {}
+    } catch (e) {
+      // NEVER swallow this again. A rejected write here means the employee's
+      // leave request does not exist, while every other signal — the snackbar,
+      // the notification — says it does.
+      // Deliberately not rethrown: three of the five call sites do not await
+      // this, so a rethrow would become an unhandled async error rather than
+      // anything the employee sees. Logged loudly instead — the silent
+      // `catch (_) {}` here is what let leave requests vanish while the UI
+      // reported success.
+      // ignore: avoid_print
+      print('saveLeaveApplication FAILED for ${app.employeeName}: $e');
+    }
     // is_half_day / proof_url / leave_bucket — added later; skipped silently if columns not yet in DB
     try {
       await _db?.from('leave_applications')
