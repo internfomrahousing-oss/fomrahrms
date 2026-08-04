@@ -124,6 +124,7 @@ class NotificationService {
     required String leaveType,
     required bool approved,
     required String employeeRoutePrefix, // '', '/employee', '/manager', '/management'
+    String employeeName = '',
   }) async {
     await _create(
       type: 'leave_decided',
@@ -132,13 +133,30 @@ class NotificationService {
       route: '$employeeRoutePrefix/attendance-leaves',
       targetEmail: employeeEmail,
     );
-    // Management-wide visibility into who approved/rejected what — the
-    // decider is whoever's signed in when this fires.
+
+    // HR and Management both get a copy. HR was previously left out entirely,
+    // so leave could be approved by a reporting manager without HR ever
+    // knowing — while HR is the function that has to act on it for attendance
+    // and payroll.
+    //
+    // The employee's NAME is included in the copy. Without it the notification
+    // read "Leave approved by Sharad — Casual Leave", which does not say whose
+    // leave, and the recipient had to open the queue to find out.
     if (UserSession.name.isNotEmpty) {
+      final who = employeeName.isNotEmpty ? '$employeeName — ' : '';
+      final title = 'Leave ${approved ? 'approved' : 'rejected'} by ${UserSession.name}';
+
       await _create(
         type: 'leave_decided',
-        title: 'Leave ${approved ? 'approved' : 'rejected'} by ${UserSession.name}',
-        body: leaveType,
+        title: title,
+        body: '$who$leaveType',
+        route: '/leave-management',
+        targetRole: 'HR',
+      );
+      await _create(
+        type: 'leave_decided',
+        title: title,
+        body: '$who$leaveType',
         route: '/management/leave-management',
         targetRole: 'Management',
       );

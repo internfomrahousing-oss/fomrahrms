@@ -1221,7 +1221,25 @@ class _OnboardingFormPageState extends State<OnboardingFormPage> {
             value: _familyRelations[i],
             label: req ? 'Relation *' : 'Relation',
             required: req,
-            items: const ['Mother', 'Father', 'Child', 'Spouse'],
+            // Siblings and dependants were unrepresentable: an employee with
+            // a brother, sister or dependent relative had no option to pick,
+            // so the row either went unfilled or was mislabelled as 'Child'.
+            items: const [
+              'Father',
+              'Mother',
+              'Spouse',
+              'Son',
+              'Daughter',
+              // Retained: earlier submissions stored 'Child', and a
+              // DropdownButtonFormField whose value is absent from its items
+              // throws. Five submissions already exist.
+              'Child',
+              'Brother',
+              'Sister',
+              'Father-in-law',
+              'Mother-in-law',
+              'Other',
+            ],
             onChanged: (v) => setState(() => _familyRelations[i] = v),
           ),
         ),
