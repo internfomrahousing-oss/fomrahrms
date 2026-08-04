@@ -596,6 +596,47 @@ class LoginResult {
 }
 
 class SupabaseService {
+
+  /// Reports a write that failed instead of discarding it.
+  ///
+  /// Every write in this file used to end in `catch (_) {}`. That is how leave
+  /// requests disappeared: RLS rejected the insert, the exception was thrown
+  /// away, and the UI went on to show a success message and raise a
+  /// notification for a row that did not exist. The screen and the database
+  /// disagreed and nothing anywhere said so.
+  ///
+  /// Swallowing is still the behaviour — these calls are mostly fire-and-forget
+  /// and throwing would surface as an unhandled async error rather than
+  /// anything a user sees — but the failure is now visible in the browser
+  /// console and recorded, so the next one is diagnosable in minutes rather
+  /// than by tracing a user complaint back through the code.
+  static void _writeFailed(String operation, Object error) {
+    // ignore: avoid_print
+    print('[write-failed] $operation: $error');
+    lastWriteFailure = '$operation: $error';
+    // Fire-and-forget, with the error explicitly absorbed. Without the
+    // .catchError this would be an unawaited Future whose rejection becomes an
+    // unhandled async error — replacing one silent failure with a noisier one.
+    try {
+      _db
+          ?.from('audit_log')
+          .insert({
+            'action': 'write_failed',
+            'actor_email': UserSession.email,
+            'actor_role': UserSession.role.name,
+            'target_type': 'supabase_service',
+            'target_id': operation,
+            'details': {'error': error.toString()},
+          })
+          .catchError((_) {});
+    } catch (_) {
+      // Auditing must never itself block or recurse.
+    }
+  }
+
+  /// Most recent write failure, for surfacing in the UI where a user is
+  /// waiting on the result.
+  static String? lastWriteFailure;
   static SupabaseClient? get _db {
     try {
       return Supabase.instance.client;
@@ -660,17 +701,17 @@ class SupabaseService {
       await _db?.from('leave_applications')
           .update({'is_half_day': app.isHalfDay})
           .eq('id', app.id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveLeaveApplication', e); }
     try {
       await _db?.from('leave_applications')
           .update({'proof_url': app.proofUrl})
           .eq('id', app.id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveLeaveApplication', e); }
     try {
       await _db?.from('leave_applications')
           .update({'leave_bucket': app.leaveBucket})
           .eq('id', app.id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveLeaveApplication', e); }
     logAuditEvent('leave_application_saved', targetType: 'leave_applications', targetId: app.id);
   }
 
@@ -685,7 +726,7 @@ class SupabaseService {
       }).eq('id', id);
       logAuditEvent('leave_manager_decision', targetType: 'leave_applications', targetId: id,
           details: {'status': status.name});
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateLeaveManagerStatus', e); }
   }
 
   /// Called when management (HR/admin) approves or denies — writes to the
@@ -701,7 +742,7 @@ class SupabaseService {
       }).eq('id', id);
       logAuditEvent('leave_management_decision', targetType: 'leave_applications', targetId: id,
           details: {'status': status.name});
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateLeaveManagementStatus', e); }
   }
 
   static Future<List<LeaveApplication>> fetchLeaveApplications() async {
@@ -793,7 +834,7 @@ class SupabaseService {
       await _db?.from('maintenance_tickets')
           .update(payload)
           .eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTicketSentToManagement', e); }
   }
 
   static Future<void> updateTicketStatus(
@@ -803,7 +844,7 @@ class SupabaseService {
           ?.from('maintenance_tickets')
           .update({'status': status.name})
           .eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTicketStatus', e); }
   }
 
   static Future<void> updateTicketManagementReviewed(String id, bool reviewed) async {
@@ -811,7 +852,7 @@ class SupabaseService {
       await _db?.from('maintenance_tickets')
           .update({'management_reviewed': reviewed})
           .eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTicketManagementReviewed', e); }
   }
 
   static Future<void> updateTicketResolution(
@@ -822,7 +863,7 @@ class SupabaseService {
         'resolution_note': note,
         'resolved_at':     resolvedAt.toIso8601String(),
       }).eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTicketResolution', e); }
   }
 
   static Future<List<MaintenanceTicket>> fetchMaintenanceTickets() async {
@@ -884,7 +925,7 @@ class SupabaseService {
         'reporting_manager': data.reportingManager,
         'date_of_joining':   data.dateOfJoining,
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveProfile', e); }
   }
 
   static Future<List<ProfileData>> fetchProfiles() async {
@@ -928,7 +969,7 @@ class SupabaseService {
         'bank_account':    emp.bankAccount,
         'ifsc':            emp.ifsc,
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveEmployee', e); }
   }
 
   static Future<List<Employee>> fetchEmployees() async {
@@ -1298,7 +1339,7 @@ class SupabaseService {
       await _db?.from('app_users').update({
         'el_avail_requested_at': DateTime.now().toIso8601String(),
       }).eq('email', email);
-    } catch (_) {}
+    } catch (e) { _writeFailed('requestElAvail', e); }
   }
 
   static Future<void> confirmElAvail(String email) async {
@@ -1308,13 +1349,13 @@ class SupabaseService {
         'el_last_availed_at':    now,
         'el_avail_requested_at': '',
       }).eq('email', email);
-    } catch (_) {}
+    } catch (e) { _writeFailed('confirmElAvail', e); }
   }
 
   static Future<void> deleteAppUser(String email) async {
     try {
       await _db?.from('app_users').delete().eq('email', email);
-    } catch (_) {}
+    } catch (e) { _writeFailed('deleteAppUser', e); }
   }
 
   // ── Tasks ─────────────────────────────────────────────────────────────
@@ -1322,13 +1363,13 @@ class SupabaseService {
   static Future<void> saveTask(Task task) async {
     try {
       await _db?.from('tasks').upsert(task.toJson());
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveTask', e); }
   }
 
   static Future<void> deleteTask(String id) async {
     try {
       await _db?.from('tasks').delete().eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('deleteTask', e); }
   }
 
   // [note] is the reason given for completing a task after it went Delayed
@@ -1343,11 +1384,11 @@ class SupabaseService {
           'completion_note': note,
         }).eq('id', id);
         return;
-      } catch (_) {}
+      } catch (e) { _writeFailed('updateTaskStatus', e); }
     }
     try {
       await _db?.from('tasks').update({'status': status.name}).eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTaskStatus', e); }
   }
 
   static Future<void> updateTaskReceived(String id, DateTime receivedAt) async {
@@ -1356,7 +1397,7 @@ class SupabaseService {
         'status': TaskStatus.inProgress.name,
         'received_at': receivedAt.toIso8601String(),
       }).eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTaskReceived', e); }
   }
 
   // Updates one team member's status; if allCompleted, also flips overall
@@ -1374,11 +1415,11 @@ class SupabaseService {
         await _db?.from('tasks')
             .update({...update, 'completion_note': note}).eq('id', taskId);
         return;
-      } catch (_) {}
+      } catch (e) { _writeFailed('updateTeamMemberStatus', e); }
     }
     try {
       await _db?.from('tasks').update(update).eq('id', taskId);
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateTeamMemberStatus', e); }
   }
 
   static Future<List<Task>> fetchTasks() async {
@@ -2225,7 +2266,7 @@ class SupabaseService {
           ?.from('attendance_records')
           .update({'location': location})
           .eq('id', _attendanceId(employeeId, date));
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateLocation', e); }
   }
 
   static Future<void> updateGpsPoints({
@@ -2238,7 +2279,7 @@ class SupabaseService {
           ?.from('attendance_records')
           .update({'gps_points': points})
           .eq('id', _attendanceId(employeeId, date));
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateGpsPoints', e); }
   }
 
   static Future<List<List<double>>> fetchGpsPoints({
@@ -2295,7 +2336,7 @@ class SupabaseService {
           })
           .eq('id', _attendanceId(employeeId, date));
       logAuditEvent('attendance_check_out', targetType: 'attendance_records', targetId: employeeId);
-    } catch (_) {}
+    } catch (e) { _writeFailed('saveCheckOut', e); }
   }
 
   static Future<List<AttendanceRecord>> fetchAttendanceForDate(String date) async {
@@ -2525,7 +2566,7 @@ class SupabaseService {
       final checkIn  = (row['check_in_time']  as String?) ?? '';
       final checkOut = (row['check_out_time'] as String?) ?? '';
       AttendanceStore.isCheckedIn = checkIn.isNotEmpty && checkOut.isEmpty;
-    } catch (_) {}
+    } catch (e) { _writeFailed('restoreCheckInState', e); }
   }
 
   // ── Announcements ─────────────────────────────────────────────────────────
@@ -2591,7 +2632,7 @@ class SupabaseService {
   static Future<void> deleteAnnouncement(String id) async {
     try {
       await _db?.from('announcements').delete().eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('deleteAnnouncement', e); }
   }
 
   // ── Holidays ───────────────────────────────────────────────────────────────
@@ -2617,13 +2658,13 @@ class SupabaseService {
         'name': name,
         'holiday_date': date.toIso8601String().substring(0, 10),
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('addHoliday', e); }
   }
 
   static Future<void> deleteHoliday(String id) async {
     try {
       await _db?.from('holidays').delete().eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('deleteHoliday', e); }
   }
 
   // ── Birthdays ──────────────────────────────────────────────────────────────
@@ -2770,13 +2811,13 @@ class SupabaseService {
         'name': name,
         'birthday_date': date.toIso8601String().substring(0, 10),
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('addBirthday', e); }
   }
 
   static Future<void> deleteBirthday(String id) async {
     try {
       await _db?.from('birthdays').delete().eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('deleteBirthday', e); }
   }
 
   // ── Employee of the Month ──────────────────────────────────────────────────
@@ -2860,7 +2901,7 @@ class SupabaseService {
         'id': 'global',
         'color_theme': themeKey,
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('setColorTheme', e); }
   }
 
   // ── App settings (global welcome-banner quote) ───────────────────────────────
@@ -2889,7 +2930,7 @@ class SupabaseService {
         'banner_quote': quote,
         'banner_quote_author': author,
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('setBannerQuote', e); }
   }
 
   // ── Payslip requests ─────────────────────────────────────────────────────
@@ -2928,7 +2969,7 @@ class SupabaseService {
   static Future<void> requestPayslip(PayslipRequest req) async {
     try {
       await _db?.from('payslip_requests').upsert(req.toJson());
-    } catch (_) {}
+    } catch (e) { _writeFailed('requestPayslip', e); }
   }
 
   static Future<void> decidePayslipRequest(
@@ -2941,7 +2982,7 @@ class SupabaseService {
         'decided_by': decidedBy,
         'rejection_comment': rejectionComment,
       }).eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('decidePayslipRequest', e); }
   }
 
   // ── Payslips ──────────────────────────────────────────────────────────────
@@ -2965,7 +3006,7 @@ class SupabaseService {
   static Future<void> savePayslip(Payslip p) async {
     try {
       await _db?.from('payslips').upsert(p.toJson());
-    } catch (_) {}
+    } catch (e) { _writeFailed('savePayslip', e); }
   }
 
   /// All employees' payslips for one month (`'YYYY-MM'`) — unlike
@@ -3055,13 +3096,13 @@ class SupabaseService {
         'target_reporting_manager': targetReportingManager,
         'source_id':                sourceId,
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('insertNotification', e); }
   }
 
   static Future<void> markNotificationRead(String id, List<String> readBy) async {
     try {
       await _db?.from('notifications').update({'read_by': readBy}).eq('id', id);
-    } catch (_) {}
+    } catch (e) { _writeFailed('markNotificationRead', e); }
   }
 
   // ── Push notification device tokens ─────────────────────────────────────
@@ -3078,13 +3119,13 @@ class SupabaseService {
         'platform':   platform,
         'updated_at': DateTime.now().toIso8601String(),
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('upsertDeviceToken', e); }
   }
 
   static Future<void> deleteDeviceToken(String token) async {
     try {
       await _db?.from('device_tokens').delete().eq('token', token);
-    } catch (_) {}
+    } catch (e) { _writeFailed('deleteDeviceToken', e); }
   }
 
   // ── Transactional email (Zoho SMTP via the send-email Edge Function) ────
@@ -3209,7 +3250,7 @@ class SupabaseService {
         final email = (results.first['email'] as String?)?.trim();
         if (email != null && email.isNotEmpty) return email;
       }
-    } catch (_) {}
+    } catch (e) { _writeFailed('fetchCandidatePersonalEmail', e); }
     return null;
   }
 
@@ -3388,7 +3429,7 @@ class SupabaseService {
           })
           .eq('assigned_email', email)
           .eq('status', 'activation_sent');
-    } catch (_) {}
+    } catch (e) { _writeFailed('completeAccountActivation', e); }
     // "Date of joining" (if not already set) is stamped server-side inside
     // complete_account_activation() itself — see
     // supabase/migrations/20260725010000_stamp_date_of_joining_on_activation.sql.
@@ -3413,7 +3454,7 @@ class SupabaseService {
           })
           .eq('assigned_email', email)
           .eq('status', 'password_created');
-    } catch (_) {}
+    } catch (e) { _writeFailed('markOnboardingAccountActive', e); }
   }
 
   // ── Forgot Password tokens (already-active accounts) ───────────────────
@@ -3509,7 +3550,7 @@ class SupabaseService {
         'p_target_id': targetId,
         'p_details': details ?? {},
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('logAuditEvent', e); }
   }
 
   /// Only succeeds if [email] genuinely has no password yet — via
@@ -3607,7 +3648,7 @@ class SupabaseService {
         'email': email,
         'muted_categories': categoryIds,
       });
-    } catch (_) {}
+    } catch (e) { _writeFailed('setMutedCategories', e); }
   }
 
   // ── Initial load on app start ─────────────────────────────────────────
@@ -3801,7 +3842,7 @@ class SupabaseService {
             .from('onboarding_forms')
             .update({'attachments': attachments}).eq('id', row['id']);
       }
-    } catch (_) {}
+    } catch (e) { _writeFailed('updateCurrentUserPhoto', e); }
 
     return resolveAttachmentUrl(path, bucket: 'RESUME', expiresIn: 86400);
   }
