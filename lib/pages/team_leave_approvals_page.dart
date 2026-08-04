@@ -267,6 +267,7 @@ class _TeamLeaveApprovalsPageState extends State<TeamLeaveApprovalsPage>
       leaveType: app.leaveType,
       approved: approved,
       employeeRoutePrefix: _routePrefixForRole(user.role),
+      employeeName: app.employeeName,
     ).catchError((_) {});
   }
 
