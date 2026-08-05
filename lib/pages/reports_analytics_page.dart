@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/employee_list_dialog.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
@@ -252,11 +253,26 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
           final deptUsers = _filteredUsers.where((u) => u.department == dept && u.active).toSet();
           final deptNames = deptUsers.map((u) => u.name.toLowerCase()).toSet();
           final possible = deptUsers.length * days;
-          final present = _rangeFiltered
-              .where((r) => deptNames.contains(r.employeeName.toLowerCase()) && r.checkInTime.isNotEmpty)
-              .length;
+          final presentRecords = _rangeFiltered.where((r) =>
+              deptNames.contains(r.employeeName.toLowerCase()) && r.checkInTime.isNotEmpty);
+          final present = presentRecords.length;
+          // Distinct people, not record count — the bar counts records over the
+          // range, but a person is what someone wants to see when they tap it.
+          final presentNames = presentRecords
+              .map((r) => r.employeeName)
+              .toSet()
+              .toList()
+            ..sort();
+          final allNames = _users
+              .where((u) => u.department == dept)
+              .map((u) => u.name)
+              .toList()
+            ..sort();
           return DepartmentAttendanceBar(
-              department: dept, percent: possible == 0 ? 0 : (present / possible).clamp(0.0, 1.0));
+              department: dept,
+              percent: possible == 0 ? 0 : (present / possible).clamp(0.0, 1.0),
+              presentNames: presentNames,
+              allNames: allNames);
         }(),
     ];
   }
@@ -284,21 +300,69 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
     ];
   }
 
+  static const _mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  String _dayLabel(DateTime d) => '${d.day} ${_mon[d.month - 1]}';
+
+  /// Who is behind a department bar. Present people first, then the rest of
+  /// the department marked absent, so the percentage is explained both ways.
+  void _showDepartmentPeople(DepartmentAttendanceBar bar) {
+    final present = bar.presentNames.toSet();
+    final items = <EmployeeListItem>[
+      for (final n in bar.presentNames)
+        EmployeeListItem(name: n, subtitle: 'Present'),
+      for (final n in bar.allNames.where((n) => !present.contains(n)))
+        EmployeeListItem(name: n, subtitle: 'No attendance in this range'),
+    ];
+    showEmployeeListDialog(
+      context,
+      title: '${bar.department} — ${(bar.percent * 100).toStringAsFixed(0)}% attendance',
+      icon: Icons.groups_rounded,
+      color: AppTheme.accentBlue,
+      items: items,
+      emptyLabel: 'Nobody in this department',
+    );
+  }
+
+  /// Who took a given leave type in the range.
+  void _showLeavePeople(LeaveDistributionSlice slice) {
+    final items = [
+      for (final e in slice.entries)
+        EmployeeListItem(
+          name: e.split('|').first,
+          subtitle: e.contains('|') ? e.split('|').last : '',
+        ),
+    ];
+    showEmployeeListDialog(
+      context,
+      title: '${slice.label} — ${slice.count}',
+      icon: Icons.event_busy_rounded,
+      color: AppTheme.accentBlue,
+      items: items,
+      emptyLabel: 'No ${slice.label.toLowerCase()} in this range',
+    );
+  }
+
   List<LeaveDistributionSlice> get _leaveSlices {
     final approved = _leaveApps.where((a) =>
         a.managerStatus == LeaveApprovalStatus.approved &&
         _filteredNames.contains(a.employeeName.toLowerCase()) &&
         !a.to.isBefore(_range.start) && !a.from.isAfter(_range.end));
     final counts = <String, int>{'CL': 0, 'ML': 0, 'EL': 0, 'LOP': 0};
+    // Who is behind each count, so a tap can list them instead of leaving the
+    // number unexplainable.
+    final who = <String, List<String>>{'CL': [], 'ML': [], 'EL': [], 'LOP': []};
     for (final a in approved) {
       final bucket = a.leaveBucket.isNotEmpty ? a.leaveBucket : LeaveStore.effectiveBucket(a.leaveType);
       counts[bucket] = (counts[bucket] ?? 0) + 1;
+      who[bucket]?.add('${a.employeeName}|${_dayLabel(a.from)}'
+          '${a.days > 1 ? ' – ${_dayLabel(a.to)}' : ''} · ${a.days} day${a.days == 1 ? '' : 's'}');
     }
+    List<String> e(String b) => (who[b] ?? [])..sort();
     return [
-      LeaveDistributionSlice(bucket: 'CL', label: 'Casual Leave', count: counts['CL'] ?? 0),
-      LeaveDistributionSlice(bucket: 'ML', label: 'Sick / Medical Leave', count: counts['ML'] ?? 0),
-      LeaveDistributionSlice(bucket: 'EL', label: 'Earned Leave', count: counts['EL'] ?? 0),
-      LeaveDistributionSlice(bucket: 'LOP', label: 'Loss of Pay', count: counts['LOP'] ?? 0),
+      LeaveDistributionSlice(bucket: 'CL', label: 'Casual Leave', count: counts['CL'] ?? 0, entries: e('CL')),
+      LeaveDistributionSlice(bucket: 'ML', label: 'Sick / Medical Leave', count: counts['ML'] ?? 0, entries: e('ML')),
+      LeaveDistributionSlice(bucket: 'EL', label: 'Earned Leave', count: counts['EL'] ?? 0, entries: e('EL')),
+      LeaveDistributionSlice(bucket: 'LOP', label: 'Loss of Pay', count: counts['LOP'] ?? 0, entries: e('LOP')),
     ];
   }
 
@@ -505,12 +569,12 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
           _twoUp(
             narrow,
             AttendanceTrendChart(points: _trendPoints),
-            LeaveDistributionChart(slices: _leaveSlices),
+            LeaveDistributionChart(slices: _leaveSlices, onSliceTap: _showLeavePeople),
           ),
           const SizedBox(height: 20),
           _twoUp(
             narrow,
-            DepartmentAttendanceChart(bars: _departmentBars),
+            DepartmentAttendanceChart(bars: _departmentBars, onBarTap: _showDepartmentPeople),
             WorkingHoursChart(days: _workingHoursDays),
           ),
           const SizedBox(height: 20),

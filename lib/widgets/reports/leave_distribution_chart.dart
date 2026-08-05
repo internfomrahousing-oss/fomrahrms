@@ -9,7 +9,15 @@ class LeaveDistributionSlice {
   final String bucket;
   final String label;
   final int count;
-  const LeaveDistributionSlice({required this.bucket, required this.label, required this.count});
+  /// Who took this leave type in the range, as 'Name — 12 Aug'. Carried so a
+  /// tap can list them; the slice previously held only the count.
+  final List<String> entries;
+  const LeaveDistributionSlice({
+    required this.bucket,
+    required this.label,
+    required this.count,
+    this.entries = const [],
+  });
 }
 
 const _sliceColors = <String, Color>{
@@ -25,7 +33,9 @@ const _otherColor = Color(0xFF22C55E);
 /// already uses everywhere else leave balances are shown.
 class LeaveDistributionChart extends StatelessWidget {
   final List<LeaveDistributionSlice> slices;
-  const LeaveDistributionChart({super.key, required this.slices});
+  /// Called when a leave type is tapped, so the page can list who took it.
+  final void Function(LeaveDistributionSlice)? onSliceTap;
+  const LeaveDistributionChart({super.key, required this.slices, this.onSliceTap});
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +87,13 @@ class LeaveDistributionChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               for (final s in nonZero)
-                Padding(
+                // Legend row is the tap target rather than the pie slice: it
+                // carries the label and count, so it is obvious what is being
+                // opened, and it works the same on a narrow screen.
+                InkWell(
+                  onTap: onSliceTap == null ? null : () => onSliceTap!(s),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Row(children: [
                     Container(
@@ -93,7 +109,13 @@ class LeaveDistributionChart extends StatelessWidget {
                     ),
                     Text('${s.count} (${(s.count / total * 100).toStringAsFixed(1)}%)',
                         style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.textSecondary)),
+                    if (onSliceTap != null) ...[
+                      const SizedBox(width: 2),
+                      Icon(Icons.chevron_right_rounded,
+                          size: 15, color: AppTheme.textSecondary.withValues(alpha: 0.6)),
+                    ],
                   ]),
+                  ),
                 ),
             ],
           ),

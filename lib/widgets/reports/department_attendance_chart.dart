@@ -6,13 +6,27 @@ import 'report_card_shell.dart';
 class DepartmentAttendanceBar {
   final String department;
   final double percent; // 0.0–1.0
-  const DepartmentAttendanceBar({required this.department, required this.percent});
+  /// Everyone counted as present in this department over the range, and
+  /// everyone counted as possible. Carried so a tap can show WHO is behind the
+  /// percentage — the chart previously held only the aggregate, so the number
+  /// was unexplainable without going elsewhere.
+  final List<String> presentNames;
+  final List<String> allNames;
+  const DepartmentAttendanceBar({
+    required this.department,
+    required this.percent,
+    this.presentNames = const [],
+    this.allNames = const [],
+  });
 }
 
 /// Vertical bar chart of attendance % by department for the selected range.
 class DepartmentAttendanceChart extends StatelessWidget {
   final List<DepartmentAttendanceBar> bars;
-  const DepartmentAttendanceChart({super.key, required this.bars});
+  /// Called when a department is tapped, so the page can list the people
+  /// behind the bar.
+  final void Function(DepartmentAttendanceBar)? onBarTap;
+  const DepartmentAttendanceChart({super.key, required this.bars, this.onBarTap});
 
   static String _shorten(String s) => s.length > 10 ? '${s.substring(0, 9)}…' : s;
 
@@ -43,6 +57,16 @@ class DepartmentAttendanceChart extends StatelessWidget {
           ),
           borderData: FlBorderData(show: false),
           barTouchData: BarTouchData(
+            // Tapping a bar lists the people behind the percentage. Uses the
+            // chart's own touch callback rather than an overlaid InkWell, so
+            // the hit area follows the bar instead of approximating it.
+            touchCallback: (event, response) {
+              if (onBarTap == null) return;
+              if (!event.isInterestedForInteractions) return;
+              final idx = response?.spot?.touchedBarGroupIndex;
+              if (idx == null || idx < 0 || idx >= bars.length) return;
+              onBarTap!(bars[idx]);
+            },
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => AppTheme.textPrimary,
               getTooltipItem: (group, _, rod, __) => BarTooltipItem(
