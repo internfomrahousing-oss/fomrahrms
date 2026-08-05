@@ -639,16 +639,120 @@ class _EmployeeOfMonthBlock extends StatefulWidget {
 
 class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
   List<Map<String, dynamic>> _data = [];
+  /// Proposals awaiting Management sign-off. HR sees them so they know their
+  /// entry was saved and is waiting — previously the entry simply did not
+  /// appear and there was no way to tell whether it had failed.
+  List<Map<String, dynamic>> _pending = [];
   bool _loading = true;
+  bool _deciding = false;
 
   static const _orange = Color(0xFFFB8C00);
+
+  bool get _canDecide => UserSession.role == UserRole.management;
 
   @override
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final data = await SupabaseService.fetchEmployeesOfMonth();
-    if (mounted) setState(() { _data = data; _loading = false; });
+    // Only HR and Management can act on or explain a pending entry; there is
+    // nothing useful to show an ordinary employee.
+    final pending = (widget.canEdit || _canDecide)
+        ? await SupabaseService.fetchPendingEmployeesOfMonth()
+        : <Map<String, dynamic>>[];
+    if (mounted) setState(() { _data = data; _pending = pending; _loading = false; });
+  }
+
+  Future<void> _decide(Map<String, dynamic> row, bool approve) async {
+    setState(() => _deciding = true);
+    final err = await SupabaseService.decideEmployeeOfMonth(
+        (row['id'] ?? '').toString(), approve);
+    if (!mounted) return;
+    setState(() => _deciding = false);
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(err),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(approve
+          ? '${row['employee_name']} approved as Employee of the Month'
+          : 'Proposal declined'),
+      backgroundColor: approve ? Colors.green.shade700 : Colors.grey.shade700,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  /// Banner for entries waiting on Management. Shows HR that their entry is
+  /// saved but not yet published, and gives Management the decision.
+  Widget _pendingBanner() {
+    if (_pending.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: _pending.map((row) {
+        final name = row['employee_name'] as String? ?? '';
+        final month = row['month_year'] as String? ?? '';
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.amber.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.amber.shade200),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.hourglass_top_rounded, size: 15, color: Colors.amber.shade800),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _canDecide
+                      ? '$name proposed for $month — awaiting your approval'
+                      : '$name proposed for $month — awaiting Management approval',
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber.shade900),
+                ),
+              ),
+            ]),
+            if (_canDecide) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _deciding ? null : () => _decide(row, false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade400,
+                      side: BorderSide(color: Colors.red.shade200),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                    ),
+                    child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _deciding ? null : () => _decide(row, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                    ),
+                    child: const Text('Approve', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ]),
+            ],
+          ]),
+        );
+      }).toList(),
+    );
   }
 
   Future<void> _showEdit() async {
@@ -772,9 +876,20 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
       onRefresh: _load,
       child: _loading
           ? const _Loader()
-          : winners.isEmpty
-              ? _Empty('Not announced yet')
-              : SizedBox(
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Anything awaiting Management sits above the published
+                // winner, so HR can see their entry was saved rather than
+                // wondering whether it failed.
+                _pendingBanner(),
+                if (winners.isEmpty)
+                  _Empty(_pending.isEmpty
+                      ? 'Not announced yet'
+                      : 'Awaiting approval')
+                else
+                SizedBox(
                   width: double.infinity,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -808,6 +923,8 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
                     ],
                   ),
                 ),
+              ],
+            ),
     );
   }
 }

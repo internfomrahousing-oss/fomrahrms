@@ -2824,11 +2824,47 @@ class SupabaseService {
   // Multiple employees can share a single month's announcement — every row
   // for the most recently announced month_year is a co-winner, not just one.
 
+  /// Winners awaiting Management approval. Empty for everyone else — the RPC
+  /// that decides them is Management-only, so there is nothing an ordinary
+  /// user could do with the list.
+  static Future<List<Map<String, dynamic>>> fetchPendingEmployeesOfMonth() async {
+    try {
+      final rows = await _db
+          ?.from('employee_of_month')
+          .select()
+          .eq('status', 'pending')
+          .order('month_year', ascending: false);
+      return List<Map<String, dynamic>>.from(rows ?? []);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Management approves or declines a proposed winner. Returns null on
+  /// success, or a message to show.
+  static Future<String?> decideEmployeeOfMonth(String id, bool approve,
+      {String reason = ''}) async {
+    try {
+      await _db?.rpc('decide_employee_of_month', params: {
+        'p_id': id,
+        'p_approve': approve,
+        'p_reason': reason,
+      });
+      return null;
+    } catch (e) {
+      if (e is PostgrestException && e.message.trim().isNotEmpty) return e.message;
+      return 'Could not save the decision. Please try again.';
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> fetchEmployeesOfMonth() async {
     try {
+      // Approved only. A proposal awaiting Management sign-off must not
+      // appear on dashboards or trigger the celebration animation.
       final all = await _db
           ?.from('employee_of_month')
           .select()
+          .eq('status', 'approved')
           .order('month_year', ascending: false);
       if (all == null || all.isEmpty) return [];
       final latestMonth = all.first['month_year'] as String?;
