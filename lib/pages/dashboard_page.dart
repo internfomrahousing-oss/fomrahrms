@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'hr_employee_records_page.dart' show showEmployeeProfile;
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
 import '../models/user_session.dart';
@@ -194,6 +195,16 @@ class _HrStatStrip extends StatelessWidget {
 
   String _locTag(AppUser u) => u.workLocation.isEmpty ? 'Not set' : u.workLocation;
 
+  /// Opens the profile for [name] when it resolves to an employee record.
+  /// Returns null otherwise — attendance rows store the name, not the id, so a
+  /// renamed or removed employee cannot be matched, and the row is then shown
+  /// without a chevron rather than looking tappable and doing nothing.
+  VoidCallback? _profileTap(Map<String, AppUser> byName, String name) {
+    final u = byName[name];
+    if (u == null) return null;
+    return () => showEmployeeProfile(context, u);
+  }
+
   String _locTagByName(Map<String, AppUser> byName, String name) {
     final u = byName[name];
     return u == null ? 'Not set' : _locTag(u);
@@ -236,7 +247,13 @@ class _HrStatStrip extends StatelessWidget {
           color: AppTheme.primaryBlue,
           items: [
             for (final u in sortedUsers)
-              EmployeeListItem(name: u.name, subtitle: '${u.designation} • ${_locTag(u)}'),
+              EmployeeListItem(
+                name: u.name,
+                subtitle: '${u.designation} • ${_locTag(u)}',
+                workLocation: u.workLocation,
+                businessUnit: u.businessUnit,
+                onTap: () => showEmployeeProfile(context, u),
+              ),
           ],
         ),
       ),
@@ -256,6 +273,7 @@ class _HrStatStrip extends StatelessWidget {
             for (final r in presentList)
               EmployeeListItem(
                 name: r.employeeName,
+                onTap: _profileTap(presentUsersByName, r.employeeName),
                 subtitle: 'Checked in ${r.checkInTime} • ${_locTagByName(presentUsersByName, r.employeeName)}',
               ),
           ],
@@ -276,7 +294,13 @@ class _HrStatStrip extends StatelessWidget {
           color: AppTheme.error,
           items: [
             for (final u in absentUsers)
-              EmployeeListItem(name: u.name, subtitle: '${u.designation} • ${_locTag(u)}'),
+              EmployeeListItem(
+                name: u.name,
+                subtitle: '${u.designation} • ${_locTag(u)}',
+                workLocation: u.workLocation,
+                businessUnit: u.businessUnit,
+                onTap: () => showEmployeeProfile(context, u),
+              ),
           ],
           emptyLabel: 'Everyone is present today',
         ),
@@ -296,6 +320,7 @@ class _HrStatStrip extends StatelessWidget {
             for (final u in onsiteUsers)
               EmployeeListItem(
                 name: u.name,
+                onTap: _profileTap(presentUsersByName, u.name),
                 subtitle: '${u.designation} • ${presentByName.containsKey(u.name) ? 'Present' : 'Absent'}',
               ),
           ],
