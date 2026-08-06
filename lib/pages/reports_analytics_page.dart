@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'hr_employee_records_page.dart' show showEmployeeProfile;
-import '../widgets/people_breakdown_sheet.dart';
+import '../widgets/employee_list_dialog.dart';
 import '../utils/attendance_day.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
@@ -202,22 +202,21 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
 
   // ── Who is behind each number ─────────────────────────────────────────
   // Every figure was a dead end: the count with no way to see who. These feed
-  // showPeopleBreakdown().
+  // showEmployeeListDialog() — the same dialog the dashboards use.
 
-  List<PersonEntry> get _presentPeople => _todayFiltered
+  List<EmployeeListItem> get _presentPeople => _todayFiltered
       .where((r) => r.checkInTime.isNotEmpty)
-      .map((r) => PersonEntry(
+      .map((r) => EmployeeListItem(
             name: r.employeeName,
-            subtitle: _deptOf(r.employeeName),
-            trailing: r.checkInTime,
+            subtitle: _withDetail(_deptOf(r.employeeName), 'Checked in ${r.checkInTime}'),
             onTap: _openProfileFor(r.employeeName),
           ))
       .toList()
     ..sort((a, b) => a.name.compareTo(b.name));
 
-  List<PersonEntry> get _absentPeople => (_missingToday.entries
+  List<EmployeeListItem> get _absentPeople => (_missingToday.entries
           .where((e) => e.value.countsAsAbsent)
-          .map((e) => PersonEntry(
+          .map((e) => EmployeeListItem(
                 name: e.key.name,
                 subtitle: e.key.department,
                 onTap: () => showEmployeeProfile(context, e.key),
@@ -225,33 +224,33 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
 
-  List<PersonEntry> get _onLeavePeople => (_onLeaveTodayApps
-          .map((a) => PersonEntry(
+  List<EmployeeListItem> get _onLeavePeople => (_onLeaveTodayApps
+          .map((a) => EmployeeListItem(
                 name: a.employeeName,
-                subtitle: _deptOf(a.employeeName),
-                trailing: a.leaveType,
+                subtitle: _withDetail(_deptOf(a.employeeName), a.leaveType),
                 onTap: _openProfileFor(a.employeeName),
               ))
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
 
-  List<PersonEntry> get _liveCheckInPeople => (_checkedInNow
+  List<EmployeeListItem> get _liveCheckInPeople => (_checkedInNow
           .where((r) => _filteredNames.contains(r.employeeName.toLowerCase()))
-          .map((r) => PersonEntry(
+          .map((r) => EmployeeListItem(
                 name: r.employeeName,
-                subtitle: _deptOf(r.employeeName),
-                trailing: r.checkInTime,
+                subtitle: _withDetail(_deptOf(r.employeeName), 'Since ${r.checkInTime}'),
                 onTap: _openProfileFor(r.employeeName),
               ))
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
 
-  List<PersonEntry> get _allEmployeePeople => (_filteredUsers
+  List<EmployeeListItem> get _allEmployeePeople => (_filteredUsers
           .where((u) => u.active)
-          .map((u) => PersonEntry(
+          .map((u) => EmployeeListItem(
                 name: u.name,
-                subtitle: u.department.isEmpty ? u.designation : u.department,
-                trailing: u.employeeId,
+                subtitle: _withDetail(
+                    u.department.isEmpty ? u.designation : u.department, u.employeeId),
+                workLocation: u.workLocation,
+                businessUnit: u.businessUnit,
                 onTap: () => showEmployeeProfile(context, u),
               ))
           .toList())
@@ -272,6 +271,66 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
     if (u == null) return null;
     return () => showEmployeeProfile(context, u);
   }
+
+  /// Joins the department and a per-row detail into the single subtitle the
+  /// shared dialog takes, matching how the dashboards format it.
+  String _withDetail(String dept, String detail) {
+    if (dept.isEmpty) return detail;
+    if (detail.isEmpty) return dept;
+    return '$dept • $detail';
+  }
+
+  // The remaining four metrics. These are not headcounts — a late arrival is a
+  // DAY, overtime is a total, and a new joiner is a date — so each row carries
+  // the fact behind it rather than just a name. Someone appearing twice in
+  // Late Arrivals means they were late twice, which is the useful reading.
+
+  List<EmployeeListItem> get _lateArrivalPeople => (_rangeFiltered
+          .where(_isLate)
+          .map((r) => EmployeeListItem(
+                name: r.employeeName,
+                subtitle: _withDetail(r.date, 'in at ${r.checkInTime}'),
+                onTap: _openProfileFor(r.employeeName),
+              ))
+          .toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  List<EmployeeListItem> get _overtimePeople {
+    // Summed per person, so the list explains the total on the card rather
+    // than listing the same person once per day.
+    final byPerson = <String, double>{};
+    for (final r in _rangeFiltered) {
+      final hrs = _workedHours(r);
+      if (hrs == null) continue;
+      final target = _scheduleForEmployee(r.employeeName).workingHours;
+      if (hrs <= target) continue;
+      byPerson[r.employeeName] = (byPerson[r.employeeName] ?? 0) + (hrs - target);
+    }
+    return (byPerson.entries
+            .map((e) => EmployeeListItem(
+                  name: e.key,
+                  subtitle: _withDetail(
+                      _deptOf(e.key), '${e.value.toStringAsFixed(1)}h extra'),
+                  onTap: _openProfileFor(e.key),
+                ))
+            .toList())
+      ..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  List<EmployeeListItem> get _newEmployeePeople => (_filteredUsers.where((u) {
+        final joined = _parseJoin(u);
+        if (joined == null) return false;
+        return !joined.isBefore(_range.start) && !joined.isAfter(_range.end);
+      }).map((u) => EmployeeListItem(
+            name: u.name,
+            subtitle: _withDetail(
+                u.department.isEmpty ? u.designation : u.department,
+                'joined ${u.dateOfJoining}'),
+            workLocation: u.workLocation,
+            businessUnit: u.businessUnit,
+            onTap: () => showEmployeeProfile(context, u),
+          )).toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
 
   String _deptOf(String name) {
     final u = _filteredUsers
@@ -584,61 +643,86 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             AppStatCard(
               title: 'Total Employees', value: '$_activeCount',
               icon: Icons.people_alt_rounded, color: AppTheme.primaryBlue,
-              onTap: () => showPeopleBreakdown(context,
+              onTap: () => showEmployeeListDialog(context,
                   title: 'Total Employees',
-                  people: _allEmployeePeople,
-                  accentColor: AppTheme.primaryBlue),
+                  items: _allEmployeePeople,
+                  icon: Icons.people_alt_rounded,
+                  color: AppTheme.primaryBlue),
             ),
             AppStatCard(
               title: 'Present Today', value: '$_presentToday',
               icon: Icons.check_circle_rounded, color: AppTheme.success,
               gaugePercent: _activeCount == 0 ? 0 : _presentToday / _activeCount,
-              onTap: () => showPeopleBreakdown(context,
+              onTap: () => showEmployeeListDialog(context,
                   title: 'Present Today',
-                  people: _presentPeople,
-                  accentColor: AppTheme.success,
+                  items: _presentPeople,
+                  color: AppTheme.success,
                   icon: Icons.check_circle_rounded,
-                  emptyMessage: 'Nobody has checked in yet'),
+                  emptyLabel: 'Nobody has checked in yet'),
             ),
             AppStatCard(
               title: 'Absent Today', value: '$_absentToday',
               icon: Icons.person_off_rounded, color: AppTheme.error,
               gaugePercent: _activeCount == 0 ? 0 : _absentToday / _activeCount,
-              onTap: () => showPeopleBreakdown(context,
+              onTap: () => showEmployeeListDialog(context,
                   title: 'Absent Today',
-                  people: _absentPeople,
-                  accentColor: AppTheme.error,
+                  items: _absentPeople,
+                  color: AppTheme.error,
                   icon: Icons.person_off_rounded,
-                  emptyMessage: 'Nobody is unaccounted for'),
+                  emptyLabel: 'Nobody is unaccounted for'),
             ),
             AppStatCard(
               title: 'On Leave', value: '$_onLeaveToday',
               icon: Icons.event_busy_rounded, color: AppTheme.warning,
               gaugePercent: _activeCount == 0 ? 0 : _onLeaveToday / _activeCount,
-              onTap: () => showPeopleBreakdown(context,
+              onTap: () => showEmployeeListDialog(context,
                   title: 'On Leave Today',
-                  people: _onLeavePeople,
-                  accentColor: AppTheme.warning,
+                  items: _onLeavePeople,
+                  color: AppTheme.warning,
                   icon: Icons.event_busy_rounded,
-                  emptyMessage: 'Nobody is on leave today'),
+                  emptyLabel: 'Nobody is on leave today'),
             ),
           ]),
           const SizedBox(height: 12),
           AppStatStrip(cards: [
             AppStatCard(
               title: 'Late Arrivals', value: '$_lateArrivalsInRange',
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'Late Arrivals',
+                  items: _lateArrivalPeople,
+                  icon: Icons.running_with_errors_rounded,
+                  color: AppTheme.warning,
+                  emptyLabel: 'No late arrivals in this range'),
               icon: Icons.watch_later_rounded, color: AppTheme.warning,
             ),
             AppStatCard(
               title: 'Live Check-ins', value: '$_liveCheckIns',
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'Currently Checked In',
+                  items: _liveCheckInPeople,
+                  icon: Icons.sensors_rounded,
+                  color: AppTheme.success,
+                  emptyLabel: 'Nobody is checked in right now'),
               icon: Icons.location_on_rounded, color: AppTheme.accentBlue,
             ),
             AppStatCard(
               title: 'Overtime Hours', value: _overtimeHoursInRange.toStringAsFixed(1),
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'Overtime Hours',
+                  items: _overtimePeople,
+                  icon: Icons.more_time_rounded,
+                  color: AppTheme.accentBlue,
+                  emptyLabel: 'No overtime in this range'),
               icon: Icons.timelapse_rounded, color: AppTheme.purple,
             ),
             AppStatCard(
               title: 'New Employees', value: '$_newEmployeesInRange',
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'New Employees',
+                  items: _newEmployeePeople,
+                  icon: Icons.person_add_alt_1_rounded,
+                  color: AppTheme.primaryBlue,
+                  emptyLabel: 'Nobody joined in this range'),
               icon: Icons.person_add_alt_1_rounded, color: AppTheme.pink,
             ),
           ]),

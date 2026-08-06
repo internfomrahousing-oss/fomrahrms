@@ -10,9 +10,18 @@ class EmployeeListItem {
   // two distinct non-blank values exist across the list.
   final String workLocation;
   final String businessUnit;
+
+  /// Opens this person's profile. Null when the caller could not resolve the
+  /// name to an employee record — attendance and leave rows store the NAME,
+  /// not the id, so a renamed or removed employee will not match. The row is
+  /// then shown plainly, with no chevron: a row that looks tappable and does
+  /// nothing is worse than one that plainly is not.
+  final VoidCallback? onTap;
+
   const EmployeeListItem({
     required this.name,
     this.subtitle = '',
+    this.onTap,
     this.workLocation = '',
     this.businessUnit = '',
   });
@@ -137,7 +146,7 @@ class _EmployeeListDialogBodyState extends State<_EmployeeListDialogBody> {
                     separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.borderSubtle),
                     itemBuilder: (_, i) {
                       final item = filtered[i];
-                      return Padding(
+                      final row = Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Row(children: [
                           CircleAvatar(
@@ -162,7 +171,21 @@ class _EmployeeListDialogBodyState extends State<_EmployeeListDialogBody> {
                               ],
                             ),
                           ),
+                          if (item.onTap != null)
+                            Icon(Icons.chevron_right_rounded,
+                                size: 18, color: AppTheme.textSecondary),
                         ]),
+                      );
+                      if (item.onTap == null) return row;
+                      return InkWell(
+                        // Close the list first, so the profile is not stacked
+                        // on top of it and back returns to the page rather
+                        // than to a list the user has finished with.
+                        onTap: () {
+                          Navigator.pop(context);
+                          item.onTap!();
+                        },
+                        child: row,
                       );
                     },
                   ),
