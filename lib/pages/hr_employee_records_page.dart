@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../utils/attendance_cycle.dart';
+import '../utils/checkin_status.dart';
+import '../models/office_timing.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -3099,10 +3102,22 @@ class _FullProfileDialogState extends State<FullProfileDialog>
   Map<String, dynamic>? _interview;
   bool _loading = true;
 
+  // This cycle's attendance picture. The dialog opened straight onto the
+  // onboarding form and the interview record — useful when hiring, useless
+  // when you have just clicked a name in "Absent Today" and want to know how
+  // this person is actually doing.
+  int _presentDays = 0;
+  int _lateDays = 0;
+  int _leavesTaken = 0;
+  int _permissionMinutes = 0;
+  int _permissionQuota = 120;
+  String _cycleLabel = '';
+
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    // Summary first: it is what someone arriving from a metric wants.
+    _tabs = TabController(length: 3, vsync: this);
     _fetchData();
   }
 
@@ -3112,6 +3127,116 @@ class _FullProfileDialogState extends State<FullProfileDialog>
     super.dispose();
   }
 
+  /// At-a-glance figures for the current attendance cycle.
+  ///
+  /// Someone arriving here from "Absent Today" or "Late Arrivals" wants to
+  /// know how this person is doing, not to read their onboarding form. The
+  /// onboarding and interview tabs remain for the hiring case.
+  Widget _summaryTab() {
+    final exempt = widget.user.exemptFromAttendance;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.date_range_rounded, size: 15, color: Colors.grey.shade600),
+          const SizedBox(width: 6),
+          Text('Cycle $_cycleLabel',
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+        ]),
+        const SizedBox(height: 4),
+        Text('The attendance cycle runs 26th to 25th, not the calendar month.',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        const SizedBox(height: 16),
+
+        if (exempt)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '${widget.user.name} is not tracked for attendance — no check-in, '
+              'no timings and no leave cycle apply.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          )
+        else ...[
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            _summaryTile('Days Present', '$_presentDays', Icons.check_circle_rounded,
+                AppTheme.success),
+            _summaryTile('Late Arrivals', '$_lateDays',
+                Icons.running_with_errors_rounded,
+                _lateDays == 0 ? AppTheme.success : AppTheme.warning),
+            _summaryTile('Leaves Taken', '$_leavesTaken', Icons.event_busy_rounded,
+                AppTheme.accentBlue),
+            _summaryTile(
+                'Permission',
+                '$_permissionMinutes / $_permissionQuota min',
+                Icons.timer_rounded,
+                _permissionMinutes >= _permissionQuota
+                    ? AppTheme.error
+                    : AppTheme.primaryBlue),
+          ]),
+          const SizedBox(height: 14),
+          if (_lateDays == 0 && _presentDays > 0)
+            Text('No late arrivals this cycle.',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.success,
+                    fontWeight: FontWeight.w600)),
+          if (_permissionMinutes >= _permissionQuota)
+            Text('Permission allowance for this cycle is fully used.',
+                style: TextStyle(
+                    fontSize: 12, color: AppTheme.error, fontWeight: FontWeight.w600)),
+        ],
+
+        const SizedBox(height: 20),
+        Text('Employment',
+            style: TextStyle(
+                fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+        const SizedBox(height: 8),
+        _InfoRow(Icons.badge_rounded, 'Employee ID', widget.user.employeeId),
+        _InfoRow(Icons.work_rounded, 'Designation', widget.user.designation),
+        _InfoRow(Icons.account_tree_rounded, 'Department',
+            widget.user.department.isEmpty ? '—' : widget.user.department),
+        _InfoRow(Icons.manage_accounts_rounded, 'Reports To',
+            widget.user.reportingManager.isEmpty ? '—' : widget.user.reportingManager),
+        _InfoRow(Icons.calendar_today_rounded, 'Date of Joining',
+            widget.user.dateOfJoining.isEmpty ? '—' : widget.user.dateOfJoining),
+        _InfoRow(Icons.verified_user_rounded, 'Status', widget.user.leaveStatus),
+      ]),
+    );
+  }
+
+  Widget _summaryTile(String label, String value, IconData icon, Color color) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+          ),
+        ]),
+        const SizedBox(height: 6),
+        Text(value,
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color)),
+      ]),
+    );
+  }
+
   Future<void> _fetchData() async {
     final db = Supabase.instance.client;
     final name = widget.user.name;
@@ -3119,6 +3244,56 @@ class _FullProfileDialogState extends State<FullProfileDialog>
     try {
       final ob = await db.from('onboarding_forms').select().or('name.ilike.%$name%,phone_number.eq.$email').limit(1);
       final ca = await db.from('candidate_applications').select().or('name.ilike.%$name%,email.eq.$email').limit(1);
+
+      // This attendance cycle (26th -> 25th), not the calendar month.
+      final now = DateTime.now();
+      final cycleStart = attendanceCycleStart(now);
+      final cycleEnd = attendanceCycleEnd(now);
+      _cycleLabel = attendanceCycleRange(now);
+
+      // date_iso is the generated DATE column; the text `date` sorts
+      // lexically and cannot be range-queried.
+      final att = await db
+          .from('attendance_records')
+          .select()
+          .eq('employee_id', widget.user.employeeId)
+          .gte('date_iso', cycleStart.toIso8601String().substring(0, 10))
+          .lte('date_iso', cycleEnd.toIso8601String().substring(0, 10));
+
+      final leaves = await db
+          .from('leave_applications')
+          .select()
+          .eq('employee_name', name)
+          .gte('from_date', cycleStart.toIso8601String().substring(0, 10))
+          .lte('from_date', cycleEnd.toIso8601String().substring(0, 10));
+
+      final schedule = OfficeTimingStore.scheduleFor(
+        exemptFromTiming: widget.user.exemptFromTiming || widget.user.isManagement,
+        department: widget.user.department,
+      );
+
+      _presentDays = (att as List)
+          .where((r) => ((r['check_in_time'] as String?) ?? '').isNotEmpty)
+          .length;
+
+      _lateDays = (att)
+          .where((r) => isLateCheckIn((r['check_in_time'] as String?) ?? '', schedule))
+          .length;
+
+      final leaveRows = (leaves as List);
+      _leavesTaken = leaveRows
+          .where((a) =>
+              (a['leave_type'] as String?) != 'Permission' &&
+              (a['manager_status'] as String?) == 'approved')
+          .fold<int>(0, (sum, a) => sum + (((a['days'] as num?) ?? 1).toInt()));
+
+      _permissionMinutes = leaveRows
+          .where((a) =>
+              (a['leave_type'] as String?) == 'Permission' &&
+              (a['manager_status'] as String?) != 'denied')
+          .fold<int>(0, (sum, a) => sum + (((a['permission_minutes'] as num?) ?? 0).toInt()));
+
+      _permissionQuota = widget.user.permissionMinutesQuota;
       setState(() {
         if ((ob as List).isNotEmpty) {
           final row = Map<String, dynamic>.from(ob.first as Map);
@@ -3214,6 +3389,7 @@ class _FullProfileDialogState extends State<FullProfileDialog>
             labelColor: _c,
             unselectedLabelColor: Colors.grey,
             tabs: const [
+              Tab(icon: Icon(Icons.insights_rounded, size: 18), text: 'Summary'),
               Tab(icon: Icon(Icons.assignment_ind_rounded, size: 18), text: 'Onboarding'),
               Tab(icon: Icon(Icons.work_history_rounded, size: 18), text: 'Interview'),
             ],
@@ -3224,6 +3400,7 @@ class _FullProfileDialogState extends State<FullProfileDialog>
                 : TabBarView(
                     controller: _tabs,
                     children: [
+                      _summaryTab(),
                       _onboarding != null
                           ? SingleChildScrollView(
                               padding: const EdgeInsets.all(16),
