@@ -2934,7 +2934,7 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
               child: OutlinedButton.icon(
                 onPressed: () => showDialog(
                   context: context,
-                  builder: (_) => _FullProfileDialog(user: _user),
+                  builder: (_) => FullProfileDialog(user: _user),
                 ),
                 icon: const Icon(Icons.folder_open_rounded, size: 16),
                 label: const Text('Interview & Onboarding Records'),
@@ -3077,14 +3077,21 @@ class EmployeeProfileDialogState extends State<EmployeeProfileDialog> {
 
 // ── Full profile: interview + onboarding data ─────────────────────────────────
 
-class _FullProfileDialog extends StatefulWidget {
+/// Read-only profile: personal details, onboarding submission and interview
+/// record. Made public so a name in a metric breakdown can open it — that is
+/// what "click the name and see the profile" means, and this already existed.
+class FullProfileDialog extends StatefulWidget {
   final AppUser user;
-  const _FullProfileDialog({required this.user});
+  const FullProfileDialog({super.key, required this.user});
   @override
-  State<_FullProfileDialog> createState() => _FullProfileDialogState();
+  State<FullProfileDialog> createState() => _FullProfileDialogState();
 }
 
-class _FullProfileDialogState extends State<_FullProfileDialog>
+/// Opens the read-only profile for [user].
+Future<void> showEmployeeProfile(BuildContext context, AppUser user) =>
+    showDialog<void>(context: context, builder: (_) => FullProfileDialog(user: user));
+
+class _FullProfileDialogState extends State<FullProfileDialog>
     with SingleTickerProviderStateMixin {
   static Color get _c => AppTheme.primaryBlue;
   late final TabController _tabs;

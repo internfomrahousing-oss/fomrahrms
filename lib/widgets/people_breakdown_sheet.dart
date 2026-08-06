@@ -7,7 +7,17 @@ class PersonEntry {
   final String? subtitle;   // department, designation, time — whatever explains the row
   final String? trailing;   // check-in time, leave type, hours
 
-  const PersonEntry({required this.name, this.subtitle, this.trailing});
+  /// Opens this person's profile. Null when the caller could not resolve the
+  /// name to an employee record — a row is then shown plainly rather than
+  /// looking tappable and doing nothing.
+  final VoidCallback? onTap;
+
+  const PersonEntry({
+    required this.name,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
 }
 
 /// Shows WHO is behind a number.
@@ -92,6 +102,16 @@ Future<void> showPeopleBreakdown(
                         return ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
+                          onTap: p.onTap == null
+                              ? null
+                              : () {
+                                  // Close the breakdown first, so the profile
+                                  // is not stacked on top of it and the back
+                                  // gesture returns to the page rather than to
+                                  // a list the user has finished with.
+                                  Navigator.of(ctx).pop();
+                                  p.onTap!();
+                                },
                           leading: CircleAvatar(
                             radius: 15,
                             backgroundColor: color.withValues(alpha: 0.12),
@@ -111,13 +131,19 @@ Future<void> showPeopleBreakdown(
                               : Text(p.subtitle!,
                                   style: TextStyle(
                                       fontSize: 11.5, color: Colors.grey.shade600)),
-                          trailing: (p.trailing ?? '').isEmpty
-                              ? null
-                              : Text(p.trailing!,
+                          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                            if ((p.trailing ?? '').isNotEmpty)
+                              Text(p.trailing!,
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: color)),
+                            if (p.onTap != null) ...[
+                              const SizedBox(width: 4),
+                              Icon(Icons.chevron_right_rounded,
+                                  size: 17, color: Colors.grey.shade400),
+                            ],
+                          ]),
                         );
                       },
                     ),

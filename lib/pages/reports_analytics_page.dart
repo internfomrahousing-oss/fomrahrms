@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'hr_employee_records_page.dart' show showEmployeeProfile;
 import '../widgets/people_breakdown_sheet.dart';
 import '../utils/attendance_day.dart';
 import '../constants/org_lists.dart';
@@ -209,13 +210,18 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             name: r.employeeName,
             subtitle: _deptOf(r.employeeName),
             trailing: r.checkInTime,
+            onTap: _openProfileFor(r.employeeName),
           ))
       .toList()
     ..sort((a, b) => a.name.compareTo(b.name));
 
   List<PersonEntry> get _absentPeople => (_missingToday.entries
           .where((e) => e.value.countsAsAbsent)
-          .map((e) => PersonEntry(name: e.key.name, subtitle: e.key.department))
+          .map((e) => PersonEntry(
+                name: e.key.name,
+                subtitle: e.key.department,
+                onTap: () => showEmployeeProfile(context, e.key),
+              ))
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
 
@@ -224,6 +230,7 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
                 name: a.employeeName,
                 subtitle: _deptOf(a.employeeName),
                 trailing: a.leaveType,
+                onTap: _openProfileFor(a.employeeName),
               ))
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
@@ -234,6 +241,7 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
                 name: r.employeeName,
                 subtitle: _deptOf(r.employeeName),
                 trailing: r.checkInTime,
+                onTap: _openProfileFor(r.employeeName),
               ))
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
@@ -244,9 +252,26 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
                 name: u.name,
                 subtitle: u.department.isEmpty ? u.designation : u.department,
                 trailing: u.employeeId,
+                onTap: () => showEmployeeProfile(context, u),
               ))
           .toList())
     ..sort((a, b) => a.name.compareTo(b.name));
+
+  /// The employee record behind a name, or null if it cannot be resolved —
+  /// attendance and leave rows store the name, not the id, so a renamed or
+  /// deleted employee will not match. The row is then shown without a tap
+  /// target rather than looking clickable and doing nothing.
+  AppUser? _userNamed(String name) {
+    final m = _filteredUsers
+        .where((x) => x.name.trim().toLowerCase() == name.trim().toLowerCase());
+    return m.isEmpty ? null : m.first;
+  }
+
+  VoidCallback? _openProfileFor(String name) {
+    final u = _userNamed(name);
+    if (u == null) return null;
+    return () => showEmployeeProfile(context, u);
+  }
 
   String _deptOf(String name) {
     final u = _filteredUsers
