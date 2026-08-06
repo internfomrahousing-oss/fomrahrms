@@ -594,6 +594,7 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
               onTap: () => showEmployeeListDialog(context,
                   title: 'Total Employees',
                   items: _allEmployeePeople,
+                  icon: Icons.people_alt_rounded,
                   color: AppTheme.primaryBlue),
             ),
             AppStatCard(
