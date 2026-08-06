@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/people_breakdown_sheet.dart';
+import '../utils/attendance_day.dart';
 import '../constants/org_lists.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
@@ -102,6 +104,7 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
       SupabaseService.fetchLeaveApplications(),
       SupabaseService.fetchCheckedInAttendance(todayStr),
       _canSeePayroll ? SupabaseService.fetchPayslipsForMonth(monthYear) : Future.value(<Payslip>[]),
+      SupabaseService.fetchHolidays(today.year),
     ]);
     if (!mounted) return;
     setState(() {
@@ -111,6 +114,13 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
       _leaveApps = results[3] as List<LeaveApplication>;
       _checkedInNow = results[4] as List<AttendanceRecord>;
       _payslips = results[5] as List<Payslip>;
+      // Public holidays are not absences. Without these the Absent Today
+      // figure counts Diwali and Independence Day against everyone.
+      _holidayDates = {
+        for (final h in (results[6] as List<Map<String, dynamic>>))
+          if ((h['holiday_date'] as String?)?.isNotEmpty ?? false)
+            (h['holiday_date'] as String).substring(0, 10),
+      };
       _loading = false;
       _refreshing = false;
     });
@@ -157,8 +167,92 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
   int get _onLeaveToday =>
       _onLeaveTodayApps.map((a) => a.employeeName.toLowerCase()).toSet().length;
 
-  int get _absentToday =>
-      (_activeCount - _presentToday - _onLeaveToday).clamp(0, _activeCount);
+  /// Public holidays for the current year, as 'yyyy-MM-dd'. Empty until
+  /// loaded; classifyMissingAttendance() degrades gracefully if so.
+  Set<String> _holidayDates = {};
+
+  /// Employees with no record today, and WHY. "No record" is not "absent" —
+  /// a weekly off, a public holiday, approved leave, or being exempt from
+  /// attendance all produce no record and none of them is an absence.
+  ///
+  /// The old arithmetic here was (active - present - onLeave), which counted
+  /// every one of those as absent. That is the same defect that showed five
+  /// people absent every Sunday on the HR screen, present here too.
+  Map<AppUser, NonWorkingReason> get _missingToday {
+    final today = DateTime.now();
+    final present = _todayFiltered
+        .where((r) => r.checkInTime.isNotEmpty)
+        .map((r) => r.employeeName.trim().toLowerCase())
+        .toSet();
+    final out = <AppUser, NonWorkingReason>{};
+    for (final u in _filteredUsers.where((u) => u.active)) {
+      if (present.contains(u.name.trim().toLowerCase())) continue;
+      out[u] = classifyMissingAttendance(
+        employee: u,
+        date: today,
+        holidayDates: _holidayDates,
+        leaveApps: _leaveApps,
+      );
+    }
+    return out;
+  }
+
+  int get _absentToday => _missingToday.values.where((r) => r.countsAsAbsent).length;
+
+  // ── Who is behind each number ─────────────────────────────────────────
+  // Every figure was a dead end: the count with no way to see who. These feed
+  // showPeopleBreakdown().
+
+  List<PersonEntry> get _presentPeople => _todayFiltered
+      .where((r) => r.checkInTime.isNotEmpty)
+      .map((r) => PersonEntry(
+            name: r.employeeName,
+            subtitle: _deptOf(r.employeeName),
+            trailing: r.checkInTime,
+          ))
+      .toList()
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  List<PersonEntry> get _absentPeople => (_missingToday.entries
+          .where((e) => e.value.countsAsAbsent)
+          .map((e) => PersonEntry(name: e.key.name, subtitle: e.key.department))
+          .toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  List<PersonEntry> get _onLeavePeople => (_onLeaveTodayApps
+          .map((a) => PersonEntry(
+                name: a.employeeName,
+                subtitle: _deptOf(a.employeeName),
+                trailing: a.leaveType,
+              ))
+          .toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  List<PersonEntry> get _liveCheckInPeople => (_checkedInNow
+          .where((r) => _filteredNames.contains(r.employeeName.toLowerCase()))
+          .map((r) => PersonEntry(
+                name: r.employeeName,
+                subtitle: _deptOf(r.employeeName),
+                trailing: r.checkInTime,
+              ))
+          .toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  List<PersonEntry> get _allEmployeePeople => (_filteredUsers
+          .where((u) => u.active)
+          .map((u) => PersonEntry(
+                name: u.name,
+                subtitle: u.department.isEmpty ? u.designation : u.department,
+                trailing: u.employeeId,
+              ))
+          .toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  String _deptOf(String name) {
+    final u = _filteredUsers
+        .where((x) => x.name.trim().toLowerCase() == name.trim().toLowerCase());
+    return u.isEmpty ? '' : u.first.department;
+  }
 
   int get _liveCheckIns => _checkedInNow
       .where((r) => _filteredNames.contains(r.employeeName.toLowerCase()))
@@ -465,21 +559,43 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             AppStatCard(
               title: 'Total Employees', value: '$_activeCount',
               icon: Icons.people_alt_rounded, color: AppTheme.primaryBlue,
+              onTap: () => showPeopleBreakdown(context,
+                  title: 'Total Employees',
+                  people: _allEmployeePeople,
+                  accentColor: AppTheme.primaryBlue),
             ),
             AppStatCard(
               title: 'Present Today', value: '$_presentToday',
               icon: Icons.check_circle_rounded, color: AppTheme.success,
               gaugePercent: _activeCount == 0 ? 0 : _presentToday / _activeCount,
+              onTap: () => showPeopleBreakdown(context,
+                  title: 'Present Today',
+                  people: _presentPeople,
+                  accentColor: AppTheme.success,
+                  icon: Icons.check_circle_rounded,
+                  emptyMessage: 'Nobody has checked in yet'),
             ),
             AppStatCard(
               title: 'Absent Today', value: '$_absentToday',
               icon: Icons.person_off_rounded, color: AppTheme.error,
               gaugePercent: _activeCount == 0 ? 0 : _absentToday / _activeCount,
+              onTap: () => showPeopleBreakdown(context,
+                  title: 'Absent Today',
+                  people: _absentPeople,
+                  accentColor: AppTheme.error,
+                  icon: Icons.person_off_rounded,
+                  emptyMessage: 'Nobody is unaccounted for'),
             ),
             AppStatCard(
               title: 'On Leave', value: '$_onLeaveToday',
               icon: Icons.event_busy_rounded, color: AppTheme.warning,
               gaugePercent: _activeCount == 0 ? 0 : _onLeaveToday / _activeCount,
+              onTap: () => showPeopleBreakdown(context,
+                  title: 'On Leave Today',
+                  people: _onLeavePeople,
+                  accentColor: AppTheme.warning,
+                  icon: Icons.event_busy_rounded,
+                  emptyMessage: 'Nobody is on leave today'),
             ),
           ]),
           const SizedBox(height: 12),
