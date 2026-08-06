@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../utils/checkin_location.dart';
 import '../models/attendance_policy_store.dart';
 
 import 'package:flutter/material.dart';
@@ -95,10 +96,16 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    await Future.wait([
-      OfficeTimingStore.ensureLoaded(),
-      AttendancePolicyStore.ensureLoaded(),
-    ]);
+    // This path did no geofence evaluation and never passed lat/lng to
+    // saveCheckIn — same gap as the dashboard card. resolveCheckInLocation()
+    // also loads both stores, so the explicit ensureLoaded() calls that were
+    // here are now redundant.
+    final loc = await resolveCheckInLocation();
+    if (!mounted) return;
+    if (await promptForLocationReason(context, loc,
+        noteIsEmpty: _checkInNoteCtrl.text.trim().isEmpty)) {
+      return;
+    }
     if (!mounted) return;
 
     final schedule = OfficeTimingStore.scheduleForCurrentUser();
@@ -144,17 +151,22 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       if (mounted) setState(() {});
     });
 
-    final pos = await GpsTrackingService.getCurrentLocation();
-    final loc = pos != null ? '${pos.latitude},${pos.longitude}' : '';
-
+    // Position already resolved above by resolveCheckInLocation(); asking
+    // again would prompt twice and could return a different fix.
     final err = await SupabaseService.saveCheckIn(
       employeeName: empName,
       employeeId:   UserSession.employeeId,
       date:     date,
       time:     _checkInCtrl.text,
-      location: loc,
+      location: loc.position != null
+          ? '${loc.position!.latitude},${loc.position!.longitude}'
+          : '',
       note:     _checkInNoteCtrl.text.trim(),
       selfiePath: selfiePath ?? '',
+      lat:          loc.lat,
+      lng:          loc.lng,
+      withinRadius: loc.withinRadius,
+      policyName:   loc.policyName,
     );
 
     if (!mounted) return;

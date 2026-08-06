@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../utils/checkin_location.dart';
 import '../models/attendance_policy_store.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -944,13 +945,19 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     await ensureLocationConsent(context);
     if (!mounted) return;
 
-    // Both stores start fire-and-forget in main(); an unloaded timing store
-    // loses the no-fixed-timing row. scheduleFor() now guards against that
-    // too, but awaiting here means the geofence policy is right as well.
-    await Future.wait([
-      OfficeTimingStore.ensureLoaded(),
-      AttendancePolicyStore.ensureLoaded(),
-    ]);
+    // This path did NO geofence evaluation at all, and never passed lat/lng to
+    // saveCheckIn — it fetched the position, turned it into a display string,
+    // and discarded the coordinates. That is why every attendance record has
+    // null GPS and a null within-radius verdict, and why an employee could
+    // check in from anywhere through the dashboard without being asked for a
+    // reason. The configured geofences were bypassed by the most convenient
+    // button in the app.
+    final loc = await resolveCheckInLocation();
+    if (!mounted) return;
+    if (await promptForLocationReason(context, loc,
+        noteIsEmpty: _noteCtrl.text.trim().isEmpty)) {
+      return;
+    }
     if (!mounted) return;
 
     if (isLateCheckIn(_timeCtrl.text, OfficeTimingStore.scheduleForCurrentUser()) &&
@@ -992,17 +999,22 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
     AttendanceStore.isCheckedIn = true;
     GpsTrackingService.start();
 
-    final pos = await GpsTrackingService.getCurrentLocation();
-    final loc = pos != null ? '${pos.latitude},${pos.longitude}' : '';
-
     final err = await SupabaseService.saveCheckIn(
       employeeName: empName,
       employeeId:   UserSession.employeeId,
       date:         _fmtDate(now),
       time:         _timeCtrl.text,
-      location:     loc,
+      location:     loc.position != null
+          ? '${loc.position!.latitude},${loc.position!.longitude}'
+          : '',
       note:         _noteCtrl.text.trim(),
       selfiePath:   selfiePath ?? '',
+      // Previously omitted entirely, so the coordinates were fetched and
+      // thrown away.
+      lat:          loc.lat,
+      lng:          loc.lng,
+      withinRadius: loc.withinRadius,
+      policyName:   loc.policyName,
     );
 
     if (!mounted) return;
