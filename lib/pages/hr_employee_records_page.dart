@@ -3930,10 +3930,14 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
             // allocation — they get a fixed 1-holiday-per-month allowance
             // that doesn't carry over, shown read-only in the Staff Portal
             // instead of set here.
-            if (!kStaffPortalDepartments.contains(_department))
-              _field(_leaveCtrl, 'Leave Allocation (days / year)',
-                  Icons.event_note_rounded,
-                  keyboard: TextInputType.number),
+            // Leave Allocation removed. It was a single annual number (21 for
+            // most people, 12 for one) and the HR policy has no such concept:
+            // entitlement is 1 CL + 1 ML credited per month, EL accruing at
+            // 1/month after confirmation, and probation is a flat 1 day per
+            // month. HR was being asked for a figure that governed nothing.
+            //
+            // The column stays for now so nothing that reads it breaks; it is
+            // simply no longer presented as something to set.
 
             // Only offered here for the initial entry; once set, further changes
             // must go through the Compensation approval flow on the profile page.
