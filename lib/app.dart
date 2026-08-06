@@ -11,7 +11,6 @@ import 'pages/login_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/summary_detail_page.dart';
-import 'pages/employee_profile_page.dart';
 import 'pages/add_employee_page.dart';
 import 'pages/check_in_page.dart';
 import 'pages/check_out_page.dart';
@@ -238,7 +237,13 @@ final _router = GoRouter(
         ),
         GoRoute(path: '/employee-management',             builder: (_, __) => const HrEmployeeRecordsPage()),
         GoRoute(path: '/employee-management/add',         builder: (_, __) => const AddEmployeePage()),
-        GoRoute(path: '/employee-management/profile',     builder: (_, __) => const EmployeeProfilePage()),
+        // EmployeeProfilePage is an empty form template that takes no
+        // employee — it renders blank fields for whoever opens it. Nothing
+        // links here any more (employee_management_page.dart, which did, is
+        // unreachable dead code), but the route was still typeable and led to
+        // a page that looked broken. Send it to the real records list, where
+        // an employee can be picked and their actual profile opened.
+        GoRoute(path: '/employee-management/profile',     redirect: (_, __) => '/employee-management'),
         GoRoute(path: '/attendance-management',           builder: (_, __) => const HrAttendanceRecordsPage(routePrefix: '')),
         GoRoute(path: '/attendance/employee-attendance-calendar', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>;
@@ -513,7 +518,7 @@ final _router = GoRouter(
         GoRoute(path: '/management/dashboard',              builder: (_, __) => const ManagementDashboardPage()),
         GoRoute(path: '/management/employee-management',    builder: (_, __) => const HrEmployeeRecordsPage()),
         GoRoute(path: '/management/employee-management/add',builder: (_, __) => const AddEmployeePage()),
-        GoRoute(path: '/management/employee-management/profile', builder: (_, __) => const EmployeeProfilePage()),
+        GoRoute(path: '/management/employee-management/profile', redirect: (_, __) => '/management/employee-management'),
         GoRoute(path: '/management/employee-management/reporting-managers', builder: (_, __) => const ReportingManagersPage()),
         GoRoute(path: '/management/attendance-management',  builder: (_, __) => const HrAttendanceRecordsPage(routePrefix: '/management')),
         GoRoute(path: '/management/attendance/employee-attendance-calendar', builder: (_, state) {

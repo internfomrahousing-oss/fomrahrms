@@ -25,16 +25,25 @@ class UserStore {
 
   static Future<List<AppUser>> _loadFresh() async {
     final remote = await SupabaseService.fetchAppUsers();
-    if (remote.isNotEmpty) return remote;
-
-    // Supabase empty — load local cache and migrate it to Supabase
-    final local = await _loadLocal();
-    if (local.isNotEmpty) {
-      for (final u in local) {
-        await SupabaseService.upsertAppUser(u);
-      }
+    if (remote.isNotEmpty) {
+      // Overwrite the local cache with the server's list. Previously the cache
+      // was only ever written by upsertOne(), so it was additive: an employee
+      // removed on the server stayed in the cache indefinitely and kept
+      // appearing in the app. That is why a deleted employee was still shown
+      // as active after being removed from the database.
+      await _saveLocal(remote);
+      return remote;
     }
-    return local;
+
+    // Supabase returned nothing. This used to re-upload the entire local cache
+    // back to Supabase as a "migration", which is dangerous: a single failed
+    // or RLS-filtered fetch would RESURRECT every employee ever deleted,
+    // silently, from a stale cache on one person's device.
+    //
+    // An empty result is far more likely to mean a transient failure or a
+    // permissions problem than a genuinely empty company, so serve the cache
+    // read-only and write nothing back.
+    return _loadLocal();
   }
 
   static Future<void> upsertOne(AppUser u) async {
