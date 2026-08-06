@@ -280,6 +280,58 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
     return '$dept • $detail';
   }
 
+  // The remaining four metrics. These are not headcounts — a late arrival is a
+  // DAY, overtime is a total, and a new joiner is a date — so each row carries
+  // the fact behind it rather than just a name. Someone appearing twice in
+  // Late Arrivals means they were late twice, which is the useful reading.
+
+  List<EmployeeListItem> get _lateArrivalPeople => (_rangeFiltered
+          .where(_isLate)
+          .map((r) => EmployeeListItem(
+                name: r.employeeName,
+                subtitle: _withDetail(r.date, 'in at ${r.checkInTime}'),
+                onTap: _openProfileFor(r.employeeName),
+              ))
+          .toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
+  List<EmployeeListItem> get _overtimePeople {
+    // Summed per person, so the list explains the total on the card rather
+    // than listing the same person once per day.
+    final byPerson = <String, double>{};
+    for (final r in _rangeFiltered) {
+      final hrs = _workedHours(r);
+      if (hrs == null) continue;
+      final target = _scheduleForEmployee(r.employeeName).workingHours;
+      if (hrs <= target) continue;
+      byPerson[r.employeeName] = (byPerson[r.employeeName] ?? 0) + (hrs - target);
+    }
+    return (byPerson.entries
+            .map((e) => EmployeeListItem(
+                  name: e.key,
+                  subtitle: _withDetail(
+                      _deptOf(e.key), '${e.value.toStringAsFixed(1)}h extra'),
+                  onTap: _openProfileFor(e.key),
+                ))
+            .toList())
+      ..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  List<EmployeeListItem> get _newEmployeePeople => (_filteredUsers.where((u) {
+        final joined = _parseJoin(u);
+        if (joined == null) return false;
+        return !joined.isBefore(_range.start) && !joined.isAfter(_range.end);
+      }).map((u) => EmployeeListItem(
+            name: u.name,
+            subtitle: _withDetail(
+                u.department.isEmpty ? u.designation : u.department,
+                'joined ${u.dateOfJoining}'),
+            workLocation: u.workLocation,
+            businessUnit: u.businessUnit,
+            onTap: () => showEmployeeProfile(context, u),
+          )).toList())
+    ..sort((a, b) => a.name.compareTo(b.name));
+
   String _deptOf(String name) {
     final u = _filteredUsers
         .where((x) => x.name.trim().toLowerCase() == name.trim().toLowerCase());
@@ -635,18 +687,42 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
           AppStatStrip(cards: [
             AppStatCard(
               title: 'Late Arrivals', value: '$_lateArrivalsInRange',
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'Late Arrivals',
+                  items: _lateArrivalPeople,
+                  icon: Icons.running_with_errors_rounded,
+                  color: AppTheme.warning,
+                  emptyLabel: 'No late arrivals in this range'),
               icon: Icons.watch_later_rounded, color: AppTheme.warning,
             ),
             AppStatCard(
               title: 'Live Check-ins', value: '$_liveCheckIns',
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'Currently Checked In',
+                  items: _liveCheckInPeople,
+                  icon: Icons.sensors_rounded,
+                  color: AppTheme.success,
+                  emptyLabel: 'Nobody is checked in right now'),
               icon: Icons.location_on_rounded, color: AppTheme.accentBlue,
             ),
             AppStatCard(
               title: 'Overtime Hours', value: _overtimeHoursInRange.toStringAsFixed(1),
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'Overtime Hours',
+                  items: _overtimePeople,
+                  icon: Icons.more_time_rounded,
+                  color: AppTheme.accentBlue,
+                  emptyLabel: 'No overtime in this range'),
               icon: Icons.timelapse_rounded, color: AppTheme.purple,
             ),
             AppStatCard(
               title: 'New Employees', value: '$_newEmployeesInRange',
+              onTap: () => showEmployeeListDialog(context,
+                  title: 'New Employees',
+                  items: _newEmployeePeople,
+                  icon: Icons.person_add_alt_1_rounded,
+                  color: AppTheme.primaryBlue,
+                  emptyLabel: 'Nobody joined in this range'),
               icon: Icons.person_add_alt_1_rounded, color: AppTheme.pink,
             ),
           ]),

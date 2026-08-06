@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/leave_store.dart';
+import '../utils/attendance_day.dart';
 import 'hr_employee_records_page.dart' show showEmployeeProfile;
 import '../models/user_session.dart';
 import 'package:go_router/go_router.dart';
@@ -54,6 +56,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
   String _absent  = '—';
   List<AppUser> _users = [];
   List<AttendanceRecord> _records = [];
+  List<LeaveApplication> _leaveApps = [];
 
   @override
   void initState() {
@@ -66,16 +69,42 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
     final dateStr = '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
     final users   = await UserStore.load();
     final records = await SupabaseService.fetchAttendanceForDate(dateStr);
-    final total   = users.length;
-    final present = records.where((r) => r.checkInTime.isNotEmpty).length;
-    final absent  = (total - present).clamp(0, total);
+    final leaves  = await SupabaseService.fetchLeaveApplications();
+    final holidayRows = await SupabaseService.fetchHolidays(today.year);
+    final holidays = {
+      for (final h in holidayRows)
+        if ((h['holiday_date'] as String?)?.isNotEmpty ?? false)
+          (h['holiday_date'] as String).substring(0, 10),
+    };
+
+    // Only employees who are actually tracked. The CEO is excluded from
+    // attendance entirely, so counting him in the headcount makes every
+    // percentage wrong and guarantees a permanent phantom absence.
+    final tracked = users.where((u) => u.active && !u.exemptFromAttendance).toList();
+    final presentNames =
+        records.where((r) => r.checkInTime.isNotEmpty).map((r) => r.employeeName.trim().toLowerCase()).toSet();
+
+    // absent was (total - present), which counts weekly offs, public holidays
+    // and approved leave as absences. Third place this same arithmetic
+    // appeared — after the HR attendance screen and Reports & Analytics.
+    final absent = tracked
+        .where((u) => !presentNames.contains(u.name.trim().toLowerCase()))
+        .where((u) => classifyMissingAttendance(
+              employee: u,
+              date: today,
+              holidayDates: holidays,
+              leaveApps: leaves,
+            ).countsAsAbsent)
+        .length;
+
     if (mounted) {
       setState(() {
-        _totalEmployees = '$total';
-        _present = '$present';
+        _totalEmployees = '${tracked.length}';
+        _present = '${presentNames.length}';
         _absent  = '$absent';
         _users = users;
         _records = records;
+        _leaveApps = leaves;
       });
     }
   }
@@ -108,6 +137,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
                     absent: _absent,
                     users: _users,
                     records: _records,
+                    leaveApps: _leaveApps,
                   ),
                   SizedBox(height: narrow ? 24 : 32),
 
@@ -192,12 +222,14 @@ class _MgmtStatStrip extends StatelessWidget {
   final String absent;
   final List<AppUser> users;
   final List<AttendanceRecord> records;
+  final List<LeaveApplication> leaveApps;
   const _MgmtStatStrip(
       {required this.totalEmployees,
       required this.present,
       required this.absent,
       required this.users,
-      required this.records});
+      required this.records,
+      this.leaveApps = const []});
 
   double? _pct(String num, String denom) {
     final n = int.tryParse(num);
@@ -209,6 +241,15 @@ class _MgmtStatStrip extends StatelessWidget {
   bool _isOffice(AppUser u) => u.workLocation == 'Office';
 
   String _locTag(AppUser u) => u.workLocation.isEmpty ? 'Not set' : u.workLocation;
+
+  /// '12 Aug' for a single day, '12–14 Aug' for a span — the dates are the
+  /// point of a leave request, so they belong in the row.
+  String _fmtRange(DateTime from, DateTime to) {
+    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final f = '${from.day} ${m[from.month - 1]}';
+    if (from.year == to.year && from.month == to.month && from.day == to.day) return f;
+    return '$f – ${to.day} ${m[to.month - 1]}';
+  }
 
   /// Opens the profile for [name] when it resolves to an employee record.
   /// Returns null otherwise — attendance rows store the name, not the id, so a
@@ -240,6 +281,13 @@ class _MgmtStatStrip extends StatelessWidget {
       ..sort((a, b) => a.employeeName.compareTo(b.employeeName));
     final absentUsers = sortedUsers.where((u) => !presentByName.containsKey(u.name)).toList();
     final usersByName = {for (final u in sortedUsers) u.name: u};
+
+    // Waiting on a decision. Denied and approved are done; only pending needs
+    // anyone's attention.
+    final pendingLeaves = leaveApps
+        .where((a) => a.managerStatus == LeaveApprovalStatus.pending)
+        .toList()
+      ..sort((a, b) => a.from.compareTo(b.from));
 
     final totalOffice = sortedUsers.where(_isOffice).length;
     final totalOnsite = sortedUsers.length - totalOffice;
@@ -323,11 +371,33 @@ class _MgmtStatStrip extends StatelessWidget {
           emptyLabel: 'Everyone is present today',
         ),
       ),
-      const AppStatCard(
+      // Was hardcoded to '—': the card existed but was never wired to any
+      // data, so it showed a dash regardless of how many requests were
+      // waiting.
+      AppStatCard(
         title: 'Pending Leaves',
-        value: '—',
+        value: '${pendingLeaves.length}',
         icon: Icons.event_busy_rounded,
+        color: AppTheme.warning,
         gaugePercent: 0,
+        onTap: () => showEmployeeListDialog(
+          context,
+          title: 'Pending Leave Requests',
+          icon: Icons.event_busy_rounded,
+          color: AppTheme.warning,
+          items: [
+            // A leave request is not a person: the same employee can have more
+            // than one waiting, so each row carries its dates and type rather
+            // than only a name.
+            for (final a in pendingLeaves)
+              EmployeeListItem(
+                name: a.employeeName,
+                subtitle: '${a.leaveType} • ${_fmtRange(a.from, a.to)}',
+                onTap: _profileTap(context, usersByName, a.employeeName),
+              ),
+          ],
+          emptyLabel: 'No leave requests waiting',
+        ),
       ),
     ]);
   }
