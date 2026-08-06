@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_catches_without_on_clauses
 import 'dart:async';
+import 'gps_tracking_service.dart';
 import 'user_store.dart';
 import 'session_storage.dart';
 import 'dart:convert';
@@ -2248,6 +2249,13 @@ class SupabaseService {
         'check_in_lng':            lng,
         'check_in_within_radius':  withinRadius,
         'location_policy_name':    policyName,
+        // Why the fix failed, when it did. lastLocationError previously only
+        // existed in the browser of whoever checked in, so three attempts at
+        // the GPS problem were all unverifiable guesses. Recording it means
+        // one check-in identifies the actual cause.
+        'check_in_gps_error':      lat == null
+            ? (GpsTrackingService.lastLocationError ?? 'no position and no error reported')
+            : '',
       });
       logAuditEvent('attendance_check_in', targetType: 'attendance_records', targetId: employeeId);
       return null;
