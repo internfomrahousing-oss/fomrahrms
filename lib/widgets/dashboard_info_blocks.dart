@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'celebrating_trophy.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
@@ -894,8 +895,11 @@ class _EmployeeOfMonthBlockState extends State<_EmployeeOfMonthBlock> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.emoji_events_rounded,
-                          size: 36, color: _orange),
+                      // Was a static icon — a flat way to present the one
+                      // recognition the company gives. Now glows, sparkles and
+                      // breathes continuously, and falls back to the plain
+                      // icon when the device asks for reduced motion.
+                      const CelebratingTrophy(size: 36, color: _orange),
                       const SizedBox(height: 8),
                       if (monthLabel != null)
                         Text(monthLabel,

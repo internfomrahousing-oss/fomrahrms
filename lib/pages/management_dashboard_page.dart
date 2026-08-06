@@ -287,7 +287,7 @@ class _MgmtStatStrip extends StatelessWidget {
             for (final r in presentList)
               EmployeeListItem(
                 name: r.employeeName,
-                onTap: _profileTap(presentUsersByName, r.employeeName),
+                onTap: _profileTap(usersByName, r.employeeName),
                 subtitle: 'Checked in ${r.checkInTime} • ${_locTagByName(usersByName, r.employeeName)}',
               ),
           ],
