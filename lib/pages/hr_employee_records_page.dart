@@ -4013,14 +4013,44 @@ class EmployeeEditDialogState extends State<EmployeeEditDialog> {
                 child: SwitchListTile(
                   value: _isRmFlag,
                   activeColor: _color,
-                  onChanged: (v) => setState(() => _isRmFlag = v),
+                  // Keep role and flag in step. They are two representations of
+                  // the same fact and could disagree — Sijo had role 'Manager'
+                  // with the flag false, so he was missing from every manager
+                  // picker while his record said Manager. HR and Management
+                  // keep their own role; the switch only governs whether they
+                  // can be picked as someone's reporting manager.
+                  onChanged: (v) => setState(() {
+                    _isRmFlag = v;
+                    if (v && _role == 'Employee') {
+                      _role = 'Manager';
+                    } else if (!v && _role == 'Manager') {
+                      _role = 'Employee';
+                    }
+                  }),
                   title: const Text('Is Reporting Manager',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                  subtitle: Text(
-                      widget.user!.hasPendingRmFlagChange
-                          ? 'Requested: ${widget.user!.isReportingManagerPending ? 'Make RM' : 'Remove RM'} (awaiting Management)'
-                          : 'Eligible to be selected as someone’s reporting manager',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  subtitle: Builder(builder: (_) {
+                    final pending = widget.user!.hasPendingRmFlagChange;
+                    // Management IS the approving authority, so a change it
+                    // makes takes effect at once — saying "awaiting
+                    // Management" to Management is what made this look broken.
+                    final isMgmt = UserSession.role == UserRole.management;
+                    if (pending) {
+                      return Text(
+                        'Requested: ${widget.user!.isReportingManagerPending ? 'Make RM' : 'Remove RM'} — awaiting Management approval',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade800),
+                      );
+                    }
+                    return Text(
+                      isMgmt
+                          ? 'Eligible to be picked as someone’s reporting manager. Takes effect immediately.'
+                          : 'Eligible to be picked as someone’s reporting manager. Needs Management approval.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    );
+                  }),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
               ),
