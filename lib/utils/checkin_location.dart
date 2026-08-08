@@ -54,13 +54,27 @@ Future<CheckInLocation> resolveCheckInLocation() async {
   // happened since the tap.
   final pos = await GpsTrackingService.getCurrentLocation();
 
-  // Both stores start fire-and-forget in main(), so on a cold start they can
-  // still be empty. An empty policy store makes policyForEmployee() return the
-  // built-in fallback, geofencing someone whose real policy is Unrestricted.
-  await Future.wait([
-    AttendancePolicyStore.ensureLoaded(),
-    OfficeTimingStore.ensureLoaded(),
-  ]);
+  // REFRESH, not ensureLoaded. ensureLoaded() returns immediately once the
+  // store has loaded in this session, so a session that started BEFORE HR
+  // assigned someone a location never sees that assignment.
+  //
+  // That is not hypothetical: Mithun checked in 24.5 m from Higrove Gardens,
+  // inside a 150 m radius and correctly assigned to it in the database, and
+  // was still told he was outside and made to type a reason. His app had
+  // loaded the store before the assignment existed, so locationsForEmployee()
+  // returned an empty list — which evaluateGeofence() reads as "outside
+  // everywhere".
+  //
+  // Check-in happens about twice a day per person, so a guaranteed-fresh fetch
+  // is cheap; being wrong about where someone is standing is not. Failures are
+  // swallowed so a network blip cannot block attendance — the cached data is
+  // still better than nothing.
+  try {
+    await AttendancePolicyStore.refresh();
+  } catch (_) {
+    await AttendancePolicyStore.ensureLoaded();
+  }
+  await OfficeTimingStore.ensureLoaded();
 
   final policy = AttendancePolicyStore.policyForEmployee(
     employeeId: UserSession.employeeId,
