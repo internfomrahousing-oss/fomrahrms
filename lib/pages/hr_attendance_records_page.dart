@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/user_session.dart';
 import '../utils/attendance_day.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/org_lists.dart';
@@ -28,7 +29,8 @@ CheckInRowStatus _rowStatus(AttendanceRecord r, List<LeaveApplication> leaveApps
   final date = parseSlashDate(r.date);
   if (date == null) return const CheckInRowStatus(CheckInStatus.none, 0);
   return checkInStatusFor(r.checkInTime, date, r.employeeName, leaveApps,
-      _scheduleForEmployee(r.employeeName, users));
+      _scheduleForEmployee(r.employeeName, users),
+      lateWaived: r.lateWaived);
 }
 
 /// Formats the gap between "HH:mm" check-in/check-out times as "Xh Ym".
@@ -1260,15 +1262,70 @@ class _AttendanceTableState extends State<_AttendanceTable> {
 
 // ── Attendance detail dialog ──────────────────────────────────────────────────
 
-class _AttendanceDetailDialog extends StatelessWidget {
+class _AttendanceDetailDialog extends StatefulWidget {
   final AttendanceRecord record;
   const _AttendanceDetailDialog({required this.record});
+  @override
+  State<_AttendanceDetailDialog> createState() => _AttendanceDetailDialogState();
+}
 
+class _AttendanceDetailDialogState extends State<_AttendanceDetailDialog> {
   static Color get _color => AppTheme.primaryBlue;
+
+  late bool _waived = widget.record.lateWaived;
+  late String _waiverReason = widget.record.lateWaiverReason;
+  bool _busy = false;
+
+  /// Excuse a late arrival. Management only — the RPC refuses anyone else, so
+  /// the button is hidden rather than shown-and-refused.
+  Future<void> _waive() async {
+    final ctrl = TextEditingController(
+        text: 'App fault — could not complete check-in on time.');
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excuse this late arrival'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text(
+            'The recorded time is not changed — it is when the system accepted '
+            'the check-in. This records that the lateness is excused, and why.',
+            style: TextStyle(fontSize: 12.5),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: ctrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+                labelText: 'Reason', border: OutlineInputBorder()),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Excuse'),
+          ),
+        ],
+      ),
+    );
+    if (reason == null || reason.isEmpty) return;
+    setState(() => _busy = true);
+    final err = await SupabaseService.waiveLate(widget.record.id, reason);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (err == null) { _waived = true; _waiverReason = reason; }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(err ?? 'Late arrival excused'),
+      backgroundColor: err == null ? Colors.green.shade700 : Colors.red.shade700,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
-    final r = record;
+    final r = widget.record;
     final hasCheckOut = r.checkOutTime.isNotEmpty;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1307,6 +1364,53 @@ class _AttendanceDetailDialog extends StatelessWidget {
                   ),
                 ),
               ]),
+
+              // Late waiver. Shown when already excused so the reason and who
+              // granted it are visible; offered to Management otherwise.
+              if (_waived) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.verified_rounded, size: 16, color: Colors.green.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Late arrival excused',
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green.shade800)),
+                        if (_waiverReason.isNotEmpty)
+                          Text(_waiverReason,
+                              style: TextStyle(fontSize: 11.5, color: Colors.green.shade900)),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ] else if (UserSession.role == UserRole.management &&
+                  r.checkInTime.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _waive,
+                    icon: const Icon(Icons.timer_off_rounded, size: 16),
+                    label: const Text('Excuse late arrival'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amber.shade800,
+                      side: BorderSide(color: Colors.amber.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               const Divider(),
               const SizedBox(height: 16),

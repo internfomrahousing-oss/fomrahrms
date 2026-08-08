@@ -804,9 +804,13 @@ class NotificationService {
     required String checkInTime,
     required DateTime date,
     required OfficeTiming schedule,
+    // A waived arrival must not raise a late alert either — otherwise HR is
+    // notified about lateness Management has already excused.
+    bool lateWaived = false,
   }) async {
     final leaves = await SupabaseService.fetchLeaveApplications();
-    final status = checkInStatusFor(checkInTime, date, employeeName, leaves, schedule);
+    final status = checkInStatusFor(checkInTime, date, employeeName, leaves, schedule,
+        lateWaived: lateWaived);
     if (status.status != CheckInStatus.late) return;
 
     final hadApprovedPermissionToday =

@@ -38,7 +38,14 @@ int? _minutesOf(String time) {
 /// genuinely late against [schedule] (the employee's designation-based
 /// office timing), checking [leaveApps] for a same-day approved Permission.
 CheckInRowStatus checkInStatusFor(String checkInTime, DateTime date, String employeeName,
-    List<LeaveApplication> leaveApps, OfficeTiming schedule) {
+    List<LeaveApplication> leaveApps, OfficeTiming schedule,
+    {bool lateWaived = false}) {
+  // Management has excused this arrival — normally because the app itself
+  // prevented a timely check-in. Handled here, at the single point every
+  // screen goes through, rather than at each of the eight call sites: the
+  // late-reason prompt lived in three files and only one of them was right.
+  if (lateWaived) return const CheckInRowStatus(CheckInStatus.onTime, 0);
+
   // Management has no fixed hours, so a check-in is never late. Handled here
   // rather than at each of the seven call sites, so no view can disagree with
   // another about whether the same person was late.

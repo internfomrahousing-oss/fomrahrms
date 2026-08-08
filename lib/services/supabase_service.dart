@@ -2371,6 +2371,8 @@ class SupabaseService {
         checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
         checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
         checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        lateWaived:          (row['late_waived'] as bool?) ?? false,
+        lateWaiverReason:    (row['late_waiver_reason'] as String?) ?? '',
         checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
         checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
         checkOutWithinRadius: row['check_out_within_radius'] as bool?,
@@ -2408,6 +2410,8 @@ class SupabaseService {
         checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
         checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
         checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        lateWaived:          (row['late_waived'] as bool?) ?? false,
+        lateWaiverReason:    (row['late_waiver_reason'] as String?) ?? '',
         checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
         checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
         checkOutWithinRadius: row['check_out_within_radius'] as bool?,
@@ -2446,6 +2450,8 @@ class SupabaseService {
         checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
         checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
         checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        lateWaived:          (row['late_waived'] as bool?) ?? false,
+        lateWaiverReason:    (row['late_waiver_reason'] as String?) ?? '',
         checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
         checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
         checkOutWithinRadius: row['check_out_within_radius'] as bool?,
@@ -2485,6 +2491,8 @@ class SupabaseService {
         checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
         checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
         checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        lateWaived:          (row['late_waived'] as bool?) ?? false,
+        lateWaiverReason:    (row['late_waiver_reason'] as String?) ?? '',
         checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
         checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
         checkOutWithinRadius: row['check_out_within_radius'] as bool?,
@@ -2522,6 +2530,8 @@ class SupabaseService {
         checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
         checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
         checkInWithinRadius: row['check_in_within_radius']  as bool?,
+        lateWaived:          (row['late_waived'] as bool?) ?? false,
+        lateWaiverReason:    (row['late_waiver_reason'] as String?) ?? '',
         checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
         checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
         checkOutWithinRadius: row['check_out_within_radius'] as bool?,
@@ -3347,6 +3357,36 @@ class SupabaseService {
     } catch (e) {
       // Non-fatal: HR can still type one, and the DB fills a blank itself.
       return null;
+    }
+  }
+
+  /// Management excuses a late arrival — normally a system fault, such as the
+  /// browser refusing the location permission so the employee could not
+  /// complete check-in before their start time.
+  ///
+  /// The recorded TIME is deliberately not altered: it is when the system
+  /// accepted the check-in, and rewriting it would falsify the record. The
+  /// waiver sits alongside it. Returns null on success, or a message to show.
+  static Future<String?> waiveLate(String recordId, String reason) async {
+    try {
+      await _db?.rpc('waive_late', params: {
+        'p_record_id': recordId,
+        'p_reason': reason,
+      });
+      logAuditEvent('late_waived', targetType: 'attendance_records', targetId: recordId);
+      return null;
+    } catch (e) {
+      return _rpcMessage(e);
+    }
+  }
+
+  static Future<String?> unwaiveLate(String recordId) async {
+    try {
+      await _db?.rpc('unwaive_late', params: {'p_record_id': recordId});
+      logAuditEvent('late_waiver_removed', targetType: 'attendance_records', targetId: recordId);
+      return null;
+    } catch (e) {
+      return _rpcMessage(e);
     }
   }
 

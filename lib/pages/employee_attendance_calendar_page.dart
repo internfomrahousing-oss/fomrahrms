@@ -259,7 +259,8 @@ class _EmployeeAttendanceCalendarPageState
       final ds = _fmtSlash(d);
       final rec = byDate[ds];
       if (rec != null && rec.checkInTime.isNotEmpty) {
-        final st = checkInStatusFor(rec.checkInTime, d, widget.employeeName, leaveApps, rangeSchedule);
+        final st = checkInStatusFor(rec.checkInTime, d, widget.employeeName, leaveApps,
+            rangeSchedule, lateWaived: rec.lateWaived);
         rows.add(_RangeDay(
             d, st.status == CheckInStatus.late ? 'Late Coming' : 'Present',
             rec.checkInTime, rec.checkOutTime));
@@ -327,7 +328,7 @@ class _EmployeeAttendanceCalendarPageState
     final r = _attendance[day];
     if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
     final date = DateTime(_month.year, _month.month, day);
-    return checkInStatusFor(r.checkInTime, date, widget.employeeName, _leaveApps, _schedule);
+    return checkInStatusFor(r.checkInTime, date, widget.employeeName, _leaveApps, _schedule, lateWaived: r.lateWaived);
   }
 
   // True when a day has no check-in, no approved leave/permission/comp-off,
