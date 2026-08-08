@@ -54,6 +54,13 @@ class AttendanceRecord {
   final double? checkInLat;
   final double? checkInLng;
   final bool? checkInWithinRadius;
+
+  /// Lateness excused by Management — typically a system fault, such as the
+  /// browser refusing the location permission so the employee could not
+  /// complete check-in until after their start time. The recorded time is
+  /// deliberately left alone; this flag sits alongside it.
+  final bool lateWaived;
+  final String lateWaiverReason;
   final double? checkOutLat;
   final double? checkOutLng;
   final bool? checkOutWithinRadius;
@@ -75,6 +82,8 @@ class AttendanceRecord {
     this.checkInLat,
     this.checkInLng,
     this.checkInWithinRadius,
+    this.lateWaived = false,
+    this.lateWaiverReason = '',
     this.checkOutLat,
     this.checkOutLng,
     this.checkOutWithinRadius,

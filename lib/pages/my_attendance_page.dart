@@ -159,7 +159,8 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     if (r == null) return const CheckInRowStatus(CheckInStatus.none, 0);
     final date = DateTime(_month.year, _month.month, day);
     return checkInStatusFor(r.checkInTime, date, UserSession.name, _leaveApps,
-        OfficeTimingStore.scheduleForCurrentUser());
+        OfficeTimingStore.scheduleForCurrentUser(),
+        lateWaived: r.lateWaived);
   }
 
   // True when a day has no check-in, no approved leave/permission/comp-off,

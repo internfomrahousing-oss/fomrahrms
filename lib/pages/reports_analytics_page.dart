@@ -361,7 +361,8 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
     final date = parseSlashDate(r.date);
     if (date == null) return false;
     return checkInStatusFor(r.checkInTime, date, r.employeeName, _leaveApps,
-                _scheduleForEmployee(r.employeeName)).status ==
+                _scheduleForEmployee(r.employeeName),
+                lateWaived: r.lateWaived).status ==
         CheckInStatus.late;
   }
 
