@@ -1014,6 +1014,7 @@ class _AttendanceSheetState extends State<_AttendanceSheet> {
       lat:          loc.lat,
       lng:          loc.lng,
       withinRadius: loc.withinRadius,
+      accuracy:     loc.accuracy,
       policyName:   loc.policyName,
     );
 

@@ -242,6 +242,7 @@ class _CheckInPageState extends State<CheckInPage> {
       selfiePath: selfiePath ?? '',
       lat: pos?.latitude,
       lng: pos?.longitude,
+      accuracy: pos?.accuracy,
       withinRadius: geofence.requiresLocation ? geofence.isWithinAnyLocation : null,
       policyName: policy.name,
     );

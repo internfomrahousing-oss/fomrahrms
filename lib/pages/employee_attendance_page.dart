@@ -166,6 +166,7 @@ class _EmployeeAttendancePageState extends State<EmployeeAttendancePage> {
       lat:          loc.lat,
       lng:          loc.lng,
       withinRadius: loc.withinRadius,
+      accuracy:     loc.accuracy,
       policyName:   loc.policyName,
     );
 
