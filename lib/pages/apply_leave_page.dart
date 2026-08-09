@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import '../utils/leave_deduction.dart';
 import '../utils/attendance_cycle.dart';
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
@@ -23,6 +24,12 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
 
   // Populated from Supabase config; falls back to LeaveFormConfig defaults.
   List<String> _allLeaveTypes = List<String>.from(LeaveFormConfig.defaultLeaveTypes);
+
+  /// Public holidays for the year, and the signed-in user's record — both
+  /// needed to preview what a request will actually cost.
+  Set<String> _holidayDates = {};
+  AppUser? _me;
+  List<LeaveApplication> _myLeaves = [];
 
   DateTime? _fromDate;
   DateTime? _toDate;
@@ -99,13 +106,37 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     return _toDate!.difference(_fromDate!).inDays + 1;
   }
 
-  /// Effective deduction: 0.5 for half-day, full count otherwise.
-  double get _effectiveDays {
-    if (_fromDate == null) return 0.0;
-    if (_isHalfDay) return 0.5;
-    if (_toDate == null) return 0.0;
-    return _calendarDays.toDouble();
+  /// What this request will actually cost, mirroring the database rule.
+  ///
+  /// The old version returned plain calendar days, so someone taking Saturday
+  /// and Monday saw "2 days" while the database deducted 3 — having pulled in
+  /// the Sunday between them. Correct, and completely unexplained.
+  LeaveDeduction? get _deduction {
+    if (_fromDate == null) return null;
+    final to = _isHalfDay ? _fromDate! : (_toDate ?? _fromDate!);
+    return previewLeaveDeduction(
+      from: _fromDate!,
+      to: to,
+      isHalfDay: _isHalfDay,
+      employee: _me,
+      holidayIsoDates: _holidayDates,
+      existingLeaves: _myLeaves,
+    );
   }
+
+  double get _effectiveDays => _deduction?.totalDays ?? 0.0;
+
+  Widget _explain(IconData icon, String text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, size: 14, color: Colors.amber.shade800),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(fontSize: 11.5, color: Colors.amber.shade900)),
+          ),
+        ]),
+      );
 
   String _fmtEffective(double d) =>
       d == d.truncateToDouble() ? '${d.toInt()} day${d.toInt() == 1 ? '' : 's'}' : '½ day';
@@ -137,12 +168,24 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       final results = await Future.wait([
         UserStore.load(),
         SupabaseService.fetchLeaveApplications(),
+        // Needed to preview the real deduction: a public holiday inside the
+        // range is not charged, and the weekly off decides what sandwiches.
+        SupabaseService.fetchHolidays(DateTime.now().year),
       ]);
       final users  = (results[0] as List).cast<AppUser>();
       final leaves = results[1] as List<LeaveApplication>;
+      final holidayRows = (results[2] as List).cast<Map<String, dynamic>>();
 
       final matches = users.where((u) => u.name == UserSession.name).toList();
       final me      = matches.isNotEmpty ? matches.first : null;
+
+      _me = me;
+      _myLeaves = leaves.where((a) => a.employeeName == UserSession.name).toList();
+      _holidayDates = {
+        for (final h in holidayRows)
+          if ((h['holiday_date'] as String?)?.isNotEmpty ?? false)
+            (h['holiday_date'] as String).substring(0, 10),
+      };
 
       // EL cutoff for cumulative tracking
       DateTime? elCutoff;
@@ -569,7 +612,8 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                       )),
                     ]),
 
-                    // Day count pill
+                    // What this will actually cost, and why — shown before
+                    // submitting rather than discovered afterwards.
                     if (_effectiveDays > 0) ...[
                       const SizedBox(height: 12),
                       Center(
@@ -580,7 +624,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            _fmtEffective(_effectiveDays),
+                            '${_fmtEffective(_effectiveDays)} will be deducted',
                             style: TextStyle(
                                 color: _color,
                                 fontWeight: FontWeight.w600,
@@ -588,6 +632,42 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                           ),
                         ),
                       ),
+                      if (_deduction?.hasSurprise ?? false) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.amber.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if ((_deduction?.sandwichDays ?? 0) > 0)
+                                _explain(
+                                  Icons.info_outline_rounded,
+                                  'Your weekly off falls between leave days, so it is '
+                                  'counted as leave too (sandwich policy).',
+                                ),
+                              if ((_deduction?.holidaysExcluded ?? 0) > 0)
+                                _explain(
+                                  Icons.celebration_rounded,
+                                  '${_deduction!.holidaysExcluded} public holiday'
+                                  '${_deduction!.holidaysExcluded == 1 ? '' : 's'} in this '
+                                  'range — not charged to your balance.',
+                                ),
+                              if ((_deduction?.lopDays ?? 0) > 0)
+                                _explain(
+                                  Icons.money_off_rounded,
+                                  '${_deduction!.lopDays} day'
+                                  '${_deduction!.lopDays == 1 ? '' : 's'} beyond the 2-day '
+                                  'casual leave adjustment will be loss of pay.',
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                     const SizedBox(height: 16),
 
