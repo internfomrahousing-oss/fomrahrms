@@ -2231,6 +2231,7 @@ class SupabaseService {
     double? lat,
     double? lng,
     bool? withinRadius,
+    double? accuracy,
     String policyName = '',
   }) async {
     try {
@@ -2248,6 +2249,7 @@ class SupabaseService {
         'check_in_lat':            lat,
         'check_in_lng':            lng,
         'check_in_within_radius':  withinRadius,
+        'check_in_accuracy':       accuracy,
         'location_policy_name':    policyName,
         // Why the fix failed, when it did. lastLocationError previously only
         // existed in the browser of whoever checked in, so three attempts at

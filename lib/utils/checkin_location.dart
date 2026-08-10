@@ -29,6 +29,11 @@ class CheckInLocation {
 
   double? get lat => position?.latitude;
   double? get lng => position?.longitude;
+
+  /// Radius in metres the device reported for this fix. Discarded until now,
+  /// which meant a +/-2000 m cell-tower estimate was stored identically to a
+  /// +/-5 m satellite fix and both were measured against a 150 m geofence.
+  double? get accuracy => position?.accuracy;
   bool? get withinRadius => position == null ? null : geofence.isWithinAnyLocation;
 }
 
