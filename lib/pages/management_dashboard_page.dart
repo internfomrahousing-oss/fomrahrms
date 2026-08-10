@@ -80,7 +80,7 @@ class _ManagementDashboardPageState extends State<ManagementDashboardPage> {
     // Only employees who are actually tracked. The CEO is excluded from
     // attendance entirely, so counting him in the headcount makes every
     // percentage wrong and guarantees a permanent phantom absence.
-    final tracked = users.where((u) => u.active && !u.exemptFromAttendance).toList();
+    final tracked = users.where((u) => u.active && u.countsInHeadcount && !u.exemptFromAttendance).toList();
     final presentNames =
         records.where((r) => r.checkInTime.isNotEmpty).map((r) => r.employeeName.trim().toLowerCase()).toSet();
 

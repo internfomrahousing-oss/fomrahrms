@@ -1859,7 +1859,7 @@ class _EmployeeListSheetState extends State<_EmployeeListSheet> {
   Future<void> _load() async {
     final users = await UserStore.load();
     if (!mounted) return;
-    final active = users.where((u) => u.active).toList()
+    final active = users.where((u) => u.active && u.countsInHeadcount).toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     setState(() {
       _all      = active;

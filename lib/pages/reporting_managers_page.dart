@@ -195,7 +195,7 @@ class _ReportingManagersPageState extends State<ReportingManagersPage> {
                       const SizedBox(height: 16),
                     ],
                     _ManageFlagsCard(
-                      users: _users.where((u) => u.active).toList(),
+                      users: _users.where((u) => u.active && u.countsInHeadcount).toList(),
                       onToggle: _requestFlagChange,
                       isManagement: _isManagement,
                     ),

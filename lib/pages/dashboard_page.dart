@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/leave_store.dart';
+import '../utils/attendance_day.dart';
 import 'hr_employee_records_page.dart' show showEmployeeProfile;
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
@@ -45,10 +47,41 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final users   = await UserStore.load();
     final records = await SupabaseService.fetchAttendanceForDate(dateStr);
+    final leaves  = await SupabaseService.fetchLeaveApplications();
+    final holidayRows = await SupabaseService.fetchHolidays(today.year);
+    final holidays = {
+      for (final h in holidayRows)
+        if ((h['holiday_date'] as String?)?.isNotEmpty ?? false)
+          (h['holiday_date'] as String).substring(0, 10),
+    };
 
-    final total   = users.length;
-    final present = records.where((r) => r.checkInTime.isNotEmpty).length;
-    final absent  = (total - present).clamp(0, total);
+    // The founder is not an employee: no joining date, no attendance, no
+    // payroll, no leave. Counting him makes every percentage wrong — "5 of 6
+    // present" against a denominator containing someone who can never check in.
+    final tracked = users
+        .where((u) => u.active && u.countsInHeadcount && !u.exemptFromAttendance)
+        .toList();
+    final total   = tracked.length;
+
+    final presentNames = records
+        .where((r) => r.checkInTime.isNotEmpty)
+        .map((r) => r.employeeName.trim().toLowerCase())
+        .toSet();
+    final present = presentNames.length;
+
+    // absent was (total - present), which counts weekly offs, public holidays
+    // and approved leave as absences. FOURTH place this same arithmetic
+    // appeared — after the HR attendance screen, Reports & Analytics and the
+    // management dashboard.
+    final absent = tracked
+        .where((u) => !presentNames.contains(u.name.trim().toLowerCase()))
+        .where((u) => classifyMissingAttendance(
+              employee: u,
+              date: today,
+              holidayDates: holidays,
+              leaveApps: leaves,
+            ).countsAsAbsent)
+        .length;
 
     if (mounted) {
       setState(() {

@@ -86,7 +86,7 @@ class _KraManagementBodyState extends State<_KraManagementBody> {
       counts[d.employeeEmail] = (counts[d.employeeEmail] ?? 0) + 1;
     }
     setState(() {
-      _employees = users.where((u) => u.active).toList()
+      _employees = users.where((u) => u.active && u.countsInHeadcount).toList()
         ..sort((a, b) => a.name.compareTo(b.name));
       _countByEmail = counts;
       _loading = false;
