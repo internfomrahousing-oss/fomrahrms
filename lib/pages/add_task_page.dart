@@ -72,7 +72,7 @@ static const _priorities = [
       setState(() {
         // HR/Management → everyone; a flagged reporting manager (any role)
         // → only their direct reports; anyone else → no assignable users.
-        final active = users.where((u) => u.active).toList();
+        final active = users.where((u) => u.active && u.countsInHeadcount).toList();
         final isHrOrMgmt = UserSession.role == UserRole.hr || UserSession.role == UserRole.management;
         _users = isHrOrMgmt
             ? active

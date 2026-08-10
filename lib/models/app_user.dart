@@ -165,6 +165,18 @@ class AppUser {
 
   bool get isCeo => role.trim().toLowerCase() == 'ceo';
 
+  /// Whether this person is an EMPLOYEE for counting and reporting purposes.
+  ///
+  /// The founder is not. He has no joining date, no attendance, no payroll and
+  /// no leave entitlement, and including him in a headcount makes every
+  /// percentage wrong — "5 of 6 present" against a denominator containing
+  /// someone who can never check in.
+  ///
+  /// Deliberately NOT the same as being hidden. He remains selectable as a
+  /// reporting manager and as an approver, because he approves the Head of
+  /// Operations' leave. This governs counting and reports only.
+  bool get countsInHeadcount => !oversightOnly;
+
   /// Confirmed off probation. Anyone exempt from the leave rules is treated as
   /// confirmed, because probation does not apply to them.
   bool get isOnroll    => exemptFromLeaveRules || onrollConfirmedAt.isNotEmpty;

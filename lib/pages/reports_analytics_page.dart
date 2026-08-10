@@ -137,6 +137,9 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
       (_users.map((u) => u.role).where((d) => d.isNotEmpty).toSet().toList()..sort());
 
   List<AppUser> get _filteredUsers => _users.where((u) {
+        // The founder is not an employee and must not appear in any report or
+        // count. He remains selectable as an approver elsewhere.
+        if (!u.countsInHeadcount) return false;
         if (_department != null && u.department != _department) return false;
         if (_location != null && u.workLocation != _location) return false;
         if (_role != null && u.role != _role) return false;
