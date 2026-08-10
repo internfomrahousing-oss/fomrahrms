@@ -3369,6 +3369,31 @@ class SupabaseService {
   /// The recorded TIME is deliberately not altered: it is when the system
   /// accepted the check-in, and rewriting it would falsify the record. The
   /// waiver sits alongside it. Returns null on success, or a message to show.
+  /// Location history for Management: where each check-in happened, how
+  /// accurate the fix was, and how far from the nearest assigned site.
+  ///
+  /// Reads v_location_history, which has security_invoker on — so the RLS
+  /// policy on attendance_records still applies and an employee querying this
+  /// sees only their own movements. Location is personal data.
+  static Future<List<Map<String, dynamic>>> fetchLocationHistory({
+    String? employeeId,
+    String? fromIso,
+    String? toIso,
+  }) async {
+    try {
+      var q = _db?.from('v_location_history').select();
+      if (q == null) return [];
+      if ((employeeId ?? '').isNotEmpty) q = q.eq('employee_id', employeeId!);
+      if ((fromIso ?? '').isNotEmpty) q = q.gte('date_iso', fromIso!);
+      if ((toIso ?? '').isNotEmpty) q = q.lte('date_iso', toIso!);
+      final rows = await q.order('date_iso', ascending: false);
+      return List<Map<String, dynamic>>.from(rows);
+    } catch (e) {
+      _writeFailed('fetchLocationHistory', e);
+      return [];
+    }
+  }
+
   static Future<String?> waiveLate(String recordId, String reason) async {
     try {
       await _db?.rpc('waive_late', params: {

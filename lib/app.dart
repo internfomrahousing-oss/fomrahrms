@@ -8,6 +8,7 @@ import 'widgets/app_shell.dart';
 import 'widgets/employee_shell.dart';
 import 'widgets/notification_popup_overlay.dart';
 import 'pages/login_page.dart';
+import 'pages/location_history_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/summary_detail_page.dart';
@@ -599,6 +600,10 @@ final _router = GoRouter(
         GoRoute(path: '/management/reports-analytics',      builder: (_, __) => const ReportsAnalyticsPage()),
         GoRoute(path: '/management/administration',         builder: (_, __) => const AdministrationPage()),
         GoRoute(path: '/management/settings',               builder: (_, __) => const SettingsPage()),
+        // Location history is Management-only by placement here. The view
+        // underneath has security_invoker on, so RLS applies regardless — an
+        // employee reaching it would see only their own movements.
+        GoRoute(path: '/management/location-history',       builder: (_, __) => const LocationHistoryPage()),
         GoRoute(path: '/management/my-details',             builder: (_, __) => const MyProfilePage()),
         GoRoute(path: '/management/my-attendance',               builder: (_, __) => const MyAttendancePage(checkInRoute: '/management/attendance/check-in-out')),
         GoRoute(path: '/management/attendance/check-in-out',     builder: (_, __) => const EmployeeAttendancePage()),
