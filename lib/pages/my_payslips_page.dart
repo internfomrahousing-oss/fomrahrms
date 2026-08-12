@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/payslip_pdf_service.dart';
 import '../utils/el_accrual.dart';
 import '../models/app_user.dart';
 import '../models/leave_store.dart';
@@ -557,11 +558,35 @@ class _PayslipListTile extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
         subtitle: Text('Net Pay: ${_fmtRs(payslip.netPay)}',
             style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6B7280)),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          // The PDF generator and its download() existed all along; no screen
+          // ever offered it, so a payslip could be viewed and never saved.
+          IconButton(
+            icon: Icon(Icons.download_rounded, size: 20, color: _purple),
+            tooltip: 'Download PDF',
+            onPressed: () => _downloadPayslip(context, payslip),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFF6B7280)),
+        ]),
         onTap: () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => PayslipDetailPage(payslip: payslip))),
       ),
     );
+  }
+}
+
+/// Generates and downloads the payslip PDF, reporting failure rather than
+/// doing nothing — a button that silently fails reads as broken.
+Future<void> _downloadPayslip(BuildContext context, Payslip p) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await PayslipPdfService.download(p);
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(
+      content: Text('Could not download the payslip: $e'),
+      backgroundColor: Colors.red.shade700,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 }
 
@@ -628,6 +653,19 @@ class PayslipDetailPage extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineMedium),
+            ),
+            const SizedBox(width: 8),
+            // Also offered here: someone reading a payslip is the most likely
+            // person to want to keep a copy of it.
+            ElevatedButton.icon(
+              onPressed: () => _downloadPayslip(context, p),
+              icon: const Icon(Icons.download_rounded, size: 17),
+              label: const Text('Download'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _purple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
             ),
           ]),
           const SizedBox(height: 24),
