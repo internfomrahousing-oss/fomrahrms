@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../utils/task_priority_style.dart';
 import 'celebrating_trophy.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -48,20 +49,6 @@ String taskStatusLabel(TaskStatus s) => switch (s) {
       TaskStatus.inProgress => 'In Progress',
       TaskStatus.completed  => 'Completed',
       TaskStatus.delayed    => 'Delayed',
-    };
-
-Color taskPriorityColor(TaskPriority p) => switch (p) {
-      TaskPriority.low      => Colors.green.shade600,
-      TaskPriority.medium   => Colors.orange.shade700,
-      TaskPriority.high     => Colors.deepOrange.shade700,
-      TaskPriority.critical => Colors.red.shade800,
-    };
-
-String taskPriorityLabel(TaskPriority p) => switch (p) {
-      TaskPriority.low      => 'Low',
-      TaskPriority.medium   => 'Medium',
-      TaskPriority.high     => 'High',
-      TaskPriority.critical => 'Critical',
     };
 
 // Coarse completion percent per status stage, used for the ring shown on
