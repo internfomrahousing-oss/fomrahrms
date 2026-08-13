@@ -882,18 +882,24 @@ class _DaySheet extends StatelessWidget {
         // said if it was later questioned.
         if ((record?.checkInNote ?? '').isNotEmpty)
           _noteRow(context, Icons.chat_bubble_outline_rounded, _blue,
-              'Your reason: ${record!.checkInNote}'),
+              'Your reason: ${record?.checkInNote ?? ''}'),
         if ((record?.checkOutNote ?? '').isNotEmpty)
           _noteRow(context, Icons.chat_bubble_outline_rounded, _blue,
-              'Check-out reason: ${record!.checkOutNote}'),
+              'Check-out reason: ${record?.checkOutNote ?? ''}'),
 
         // A waived late arrival should say so, rather than silently not
         // counting.
+        // `record` is a nullable FIELD, and Dart does not promote fields — a
+        // bare record.lateWaiverReason after record! is a compile error. Read
+        // it once into a local instead of scattering ! through the expression.
         if (record?.lateWaived ?? false)
-          _noteRow(context, Icons.verified_rounded, _green,
-              (record!.lateWaiverReason.isEmpty)
-                  ? 'Late arrival excused by Management'
-                  : 'Excused by Management: ${record.lateWaiverReason}'),
+          Builder(builder: (ctx) {
+            final reason = record?.lateWaiverReason ?? '';
+            return _noteRow(ctx, Icons.verified_rounded, _green,
+                reason.isEmpty
+                    ? 'Late arrival excused by Management'
+                    : 'Excused by Management: $reason');
+          }),
       ]),
     );
   }
