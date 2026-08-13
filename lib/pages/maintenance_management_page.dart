@@ -60,6 +60,7 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
 
   List<String> _issueForOptions = List<String>.from(MaintenanceFormConfig.defaultIssueForOptions);
   List<String> _issueTypes      = List<String>.from(MaintenanceFormConfig.defaultIssueTypes);
+  Map<String, dynamic> _cfg     = MaintenanceFormConfig.defaults();
 
   @override
   void initState() {
@@ -100,7 +101,8 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
       if (!mounted) return;
       setState(() {
         _issueForOptions = MaintenanceFormConfig.getIssueForOptions(cfg!);
-        _issueTypes      = MaintenanceFormConfig.getIssueTypes(cfg);
+        _cfg             = cfg;
+        _issueTypes      = MaintenanceFormConfig.getIssueTypesFor(cfg, _selectedIssueFor);
       });
     } catch (_) {}
   }
@@ -584,7 +586,14 @@ class _MaintenanceManagementPageState extends State<MaintenanceManagementPage> {
             items: _issueForOptions
                 .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                 .toList(),
-            onChanged: (v) => setState(() => _selectedIssueFor = v),
+            onChanged: (v) => setState(() {
+              _selectedIssueFor = v;
+              // The type list depends on the department. Clear any previous
+              // choice, otherwise picking IT after HR would leave "Salary &
+              // Payroll Issues" selected under IT.
+              _selectedIssueType = null;
+              _issueTypes = MaintenanceFormConfig.getIssueTypesFor(_cfg, v);
+            }),
           ),
           const SizedBox(height: 16),
           Text('Issue Type',

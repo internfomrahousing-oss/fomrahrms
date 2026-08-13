@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/task_priority_style.dart';
 import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
@@ -440,19 +441,9 @@ class _MyTaskCardState extends State<_MyTaskCard> {
 
   static Color get _color => AppTheme.accentBlue;
 
-  Color _priorityColor(TaskPriority p) => switch (p) {
-        TaskPriority.low      => Colors.green.shade600,
-        TaskPriority.medium   => Colors.orange.shade700,
-        TaskPriority.high     => Colors.deepOrange.shade700,
-        TaskPriority.critical => Colors.red.shade800,
-      };
+  Color _priorityColor(TaskPriority p) => taskPriorityColor(p);
 
-  String _priorityLabel(TaskPriority p) => switch (p) {
-        TaskPriority.low      => 'Low',
-        TaskPriority.medium   => 'Medium',
-        TaskPriority.high     => 'High',
-        TaskPriority.critical => 'Critical',
-      };
+  String _priorityLabel(TaskPriority p) => taskPriorityLabel(p);
 
   Color _statusColor(TaskStatus s) => switch (s) {
         TaskStatus.assigned   => const Color(0xFF3B82F6),

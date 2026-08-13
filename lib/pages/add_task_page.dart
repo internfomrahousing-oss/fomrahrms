@@ -40,8 +40,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
 static const _priorities = [
     (TaskPriority.low,      'Low',      Color(0xFF22C55E)),
     (TaskPriority.medium,   'Medium',   Color(0xFFF59E0B)),
-    (TaskPriority.high,     'High',     Color(0xFFBF360C)),
-    (TaskPriority.critical, 'Critical', Color(0xFFB91C1C)),
+    // High was #BF360C and Critical #B91C1C — two dark reds close enough to
+    // be indistinguishable at chip size, so the most urgent tasks did not
+    // stand out from merely important ones.
+    (TaskPriority.high,     'High',     Color(0xFFEA580C)),  // orange
+    (TaskPriority.critical, 'Critical', Color(0xFFDC2626)),  // red
   ];
 
   @override

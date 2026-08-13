@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/task_priority_style.dart';
 import 'package:go_router/go_router.dart';
 import '../models/task_store.dart';
 import '../models/user_session.dart';
@@ -727,20 +728,6 @@ String _filterLabel(TaskStatus s) => switch (s) {
       TaskStatus.inProgress => 'In Progress',
       TaskStatus.completed => 'Completed',
       TaskStatus.delayed => 'Delayed',
-    };
-
-Color taskPriorityColor(TaskPriority p) => switch (p) {
-      TaskPriority.low => Colors.green.shade600,
-      TaskPriority.medium => Colors.orange.shade700,
-      TaskPriority.high => Colors.deepOrange.shade700,
-      TaskPriority.critical => Colors.red.shade800,
-    };
-
-String taskPriorityLabel(TaskPriority p) => switch (p) {
-      TaskPriority.low => 'Low',
-      TaskPriority.medium => 'Medium',
-      TaskPriority.high => 'High',
-      TaskPriority.critical => 'Critical',
     };
 
 Color taskStatusColor(TaskStatus s) => switch (s) {

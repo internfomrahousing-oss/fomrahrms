@@ -488,7 +488,18 @@ class _UsersTab extends StatelessWidget {
                     designation:      desigCtrl.text.trim(),
                     role:             selectedRole,
                     reportingManager: ['Employee', 'Manager', 'HR'].contains(selectedRole) ? selectedManager : '',
-                    dateOfJoining:    todayStr,
+                    // The date the ACCOUNT is created is not the date the
+                    // employee joined. Nirmal joined 01/04/2026 and his
+                    // account was made on 29/07/2026, so the system recorded
+                    // 14 days of service instead of four months — which feeds
+                    // probation, confirmation and earned leave.
+                    //
+                    // Left blank rather than stamped with today: an empty date
+                    // is visibly missing and gets filled in, whereas a
+                    // plausible wrong one is never questioned. HR sets it on
+                    // the employee record, or it arrives from the onboarding
+                    // form's Date of Joining.
+                    dateOfJoining:    '',
                   );
                   users.add(target);
                 } else {

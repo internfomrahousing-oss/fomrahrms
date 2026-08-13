@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../utils/task_priority_style.dart';
 import 'celebrating_trophy.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -48,20 +49,6 @@ String taskStatusLabel(TaskStatus s) => switch (s) {
       TaskStatus.inProgress => 'In Progress',
       TaskStatus.completed  => 'Completed',
       TaskStatus.delayed    => 'Delayed',
-    };
-
-Color taskPriorityColor(TaskPriority p) => switch (p) {
-      TaskPriority.low      => Colors.green.shade600,
-      TaskPriority.medium   => Colors.orange.shade700,
-      TaskPriority.high     => Colors.deepOrange.shade700,
-      TaskPriority.critical => Colors.red.shade800,
-    };
-
-String taskPriorityLabel(TaskPriority p) => switch (p) {
-      TaskPriority.low      => 'Low',
-      TaskPriority.medium   => 'Medium',
-      TaskPriority.high     => 'High',
-      TaskPriority.critical => 'Critical',
     };
 
 // Coarse completion percent per status stage, used for the ring shown on
@@ -229,10 +216,71 @@ class AnnouncementsBlock extends StatefulWidget {
 class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
-  int? _expanded;
 
   @override
   void initState() { super.initState(); _load(); }
+
+  /// Opens one announcement in a dialog.
+  ///
+  /// Tapping used to expand it in place, which pushed everything below it
+  /// down the page — the reader lost their position, and a long announcement
+  /// pushed Birthdays and Employee of the Month off screen. A dialog keeps the
+  /// dashboard still and gives the text room to be read.
+  void _openAnnouncement(Map<String, dynamic> item) {
+    final date = DateTime.tryParse(item['announced_on'] as String? ?? '') ?? DateTime.now();
+    final private = (item['target_employee_name'] as String?) ?? '';
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
+        title: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: _purple.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(Icons.campaign_rounded, size: 17, color: _purple),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Announcement',
+                  style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
+              Text(
+                private.isNotEmpty
+                    ? '${_fmtDate(date)} · ${widget.canEdit ? 'Private · $private' : 'Private message'}'
+                    : _fmtDate(date),
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+              ),
+            ]),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, size: 19),
+            onPressed: () => Navigator.of(ctx).pop(),
+            tooltip: 'Close',
+          ),
+        ]),
+        content: ConstrainedBox(
+          // Scrolls rather than growing without limit, so a long announcement
+          // cannot push the close button off screen on a phone.
+          constraints: BoxConstraints(
+            maxWidth: 460,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+          ),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              item['text'] as String? ?? '',
+              style: const TextStyle(
+                  fontSize: 14, height: 1.45, color: AppTheme.textPrimary),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _load() async {
     final data = await SupabaseService.fetchAnnouncements();
@@ -375,13 +423,10 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
           : _items.isEmpty
               ? _Empty('No announcements yet')
               : _scrollableList(Column(
-                  children: _items.asMap().entries.map((e) {
-                    final i = e.key;
-                    final item = e.value;
+                  children: _items.map((item) {
                     final date =
                         DateTime.tryParse(item['announced_on'] as String? ?? '') ??
                         DateTime.now();
-                    final isExp = _expanded == i;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -393,7 +438,7 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: InkWell(
-                              onTap: () => setState(() => _expanded = isExp ? null : i),
+                              onTap: () => _openAnnouncement(item),
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
@@ -427,10 +472,8 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                                         ]),
                                         const SizedBox(height: 3),
                                         Text(item['text'] as String? ?? '',
-                                            maxLines: isExp ? null : 1,
-                                            overflow: isExp
-                                                ? TextOverflow.visible
-                                                : TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w500,
@@ -447,10 +490,10 @@ class _AnnouncementsBlockState extends State<AnnouncementsBlock> {
                                           color: _purple.withValues(alpha: 0.5)),
                                     )
                                   else
+                                    // Chevron right, not up/down: this opens a
+                                    // dialog rather than expanding in place.
                                     Icon(
-                                      isExp
-                                          ? Icons.keyboard_arrow_up_rounded
-                                          : Icons.keyboard_arrow_down_rounded,
+                                      Icons.chevron_right_rounded,
                                       size: 18,
                                       color: cs.onSurface.withValues(alpha: 0.35),
                                     ),

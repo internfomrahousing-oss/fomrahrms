@@ -2505,6 +2505,63 @@ class SupabaseService {
     }
   }
 
+  /// Attendance for a date RANGE, using date_iso rather than the text date.
+  ///
+  /// fetchAttendanceForMonth() matches on '%/MM/yyyy', which can only express
+  /// a calendar month — it cannot span 26 Jul to 25 Aug. date_iso is the
+  /// generated ISO column, so a range query on it is both correct and sortable.
+  static Future<List<AttendanceRecord>> fetchAttendanceForRange(
+      String employeeId, DateTime from, DateTime to) async {
+    if (employeeId.isEmpty) return [];
+    String iso(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    try {
+      final data = await _db
+          ?.from('attendance_records')
+          .select()
+          .eq('employee_id', employeeId)
+          .gte('date_iso', iso(from))
+          .lte('date_iso', iso(to))
+          .order('date_iso');
+      if (data == null) return [];
+      // Reuse the month mapping rather than repeating twenty fields: this
+      // mapping has already drifted between call sites once.
+      return _mapAttendanceRows(data as List);
+    } catch (e) {
+      _writeFailed('fetchAttendanceForRange', e);
+      return [];
+    }
+  }
+
+  /// Shared row -> AttendanceRecord mapping.
+  static List<AttendanceRecord> _mapAttendanceRows(List rows) =>
+      rows.map((r) {
+        final row = r as Map<String, dynamic>;
+        return AttendanceRecord(
+          id:           (row['id'] as String?) ?? '',
+          employeeName: (row['employee_name'] as String?) ?? '',
+          employeeId:   (row['employee_id'] as String?) ?? '',
+          date:         (row['date'] as String?) ?? '',
+          checkInTime:  (row['check_in_time']  as String?) ?? '',
+          checkOutTime: (row['check_out_time'] as String?) ?? '',
+          location:     (row['location'] as String?) ?? '',
+          gpsPoints:    _parseGpsPoints(row['gps_points']),
+          checkInNote:  (row['check_in_note']  as String?) ?? '',
+          checkOutNote: (row['check_out_note'] as String?) ?? '',
+          checkInSelfiePath:  (row['check_in_selfie_path']  as String?) ?? '',
+          checkOutSelfiePath: (row['check_out_selfie_path'] as String?) ?? '',
+          checkInLat:          (row['check_in_lat']  as num?)?.toDouble(),
+          checkInLng:          (row['check_in_lng']  as num?)?.toDouble(),
+          checkInWithinRadius: row['check_in_within_radius']  as bool?,
+          lateWaived:          (row['late_waived'] as bool?) ?? false,
+          lateWaiverReason:    (row['late_waiver_reason'] as String?) ?? '',
+          checkOutLat:          (row['check_out_lat'] as num?)?.toDouble(),
+          checkOutLng:          (row['check_out_lng'] as num?)?.toDouble(),
+          checkOutWithinRadius: row['check_out_within_radius'] as bool?,
+          locationPolicyName:   (row['location_policy_name'] as String?) ?? '',
+        );
+      }).toList();
+
   static Future<List<AttendanceRecord>> fetchAttendanceForMonth(
       String employeeId, int year, int month) async {
     if (employeeId.isEmpty) return [];
