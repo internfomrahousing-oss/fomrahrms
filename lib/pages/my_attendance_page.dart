@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/attendance_cycle.dart';
 import 'package:go_router/go_router.dart';
 import '../models/app_user.dart';
 import '../models/attendance_store.dart';
@@ -52,6 +53,15 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
   List<LeaveApplication> _leaveApps = [];
   int? _selectedDay;
   int _offWeekday = DateTime.sunday;
+
+  /// Records for the ATTENDANCE CYCLE (26th–25th) containing the shown month.
+  ///
+  /// The calendar grid stays month-based — a grid is inherently a month — but
+  /// the summary must count the period people are actually paid and assessed
+  /// on. Kept separate rather than reusing _attendance, which is keyed by
+  /// day-of-month and cannot represent a span crossing two months: the 3rd
+  /// appears twice in a cycle.
+  List<AttendanceRecord> _cycleRecords = [];
   DateTime? _joiningDate;
 
   @override
@@ -70,8 +80,16 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
       SupabaseService.fetchHolidays(_month.year),
       SupabaseService.fetchLeaveApplications(),
       UserStore.load(),
+      SupabaseService.fetchAttendanceForRange(
+        UserSession.employeeId,
+        attendanceCycleStart(_month),
+        attendanceCycleEnd(_month),
+      ),
     ]);
     if (!mounted) return;
+    // results[5]: the range fetch is appended AFTER UserStore.load(), which
+    // is results[4]. Casting the user list to AttendanceRecord would throw.
+    _cycleRecords = results[5] as List<AttendanceRecord>;
 
     final today    = results[0] as AttendanceRecord?;
     final records  = results[1] as List<AttendanceRecord>;
@@ -208,11 +226,145 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     final missed       = _isMissedDay(day);
     if (rec == null && !isLeave && !isPermission && !isCompOff && !missed) return;
 
-    setState(() => _selectedDay = _selectedDay == day ? null : day);
+    // Was: toggle _selectedDay, which rendered the detail INLINE beneath the
+    // calendar and pushed everything below it down the page. A dialog keeps
+    // the grid still and gives the detail room — same reasoning as
+    // announcements.
+    setState(() => _selectedDay = day);
+    final content = _selectedDayContent();
+    if (content == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 420,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.75,
+          ),
+          child: SingleChildScrollView(child: content),
+        ),
+      ),
+    ).then((_) {
+      if (mounted) setState(() => _selectedDay = null);
+    });
   }
 
   // Builds the inline dropdown card for the currently selected day, shown
   // right under its row in the calendar grid — null when nothing selected.
+  // ── Cycle summary ────────────────────────────────────────────────────────
+  // "This period: how many lates, leaves" — counted over the 26th-25th cycle,
+  // which is the period people are actually paid and assessed on.
+
+  int get _cyclePresent =>
+      _cycleRecords.where((r) => r.checkInTime.isNotEmpty).length;
+
+  int get _cycleLate => _cycleRecords.where((r) {
+        if (r.checkInTime.isEmpty) return false;
+        final d = _parseSlash(r.date);
+        if (d == null) return false;
+        return checkInStatusFor(r.checkInTime, d, UserSession.name, _leaveApps,
+                OfficeTimingStore.scheduleForCurrentUser(),
+                lateWaived: r.lateWaived)
+            .status == CheckInStatus.late;
+      }).length;
+
+  /// Excused lateness, shown separately rather than hidden — an employee
+  /// should be able to see that a late arrival was written off, not just that
+  /// the count went down.
+  int get _cycleWaived =>
+      _cycleRecords.where((r) => r.lateWaived).length;
+
+  double get _cycleLeaveDays {
+    final start = attendanceCycleStart(_month);
+    final end = attendanceCycleEnd(_month);
+    return _leaveApps
+        .where((a) =>
+            a.employeeName == UserSession.name &&
+            a.leaveType != 'Permission' &&
+            a.managerStatus == LeaveApprovalStatus.approved &&
+            !a.from.isAfter(end) &&
+            !a.to.isBefore(start))
+        .fold<double>(0, (sum, a) => sum + a.days);
+  }
+
+  int get _cyclePermissionMinutes => _leaveApps
+      .where((a) =>
+          a.employeeName == UserSession.name &&
+          a.leaveType == 'Permission' &&
+          a.managerStatus != LeaveApprovalStatus.denied &&
+          sameAttendanceCycle(a.from, _month))
+      .fold<int>(0, (sum, a) => sum + LeaveStore.permMinutesFromReason(a.reason));
+
+  static DateTime? _parseSlash(String d) {
+    final p = d.split('/');
+    if (p.length != 3) return null;
+    return DateTime.tryParse('${p[2]}-${p[1]}-${p[0]}');
+  }
+
+  Widget _cycleSummary() {
+    final range = attendanceCycleRange(_month);
+    final tiles = <(String, String, IconData, Color)>[
+      ('Present', '$_cyclePresent', Icons.check_circle_rounded, Colors.green.shade600),
+      ('Late', '$_cycleLate', Icons.running_with_errors_rounded, Colors.orange.shade700),
+      ('Leaves', _cycleLeaveDays == _cycleLeaveDays.roundToDouble()
+              ? '${_cycleLeaveDays.toInt()}'
+              : _cycleLeaveDays.toStringAsFixed(1),
+          Icons.event_busy_rounded, AppTheme.accentBlue),
+      ('Permission', '${_cyclePermissionMinutes}m', Icons.timer_rounded, Colors.purple.shade400),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.insights_rounded, size: 16, color: AppTheme.primaryBlue),
+          const SizedBox(width: 8),
+          Text('This pay cycle',
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.primaryBlue)),
+          const SizedBox(width: 8),
+          // The range is spelled out so the figures cannot be misread as
+          // month-to-date.
+          Text(range, style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+        ]),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 20,
+          runSpacing: 12,
+          children: tiles
+              .map((t) => Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(t.$3, size: 15, color: t.$4),
+                    const SizedBox(width: 6),
+                    Text(t.$2,
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700, color: t.$4)),
+                    const SizedBox(width: 4),
+                    Text(t.$1,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  ]))
+              .toList(),
+        ),
+        if (_cycleWaived > 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            '$_cycleWaived late arrival${_cycleWaived == 1 ? '' : 's'} excused by Management '
+            '— not counted above.',
+            style: TextStyle(fontSize: 11.5, color: Colors.green.shade700),
+          ),
+        ],
+      ]),
+    );
+  }
+
   Widget? _selectedDayContent() {
     final day = _selectedDay;
     if (day == null) return null;
@@ -338,6 +490,12 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                 isDark: Theme.of(context).brightness == Brightness.dark),
             const SizedBox(height: 24),
 
+            // ── Pay-cycle summary ──────────────────────────────────────────
+            // Counted over the 26th–25th cycle, not the calendar month: that
+            // is the period people are paid and assessed on, and there was no
+            // way to see it anywhere in the app.
+            if (!_loading) _cycleSummary(),
+
             // ── Calendar card ──────────────────────────────────────────────
             Card(
               margin: EdgeInsets.zero,
@@ -405,7 +563,8 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                       holidayDays: _holidayDays,
                       onTap: _onTap,
                       selectedDay: _selectedDay,
-                      selectedDayContent: _selectedDayContent(),
+                      // Detail now opens in a dialog; nothing renders inline.
+                      selectedDayContent: null,
                     ),
                 ]),
               ),
@@ -716,6 +875,25 @@ class _DaySheet extends StatelessWidget {
         ] else if (isAbsent) ...[
           _noteRow(context, Icons.event_busy_rounded, _red, 'No attendance recorded'),
         ],
+
+        // The reason typed at check-in was never shown anywhere. An employee
+        // explaining a late arrival or an off-site check-in had no way to see
+        // that their explanation was recorded — and no way to check what it
+        // said if it was later questioned.
+        if ((record?.checkInNote ?? '').isNotEmpty)
+          _noteRow(context, Icons.chat_bubble_outline_rounded, _blue,
+              'Your reason: ${record!.checkInNote}'),
+        if ((record?.checkOutNote ?? '').isNotEmpty)
+          _noteRow(context, Icons.chat_bubble_outline_rounded, _blue,
+              'Check-out reason: ${record!.checkOutNote}'),
+
+        // A waived late arrival should say so, rather than silently not
+        // counting.
+        if (record?.lateWaived ?? false)
+          _noteRow(context, Icons.verified_rounded, _green,
+              (record!.lateWaiverReason.isEmpty)
+                  ? 'Late arrival excused by Management'
+                  : 'Excused by Management: ${record.lateWaiverReason}'),
       ]),
     );
   }
