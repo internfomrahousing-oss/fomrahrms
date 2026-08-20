@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import '../../utils/attendance_cycle.dart';
 import '../../theme/app_theme.dart';
 import '../filter_panel.dart';
 
-enum QuickRange { today, thisWeek, thisMonth, custom }
+enum QuickRange { today, thisWeek, payCycle, thisMonth, custom }
 
 extension QuickRangeLabel on QuickRange {
   String get label => switch (this) {
         QuickRange.today => 'Today',
         QuickRange.thisWeek => 'This Week',
-        QuickRange.thisMonth => 'This Month',
+        // The period people are actually paid and assessed on. Offered
+        // alongside the calendar month rather than replacing it, so a
+        // calendar view is still one tap away.
+        QuickRange.payCycle => 'Pay Cycle (26–25)',
+        QuickRange.thisMonth => 'Calendar Month',
         QuickRange.custom => 'Custom',
       };
 }
@@ -22,6 +27,11 @@ DateTimeRange rangeFor(QuickRange q) {
     case QuickRange.thisWeek:
       final start = today.subtract(Duration(days: today.weekday - 1));
       return DateTimeRange(start: start, end: today);
+    case QuickRange.payCycle:
+      return DateTimeRange(
+        start: attendanceCycleStart(today),
+        end: attendanceCycleEnd(today),
+      );
     case QuickRange.thisMonth:
       return DateTimeRange(start: DateTime(today.year, today.month, 1), end: today);
     case QuickRange.custom:
@@ -43,6 +53,9 @@ class ReportsHeader extends StatelessWidget {
   final String? department;
   final List<String> departmentOptions;
   final ValueChanged<String?> onDepartmentChanged;
+  final String? employee;
+  final List<String> employeeOptions;
+  final ValueChanged<String?> onEmployeeChanged;
 
   final String? location;
   final List<String> locationOptions;
@@ -66,6 +79,9 @@ class ReportsHeader extends StatelessWidget {
     required this.department,
     required this.departmentOptions,
     required this.onDepartmentChanged,
+    this.employee,
+    this.employeeOptions = const [],
+    required this.onEmployeeChanged,
     required this.location,
     required this.locationOptions,
     required this.onLocationChanged,
@@ -117,8 +133,22 @@ class ReportsHeader extends StatelessWidget {
         const SizedBox(height: 18),
         Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [
           _dateRangeButton(context),
-          for (final q in [QuickRange.today, QuickRange.thisWeek, QuickRange.thisMonth])
+          for (final q in [QuickRange.today, QuickRange.thisWeek, QuickRange.payCycle, QuickRange.thisMonth])
             _quickChip(q),
+          // Employee filter. The page could only be narrowed by department,
+          // so there was no way to look at one person — the headline figures
+          // were the only view of anybody.
+          SizedBox(
+            width: 190,
+            child: FilterDropdownField<String>(
+              label: 'Employee',
+              value: employee,
+              options: employeeOptions,
+              labelOf: (o) => o,
+              allLabel: 'All Employees',
+              onChanged: onEmployeeChanged,
+            ),
+          ),
           SizedBox(
             width: 170,
             child: FilterDropdownField<String>(
