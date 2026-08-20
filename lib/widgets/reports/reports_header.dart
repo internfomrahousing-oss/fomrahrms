@@ -68,6 +68,8 @@ class ReportsHeader extends StatelessWidget {
   final VoidCallback onRefresh;
   final bool refreshing;
   final VoidCallback onExport;
+  final VoidCallback? onExportCycleCsv;
+  final VoidCallback? onExportCyclePdf;
   final bool exporting;
 
   const ReportsHeader({
@@ -91,6 +93,8 @@ class ReportsHeader extends StatelessWidget {
     required this.onRefresh,
     required this.refreshing,
     required this.onExport,
+    this.onExportCycleCsv,
+    this.onExportCyclePdf,
     required this.exporting,
   });
 
@@ -250,8 +254,63 @@ class ReportsHeader extends StatelessWidget {
         ),
       );
 
-  Widget _exportButton() => ElevatedButton.icon(
-        onPressed: exporting ? null : onExport,
+  /// Export offers three formats rather than one: the KPI summary that
+  /// already existed, plus the monthly attendance sheet as CSV or PDF. The
+  /// sheet is what HR reconciles against payroll, so CSV matters more than
+  /// PDF — a PDF cannot be pasted into next month's workbook.
+  Widget _exportButton() => PopupMenuButton<String>(
+        enabled: !exporting,
+        tooltip: 'Export',
+        onSelected: (v) {
+          switch (v) {
+            case 'summary':
+              onExport();
+            case 'sheet_csv':
+              onExportCycleCsv?.call();
+            case 'sheet_pdf':
+              onExportCyclePdf?.call();
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(
+            value: 'sheet_csv',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.table_chart_outlined, size: 18),
+              title: Text('Attendance sheet (Excel/CSV)'),
+              subtitle: Text('Pay cycle, all employees'),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'sheet_pdf',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.picture_as_pdf_outlined, size: 18),
+              title: Text('Attendance sheet (PDF)'),
+              subtitle: Text('Pay cycle, all employees'),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'summary',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.insert_chart_outlined, size: 18),
+              title: Text('Summary report (PDF)'),
+              subtitle: Text('Headline figures for the range'),
+            ),
+          ),
+        ],
+        // IgnorePointer: a disabled ElevatedButton still absorbs the tap, so
+        // without this the popup would never open. The face is decoration
+        // only; PopupMenuButton handles the gesture.
+        child: IgnorePointer(child: _exportButtonFace()),
+      );
+
+  Widget _exportButtonFace() => ElevatedButton.icon(
+        onPressed: null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.primaryBlue,
           foregroundColor: Colors.white,

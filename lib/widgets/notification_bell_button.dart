@@ -61,6 +61,14 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
               onOpen: (n) async {
                 Navigator.of(dialogContext).pop();
                 await NotificationService.markRead(n);
+                // A notification with a body has content worth reading —
+                // the dropdown shows only the title, truncated to one line,
+                // so the detail was never visible anywhere. Show it before
+                // navigating, and let the reader choose to follow the link.
+                if (n.body.trim().isNotEmpty && mounted) {
+                  final go = await _showNotificationDialog(context, n);
+                  if (go != true || !mounted) return;
+                }
                 if (n.route.isNotEmpty && mounted) {
                   // Routes are stored with the role prefix of whoever the
                   // notification was raised for ('/employee/...', '/hr/...'),
@@ -105,6 +113,66 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
       ),
     );
   }
+}
+
+/// Opens one notification in a dialog.
+///
+/// Returns true when the reader chose to open the related page. The bell's
+/// dropdown shows only a one-line title, so anything longer — a leave reason,
+/// a decline note, a policy change — was truncated and unreadable.
+Future<bool?> _showNotificationDialog(BuildContext context, AppNotification n) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      titlePadding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
+      title: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: AppTheme.lightBlue,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(categoryFor(n.type).icon, size: 17, color: AppTheme.primaryBlue),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(n.title,
+              style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
+        ),
+        IconButton(
+          icon: const Icon(Icons.close_rounded, size: 19),
+          onPressed: () => Navigator.of(ctx).pop(false),
+          tooltip: 'Close',
+        ),
+      ]),
+      content: ConstrainedBox(
+        // Scrolls rather than growing without limit, so a long body cannot
+        // push the buttons off screen on a phone.
+        constraints: BoxConstraints(
+          maxWidth: 440,
+          maxHeight: MediaQuery.of(ctx).size.height * 0.55,
+        ),
+        child: SingleChildScrollView(
+          child: SelectableText(
+            n.body,
+            style: const TextStyle(fontSize: 14, height: 1.45),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Close'),
+        ),
+        if (n.route.isNotEmpty)
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Open'),
+          ),
+      ],
+    ),
+  );
 }
 
 /// Rewrites a stored notification route into the current user's shell.

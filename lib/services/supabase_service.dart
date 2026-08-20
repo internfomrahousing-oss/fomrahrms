@@ -3432,6 +3432,44 @@ class SupabaseService {
   /// Reads v_location_history, which has security_invoker on — so the RLS
   /// policy on attendance_records still applies and an employee querying this
   /// sees only their own movements. Location is personal data.
+  /// The monthly attendance sheet, exactly as HR keeps it by hand: one row per
+  /// employee for one 26th-to-25th cycle, with working days, days worked,
+  /// leave, LOP, lates, permission, pay days and remarks.
+  ///
+  /// Computed in the database rather than the client so the export cannot
+  /// disagree with what the screens show — the same rules for lateness,
+  /// exemptions and non-working days apply in one place.
+  static Future<List<Map<String, dynamic>>> fetchCycleReport(DateTime cycleEnd) async {
+    try {
+      final iso = '${cycleEnd.year.toString().padLeft(4, '0')}-'
+          '${cycleEnd.month.toString().padLeft(2, '0')}-'
+          '${cycleEnd.day.toString().padLeft(2, '0')}';
+      final rows = await _db?.rpc('attendance_cycle_report', params: {'p_cycle_end': iso});
+      return List<Map<String, dynamic>>.from(rows ?? []);
+    } catch (e) {
+      _writeFailed('fetchCycleReport', e);
+      return [];
+    }
+  }
+
+  /// Saves the manual REMARKS note for one employee and cycle.
+  static Future<String?> saveCycleRemarks(
+      String employeeId, String cycleLabel, String remarks) async {
+    try {
+      await _db?.from('attendance_cycle_remarks').upsert({
+        'employee_id': employeeId,
+        'cycle_label': cycleLabel,
+        'remarks': remarks,
+        'updated_by': UserSession.name,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'employee_id,cycle_label');
+      return null;
+    } catch (e) {
+      _writeFailed('saveCycleRemarks', e);
+      return 'Could not save the remark. Please try again.';
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> fetchLocationHistory({
     String? employeeId,
     String? fromIso,
