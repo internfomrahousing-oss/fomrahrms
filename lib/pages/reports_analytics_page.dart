@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/reports/employee_report_card.dart';
 import 'hr_employee_records_page.dart' show showEmployeeProfile;
 import '../widgets/employee_list_dialog.dart';
 import '../utils/attendance_day.dart';
@@ -54,6 +55,10 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
   QuickRange _quickRange = QuickRange.thisWeek;
   DateTimeRange _range = rangeFor(QuickRange.thisWeek);
   String? _department;
+  /// Narrows every figure on the page to one person. Without this the page
+  /// could only be filtered by department, so an individual's record was not
+  /// viewable at all.
+  String? _employeeName;
   String? _location;
   String? _role;
 
@@ -140,6 +145,7 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
         // The founder is not an employee and must not appear in any report or
         // count. He remains selectable as an approver elsewhere.
         if (!u.countsInHeadcount) return false;
+        if (_employeeName != null && u.name != _employeeName) return false;
         if (_department != null && u.department != _department) return false;
         if (_location != null && u.workLocation != _location) return false;
         if (_role != null && u.role != _role) return false;
@@ -628,6 +634,11 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             quickRange: _quickRange,
             onQuickRange: _setQuickRange,
             onCustomRange: _setCustomRange,
+            employee: _employeeName,
+            employeeOptions: (_users.where((u) => u.active && u.countsInHeadcount)
+                    .map((u) => u.name).toList()
+                  ..sort()),
+            onEmployeeChanged: (v) => setState(() => _employeeName = v),
             department: _department,
             departmentOptions: _departmentOptions,
             onDepartmentChanged: (v) { setState(() => _department = v); },
@@ -643,6 +654,21 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             exporting: _exporting,
           ),
           const SizedBox(height: 24),
+
+          // When one employee is selected, their day-by-day record appears
+          // above the headline figures — the figures are then about that one
+          // person, so leading with the detail is the more useful order.
+          if (_employeeName != null && _filteredUsers.isNotEmpty)
+            EmployeeReportCard(
+              employee: _filteredUsers.first,
+              range: _range,
+              records: _rangeAttendance
+                  .where((r) => r.employeeName == _employeeName)
+                  .toList(),
+              leaveApps: _leaveApps,
+              holidayIsoDates: _holidayDates,
+            ),
+
           AppStatStrip(cards: [
             AppStatCard(
               title: 'Total Employees', value: '$_activeCount',
