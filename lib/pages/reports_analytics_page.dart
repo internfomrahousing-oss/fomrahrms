@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../utils/attendance_cycle.dart';
+import '../services/cycle_report_export_service.dart';
 import '../widgets/reports/employee_report_card.dart';
 import 'hr_employee_records_page.dart' show showEmployeeProfile;
 import '../widgets/employee_list_dialog.dart';
@@ -591,6 +593,43 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
     _load(isRefresh: true);
   }
 
+  /// The monthly attendance sheet, in the format HR already keeps by hand.
+  /// Offered as CSV as well as PDF: the existing sheet is a spreadsheet, and a
+  /// PDF cannot be pasted into next month's workbook or reconciled against
+  /// payroll.
+  Future<void> _exportCycleSheet({required bool asCsv}) async {
+    setState(() => _exporting = true);
+    try {
+      // Anchored on the range END, so exporting while inside a cycle gives the
+      // cycle you are currently in rather than the previous one.
+      final cycleEnd = attendanceCycleEnd(_range.end);
+      final rows = await SupabaseService.fetchCycleReport(cycleEnd);
+      if (!mounted) return;
+      if (rows.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No attendance data for this cycle.'),
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
+      final filename = asCsv
+          ? await CycleReportExportService.downloadCsv(rows, cycleEnd)
+          : await CycleReportExportService.downloadPdf(rows, cycleEnd);
+      if (!mounted) return;
+      setState(() => _recentReports
+          .insert(0, (filename: filename, generatedAt: DateTime.now())));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Could not export: $e'),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   Future<void> _export() async {
     setState(() => _exporting = true);
     try {
@@ -651,6 +690,8 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             onRefresh: () => _load(isRefresh: true),
             refreshing: _refreshing,
             onExport: _export,
+            onExportCycleCsv: () => _exportCycleSheet(asCsv: true),
+            onExportCyclePdf: () => _exportCycleSheet(asCsv: false),
             exporting: _exporting,
           ),
           const SizedBox(height: 24),
