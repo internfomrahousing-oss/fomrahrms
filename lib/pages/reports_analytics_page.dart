@@ -57,10 +57,14 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
   QuickRange _quickRange = QuickRange.thisWeek;
   DateTimeRange _range = rangeFor(QuickRange.thisWeek);
   String? _department;
-  /// Narrows every figure on the page to one person. Without this the page
-  /// could only be filtered by department, so an individual's record was not
-  /// viewable at all.
-  String? _employeeName;
+
+  /// Any combination of people and departments. Empty means everyone.
+  ///
+  /// Single values could express "everyone", "one department" or "one person"
+  /// but not "Ronak, Sijo and Jose" — an arbitrary group had to be viewed one
+  /// at a time.
+  Set<String> _employeeNames = {};
+  Set<String> _departments = {};
   String? _location;
   String? _role;
 
@@ -147,7 +151,14 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
         // The founder is not an employee and must not appear in any report or
         // count. He remains selectable as an approver elsewhere.
         if (!u.countsInHeadcount) return false;
-        if (_employeeName != null && u.name != _employeeName) return false;
+        // The two filters are OR'd, not AND'd: picking a department and then
+        // adding one person from elsewhere should show both, which is what
+        // "select the ones I want" means. AND would silently return nobody.
+        if (_employeeNames.isNotEmpty || _departments.isNotEmpty) {
+          final byName = _employeeNames.contains(u.name);
+          final byDept = _departments.contains(u.department);
+          if (!byName && !byDept) return false;
+        }
         if (_department != null && u.department != _department) return false;
         if (_location != null && u.workLocation != _location) return false;
         if (_role != null && u.role != _role) return false;
@@ -673,11 +684,13 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
             quickRange: _quickRange,
             onQuickRange: _setQuickRange,
             onCustomRange: _setCustomRange,
-            employee: _employeeName,
+            employees: _employeeNames,
             employeeOptions: (_users.where((u) => u.active && u.countsInHeadcount)
                     .map((u) => u.name).toList()
                   ..sort()),
-            onEmployeeChanged: (v) => setState(() => _employeeName = v),
+            onEmployeesChanged: (v) => setState(() => _employeeNames = v),
+            departments: _departments,
+            onDepartmentsChanged: (v) => setState(() => _departments = v),
             department: _department,
             departmentOptions: _departmentOptions,
             onDepartmentChanged: (v) { setState(() => _department = v); },
@@ -699,16 +712,25 @@ class _ReportsAnalyticsPageState extends State<ReportsAnalyticsPage> {
           // When one employee is selected, their day-by-day record appears
           // above the headline figures — the figures are then about that one
           // person, so leading with the detail is the more useful order.
-          if (_employeeName != null && _filteredUsers.isNotEmpty)
-            EmployeeReportCard(
-              employee: _filteredUsers.first,
-              range: _range,
-              records: _rangeAttendance
-                  .where((r) => r.employeeName == _employeeName)
-                  .toList(),
-              leaveApps: _leaveApps,
-              holidayIsoDates: _holidayDates,
-            ),
+          // One card per selected person. Selecting three shows three, so a
+          // group can be compared in one view rather than by switching between
+          // them. Capped at 10 — beyond that the headline figures and the
+          // export are the better tools, and 40 stacked cards help nobody.
+          // Only once something is actually selected. Without this check the
+          // unfiltered page would render a card for every employee, which is
+          // not a report — it is the whole database on one screen.
+          if ((_employeeNames.isNotEmpty || _departments.isNotEmpty) &&
+              _filteredUsers.isNotEmpty &&
+              _filteredUsers.length <= 10)
+            ...(_filteredUsers.map((u) => EmployeeReportCard(
+                  employee: u,
+                  range: _range,
+                  records: _rangeAttendance
+                      .where((r) => r.employeeName == u.name)
+                      .toList(),
+                  leaveApps: _leaveApps,
+                  holidayIsoDates: _holidayDates,
+                ))),
 
           AppStatStrip(cards: [
             AppStatCard(
