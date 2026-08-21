@@ -304,7 +304,13 @@ class _SidebarHeader extends StatelessWidget {
               width: double.infinity,
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Image.asset('assets/images/fomra_logo.png', height: 110, fit: BoxFit.contain, filterQuality: FilterQuality.high),
+                // The light variant: the sidebar is primaryBlueDark, and the
+                // wordmark is near-black (#231F20), which all but disappears
+                // against it. Only the text is recoloured — the blue swoosh is
+                // the brand colour and reads fine on dark.
+                child: Image.asset('assets/images/fomra_logo_light.png',
+                    height: 110, fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high),
               ),
             ),
           ),
