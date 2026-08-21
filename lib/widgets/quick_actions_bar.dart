@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/supabase_service.dart';
+import '../utils/upcoming_counts.dart';
 import '../models/user_session.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_info_blocks.dart';
@@ -16,6 +18,14 @@ class QuickActionDropdownIcon extends StatefulWidget {
   final double iconSize;
   final BorderRadius borderRadius;
   final bool whiteIcon;
+
+  /// Items worth attention behind this icon. Zero shows no badge.
+  ///
+  /// Without it the header gave no indication whether there was anything
+  /// behind an icon, so the only way to find out was to open each one — which
+  /// is why the same blocks were duplicated on the dashboard below.
+  final int badgeCount;
+
   const QuickActionDropdownIcon({
     super.key,
     required this.icon,
@@ -26,6 +36,7 @@ class QuickActionDropdownIcon extends StatefulWidget {
     this.iconSize = 18,
     this.borderRadius = const BorderRadius.all(Radius.circular(10)),
     this.whiteIcon = false,
+    this.badgeCount = 0,
   });
 
   @override
@@ -110,8 +121,38 @@ class _QuickActionDropdownIconState extends State<QuickActionDropdownIcon> {
               borderRadius: widget.borderRadius,
               border: Border.all(color: widget.color.withValues(alpha: 0.35)),
             ),
-            child: Icon(widget.icon, size: widget.iconSize,
-                color: widget.whiteIcon ? Colors.white : widget.color),
+            child: Stack(clipBehavior: Clip.none, children: [
+              Center(
+                child: Icon(widget.icon, size: widget.iconSize,
+                    color: widget.whiteIcon ? Colors.white : widget.color),
+              ),
+              if (widget.badgeCount > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    constraints: const BoxConstraints(minWidth: 15),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(20),
+                      // A ring against the gradient behind, so the badge stays
+                      // legible on any header colour.
+                      border: Border.all(color: Colors.white, width: 1.2),
+                    ),
+                    child: Text(
+                      widget.badgeCount > 9 ? '9+' : '${widget.badgeCount}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+            ]),
           ),
         ),
       ),
@@ -148,6 +189,66 @@ Widget _blockFor(int i) {
   }
 }
 
+/// Loads the badge counts once and shares them with every quick-action strip.
+///
+/// Both the horizontal and vertical strips render the same four icons; without
+/// a shared loader each would fetch separately and could disagree.
+class _UpcomingCountsLoader extends StatefulWidget {
+  final Widget Function(BuildContext, UpcomingCounts) builder;
+  const _UpcomingCountsLoader({required this.builder});
+
+  @override
+  State<_UpcomingCountsLoader> createState() => _UpcomingCountsLoaderState();
+}
+
+class _UpcomingCountsLoaderState extends State<_UpcomingCountsLoader> {
+  UpcomingCounts _counts = const UpcomingCounts();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final now = DateTime.now();
+    try {
+      final results = await Future.wait([
+        SupabaseService.fetchAnnouncements(),
+        SupabaseService.fetchHolidays(now.year),
+        // Already filtered to the month by the service, so only the
+        // still-ahead check is applied below.
+        SupabaseService.fetchBirthdaysForMonth(now.month),
+      ]);
+      if (!mounted) return;
+      final ann = (results[0] as List).cast<Map<String, dynamic>>();
+      final hol = (results[1] as List).cast<Map<String, dynamic>>();
+      final bd  = (results[2] as List).cast<Map<String, dynamic>>();
+      setState(() {
+        _counts = UpcomingCounts(
+          announcements: ann
+              .where((a) => isRecentAnnouncement(
+                  (a['announced_on'] as String?) ?? '', now: now))
+              .length,
+          holidays: hol
+              .where((h) => isUpcomingThisMonth(
+                  (h['holiday_date'] as String?) ?? '', now: now))
+              .length,
+          birthdays: bd
+              .where((b) => isBirthdayUpcomingThisMonth(
+                  (b['dob'] as String?) ?? '', now: now))
+              .length,
+        );
+      });
+    } catch (_) {
+      // A failed count must never hide the icons themselves.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _counts);
+}
+
 /// Places a row of small square quick-action icons above the narrow-layout
 /// body. Previously these floated on top of the scrollable content (a Stack
 /// overlay), which visually collided with cards underneath — now they sit
@@ -166,18 +267,26 @@ class QuickActionsBody extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: List.generate(_qData.length, (i) {
-            final q = _qData[i];
-            return Padding(
-              padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
-              child: QuickActionDropdownIcon(
-                icon: q.icon,
-                color: q.color,
-                label: q.label,
-                block: _blockFor(i),
+          children: [
+            _UpcomingCountsLoader(
+              builder: (_, counts) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(_qData.length, (i) {
+                  final q = _qData[i];
+                  return Padding(
+                    padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+                    child: QuickActionDropdownIcon(
+                      icon: q.icon,
+                      color: q.color,
+                      label: q.label,
+                      block: _blockFor(i),
+                      badgeCount: counts.forIndex(i),
+                    ),
+                  );
+                }),
               ),
-            );
-          }),
+            ),
+          ],
         ),
       ),
       Expanded(child: child),

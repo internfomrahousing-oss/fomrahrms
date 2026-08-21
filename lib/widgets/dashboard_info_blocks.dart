@@ -66,21 +66,38 @@ int taskStatusStagePercent(TaskStatus s) => switch (s) {
 class DashboardInfoBlocks extends StatelessWidget {
   final bool canEdit;
   final bool showIcon;
-  const DashboardInfoBlocks({super.key, this.canEdit = false, this.showIcon = true});
+
+  /// Announcements, Holidays and Birthdays also live behind the header
+  /// quick-action icons, which now carry a badge when something is waiting.
+  /// Repeating all four on the dashboard was duplication without benefit —
+  /// the same content twice on one screen, pushing the operational cards down.
+  ///
+  /// Employee of the Month is the exception and stays: it is recognition, and
+  /// recognition hidden behind an icon nobody opens is not recognition. It is
+  /// the one block that should always be visible to everyone.
+  final bool showAllBlocks;
+
+  const DashboardInfoBlocks({
+    super.key,
+    this.canEdit = false,
+    this.showIcon = true,
+    this.showAllBlocks = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final eotm = _EmployeeOfMonthBlock(canEdit: canEdit, showIcon: showIcon);
+    if (!showAllBlocks) return eotm;
+
     return LayoutBuilder(builder: (_, constraints) {
       final wide = constraints.maxWidth > 700;
       final blocks = <Widget>[
         AnnouncementsBlock(canEdit: canEdit, showIcon: showIcon),
         HolidaysBlock(canEdit: canEdit, showIcon: showIcon),
-        _EmployeeOfMonthBlock(canEdit: canEdit, showIcon: showIcon),
+        eotm,
         BirthdaysBlock(canEdit: canEdit, showIcon: showIcon),
       ];
       if (wide) {
-        // Announcements is the most important widget, so it spans 2 columns
-        // while Holidays / Employee of Month / Birthdays each take 1.
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
