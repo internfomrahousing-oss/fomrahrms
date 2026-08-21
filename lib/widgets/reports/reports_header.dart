@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../multi_select_filter_field.dart';
 import '../../utils/attendance_cycle.dart';
 import '../../theme/app_theme.dart';
 import '../filter_panel.dart';
@@ -53,9 +54,14 @@ class ReportsHeader extends StatelessWidget {
   final String? department;
   final List<String> departmentOptions;
   final ValueChanged<String?> onDepartmentChanged;
-  final String? employee;
+  /// Several employees at once, not one or all. Empty means everyone.
+  final Set<String> employees;
   final List<String> employeeOptions;
-  final ValueChanged<String?> onEmployeeChanged;
+  final ValueChanged<Set<String>> onEmployeesChanged;
+
+  /// Several departments at once, for comparing two teams side by side.
+  final Set<String> departments;
+  final ValueChanged<Set<String>> onDepartmentsChanged;
 
   final String? location;
   final List<String> locationOptions;
@@ -81,9 +87,11 @@ class ReportsHeader extends StatelessWidget {
     required this.department,
     required this.departmentOptions,
     required this.onDepartmentChanged,
-    this.employee,
+    this.employees = const {},
     this.employeeOptions = const [],
-    required this.onEmployeeChanged,
+    required this.onEmployeesChanged,
+    this.departments = const {},
+    required this.onDepartmentsChanged,
     required this.location,
     required this.locationOptions,
     required this.onLocationChanged,
@@ -139,29 +147,29 @@ class ReportsHeader extends StatelessWidget {
           _dateRangeButton(context),
           for (final q in [QuickRange.today, QuickRange.thisWeek, QuickRange.payCycle, QuickRange.thisMonth])
             _quickChip(q),
-          // Employee filter. The page could only be narrowed by department,
-          // so there was no way to look at one person — the headline figures
-          // were the only view of anybody.
+          // Multi-select, not single. The old dropdowns could express
+          // "everyone", "one department" or "one person" — but not "Ronak,
+          // Sijo and Jose", so comparing an arbitrary handful meant looking at
+          // each in turn and holding the numbers in your head.
           SizedBox(
-            width: 190,
-            child: FilterDropdownField<String>(
-              label: 'Employee',
-              value: employee,
+            width: 210,
+            child: MultiSelectFilterField(
+              label: 'Employees',
+              selected: employees,
               options: employeeOptions,
-              labelOf: (o) => o,
               allLabel: 'All Employees',
-              onChanged: onEmployeeChanged,
+              onChanged: onEmployeesChanged,
             ),
           ),
           SizedBox(
-            width: 170,
-            child: FilterDropdownField<String>(
-              label: 'Department',
-              value: department,
+            width: 200,
+            child: MultiSelectFilterField(
+              label: 'Departments',
+              selected: departments,
               options: departmentOptions,
-              labelOf: (o) => o,
               allLabel: 'All Departments',
-              onChanged: onDepartmentChanged,
+              icon: Icons.apartment_rounded,
+              onChanged: onDepartmentsChanged,
             ),
           ),
           SizedBox(
